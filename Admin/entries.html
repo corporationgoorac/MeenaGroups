@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Entries - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    /* --- PROFESSIONAL DARK THEME (Consistent) --- */
+    :root { 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --input: #0f172a;
+      --primary: #10b981; /* Emerald */
+      --secondary: #0ea5e9; /* Sky Blue */
+      --danger: #ef4444; 
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
+    }
+    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 50px; }
+
+    /* Navigation */
+    nav { 
+      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
+      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 1000;
+    }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
+      font-size: 0.95rem; white-space: nowrap; transition: 0.2s; background: rgba(255,255,255,0.05);
+    }
+    nav a:hover { background: #2d3748; color: white; }
+    nav a.active { background: rgba(16, 185, 129, 0.15); color: var(--primary); font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    /* Layout */
+    .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+
+    /* Search Section */
+    .search-card { 
+      background: var(--card); padding: 20px; border-radius: 16px; 
+      border: 1px solid var(--border); margin-bottom: 25px;
+      display: flex; gap: 10px; align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    
+    input { 
+      width: 100%; padding: 14px; background: var(--input); border: 1px solid var(--border); 
+      color: white; border-radius: 10px; font-size: 16px; transition: 0.2s; outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+
+    .btn-search { 
+      background: var(--secondary); color: white; border: none; padding: 0 25px; 
+      height: 50px; border-radius: 10px; font-weight: 700; cursor: pointer;
+    }
+    .btn-search:active { transform: scale(0.98); }
+
+    /* Customer Results */
+    .result-grid { display: grid; gap: 20px; }
+
+    .cust-card { 
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
+      overflow: hidden; animation: slideUp 0.3s ease;
+    }
+    
+    .cust-header { 
+      padding: 15px 20px; border-bottom: 1px solid #334155; background: rgba(255,255,255,0.02);
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .cust-info h3 { margin: 0; font-size: 1.2rem; color: white; }
+    .cust-info small { color: var(--secondary); font-family: monospace; font-size: 0.9rem; }
+    .cust-meta { text-align: right; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
+
+    /* Product & Payment Form */
+    .product-box { padding: 20px; border-bottom: 1px solid #334155; }
+    .product-box:last-child { border-bottom: none; }
+
+    .prod-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .prod-name { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    
+    .status-badge { 
+      font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; font-weight: bold; text-transform: uppercase; 
+    }
+    .badge-red { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
+
+    .stats-row { 
+      display: flex; gap: 15px; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); 
+      background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .stat-item strong { color: white; }
+
+    .payment-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
+    
+    .btn-pay { 
+      background: var(--primary); color: #000; font-weight: 700; border: none; 
+      padding: 0 20px; height: 50px; border-radius: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-pay:active { transform: scale(0.98); }
+    .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Helper text */
+    .next-due-hint { color: var(--secondary); font-size: 0.85rem; margin-bottom: 5px; display: block; font-weight: 600; }
+
+    /* Mobile Responsive */
+    @media (max-width: 600px) {
+      .payment-form { grid-template-columns: 1fr; } /* Stack inputs */
+      .btn-pay { width: 100%; margin-top: 5px; }
+      .search-card { flex-direction: column; }
+      .btn-search { width: 100%; }
+      .stats-row { justify-content: space-between; }
+    }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html" class="active">Entries</a>
+    <a href="review.html">Agent Sync</a>
+    <a href="report.html">Reports</a>
+  </nav>
+
+  <div class="container">
+    
+    <div class="search-card">
+      <input id="searchInput" placeholder="🔍 Enter Customer ID (e.g. C001)..." onkeypress="handleEnter(event)">
+      <button class="btn-search" onclick="searchCustomer()">Search</button>
+    </div>
+
+    <div id="resultArea" class="result-grid">
+      <div style="text-align: center; color: #64748b; padding: 40px;">
+        <p style="font-size: 3rem; margin: 0;">👤</p>
+        <p>Type a Customer ID above to manage payments.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import { 
+      collection, query, where, getDocs, doc, runTransaction, increment, limit 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // --- 1. SEARCH LOGIC ---
+    window.searchCustomer = async () => {
+      const term = document.getElementById("searchInput").value.trim();
+      const div = document.getElementById("resultArea");
+      
+      if (term.length < 1) return alert("Please enter an ID");
+
+      div.innerHTML = `<p style="color:#aaa; text-align:center; padding:20px;">Searching cloud database...</p>`;
+
+      try {
+        const q = query(
+          collection(db, "customers"),
+          where("id", ">=", term),
+          where("id", "<=", term + '\uf8ff'),
+          limit(5)
+        );
+
+        const snapshot = await getDocs(q);
+        div.innerHTML = "";
+
+        if (snapshot.empty) {
+          div.innerHTML = `<p style="text-align:center; padding:20px; color:#ef4444;">❌ No customer found with ID "${term}"</p>`;
+          return;
+        }
+
+        snapshot.forEach(docSnap => {
+          renderCard(docSnap.data());
+        });
+
+      } catch (e) {
+        console.error(e);
+        div.innerHTML = `<p style="color:#ef4444; text-align:center;">Error: ${e.message}</p>`;
+      }
+    };
+
+    window.handleEnter = (e) => {
+      if(e.key === "Enter") searchCustomer();
+    }
+
+    // --- 2. RENDER CARD UI ---
+    function renderCard(c) {
+      const div = document.getElementById("resultArea");
+      const card = document.createElement("div");
+      card.className = "cust-card";
+
+      let productsHtml = "";
+      
+      c.products.forEach((p, idx) => {
+        // Calculate Logic
+        const balance = p.total - p.paid;
+        
+        // Find next due number
+        const lastDue = (p.payments || []).length > 0 
+          ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
+          : 0;
+        const nextDue = lastDue + 1;
+
+        // Styling classes
+        const badgeClass = balance > 0 ? "badge-red" : "badge-green";
+        const badgeText = balance > 0 ? `Bal: ₹${balance.toLocaleString()}` : "PAID ✔";
+
+        productsHtml += `
+          <div class="product-box">
+            <div class="prod-header">
+              <span class="prod-name">📦 ${p.name}</span>
+              <span class="status-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            
+            <div class="stats-row">
+              <div class="stat-item">Total: <strong>₹${p.total}</strong></div>
+              <div class="stat-item">Paid: <strong>₹${p.paid}</strong></div>
+            </div>
+
+            <label class="next-due-hint">Next Due: #${nextDue}</label>
+            <div class="payment-form">
+              <input type="number" id="amt_${c.id}_${idx}" placeholder="Amount (₹)">
+              <input type="date" id="date_${c.id}_${idx}" value="${new Date().toISOString().split('T')[0]}">
+              <button class="btn-pay" onclick="processPayment('${c.id}', ${idx})">Add Payment</button>
+            </div>
+          </div>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="cust-header">
+          <div class="cust-info">
+            <h3>${c.name}</h3>
+            <small>ID: ${c.id}</small>
+          </div>
+          <div class="cust-meta">
+            📍 ${c.place || '-'}<br>
+            📞 ${c.phone || '-'}
+          </div>
+        </div>
+        <div>${productsHtml}</div>
+      `;
+      div.appendChild(card);
+    }
+
+    // --- 3. PAYMENT TRANSACTION LOGIC ---
+    window.processPayment = async (custId, prodIdx) => {
+      const amtInput = document.getElementById(`amt_${custId}_${prodIdx}`);
+      const dateInput = document.getElementById(`date_${custId}_${prodIdx}`);
+      
+      const amount = parseFloat(amtInput.value);
+      const date = dateInput.value;
+
+      if (!amount || amount <= 0) return alert("❌ Enter a valid positive amount");
+
+      const btn = event.target;
+      const originalText = btn.innerText;
+      btn.innerText = "Saving...";
+      btn.disabled = true;
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const custRef = doc(db, "customers", custId);
+          const statsRef = doc(db, "metadata", "stats");
+
+          const custDoc = await transaction.get(custRef);
+          if (!custDoc.exists()) throw "Customer does not exist!";
+
+          const data = custDoc.data();
+          const product = data.products[prodIdx];
+
+          // Calc Due Number atomically
+          let maxDue = 0;
+          if (product.payments && product.payments.length > 0) {
+            maxDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
+          }
+
+          const newPayment = {
+            date: date,
+            amount: amount,
+            dueNumber: maxDue + 1,
+            type: "Manual Entry"
+          };
+
+          product.payments.push(newPayment);
+          product.paid += amount;
+
+          transaction.update(custRef, { products: data.products });
+
+          transaction.update(statsRef, {
+            totalPaid: increment(amount),
+            totalBalance: increment(-amount)
+          });
+        });
+
+        alert("✅ Payment Successful!");
+        searchCustomer(); // Refresh UI to show updated balance
+
+      } catch (e) {
+        console.error(e);
+        alert("Transaction Failed: " + e.message);
+        btn.innerText = originalText;
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
+
