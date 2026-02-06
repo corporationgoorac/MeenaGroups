@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Dashboard - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    /* --- PROFESSIONAL MOBILE THEME --- */
+    :root { 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --primary: #10b981; 
+      --secondary: #0ea5e9; 
+      --accent: #8b5cf6;
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
+    }
+    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 90px; }
+
+    /* --- GLASS HEADER --- */
+    header { 
+      background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px);
+      padding: 20px; text-align: center; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    header h1 { 
+      margin: 0; font-size: 1.6rem; letter-spacing: 1px;
+      background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header p { margin: 4px 0 0; color: var(--secondary); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* --- HERO STATS CARD --- */
+    .hero-section { padding: 25px 20px; }
+    
+    .hero-card { 
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
+      padding: 30px; border-radius: 20px; text-align: center; 
+      border: 1px solid var(--border); position: relative; overflow: hidden;
+      box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.2);
+    }
+    /* Animated Glow */
+    .hero-card::after {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 60%);
+      animation: pulse 4s infinite;
+    }
+    
+    .hero-card h2 { margin: 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; position: relative; z-index: 1; }
+    .hero-card .amount { font-size: 3rem; font-weight: 800; color: var(--primary); margin: 10px 0; position: relative; z-index: 1; text-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+    .hero-card .status { 
+      font-size: 0.85rem; color: #fff; background: rgba(255,255,255,0.1); 
+      padding: 6px 14px; border-radius: 30px; display: inline-block; 
+      position: relative; z-index: 1; border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* --- ACTION GRID --- */
+    .grid-container { padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    
+    .action-card { 
+      background: var(--card); border: 1px solid var(--border); 
+      border-radius: 16px; padding: 25px 15px; text-align: center; 
+      text-decoration: none; color: white; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .action-card:active { transform: scale(0.96); }
+    
+    /* Unique Gradients for Icons */
+    .icon-box { 
+      width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .c-green { background: linear-gradient(135deg, #10b981, #059669); }
+    .c-blue { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+    .c-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .c-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .action-card h3 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text); }
+
+    /* --- FOOTER --- */
+    footer { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 0.85rem; }
+    footer span { color: var(--secondary); font-weight: 700; }
+
+    /* --- BOTTOM NAV --- */
+    nav { 
+      background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px);
+      display: flex; justify-content: space-around; padding: 12px 0; 
+      border-top: 1px solid var(--border); position: fixed; bottom: 0; width: 100%; z-index: 1000;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+    }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; font-size: 0.75rem; 
+      display: flex; flex-direction: column; align-items: center; gap: 5px; transition: 0.2s;
+    }
+    nav a.active { color: var(--secondary); transform: translateY(-2px); }
+    nav a span { font-size: 1.4rem; }
+
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 0.5; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Meena Groups</h1>
+    <p>Agent Dashboard</p>
+  </header>
+
+  <div class="hero-section">
+    <div class="hero-card">
+      <h2>Today's Collection</h2>
+      <div class="amount" id="todayTotal">₹0</div>
+      <div class="status">⚡ Live Sync Active</div>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <a href="agent_entry.html" class="action-card">
+      <div class="icon-box c-green">💰</div>
+      <h3>Add Collection</h3>
+    </a>
+    
+    <a href="agent_view.html" class="action-card">
+      <div class="icon-box c-blue">📝</div>
+      <h3>View Logs</h3>
+    </a>
+
+    <a href="agent_customer_report.html" class="action-card">
+      <div class="icon-box c-purple">📊</div>
+      <h3>Reports</h3>
+    </a>
+
+    <a href="#" class="action-card" onclick="alert('Admin: +91-9876543210')">
+      <div class="icon-box c-orange">📞</div>
+      <h3>Contact Admin</h3>
+    </a>
+  </div>
+
+  <footer>
+    Powered by <span>Goorac</span>
+  </footer>
+
+  <nav>
+    <a href="index.html" class="active"><span>🏠</span>Home</a>
+    <a href="agent_entry.html"><span>➕</span>Collect</a>
+    <a href="agent_view.html"><span>👁️</span>View</a>
+    <a href="agent_customer_report.html"><span>📄</span>Report</a>
+  </nav>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // --- FETCH TODAY'S TOTAL ---
+    async function loadTodayStats() {
+      const display = document.getElementById("todayTotal");
+      
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const q = query(
+          collection(db, "temp_entries"),
+          where("date", "==", todayStr)
+        );
+
+        const snapshot = await getDocs(q);
+        let total = 0;
+        
+        snapshot.forEach(doc => {
+          total += parseFloat(doc.data().amount || 0);
+        });
+
+        display.innerText = "₹" + total.toLocaleString();
+
+      } catch (e) {
+        console.error("Stats Error:", e);
+        display.innerText = "Error";
+        display.style.color = "#ff5252";
+      }
+    }
+
+    loadTodayStats();
+  </script>
+</body>
+</html>

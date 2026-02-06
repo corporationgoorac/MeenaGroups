@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Report - Agent App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* --- DARK THEME UI --- */
+    :root { 
+      --bg: #121212; 
+      --card: #1e1e1e; 
+      --primary: #00e676; 
+      --secondary: #00bcd4;
+      --text: #eee; 
+      --border: #333; 
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+    
+    /* Navigation */
+    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
+    nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
+
+    /* Search Box */
+    .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+    input { flex: 1; padding: 12px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 6px; font-size: 1rem; }
+    button { padding: 10px 20px; background: var(--secondary); color: #000; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { filter: brightness(0.9); }
+
+    /* Report Container */
+    .report-container { display: none; background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); }
+    
+    .customer-header { border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
+    .customer-header p { margin: 5px 0; color: #ccc; }
+    .customer-header strong { color: var(--primary); }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 10px; border: 1px solid #333; text-align: left; font-size: 0.9rem; }
+    th { background: #252525; color: var(--secondary); }
+    td { background: #1a1a1a; }
+
+    /* Download Button */
+    .btn-download { 
+      background: var(--primary); color: #000; width: 100%; margin-top: 20px; 
+      padding: 15px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+
+    .summary-text { color: var(--secondary); font-weight: bold; margin-top: 10px; text-align: right; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="agent_entry.html">Add Collection</a>
+    <a href="agent_view.html">View Entries</a>
+    <a href="agent_customer_report.html" class="active">Report</a>
+  </nav>
+
+  <div class="search-box">
+    <input type="text" id="searchId" placeholder="🔍 Enter Customer ID (e.g. C001)">
+    <button onclick="fetchCustomer()">Search</button>
+  </div>
+
+  <div id="loading" style="display:none; text-align:center; color:#aaa;">Searching Cloud Database...</div>
+
+  <div id="reportArea" class="report-container">
+    <div class="customer-header">
+      <h2 style="margin-top:0; color:var(--secondary);">Customer Profile</h2>
+      <p><strong>ID:</strong> <span id="rId"></span></p>
+      <p><strong>Name:</strong> <span id="rName"></span></p>
+      <p><strong>Phone:</strong> <span id="rPhone"></span></p>
+      <p><strong>Place:</strong> <span id="rPlace"></span></p>
+    </div>
+
+    <div id="productsArea"></div>
+
+    <button class="btn-download" onclick="downloadPDF()">📄 Download PDF Report</button>
+  </div>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    let currentCustomer = null;
+
+    // --- 1. SEARCH CUSTOMER ---
+    window.fetchCustomer = async () => {
+      const id = document.getElementById("searchId").value.trim();
+      if (!id) return alert("Please enter a Customer ID");
+
+      const loading = document.getElementById("loading");
+      const reportArea = document.getElementById("reportArea");
+      
+      loading.style.display = "block";
+      reportArea.style.display = "none";
+
+      try {
+        const docRef = doc(db, "customers", id);
+        const docSnap = await getDoc(docRef);
+
+        loading.style.display = "none";
+
+        if (!docSnap.exists()) {
+          alert("❌ Customer not found!");
+          return;
+        }
+
+        currentCustomer = docSnap.data();
+        renderReport(currentCustomer);
+
+      } catch (e) {
+        console.error(e);
+        loading.style.display = "none";
+        alert("Error: " + e.message);
+      }
+    };
+
+    // --- 2. RENDER HTML REPORT ---
+    function renderReport(c) {
+      document.getElementById("rId").innerText = c.id;
+      document.getElementById("rName").innerText = c.name;
+      document.getElementById("rPhone").innerText = c.phone || '-';
+      document.getElementById("rPlace").innerText = c.place || '-';
+
+      const prodArea = document.getElementById("productsArea");
+      prodArea.innerHTML = "";
+
+      c.products.forEach(p => {
+        let rows = "";
+        let paidTotal = 0;
+        
+        // Sort payments by date
+        const payments = (p.payments || []).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        // Calculate running balance logic
+        let runningBalance = p.total;
+
+        payments.forEach(pay => {
+          runningBalance -= pay.amount;
+          paidTotal += pay.amount;
+          
+          rows += `
+            <tr>
+              <td>#${pay.dueNumber || '-'}</td>
+              <td>${pay.date}</td>
+              <td style="color:var(--primary)">₹${pay.amount}</td>
+              <td>₹${runningBalance}</td>
+            </tr>
+          `;
+        });
+
+        const currentBalance = p.total - paidTotal;
+
+        const html = `
+          <div style="margin-bottom: 25px; border: 1px solid #333; padding: 10px; border-radius: 6px;">
+            <h3 style="margin:0 0 10px 0; color:#fff;">📦 ${p.name}</h3>
+            <p style="margin:5px 0; font-size:0.9rem;">Total Value: ₹${p.total}</p>
+            
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Due</th><th>Date</th><th>Paid</th><th>Bal</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+
+            <div class="summary-text">
+              Paid: ₹${paidTotal} | Balance: <span style="color:#ff5252">₹${currentBalance}</span>
+            </div>
+          </div>
+        `;
+        prodArea.innerHTML += html;
+      });
+
+      document.getElementById("reportArea").style.display = "block";
+    }
+
+    // --- 3. GENERATE PDF ---
+    window.downloadPDF = () => {
+      if (!currentCustomer) return;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(0, 188, 212); // Secondary Color
+      doc.text("Meena Groups", 105, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("Generated via Agent App", 105, 26, { align: "center" });
+
+      // Customer Info
+      doc.setTextColor(0);
+      doc.setFontSize(12);
+      doc.text(`Customer ID: ${currentCustomer.id}`, 14, 40);
+      doc.text(`Name: ${currentCustomer.name}`, 14, 46);
+      doc.text(`Phone: ${currentCustomer.phone || '-'}`, 14, 52);
+      doc.text(`Place: ${currentCustomer.place || '-'}`, 14, 58);
+
+      let finalY = 65;
+
+      currentCustomer.products.forEach(p => {
+        let runningBalance = p.total;
+        const bodyData = (p.payments || []).map(pay => {
+          runningBalance -= pay.amount;
+          return [
+            `#${pay.dueNumber || '-'}`,
+            pay.date,
+            `Rs. ${pay.amount}`,
+            `Rs. ${runningBalance}`
+          ];
+        });
+
+        // Product Title
+        doc.setFontSize(14);
+        doc.setTextColor(0, 200, 0); // Primary Green
+        doc.text(`${p.name} (Total: Rs. ${p.total})`, 14, finalY);
+        finalY += 5;
+
+        // Table
+        doc.autoTable({
+          startY: finalY,
+          head: [['Due', 'Date', 'Paid', 'Balance']],
+          body: bodyData,
+          theme: 'striped',
+          headStyles: { fillColor: [0, 188, 212] },
+          styles: { fontSize: 10 },
+          margin: { left: 14, right: 14 }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 15;
+      });
+
+      doc.save(`Report_${currentCustomer.id}.pdf`);
+    };
+  </script>
+</body>
+</html>
