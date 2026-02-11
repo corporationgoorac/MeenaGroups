@@ -5,6 +5,8 @@
   <title>Dashboard - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  <link rel="manifest" href="manifest.json">
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -36,7 +38,7 @@
     nav a.active { background: rgba(16, 185, 129, 0.15); color: var(--primary); font-weight: 600; }
 
     /* Main Container */
-    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; padding-bottom: 100px; }
 
     /* Header */
     .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -61,7 +63,6 @@
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     
-    /* Decorative top bars */
     .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
     .stat-card.c-blue::before { background: var(--secondary); }
     .stat-card.c-purple::before { background: var(--purple); }
@@ -71,18 +72,9 @@
     .stat-card h3 { margin: 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-card p { margin: 10px 0 0; font-size: 2rem; font-weight: 700; color: white; }
     
-    /* Content Layout (Chart + Actions) */
-    .dashboard-content { 
-      display: grid; grid-template-columns: 2fr 1fr; gap: 30px; 
-    }
+    .dashboard-content { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
 
-    /* Chart Section */
-    .chart-box { 
-      background: var(--card); padding: 25px; border-radius: 16px; 
-      border: 1px solid var(--border); height: 350px; position: relative;
-    }
-
-    /* Quick Actions */
+    .chart-box { background: var(--card); padding: 25px; border-radius: 16px; border: 1px solid var(--border); height: 350px; position: relative; }
     .actions-box { display: flex; flex-direction: column; gap: 15px; }
     
     .action-btn { 
@@ -97,7 +89,24 @@
       display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
 
-    /* Responsive */
+    /* --- ADMIN INSTALL POPUP --- */
+    #adminInstallPrompt {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 400px;
+      background: var(--primary); color: #000;
+      padding: 16px; border-radius: 12px; display: none;
+      align-items: center; justify-content: space-between;
+      z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      animation: slideIn 0.5s ease-out;
+    }
+    #adminInstallPrompt span { font-weight: 700; font-size: 0.95rem; }
+    #adminInstallPrompt button {
+      background: #000; color: #fff; border: none;
+      padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer;
+    }
+
+    @keyframes slideIn { from { transform: translate(-50%, 100px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
     @media (max-width: 900px) {
       .dashboard-content { grid-template-columns: 1fr; }
       .chart-box { height: 300px; }
@@ -113,6 +122,11 @@
     <a href="review.html">Agent Sync</a>
     <a href="report.html">Reports</a>
   </nav>
+
+  <div id="adminInstallPrompt">
+    <span>👑 Install Meena Admin App</span>
+    <button id="btnAdminInstall">Install</button>
+  </div>
 
   <div class="container">
     
@@ -144,41 +158,26 @@
     </div>
 
     <div class="dashboard-content">
-      
       <div class="chart-box">
         <canvas id="mainChart"></canvas>
       </div>
 
       <div class="actions-box">
         <h3 style="margin:0 0 10px 0; color:var(--text-muted);">Quick Actions</h3>
-        
         <a href="customers.html" class="action-btn">
           <div class="icon-box" style="color:var(--secondary)">👤</div>
-          <div>
-            <strong>New Customer</strong><br>
-            <small style="color:var(--text-muted)">Add profile & products</small>
-          </div>
+          <div><strong>New Customer</strong><br><small style="color:var(--text-muted)">Add profile & products</small></div>
         </a>
-
         <a href="entries.html" class="action-btn">
           <div class="icon-box" style="color:var(--primary)">💰</div>
-          <div>
-            <strong>Add Payment</strong><br>
-            <small style="color:var(--text-muted)">Log manual collection</small>
-          </div>
+          <div><strong>Add Payment</strong><br><small style="color:var(--text-muted)">Log manual collection</small></div>
         </a>
-
         <a href="review.html" class="action-btn">
           <div class="icon-box" style="color:var(--purple)">🛡️</div>
-          <div>
-            <strong>Review Agents</strong><br>
-            <small style="color:var(--text-muted)">Approve daily collections</small>
-          </div>
+          <div><strong>Review Agents</strong><br><small style="color:var(--text-muted)">Approve daily collections</small></div>
         </a>
       </div>
-
     </div>
-
   </div>
 
   <script type="module">
@@ -187,86 +186,83 @@
 
     let chartInstance = null;
 
-    // --- 1. LOAD STATS ---
+    // --- 1. DASHBOARD LOGIC ---
     window.loadDashboard = async () => {
       const btn = document.querySelector(".btn-refresh");
       btn.innerText = "Loading...";
       btn.disabled = true;
 
       try {
-        // Read "metadata/stats" document (Single read = Cheap!)
         const docRef = doc(db, "metadata", "stats");
         const snap = await getDoc(docRef);
-
         let data = { totalCustomers: 0, totalProducts: 0, totalPaid: 0, totalBalance: 0 };
-        
-        if (snap.exists()) {
-          data = snap.data();
-        } else {
-          console.warn("Stats not initialized yet. Add a customer to start.");
-        }
+        if (snap.exists()) data = snap.data();
 
-        // Update Text
         document.getElementById("totalCustomers").innerText = (data.totalCustomers || 0).toLocaleString();
         document.getElementById("totalProducts").innerText = (data.totalProducts || 0).toLocaleString();
         document.getElementById("totalPaid").innerText = "₹" + (data.totalPaid || 0).toLocaleString();
         document.getElementById("totalBalance").innerText = "₹" + (data.totalBalance || 0).toLocaleString();
 
-        // Update Chart
         renderChart(data.totalPaid || 0, data.totalBalance || 0);
-
       } catch (e) {
         console.error("Dashboard Error:", e);
-        alert("Could not load dashboard stats.");
       } finally {
         btn.innerText = "🔄 Refresh";
         btn.disabled = false;
       }
     };
 
-    // --- 2. RENDER CHART ---
     function renderChart(paid, balance) {
       const ctx = document.getElementById("mainChart").getContext('2d');
-      
       if (chartInstance) chartInstance.destroy();
-
-      // 
       chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: ['Collected', 'Outstanding'],
           datasets: [{
             data: [paid, balance],
-            backgroundColor: ['#10b981', '#ef4444'], // Green & Red
-            borderColor: '#1e293b', // Match card bg
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderColor: '#1e293b',
             borderWidth: 6,
-            hoverOffset: 10
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '75%', // Thinner ring
-          plugins: {
-            legend: { 
-              position: 'bottom', 
-              labels: { color: '#94a3b8', padding: 20, font: { size: 14 } } 
-            },
-            title: { 
-              display: true, 
-              text: 'Revenue Distribution', 
-              color: '#f8fafc', 
-              font: { size: 16, weight: 'normal' },
-              padding: { bottom: 20 }
-            }
-          }
+          cutout: '75%',
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
         }
       });
     }
 
-    // Load on startup
     loadDashboard();
+
+    // --- 2. PWA INSTALL LOGIC ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('btnAdminInstall');
+    const installBanner = document.getElementById('adminInstallPrompt');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBanner.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') installBanner.style.display = 'none';
+        deferredPrompt = null;
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('Admin SW Registered'));
+      });
+    }
   </script>
 </body>
 </html>
-
