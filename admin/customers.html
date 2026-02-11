@@ -161,9 +161,10 @@
         
         <label>Initial Product</label>
         <input id="newProduct" placeholder="Product Name*">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
           <input id="newTotal" type="number" placeholder="Total Price*">
-          <input id="newPaid" type="number" placeholder="Down Payment*">
+          <input id="newPaid" type="number" placeholder="Down Pay*">
+          <input id="newDueNum" type="number" placeholder="Due # (Opt)">
         </div>
         
         <button id="btnAddCustomer" class="btn-submit">Create Profile</button>
@@ -176,9 +177,10 @@
         
         <label>New Product Details</label>
         <input id="addProduct" placeholder="Product Name*">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
           <input id="addTotal" type="number" placeholder="Total Price*">
-          <input id="addPaid" type="number" placeholder="Down Payment*">
+          <input id="addPaid" type="number" placeholder="Down Pay*">
+          <input id="addDueNum" type="number" placeholder="Due # (Opt)">
         </div>
         
         <button id="btnAddProduct" class="btn-submit" style="background:var(--secondary);">Add Product</button>
@@ -215,6 +217,8 @@
       const product = document.getElementById("newProduct").value.trim();
       const total = parseFloat(document.getElementById("newTotal").value);
       const paid = parseFloat(document.getElementById("newPaid").value);
+      // New: Capture Due Number, default to 0 if empty
+      const dueNum = parseInt(document.getElementById("newDueNum").value) || 0;
 
       if (!id || !name || !product || isNaN(total) || isNaN(paid)) {
         return alert("❌ Please fill all required fields marked with *");
@@ -245,7 +249,7 @@
               payments: [{
                 date: new Date().toISOString().split("T")[0],
                 amount: paid,
-                dueNumber: 0, 
+                dueNumber: dueNum, // Updated to use Custom Due Number
                 type: "Downpayment"
               }]
             }]
@@ -263,7 +267,8 @@
         });
 
         alert("✅ Customer Created!");
-        clearInputs(["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid"]);
+        // Added "newDueNum" to clearInputs
+        clearInputs(["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid", "newDueNum"]);
         loadRecent();
 
       } catch (e) {
@@ -280,6 +285,8 @@
       const name = document.getElementById("addProduct").value.trim();
       const total = parseFloat(document.getElementById("addTotal").value);
       const paid = parseFloat(document.getElementById("addPaid").value);
+      // New: Capture Due Number for Add Product, default to 0
+      const dueNum = parseInt(document.getElementById("addDueNum").value) || 0;
 
       if (!id || !name || isNaN(total)) return alert("❌ Check inputs");
 
@@ -301,7 +308,7 @@
             payments: [{
               date: new Date().toISOString().split("T")[0],
               amount: paid,
-              dueNumber: 0,
+              dueNumber: dueNum, // Updated to use Custom Due Number
               type: "Downpayment"
             }]
           };
@@ -319,7 +326,8 @@
         });
 
         alert("✅ Product Added!");
-        clearInputs(["existId", "addProduct", "addTotal", "addPaid"]);
+        // Added "addDueNum" to clearInputs
+        clearInputs(["existId", "addProduct", "addTotal", "addPaid", "addDueNum"]);
         loadRecent();
 
       } catch (e) {
@@ -469,4 +477,3 @@
   </script>
 </body>
 </html>
-
