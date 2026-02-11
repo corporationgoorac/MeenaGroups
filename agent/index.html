@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Agent Dashboard - Meena Groups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
   <style>
     /* --- PROFESSIONAL MOBILE THEME --- */
     :root { 
@@ -79,6 +80,21 @@
 
     .action-card h3 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text); }
 
+    /* --- CUSTOM INSTALL POPUP --- */
+    #installPrompt {
+      position: fixed; bottom: 100px; left: 20px; right: 20px;
+      background: var(--secondary); color: white;
+      padding: 15px; border-radius: 15px; display: none; /* Hidden by default */
+      align-items: center; justify-content: space-between;
+      z-index: 2000; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      animation: slideUp 0.5s ease;
+    }
+    #installPrompt span { font-weight: 600; font-size: 0.9rem; }
+    #installPrompt button {
+      background: white; color: var(--secondary); border: none;
+      padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer;
+    }
+
     /* --- FOOTER --- */
     footer { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 0.85rem; }
     footer span { color: var(--secondary); font-weight: 700; }
@@ -98,6 +114,7 @@
     nav a span { font-size: 1.4rem; }
 
     @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 0.5; } }
+    @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
 </head>
 <body>
@@ -106,6 +123,11 @@
     <h1>Meena Groups</h1>
     <p>Agent Dashboard</p>
   </header>
+
+  <div id="installPrompt">
+    <span>📲 Install Meena Agents for better experience</span>
+    <button id="btnInstall">Install</button>
+  </div>
 
   <div class="hero-section">
     <div class="hero-card">
@@ -181,6 +203,41 @@
     }
 
     loadTodayStats();
+
+    // --- PWA INSTALLATION LOGIC ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('btnInstall');
+    const installPromptDiv = document.getElementById('installPrompt');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Show the custom install banner
+      installPromptDiv.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        }
+        deferredPrompt = null;
+        installPromptDiv.style.display = 'none';
+      }
+    });
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW Registered'))
+          .catch(err => console.log('SW Registration Failed', err));
+      });
+    }
   </script>
 </body>
 </html>
