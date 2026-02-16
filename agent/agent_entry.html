@@ -261,8 +261,9 @@
     let selectedCustomer = null;
     let selectedProductIndex = 0;
     let calculatedNextDue = 0;
+    let existingPaid = 0; // To track payments for balance calc
 
-    // --- 1. SMART SEARCH LOGIC (ID & NAME) ---
+    // --- 1. SMART SEARCH LOGIC ---
     const searchBox = document.getElementById("searchBox");
     const suggestionBox = document.getElementById("suggestions");
 
@@ -277,7 +278,7 @@
       const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
       snapshot = await getDocs(qId);
 
-      // Strategy 2: If no ID found, Search by Name (Case sensitive in Firestore, assumes Capitalized)
+      // Strategy 2: If no ID found, Search by Name
       if (snapshot.empty) {
         const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
         snapshot = await getDocs(qName);
@@ -308,17 +309,14 @@
     function loadCustomer(c) {
       selectedCustomer = c;
       
-      // UI Update
       document.getElementById("custName").innerText = c.name;
       document.getElementById("custId").innerText = `ID: ${c.id}`;
       document.getElementById("custPhone").innerText = `Ph: ${c.phone || 'N/A'}`;
       
-      // Cleanup
       searchBox.value = "";
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
 
-      // Product Dropdown
       const dropdown = document.getElementById("productDropdown");
       dropdown.innerHTML = "";
       
@@ -329,7 +327,7 @@
         dropdown.appendChild(option);
       });
       
-      updateProductDetails(0); // Trigger Calc
+      updateProductDetails(0);
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
@@ -338,10 +336,9 @@
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
       
-      const paid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
-      const balance = p.total - paid;
+      existingPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+      const balance = p.total - existingPaid;
       
-      // Due Number Logic
       const lastDue = (p.payments || []).length > 0 
         ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
         : 0;
@@ -349,12 +346,12 @@
       calculatedNextDue = lastDue + 1; 
 
       document.getElementById("dispTotal").innerText = `₹${p.total}`;
-      document.getElementById("dispPaid").innerText = `₹${paid}`;
+      document.getElementById("dispPaid").innerText = `₹${existingPaid}`;
       document.getElementById("dispBal").innerText = `₹${balance}`;
       document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
     }
 
-    // --- 4. SAVE ENTRY ---
+    // --- 4. SAVE ENTRY & GENERATE IMAGE ---
     window.saveToTempCollection = async () => {
       const amount = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
@@ -365,7 +362,7 @@
       const btn = document.getElementById("btnSave");
       const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = "Saving...";
+      btn.innerHTML = "Processing...";
 
       try {
         const p = selectedCustomer.products[selectedProductIndex];
@@ -386,7 +383,11 @@
 
         await addDoc(collection(db, "temp_entries"), entryData);
 
-        showToast("Entry Saved Successfully!");
+        // Generate Receipt Image
+        const newBalance = p.total - (existingPaid + amount);
+        generateReceipt(entryData, newBalance);
+
+        showToast("Entry Saved & Receipt Downloading!");
         
         // Reset
         document.getElementById("customerInfo").classList.add("hidden");
@@ -407,6 +408,91 @@
       toast.innerText = msg;
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // --- RECEIPT GENERATION LOGIC ---
+    function generateReceipt(data, balance) {
+      const canvas = document.createElement('canvas');
+      const size = 800; // Square format
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Background (Dark Theme)
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, size, size);
+
+      // 2. Borders & Decoration
+      ctx.strokeStyle = "#10b981"; // Primary Green
+      ctx.lineWidth = 15;
+      ctx.strokeRect(0, 0, size, size);
+
+      // 3. Header
+      ctx.font = "bold 50px Arial";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.fillText("Meena Groups", size/2, 100);
+
+      ctx.font = "30px Arial";
+      ctx.fillStyle = "#10b981";
+      ctx.fillText("PAYMENT RECEIPT", size/2, 150);
+
+      // 4. Details
+      const startX = 100;
+      let currentY = 250;
+      const gap = 50;
+
+      ctx.textAlign = "left";
+      ctx.font = "bold 30px Courier New";
+      ctx.fillStyle = "#94a3b8"; // Muted
+
+      // Helper function to draw rows
+      function drawRow(label, value, color="#fff") {
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(label, startX, currentY);
+        ctx.fillStyle = color;
+        ctx.textAlign = "right";
+        ctx.fillText(value, size - 100, currentY);
+        ctx.textAlign = "left";
+        currentY += gap;
+      }
+
+      drawRow("Date:", data.date);
+      drawRow("Customer:", data.customerName.substring(0, 15));
+      drawRow("ID:", data.customerId, "#3b82f6"); // Blue
+      currentY += 10; // Extra Gap
+      drawRow("Due No:", `#${data.dueNumber}`);
+      
+      // Amount Highlight
+      ctx.fillStyle = "#10b981"; // Green Box
+      ctx.fillRect(50, currentY - 35, size - 100, 70);
+      
+      ctx.fillStyle = "#000";
+      ctx.fillText("PAID AMOUNT:", 80, currentY+10);
+      ctx.textAlign = "right";
+      ctx.font = "bold 40px Courier New";
+      ctx.fillText(`Rs.${data.amount}`, size - 80, currentY+12);
+      ctx.textAlign = "left";
+      currentY += 90;
+
+      ctx.font = "bold 30px Courier New";
+      drawRow("Balance:", `Rs.${balance}`, "#ef4444");
+
+      // 5. Signature & Footer
+      ctx.font = "italic bold 40px Brush Script MT";
+      ctx.fillStyle = "#3b82f6";
+      ctx.textAlign = "center";
+      ctx.fillText("Goorac Digital", size/2, 650);
+
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText("Visit meena.goorac.biz for status", size/2, 720);
+      
+      // 6. Download
+      const link = document.createElement('a');
+      link.download = `Receipt_${data.customerId}_${data.dueNumber}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
     }
 
     // Set Today's Date
