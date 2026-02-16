@@ -2,782 +2,291 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MeenaGroups Analytics & Reports</title>
+  <title>Agent Dashboard - Meena Groups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0f0f0f">
   <link rel="manifest" href="manifest.json">
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
   <style>
-    /* * ==========================================
-     * 1. ULTRA-MODERN HIGH CONTRAST THEME
-     * ==========================================
-     */
+    /* --- YOUTUBE DARK MATERIAL THEME --- */
     :root { 
-      --bg: #000000; 
-      --surface: #0a0a0a;
-      --card: #121212; 
-      --input-bg: #1a1a1a;
-      
-      /* NEON PALETTE */
-      --brand: #00e676;       /* Success / Paid */
-      --accent: #2979ff;      /* Primary Action */
-      --danger: #ff1744;      /* Due / Warning */
-      --warning: #ffea00;     /* Alerts */
-      
-      --text: #ffffff; 
-      --text-muted: #9e9e9e;
-      --border: #2a2a2a; 
-      
-      --shadow-brand: 0 0 15px rgba(0, 230, 118, 0.2);
-      --shadow-danger: 0 0 15px rgba(255, 23, 68, 0.2);
+      --bg: #0f0f0f; 
+      --surface: #272727; 
+      --surface-light: #3f3f3f;
+      --primary: #3ea6ff; /* YouTube Blue */
+      --text-main: #f1f1f1; 
+      --text-sec: #aaaaaa;
+      --border: #3f3f3f; 
+      --danger: #ff4e45;
     }
-
+    
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
     body { 
       background: var(--bg); 
-      color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      color: var(--text-main); 
+      font-family: Roboto, 'Segoe UI', sans-serif; 
       margin: 0; padding: 0; 
-      height: 100vh; 
-      display: flex; flex-direction: column;
-      overflow: hidden; /* Prevent body scroll, use containers */
+      padding-bottom: 80px; /* Space for bottom nav */
     }
 
-    /* * ==========================================
-     * 2. HEADER SECTION
-     * ==========================================
-     */
-    header {
-      background: rgba(5, 5, 5, 0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-      padding: 15px 20px;
+    /* --- APP BAR --- */
+    header { 
+      background: rgba(15, 15, 15, 0.98);
+      padding: 15px 20px; 
       display: flex; justify-content: space-between; align-items: center;
-      z-index: 50; flex-shrink: 0;
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     
-    .brand-group { display: flex; flex-direction: column; }
-    .brand-group h1 { 
-      margin: 0; font-size: 1.2rem; font-weight: 900; 
-      text-transform: uppercase; letter-spacing: 1px; color: #fff;
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo-circle { 
+      width: 32px; height: 32px; background: var(--primary); 
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      font-weight: bold; color: #000; font-size: 1.2rem;
     }
-    .brand-group span { 
-      font-size: 0.65rem; color: var(--accent); 
-      letter-spacing: 2px; font-weight: 700; display: block; margin-top: 2px;
+    .app-name { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .agent-badge { 
+      font-size: 0.7rem; background: var(--surface-light); 
+      color: var(--text-sec); padding: 4px 8px; border-radius: 4px; 
+      font-weight: 500; text-transform: uppercase;
     }
 
-    .header-icons { display: flex; gap: 20px; align-items: center; }
-    .icon-btn { 
-      background: none; border: none; color: var(--text); cursor: pointer; 
-      transition: all 0.2s; display: flex; align-items: center; justify-content: center;
-      padding: 8px; border-radius: 50%;
-    }
-    .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
-    .icon-btn:active { background: rgba(255,255,255,0.1); }
-    .icon-btn:hover { color: var(--brand); transform: scale(1.05); }
+    /* --- ANALYTICS CARD (Hero) --- */
+    .dashboard-container { padding: 20px; }
 
-    /* * ==========================================
-     * 3. CONTROL BAR (SEARCH & FILTERS)
-     * ==========================================
-     */
-    .controls-wrapper {
-      padding: 15px 20px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      display: flex; gap: 12px;
-      overflow-x: auto; white-space: nowrap;
-      -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
+    .hero-card { 
+      background: var(--surface); 
+      border-radius: 16px; 
+      padding: 25px; 
+      display: flex; flex-direction: column; align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      margin-bottom: 25px;
     }
     
-    /* Search Input Design */
-    .search-box { 
-      flex: 1; position: relative; min-width: 200px; 
-    }
-    .search-box input {
-      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-      color: white; padding: 12px 15px 12px 42px; border-radius: 12px; font-size: 0.95rem;
-      transition: 0.3s;
-    }
-    .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(41, 121, 255, 0.15); }
-    .search-icon { 
-      position: absolute; left: 14px; top: 50%; transform: translateY(-50%); 
-      width: 18px; fill: var(--text-muted); pointer-events: none;
+    .hero-label { font-size: 0.9rem; color: var(--text-sec); margin-bottom: 5px; }
+    .hero-amount { font-size: 2.8rem; font-weight: 700; color: var(--text-main); letter-spacing: -1px; }
+    .hero-sub { 
+      margin-top: 10px; font-size: 0.8rem; color: var(--primary); 
+      background: rgba(62, 166, 255, 0.1); padding: 5px 12px; border-radius: 20px;
     }
 
-    /* Filter Buttons */
-    .chip-btn {
-      background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
-      padding: 0 16px; border-radius: 50px; font-weight: 700; font-size: 0.8rem;
-      white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 6px;
-      transition: 0.2s; height: 42px;
-    }
-    .chip-btn:active { transform: scale(0.95); background: #222; }
-    
-    .chip-btn.blue { border-color: var(--accent); color: var(--accent); background: rgba(41, 121, 255, 0.08); }
-    .chip-btn.green { border-color: var(--brand); color: var(--brand); background: rgba(0, 230, 118, 0.08); }
-    .chip-btn.red { border-color: var(--danger); color: var(--danger); background: rgba(255, 23, 68, 0.08); }
-
-    /* * ==========================================
-     * 4. LIST AREA (SCROLLABLE)
-     * ==========================================
-     */
-    .content-area { 
-      flex: 1; overflow-y: auto; padding: 20px; 
-      display: flex; flex-direction: column; gap: 15px; 
-      padding-bottom: 80px; /* Space for bottom interaction */
+    /* --- QUICK ACTIONS GRID --- */
+    .section-title { 
+      font-size: 1rem; font-weight: 700; margin-bottom: 15px; 
+      color: var(--text-main); padding: 0 5px;
     }
 
-    .user-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 20px; display: flex; justify-content: space-between; align-items: center;
-      position: relative; overflow: hidden; transition: transform 0.2s;
-      cursor: pointer;
-    }
-    .user-card:active { transform: scale(0.98); background: #1a1a1a; }
-    
-    /* Left border status indicator */
-    .user-card::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; }
-    .user-card.status-ok::before { background: var(--brand); box-shadow: var(--shadow-brand); }
-    .user-card.status-due::before { background: var(--danger); box-shadow: var(--shadow-danger); }
-
-    .uc-info h3 { margin: 0; font-size: 1.1rem; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
-    .uc-info p { margin: 5px 0 0; font-size: 0.85rem; color: var(--text-muted); font-family: monospace; }
-    
-    .uc-meta { text-align: right; }
-    .badge { 
-      display: inline-block; padding: 6px 12px; border-radius: 8px; 
-      font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; 
-    }
-    .badge.due { background: rgba(255, 23, 68, 0.1); color: var(--danger); border: 1px solid rgba(255, 23, 68, 0.3); }
-    .badge.paid { background: rgba(0, 230, 118, 0.1); color: var(--brand); border: 1px solid rgba(0, 230, 118, 0.3); }
-
-    /* * ==========================================
-     * 5. CUSTOMER DRAWER (SLIDE-IN MODAL)
-     * ==========================================
-     */
-    .modal-layer {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    }
-    .modal-layer.open { opacity: 1; pointer-events: auto; }
-
-    .drawer {
-      position: fixed; top: 0; right: 0; width: 100%; max-width: 500px; height: 100%;
-      background: #000; border-left: 1px solid var(--border);
-      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      display: flex; flex-direction: column; z-index: 101;
-      box-shadow: -10px 0 50px rgba(0,0,0,0.9);
-    }
-    .drawer.open { transform: translateX(0); }
-
-    /* Profile Header inside Drawer */
-    .profile-header { padding: 25px; background: #080808; border-bottom: 1px solid var(--border); }
-    .ph-nav { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-    .ph-name h2 { margin: 0; font-size: 1.6rem; font-weight: 800; color: #fff; }
-    .ph-name span { color: var(--accent); font-family: monospace; font-size: 1rem; }
-    
-    .close-btn { 
-      background: rgba(255,255,255,0.1); border: none; width: 36px; height: 36px; 
-      border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: 0.2s;
-    }
-    .close-btn:active { background: var(--danger); transform: rotate(90deg); }
-
-    /* Info Grid */
-    .ph-details { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem; 
-      background: #111; padding: 15px; border-radius: 12px; border: 1px solid var(--border);
-    }
-    .ph-item label { font-size: 0.7rem; text-transform: uppercase; color: #666; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
-    .ph-item span { color: #fff; font-weight: 600; font-family: monospace; }
-
-    .ph-actions { display: flex; gap: 10px; margin-top: 15px; }
-    .act-btn { 
-      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: #1a1a1a; color: white;
-      cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;
-      transition: 0.2s;
-    }
-    .act-btn:active { transform: scale(0.96); background: #222; }
-    .act-btn.call { border-color: rgba(0, 230, 118, 0.4); color: var(--brand); }
-    .act-btn.loc { border-color: rgba(41, 121, 255, 0.4); color: var(--accent); }
-
-    /* Drawer Scrollable Content */
-    .drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
-    .section-label { 
-      font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); 
-      margin-bottom: 12px; font-weight: 700; letter-spacing: 1px; display: flex; justify-content: space-between;
-    }
-
-    /* Product Card with Checkbox */
-    .product-box { 
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
-      margin-bottom: 15px; overflow: hidden; transition: 0.3s;
+    .grid-actions { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; 
     }
     
-    .pb-head { 
-      padding: 15px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 12px;
-      background: rgba(255,255,255,0.02); cursor: pointer; user-select: none;
+    .action-tile { 
+      background: var(--surface); 
+      border-radius: 12px; 
+      padding: 20px; 
+      text-decoration: none; 
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+      height: 110px; 
+      transition: background 0.2s;
+      border: 1px solid transparent;
     }
-    .pb-head:active { background: #222; }
+    .action-tile:active { background: var(--surface-light); }
     
-    /* Neon Checkbox */
-    .check-wrap { display: flex; align-items: center; justify-content: center; z-index: 2; }
-    .custom-check {
-      appearance: none; width: 22px; height: 22px; border: 2px solid #444; border-radius: 6px;
-      background: transparent; cursor: pointer; position: relative; transition: 0.2s;
+    .tile-icon { 
+      width: 40px; height: 40px; border-radius: 50%; 
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
     }
-    .custom-check:checked { background: var(--accent); border-color: var(--accent); }
-    .custom-check:checked::after {
-      content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      color: black; font-size: 14px; font-weight: bold;
-    }
-
-    .pb-info { display: flex; flex-direction: column; pointer-events: none; }
-    .pb-name { font-weight: 700; color: #fff; font-size: 1rem; }
-    .pb-val { font-size: 0.75rem; color: #888; margin-top: 3px; font-family: monospace; }
+    .tile-icon svg { width: 22px; height: 22px; fill: #000; }
     
-    .pb-status { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; background: #000; border: 1px solid #333; }
-    .pb-status.red { color: var(--danger); border-color: var(--danger); }
-    .pb-status.green { color: var(--brand); border-color: var(--brand); }
+    /* Icon Colors */
+    .icon-add { background: #2ba640; /* Green */ }
+    .icon-view { background: #3ea6ff; /* Blue */ }
+    .icon-rep { background: #f4b400; /* Yellow */ }
+    .icon-adm { background: #ff4e45; /* Red */ }
 
-    /* Expanded Ledger */
-    .pb-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #000; }
-    .pb-body.expanded { max-height: 600px; overflow-y: auto; border-top: 1px solid var(--border); }
+    .tile-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); }
 
-    .ledger-row { 
-      display: grid; grid-template-columns: 0.6fr 1.4fr 1fr 1fr; padding: 12px 15px; 
-      border-bottom: 1px solid #1a1a1a; font-size: 0.8rem; color: #ccc;
+    /* --- INSTALL TOAST --- */
+    #installPrompt {
+      position: fixed; bottom: 85px; left: 15px; right: 15px;
+      background: var(--primary); color: #000;
+      padding: 15px 20px; border-radius: 8px; 
+      display: none; align-items: center; justify-content: space-between;
+      z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      animation: slideUp 0.4s ease-out;
     }
-    .ledger-row span { display: flex; align-items: center; }
-    .amt-col { justify-content: flex-end; color: var(--brand); font-weight: 600; font-family: monospace; }
-    .bal-col { justify-content: flex-end; color: #fff; font-family: monospace; }
+    #installPrompt span { font-weight: 600; font-size: 0.9rem; }
+    #installPrompt button {
+      background: #000; color: #fff; border: none;
+      padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+    }
 
-    /* Footer Buttons (Fixed) */
-    .drawer-footer { 
-      padding: 15px 20px; background: #080808; border-top: 1px solid var(--border); 
-      display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;
-      /* Ensure it stays above iPhone home bar */
-      padding-bottom: max(15px, env(safe-area-inset-bottom)); 
+    /* --- BOTTOM NAV --- */
+    .bottom-nav { 
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: var(--bg); border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; 
+      padding: 8px 0; z-index: 1000;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
     
-    .btn-action { 
-      padding: 16px; border-radius: 12px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;
-      transition: 0.2s;
+    .nav-item { 
+      display: flex; flex-direction: column; align-items: center; 
+      text-decoration: none; color: var(--text-sec); font-size: 0.7rem; gap: 4px;
+      padding: 5px; width: 25%;
     }
-    .btn-action:active { transform: scale(0.95); }
+    .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .nav-item.active { color: #fff; }
     
-    .btn-action.sel { 
-      background: var(--accent); color: #000; 
-      box-shadow: 0 4px 15px rgba(41, 121, 255, 0.2); 
-    }
-    .btn-action.all { 
-      background: transparent; border: 1px solid #444; color: var(--text-muted); 
-    }
-    .btn-action.all:hover { border-color: var(--text); color: var(--text); background: #111; }
+    /* Footer Credit */
+    .footer-credit { text-align: center; margin-top: 30px; color: #444; font-size: 0.8rem; }
 
-    /* * ==========================================
-     * 6. ANALYTICS MODAL (CENTER POPUP)
-     * ==========================================
-     */
-    .analytics-popup {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
-      width: 90%; max-width: 600px; background: #111; border: 1px solid var(--border);
-      border-radius: 24px; z-index: 200; opacity: 0; pointer-events: none; transition: 0.3s;
-      box-shadow: 0 25px 80px rgba(0,0,0,1); display: flex; flex-direction: column; overflow: hidden;
-    }
-    .analytics-popup.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
-    
-    .ap-head { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #080808; }
-    .ap-body { padding: 25px; overflow-y: auto; }
-
-    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-    .stat-tile { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); text-align: center; }
-    .stat-tile h4 { margin: 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; }
-    .stat-tile .mc-val { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 8px; font-family: monospace; }
-    
-    .chart-container { height: 250px; background: #050505; border-radius: 16px; padding: 15px; border: 1px solid #222; }
-
-    /* Mobile Tweaks */
-    @media (max-width: 768px) {
-      .drawer { width: 100%; max-width: 100%; }
-      .drawer-footer { grid-template-columns: 1.5fr 1fr; }
-      .stat-row { grid-template-columns: 1fr; }
-      .chip-btn span { display: none; } /* Hide text keep icon on small screens */
-    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="brand-group">
-      <h1>Reports</h1>
-      <span>MEENA GROUPS</span>
+    <div class="brand">
+      <div class="logo-circle">M</div>
+      <span class="app-name">Meena Groups</span>
     </div>
-    <div class="header-icons">
-      <button class="icon-btn" onclick="openAnalytics()" title="Analytics Overview">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-      </button>
-      <a href="index.html" class="icon-btn" title="Home">
-        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      </a>
-    </div>
+    <span class="agent-badge">Agent Mode</span>
   </header>
 
-  <div class="controls-wrapper">
-    <div class="search-box">
-      <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input id="searchInput" placeholder="Search ID or Name..." type="text">
-    </div>
-    <button class="chip-btn blue" onclick="searchCloud()">Find</button>
-    <button class="chip-btn green" onclick="loadRecent(10)">Recent</button>
-    <button class="chip-btn red" onclick="loadAll()">All</button>
+  <div id="installPrompt">
+    <span>Install App for easier access</span>
+    <button id="btnInstall">Get</button>
   </div>
 
-  <div id="resultContainer" class="content-area">
-    <div style="text-align:center; padding: 80px 20px; color:#444;">
-      <svg style="width:48px;height:48px;fill:#222;margin-bottom:10px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-      <p>Data not loaded.<br>Use "Recent" or "Find" to save data.</p>
+  <div class="dashboard-container">
+    
+    <div class="hero-card">
+      <span class="hero-label">Today's Collection</span>
+      <div class="hero-amount" id="todayTotal">...</div>
+      <div class="hero-sub">Synced with Server</div>
     </div>
-  </div>
 
-  <div class="modal-layer" id="overlay" onclick="closeAll()"></div>
-  
-  <div class="drawer" id="customerDrawer">
-    <div class="profile-header">
-      <div class="ph-nav">
-        <div class="ph-name">
-          <h2 id="drawName">--</h2>
-          <span id="drawId">ID: --</span>
+    <div class="section-title">Quick Actions</div>
+    <div class="grid-actions">
+      
+      <a href="agent_entry.html" class="action-tile">
+        <div class="tile-icon icon-add">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         </div>
-        <button class="close-btn" onclick="closeAll()">✕</button>
-      </div>
+        <span class="tile-text">New Entry</span>
+      </a>
+      
+      <a href="agent_view.html" class="action-tile">
+        <div class="tile-icon icon-view">
+          <svg viewBox="0 0 24 24"><path d="M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z"/></svg>
+        </div>
+        <span class="tile-text">My Log</span>
+      </a>
 
-      <div class="ph-details">
-        <div class="ph-item"><label>Phone</label><span id="drawPhone">--</span></div>
-        <div class="ph-item"><label>Location</label><span id="drawPlace">--</span></div>
-        <div class="ph-item"><label>Joined</label><span id="drawJoin">--</span></div>
-        <div class="ph-item"><label>Products</label><span id="drawCount">0</span></div>
-      </div>
+      <a href="agent_customer_report.html" class="action-tile">
+        <div class="tile-icon icon-rep">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        </div>
+        <span class="tile-text">Reports</span>
+      </a>
 
-      <div class="ph-actions">
-        <a id="btnCall" href="#" class="act-btn call">
-          <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
-          CALL
-        </a>
-        <a id="btnMap" href="#" target="_blank" class="act-btn loc">
-          <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          LOCATE
-        </a>
-      </div>
+      <a href="#" class="action-tile" onclick="alert('Admin Contact: +91-XXXXXXXXXX')">
+        <div class="tile-icon icon-adm">
+          <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
+        </div>
+        <span class="tile-text">Support</span>
+      </a>
+
     </div>
 
-    <div class="drawer-content" id="productContainer">
-      </div>
-
-    <div class="drawer-footer">
-      <button class="btn-action sel" onclick="downloadSelected()">
-        <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        <span>Download Selected</span>
-      </button>
-      <button class="btn-action all" onclick="downloadAllPDF()">
-        <span>Download All</span>
-      </button>
-    </div>
+    <div class="footer-credit">Powered by Goorac Systems</div>
   </div>
 
-  <div class="analytics-popup" id="analyticsPopup">
-    <div class="ap-head">
-      <h3 style="margin:0;color:#fff;letter-spacing:1px;">BUSINESS PULSE</h3>
-      <button class="close-btn" onclick="closeAll()">✕</button>
-    </div>
-    <div class="ap-body">
-      <div class="stat-row">
-        <div class="stat-tile">
-          <h4 style="color:var(--brand)">Collected</h4>
-          <p class="mc-val" id="anaPaid">₹0</p>
-        </div>
-        <div class="stat-tile">
-          <h4 style="color:var(--danger)">Outstanding</h4>
-          <p class="mc-val" id="anaDue">₹0</p>
-        </div>
-      </div>
-      <div class="chart-container">
-        <canvas id="financeChart"></canvas>
-      </div>
-      <p style="text-align:center; color:#666; font-size:0.8rem; margin-top:15px;">
-        *Calculated based on loaded data. Use "Load All" for complete audit.
-      </p>
-    </div>
-  </div>
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="agent_entry.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span>Entry</span>
+    </a>
+    <a href="agent_view.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>History</span>
+    </a>
+    <a href="agent_customer_report.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M11.5 9C10.12 9 9 10.12 9 11.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S12.88 9 11.5 9zM20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-3.21 14.21l-2.91-2.91c-.69.44-1.51.7-2.39.7C9.01 16 7 13.99 7 11.5S9.01 7 11.5 7 16 9.01 16 11.5c0 .88-.26 1.69-.7 2.39l2.91 2.9-1.42 1.42z"/></svg>
+      <span>Report</span>
+    </a>
+  </nav>
 
   <script type="module">
     import { db } from "./config.js";
-    import { collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    let loadedData = [];
-    let currentCustomer = null;
-    let chartInstance = null;
-
-    // ------------------------------------------
-    // 1. DATA FETCHING LOGIC
-    // ------------------------------------------
-    
-    window.loadRecent = async (n) => {
-      uiLoading();
+    // --- FETCH TODAY'S TOTAL ---
+    async function loadTodayStats() {
+      const display = document.getElementById("todayTotal");
+      
       try {
-        const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(n));
-        const snap = await getDocs(q);
-        processData(snap);
-      } catch (e) { alert(e.message); }
-    };
+        const todayStr = new Date().toISOString().split('T')[0];
 
-    window.searchCloud = async () => {
-      const v = document.getElementById("searchInput").value.trim().toUpperCase();
-      if(!v) return alert("Enter Customer ID");
-      uiLoading();
-      try {
-        const q = query(collection(db, "customers"), where("id", ">=", v), where("id", "<=", v + '\uf8ff'), limit(10));
-        const snap = await getDocs(q);
-        processData(snap);
-      } catch (e) { alert(e.message); }
-    };
+        const q = query(
+          collection(db, "temp_entries"),
+          where("date", "==", todayStr)
+        );
 
-    window.loadAll = async () => {
-      if(!confirm("⚠️ Load ALL records? Heavy data usage warning.")) return;
-      uiLoading();
-      try {
-        const snap = await getDocs(collection(db, "customers"));
-        processData(snap);
-      } catch (e) { alert(e.message); }
-    };
-
-    function uiLoading() {
-      document.getElementById("resultContainer").innerHTML = `<p style="text-align:center; padding:60px; color:#666;">Syncing Cloud Database...</p>`;
-    }
-
-    function processData(snap) {
-      loadedData = [];
-      snap.forEach(d => loadedData.push(d.data()));
-      if(loadedData.length === 0) {
-        document.getElementById("resultContainer").innerHTML = `<p style="text-align:center; padding:60px; color:#666;">No Records Found.</p>`;
-      } else {
-        renderList(loadedData);
-      }
-      calcStats(); // Update analytics even if hidden
-    }
-
-    // ------------------------------------------
-    // 2. RENDER LIST
-    // ------------------------------------------
-    
-    function renderList(data) {
-      const div = document.getElementById("resultContainer");
-      div.innerHTML = "";
-
-      data.forEach(c => {
-        let totalVal = 0, totalPaid = 0;
-        c.products.forEach(p => { totalVal += p.total; totalPaid += p.paid; });
-        const bal = totalVal - totalPaid;
-        const status = bal > 0 ? 'due' : 'ok';
-
-        const card = document.createElement("div");
-        card.className = `user-card status-${status}`;
-        card.onclick = () => openDrawer(c);
+        const snapshot = await getDocs(q);
+        let total = 0;
         
-        card.innerHTML = `
-          <div class="uc-info">
-            <h3>${c.name}</h3>
-            <p>ID: ${c.id}</p>
-          </div>
-          <div class="uc-meta">
-            <span class="badge ${bal > 0 ? 'due' : 'paid'}">
-              ${bal > 0 ? '₹' + bal.toLocaleString() : 'CLEARED'}
-            </span>
-          </div>
-        `;
-        div.appendChild(card);
-      });
-    }
-
-    // ------------------------------------------
-    // 3. CUSTOMER DRAWER & PRODUCTS
-    // ------------------------------------------
-    
-    window.openDrawer = (c) => {
-      currentCustomer = c;
-      // Push State for Back Button Logic
-      window.history.pushState({ drawer: true }, "");
-
-      // Populate Header
-      document.getElementById("drawName").innerText = c.name;
-      document.getElementById("drawId").innerText = c.id;
-      document.getElementById("drawPhone").innerText = c.phone || '-';
-      document.getElementById("drawPlace").innerText = c.place || '-';
-      document.getElementById("drawJoin").innerText = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
-      document.getElementById("drawCount").innerText = c.products.length;
-      
-      document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `https://maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
-
-      // Populate Products (Accordion with Checkboxes)
-      const container = document.getElementById("productContainer");
-      container.innerHTML = `<div class="section-label"><span>Products</span><span>Select to Print</span></div>`;
-
-      c.products.forEach((p, idx) => {
-        const bal = p.total - p.paid;
-        
-        // Build Ledger Rows
-        const sorted = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
-        let running = 0;
-        let rows = "";
-
-        if(sorted.length === 0) {
-          rows = `<div style="padding:15px; text-align:center; color:#444;">No payment history recorded.</div>`;
-        } else {
-          sorted.forEach(pay => {
-            running += parseFloat(pay.amount);
-            const curBal = p.total - running;
-            rows += `
-              <div class="ledger-row">
-                <span style="color:#666">#${pay.dueNumber||'-'}</span>
-                <span>${pay.date}</span>
-                <span class="amt-col">₹${pay.amount}</span>
-                <span class="bal-col">₹${curBal}</span>
-              </div>
-            `;
-          });
-        }
-
-        const box = document.createElement("div");
-        box.className = "product-box";
-        box.innerHTML = `
-          <div class="pb-head" onclick="toggleAccordion(this)">
-            <div class="check-wrap" onclick="event.stopPropagation()">
-              <input type="checkbox" class="custom-check product-checkbox" data-idx="${idx}">
-            </div>
-            <div class="pb-info">
-              <div class="pb-name">${p.name}</div>
-              <div class="pb-val">Value: ₹${p.total.toLocaleString()}</div>
-            </div>
-            <div class="pb-status ${bal>0?'red':'green'}">
-              ${bal>0 ? '₹'+bal : 'PAID'}
-            </div>
-          </div>
-          <div class="pb-body">
-            <div style="background:#111; padding:8px 15px; font-size:0.7rem; color:#666; border-bottom:1px solid #222; display:grid; grid-template-columns:0.6fr 1.4fr 1fr 1fr;">
-              <span>DUE</span><span>DATE</span><span style="text-align:right">AMT</span><span style="text-align:right">BAL</span>
-            </div>
-            ${rows}
-          </div>
-        `;
-        container.appendChild(box);
-      });
-
-      document.getElementById("overlay").classList.add("open");
-      document.getElementById("customerDrawer").classList.add("open");
-    };
-
-    window.toggleAccordion = (header) => {
-      const body = header.nextElementSibling;
-      body.classList.toggle("expanded");
-    };
-
-    // ------------------------------------------
-    // 4. PDF ENGINE
-    // ------------------------------------------
-    
-    window.downloadAllPDF = () => {
-      if(!currentCustomer) return;
-      generatePDF(currentCustomer, currentCustomer.products);
-    };
-
-    window.downloadSelected = () => {
-      if(!currentCustomer) return;
-      const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-      if(checkboxes.length === 0) return alert("Please select at least one product.");
-      
-      const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
-      const selectedProducts = currentCustomer.products.filter((_, i) => selectedIndices.includes(i));
-      
-      generatePDF(currentCustomer, selectedProducts);
-    };
-
-    window.generatePDF = (c, products) => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      // Brand Header (Black Band)
-      doc.setFillColor(0, 0, 0); 
-      doc.rect(0, 0, 210, 40, 'F');
-      
-      doc.setTextColor(0, 230, 118); // Neon Green Text
-      doc.setFontSize(22); 
-      doc.setFont("helvetica", "bold");
-      doc.text("MeenaGroups", 14, 20);
-      
-      doc.setTextColor(255, 255, 255); 
-      doc.setFontSize(10); 
-      doc.setFont("helvetica", "normal");
-      doc.text("STATEMENT OF ACCOUNT", 14, 28);
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 28);
-
-      // Customer Details
-      doc.setTextColor(0, 0, 0); 
-      doc.setFontSize(12); 
-      doc.setFont("helvetica", "bold");
-      doc.text(`CUSTOMER: ${c.name.toUpperCase()}`, 14, 55);
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`ID: ${c.id}`, 14, 62);
-      doc.text(`Phone: ${c.phone || '-'}`, 80, 62);
-      doc.text(`Location: ${c.place || '-'}`, 140, 62);
-
-      let finalY = 75;
-
-      // Iterate Products
-      products.forEach(p => {
-        // Product Header
-        doc.setFillColor(245, 245, 245); 
-        doc.rect(14, finalY, 182, 12, 'F');
-        doc.setTextColor(0, 0, 0); 
-        doc.setFontSize(11); 
-        doc.setFont("helvetica", "bold");
-        doc.text(p.name, 16, finalY + 8);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Total Value: Rs.${p.total}`, 140, finalY + 8);
-        
-        finalY += 14;
-
-        // Prepare Data
-        const rows = [];
-        let running = 0;
-        const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
-
-        if(payments.length === 0) {
-           rows.push(['-', '-', 'No Payments Recorded', '-', `Rs.${p.total}`]);
-        } else {
-           payments.forEach(pay => {
-             running += parseFloat(pay.amount);
-             const bal = p.total - running;
-             rows.push([ 
-               `#${pay.dueNumber||'-'}`, 
-               pay.date, 
-               pay.type||'Manual', 
-               `Rs.${pay.amount}`, 
-               `Rs.${bal}` 
-             ]);
-           });
-        }
-
-        // Draw Table
-        doc.autoTable({
-          startY: finalY,
-          head: [['Due', 'Date', 'Type', 'Paid', 'Bal']],
-          body: rows,
-          theme: 'striped',
-          headStyles: { fillColor: [20, 20, 20] },
-          styles: { fontSize: 9 },
-          columnStyles: { 
-            3: { fontStyle: 'bold', textColor: [0, 150, 0] }, // Paid Green
-            4: { fontStyle: 'bold' }
-          },
-          margin: { left: 14, right: 14 }
+        snapshot.forEach(doc => {
+          total += parseFloat(doc.data().amount || 0);
         });
 
-        finalY = doc.lastAutoTable.finalY + 15;
-      });
+        display.innerText = "₹" + total.toLocaleString();
 
-      // Professional Footer with Link
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, pageHeight - 20, 196, pageHeight - 20);
-      
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      doc.text("Check live status at:", 14, pageHeight - 12);
-      
-      doc.setTextColor(41, 121, 255); // Blue Link
-      doc.textWithLink("meena.goorac.biz", 45, pageHeight - 12, { url: "http://meena.goorac.biz" });
-      
-      doc.setTextColor(150);
-      doc.text("System Generated Report", 150, pageHeight - 12);
-
-      doc.save(`Statement_${c.id}.pdf`);
-    };
-
-    // ------------------------------------------
-    // 5. ANALYTICS & UTILITIES
-    // ------------------------------------------
-    
-    window.openAnalytics = () => {
-      window.history.pushState({ modal: true }, "");
-      calcStats();
-      document.getElementById("overlay").classList.add("open");
-      document.getElementById("analyticsPopup").classList.add("open");
-    };
-
-    function calcStats() {
-      let paid = 0, total = 0;
-      loadedData.forEach(c => c.products.forEach(p => { paid += p.paid; total += p.total; }));
-      const due = total - paid;
-      
-      document.getElementById("anaPaid").innerText = "₹" + paid.toLocaleString();
-      document.getElementById("anaDue").innerText = "₹" + due.toLocaleString();
-
-      const ctx = document.getElementById("financeChart").getContext("2d");
-      if(chartInstance) chartInstance.destroy();
-      
-      chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Collected', 'Pending'],
-          datasets: [{ 
-            label: 'Amount (₹)', 
-            data: [paid, due], 
-            backgroundColor: ['#00e676', '#ff1744'],
-            borderWidth: 0
-          }]
-        },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false,
-          plugins: { legend: { display:false } },
-          scales: { 
-            x: { display:false }, 
-            y: { grid:{ color:'#222' }, ticks:{ color:'#666' } } 
-          } 
-        }
-      });
+      } catch (e) {
+        console.error("Stats Error:", e);
+        display.innerText = "Error";
+        display.style.color = "#ff4e45";
+      }
     }
 
-    // Modal Closing Logic
-    window.closeAll = () => {
-      document.getElementById("overlay").classList.remove("open");
-      document.getElementById("customerDrawer").classList.remove("open");
-      document.getElementById("analyticsPopup").classList.remove("open");
-      
-      // Clean history if closed manually
-      if(history.state) history.back();
-    };
+    loadTodayStats();
 
-    // Hardware Back Button Listener
-    window.onpopstate = () => {
-      document.getElementById("overlay").classList.remove("open");
-      document.getElementById("customerDrawer").classList.remove("open");
-      document.getElementById("analyticsPopup").classList.remove("open");
-    };
+    // --- PWA INSTALLATION LOGIC ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('btnInstall');
+    const installPromptDiv = document.getElementById('installPrompt');
 
-    // Default Load
-    loadRecent(10);
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installPromptDiv.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        }
+        deferredPrompt = null;
+        installPromptDiv.style.display = 'none';
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW Registered'))
+          .catch(err => console.log('SW Registration Failed', err));
+      });
+    }
   </script>
 </body>
 </html>
