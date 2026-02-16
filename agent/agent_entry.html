@@ -46,18 +46,25 @@
     /* --- SEARCH SECTION --- */
     .search-wrapper { padding: 20px; position: relative; z-index: 40; }
     
-    .input-group { position: relative; }
+    .input-group { position: relative; display: flex; align-items: center; }
+    
     .search-input {
-      width: 100%; padding: 14px 15px 14px 45px;
+      width: 100%; padding: 14px 50px 14px 15px; /* Added padding right for button */
       background: var(--card); border: 1px solid var(--border);
       color: white; border-radius: 14px; font-size: 1rem;
       transition: 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-    .search-icon { 
-      position: absolute; left: 15px; top: 50%; transform: translateY(-50%); 
-      color: var(--text-muted); font-size: 1.2rem; pointer-events: none;
+    
+    .search-btn { 
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%); 
+      background: var(--accent); border: none; color: white;
+      width: 36px; height: 36px; border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); transition: 0.2s;
     }
+    .search-btn:active { transform: translateY(-50%) scale(0.9); }
+    .search-btn svg { width: 20px; height: 20px; fill: white; }
 
     /* Suggestions List */
     #suggestions {
@@ -173,8 +180,10 @@
 
   <div class="search-wrapper">
     <div class="input-group">
-      <span class="search-icon">🔍</span>
       <input type="text" id="searchBox" class="search-input" placeholder="Search ID or Name..." autocomplete="off">
+      <button class="search-btn" onclick="executeSearch()">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
     </div>
     <div id="suggestions"></div>
   </div>
@@ -261,49 +270,63 @@
     let selectedCustomer = null;
     let selectedProductIndex = 0;
     let calculatedNextDue = 0;
-    let existingPaid = 0; // To track payments for balance calc
+    let existingPaid = 0;
 
-    // --- 1. SMART SEARCH LOGIC ---
+    // --- 1. SMART SEARCH LOGIC (Optimized Reads) ---
     const searchBox = document.getElementById("searchBox");
     const suggestionBox = document.getElementById("suggestions");
 
-    searchBox.addEventListener("input", async (e) => {
-      const term = e.target.value.trim();
-      if (term.length < 2) { suggestionBox.style.display = "none"; return; }
+    // Allow Enter key to trigger search
+    searchBox.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") executeSearch();
+    });
+
+    window.executeSearch = async () => {
+      const term = searchBox.value.trim();
+      if (term.length < 2) { 
+        alert("Please enter at least 2 characters."); 
+        return; 
+      }
+
+      suggestionBox.innerHTML = '<div style="padding:15px; color:#aaa;">Searching...</div>';
+      suggestionBox.style.display = "block";
 
       const colRef = collection(db, "customers");
       let snapshot;
 
-      // Strategy 1: Search by ID
-      const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
-      snapshot = await getDocs(qId);
+      try {
+        // Strategy 1: Search by ID
+        const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
+        snapshot = await getDocs(qId);
 
-      // Strategy 2: If no ID found, Search by Name
-      if (snapshot.empty) {
-        const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
-        snapshot = await getDocs(qName);
+        // Strategy 2: If no ID found, Search by Name
+        if (snapshot.empty) {
+          const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
+          snapshot = await getDocs(qName);
+        }
+
+        suggestionBox.innerHTML = "";
+        
+        if (snapshot.empty) {
+          suggestionBox.innerHTML = '<div style="padding:15px; color:#ef4444;">No customer found.</div>';
+          return;
+        }
+
+        snapshot.forEach(docSnap => {
+          const c = docSnap.data();
+          const div = document.createElement("div");
+          div.className = "suggestion-item";
+          div.innerHTML = `
+            <span class="s-name">${c.name}</span> 
+            <span class="s-id">${c.id}</span>
+          `;
+          div.onclick = () => loadCustomer(c);
+          suggestionBox.appendChild(div);
+        });
+      } catch (e) {
+        suggestionBox.innerHTML = `<div style="padding:15px; color:red;">Error: ${e.message}</div>`;
       }
-
-      suggestionBox.innerHTML = "";
-      
-      if (snapshot.empty) {
-        suggestionBox.style.display = "none";
-        return;
-      }
-
-      snapshot.forEach(docSnap => {
-        const c = docSnap.data();
-        const div = document.createElement("div");
-        div.className = "suggestion-item";
-        div.innerHTML = `
-          <span class="s-name">${c.name}</span> 
-          <span class="s-id">${c.id}</span>
-        `;
-        div.onclick = () => loadCustomer(c);
-        suggestionBox.appendChild(div);
-      });
-      suggestionBox.style.display = "block";
-    });
+    };
 
     // --- 2. LOAD CUSTOMER ---
     function loadCustomer(c) {
@@ -410,7 +433,7 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- RECEIPT GENERATION LOGIC ---
+    // --- RECEIPT GENERATION LOGIC (WHITE THEME) ---
     function generateReceipt(data, balance) {
       const canvas = document.createElement('canvas');
       const size = 800; // Square format
@@ -418,75 +441,80 @@
       canvas.height = size;
       const ctx = canvas.getContext('2d');
 
-      // 1. Background (Dark Theme)
-      ctx.fillStyle = "#0f172a";
+      // 1. Background (White)
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, size, size);
 
-      // 2. Borders & Decoration
-      ctx.strokeStyle = "#10b981"; // Primary Green
+      // 2. Borders & Decoration (Brand Green)
+      ctx.strokeStyle = "#10b981"; 
       ctx.lineWidth = 15;
       ctx.strokeRect(0, 0, size, size);
 
       // 3. Header
       ctx.font = "bold 50px Arial";
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
       ctx.fillText("Meena Groups", size/2, 100);
 
       ctx.font = "30px Arial";
-      ctx.fillStyle = "#10b981";
+      ctx.fillStyle = "#10b981"; // Green Accent
       ctx.fillText("PAYMENT RECEIPT", size/2, 150);
 
       // 4. Details
-      const startX = 100;
+      const startX = 80;
       let currentY = 250;
-      const gap = 50;
+      const gap = 55;
 
       ctx.textAlign = "left";
-      ctx.font = "bold 30px Courier New";
-      ctx.fillStyle = "#94a3b8"; // Muted
-
+      ctx.font = "bold 32px Courier New";
+      
       // Helper function to draw rows
-      function drawRow(label, value, color="#fff") {
-        ctx.fillStyle = "#94a3b8";
+      function drawRow(label, value, valueColor="#000") {
+        ctx.fillStyle = "#555"; // Label Color (Dark Gray)
         ctx.fillText(label, startX, currentY);
-        ctx.fillStyle = color;
+        ctx.fillStyle = valueColor;
         ctx.textAlign = "right";
-        ctx.fillText(value, size - 100, currentY);
+        ctx.fillText(value, size - 80, currentY);
         ctx.textAlign = "left";
         currentY += gap;
       }
 
       drawRow("Date:", data.date);
       drawRow("Customer:", data.customerName.substring(0, 15));
-      drawRow("ID:", data.customerId, "#3b82f6"); // Blue
-      currentY += 10; // Extra Gap
+      drawRow("ID:", data.customerId, "#3b82f6"); // Blue for ID
+      currentY += 10;
       drawRow("Due No:", `#${data.dueNumber}`);
       
-      // Amount Highlight
-      ctx.fillStyle = "#10b981"; // Green Box
-      ctx.fillRect(50, currentY - 35, size - 100, 70);
+      // Amount Highlight (Light Green Box)
+      ctx.fillStyle = "rgba(16, 185, 129, 0.1)"; 
+      ctx.fillRect(50, currentY - 35, size - 100, 80);
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(50, currentY - 35, size - 100, 80);
       
       ctx.fillStyle = "#000";
-      ctx.fillText("PAID AMOUNT:", 80, currentY+10);
+      ctx.fillText("PAID AMOUNT:", 70, currentY+15);
       ctx.textAlign = "right";
-      ctx.font = "bold 40px Courier New";
-      ctx.fillText(`Rs.${data.amount}`, size - 80, currentY+12);
+      ctx.font = "bold 45px Courier New";
+      ctx.fillStyle = "#10b981"; // Bold Green Text
+      ctx.fillText(`Rs.${data.amount}`, size - 70, currentY+15);
       ctx.textAlign = "left";
-      currentY += 90;
+      currentY += 100;
 
-      ctx.font = "bold 30px Courier New";
-      drawRow("Balance:", `Rs.${balance}`, "#ef4444");
+      ctx.font = "bold 32px Courier New";
+      drawRow("Balance:", `Rs.${balance}`, "#ef4444"); // Red for Balance
 
       // 5. Signature & Footer
-      ctx.font = "italic bold 40px Brush Script MT";
+      currentY += 80;
+      ctx.font = "italic bold 35px Brush Script MT";
       ctx.fillStyle = "#3b82f6";
       ctx.textAlign = "center";
-      ctx.fillText("Goorac Digital", size/2, 650);
+      ctx.fillText("Goorac Digital Verified", size/2, currentY);
 
+      currentY += 60;
       ctx.font = "20px Arial";
-      ctx.fillStyle = "#64748b";
-      ctx.fillText("Visit meena.goorac.biz for status", size/2, 720);
+      ctx.fillStyle = "#666";
+      ctx.fillText("Visit meena.goorac.biz for live status", size/2, currentY);
       
       // 6. Download
       const link = document.createElement('a');
