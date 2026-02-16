@@ -4,198 +4,228 @@
   <meta charset="UTF-8">
   <title>View Entries - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- 
+  <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* --- PROFESSIONAL DARK THEME (Consistent) --- */
+    /* --- PREMIUM DARK AGENT THEME --- */
     :root { 
-      --bg: #0f172a; 
+      --bg: #020617; 
+      --surface: #0f172a; 
       --card: #1e293b; 
-      --input: #0f172a;
-      --primary: #10b981; /* Emerald */
-      --secondary: #0ea5e9; /* Sky Blue */
-      --danger: #ef4444; 
-      --warning: #f59e0b;
-      --text: #f8fafc; 
-      --text-muted: #94a3b8;
+      --input: #1e293b;
+      
+      --primary: #10b981; /* Success Green */
+      --accent: #3b82f6;  /* Action Blue */
+      --danger: #ef4444;  /* Alert Red */
+      --warn: #f59e0b;    /* Warning Orange */
+      
+      --text: #f1f5f9; 
+      --text-muted: #64748b;
       --border: #334155; 
     }
     
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 90px; }
-
-    /* Navigation */
-    nav { 
-      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
-      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 1000;
-    }
-    nav a { 
-      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
-      font-size: 0.95rem; white-space: nowrap; transition: 0.2s; background: rgba(255,255,255,0.05);
-    }
-    nav a:hover { background: #2d3748; color: white; }
-    nav a.active { background: rgba(14, 165, 233, 0.15); color: var(--secondary); font-weight: 600; border: 1px solid rgba(14, 165, 233, 0.3); }
-
-    /* Layout */
-    .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
-
-    /* Stats Header */
-    .stats-header { 
-      background: var(--card); padding: 25px; border-radius: 16px; 
-      border: 1px solid var(--border); margin-bottom: 25px;
-      display: flex; justify-content: space-between; align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
-    .stats-header h2 { margin: 0; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .total-amt { font-size: 2rem; font-weight: 700; color: var(--primary); }
-
-    /* Entry Cards Grid */
-    .entries-grid { display: grid; gap: 15px; grid-template-columns: 1fr; }
-    @media (min-width: 600px) { .entries-grid { grid-template-columns: 1fr 1fr; } }
-
-    .entry-card { 
-      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
-      position: relative; transition: transform 0.2s; overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .entry-card:active { transform: scale(0.99); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
-    /* Left Border Indicator */
-    .entry-card.pending { border-left: 5px solid var(--warning); }
-
-    .card-content { padding: 15px; }
-
-    .card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    
-    .cust-name { font-weight: 600; font-size: 1.1rem; color: #fff; }
-    .status-badge { 
-      font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; 
-      background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);
+    body { 
+      background: var(--bg); color: var(--text); 
+      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      margin: 0; padding: 0; 
+      padding-bottom: 90px; /* Space for Bottom Nav */
     }
 
-    .info-group { display: flex; justify-content: space-between; align-items: flex-end; }
-    .info-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
-    .info-val { font-size: 1rem; color: #fff; }
-    .highlight { color: var(--secondary); font-weight: 700; font-size: 1.2rem; }
+    /* --- GLASS HEADER --- */
+    header {
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+    .status-pill { font-size: 0.75rem; color: var(--warn); background: rgba(245, 158, 11, 0.15); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
 
-    .meta-row { 
-      margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; 
+    /* --- STATS SUMMARY --- */
+    .summary-card {
+      margin: 20px; padding: 20px;
+      background: linear-gradient(135deg, var(--card) 0%, #0f172a 100%);
+      border: 1px solid var(--border); border-radius: 16px;
       display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    .due-tag { 
-      background: #0f172a; padding: 4px 10px; border-radius: 6px; 
-      font-size: 0.85rem; color: var(--text); border: 1px solid #334155;
-    }
+    .sum-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .sum-val { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-top: 5px; }
+    .sum-icon { font-size: 2rem; opacity: 0.8; }
 
-    /* Actions */
+    /* --- ENTRIES LIST --- */
+    .list-container { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
+
+    .entry-card {
+      background: var(--card); border-radius: 16px; border: 1px solid var(--border);
+      overflow: hidden; position: relative; transition: transform 0.2s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .entry-card:active { transform: scale(0.98); }
+    /* Pending Indicator Strip */
+    .entry-card::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; background: var(--warn); }
+
+    .card-main { padding: 15px; }
+    
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .c-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .c-id { font-size: 0.8rem; color: var(--accent); font-family: monospace; background: rgba(59,130,246,0.1); padding: 2px 6px; border-radius: 4px; }
+
+    .card-mid { display: flex; justify-content: space-between; align-items: flex-end; }
+    .c-prod { font-size: 0.9rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .c-amt { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+
+    .card-meta { 
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);
+    }
+    .due-badge { background: #0f172a; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); color: #fff; font-weight: 600; }
+
+    /* Actions Bar */
     .card-actions { 
-      background: rgba(0,0,0,0.2); padding: 10px 15px; display: flex; gap: 10px; 
+      background: rgba(0,0,0,0.3); padding: 8px 15px; display: flex; gap: 10px; 
     }
-    .btn-icon { 
-      flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); 
-      background: transparent; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s;
+    .action-btn { 
+      flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
     }
-    .btn-edit:hover { background: rgba(245, 158, 11, 0.1); color: var(--warning); border-color: var(--warning); }
-    .btn-delete:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); }
+    .action-btn:active { background: rgba(255,255,255,0.05); }
+    .btn-edit { color: var(--text); }
+    .btn-del { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
 
-    /* Floating Submit Button */
-    .fab-container { 
-      position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; 
-      pointer-events: none; z-index: 900;
+    /* --- FAB (Floating Action Button) --- */
+    .fab-wrapper { 
+      position: fixed; bottom: 100px; right: 20px; z-index: 90;
     }
-    .fab-btn {
-      pointer-events: auto; background: var(--primary); color: #000; font-weight: 700;
-      padding: 14px 30px; border-radius: 30px; border: none;
-      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); cursor: pointer;
-      display: flex; align-items: center; gap: 10px; font-size: 1rem; transition: 0.2s;
+    .fab-submit {
+      background: var(--accent); color: white; border: none;
+      padding: 12px 20px; border-radius: 50px; font-weight: 700; font-size: 0.95rem;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); cursor: pointer;
+      display: flex; align-items: center; gap: 8px; transition: transform 0.2s;
     }
-    .fab-btn:active { transform: scale(0.95); }
+    .fab-submit:active { transform: scale(0.95); }
 
-    /* Modal */
+    /* --- MODAL --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center; z-index: 2000;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+      z-index: 200; display: none; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s;
     }
-    .modal {
-      background: var(--card); padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;
-      border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.6); animation: slideUp 0.3s ease;
-    }
-    .modal h3 { margin: 0 0 20px 0; color: var(--text); font-size: 1.3rem; }
-    
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px; }
-    .form-group input { 
-      width: 100%; padding: 12px; background: var(--input); border: 1px solid var(--border); 
-      color: white; border-radius: 10px; box-sizing: border-box; font-size: 1rem; outline: none;
-    }
-    .form-group input:focus { border-color: var(--secondary); }
-    
-    .modal-btns { display: flex; gap: 10px; margin-top: 25px; }
-    .btn-modal { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; }
-    .btn-cancel { background: #334155; color: white; }
-    .btn-save { background: var(--primary); color: #000; }
+    .modal-overlay.open { opacity: 1; }
 
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-box {
+      background: var(--card); width: 90%; max-width: 350px; border-radius: 20px;
+      border: 1px solid var(--border); padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      transform: translateY(20px); transition: transform 0.3s;
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+
+    .modal-title { margin: 0 0 20px 0; font-size: 1.2rem; font-weight: 700; color: #fff; }
+    
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
+    .modal-input {
+      width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border);
+      color: white; border-radius: 10px; font-size: 1rem;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+    .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; }
+    .m-cancel { background: #334155; color: white; }
+    .m-save { background: var(--primary); color: #000; }
+
+    /* --- BOTTOM NAV --- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .nav-item {
+      text-decoration: none; color: var(--text-muted); font-size: 0.7rem;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 5px; width: 33%;
+    }
+    .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .nav-item.active { color: var(--accent); }
+    .nav-item.active svg { fill: var(--accent); filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
+
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="agent_entry.html">Add Collection</a>
-    <a href="agent_view.html" class="active">View Entries</a>
-    <a href="agent_customer_report.html">Report</a>
-  </nav>
+  <header>
+    <h1>View Log</h1>
+    <div class="status-pill">Pending Sync</div>
+  </header>
 
-  <div class="container">
-    <div class="stats-header">
-      <div>
-        <h2>Today's Pending</h2>
-        <small style="color:#64748b;">Waiting for Approval</small>
-      </div>
-      <div class="total-amt" id="totalAmt">₹0</div>
+  <div class="summary-card">
+    <div>
+      <div class="sum-label">Total Collected Today</div>
+      <div class="sum-val" id="totalAmt">₹0</div>
     </div>
+    <div class="sum-icon">💰</div>
+  </div>
 
-    <div id="entriesList" class="entries-grid">
-      <p style="text-align:center; width:100%; color:#64748b; margin-top:40px;">Loading entries...</p>
+  <div id="entriesList" class="list-container">
+    <div style="text-align:center; padding: 40px; color:#64748b;">
+      <p>Loading records...</p>
     </div>
   </div>
 
-  <div class="fab-container">
-    <button class="fab-btn" onclick="notifyAdmin()">
-      🚀 Submit to Admin
+  <div class="fab-wrapper">
+    <button class="fab-submit" onclick="notifyAdmin()">
+      <span>📤 Notify Admin</span>
     </button>
   </div>
 
   <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <h3>✎ Edit Collection</h3>
+    <div class="modal-box">
+      <h3 class="modal-title">Edit Entry</h3>
       <input type="hidden" id="editDocId">
       
-      <div class="form-group">
-        <label>Amount Collected (₹)</label>
-        <input type="number" id="editAmount">
+      <div class="input-group">
+        <label>Collected Amount (₹)</label>
+        <input type="number" id="editAmount" class="modal-input">
       </div>
       
-      <div class="form-group">
-        <label>Due Number (e.g. 5)</label>
-        <input type="number" id="editDueNumber" placeholder="Leave blank for Auto">
+      <div class="input-group">
+        <label>Due Number (Optional)</label>
+        <input type="number" id="editDueNumber" class="modal-input" placeholder="Auto">
       </div>
       
-      <div class="form-group">
-        <label>Collection Date</label>
-        <input type="date" id="editDate">
+      <div class="input-group">
+        <label>Date</label>
+        <input type="date" id="editDate" class="modal-input">
       </div>
       
-      <div class="modal-btns">
-        <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="btn-modal btn-save" onclick="saveEdit()">Save Changes</button>
+      <div class="modal-footer">
+        <button class="m-btn m-cancel" onclick="closeModal()">Cancel</button>
+        <button class="m-btn m-save" onclick="saveEdit()">Save Changes</button>
       </div>
     </div>
   </div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="agent_entry.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span>Collect</span>
+    </a>
+    <a href="agent_view.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>Logs</span>
+    </a>
+  </nav>
 
   <script type="module">
     import { db } from "./config.js";
@@ -211,10 +241,9 @@
       const totalDiv = document.getElementById("totalAmt");
       
       try {
-        // Query Pending Entries (No 'orderBy' to avoid index error)
         const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
-
         const snapshot = await getDocs(q);
+        
         agentEntries = [];
         let total = 0;
 
@@ -226,56 +255,55 @@
           total += parseFloat(d.amount || 0);
         });
 
-        // Sort: Newest First
+        // Sort Newest
         agentEntries.sort((a,b) => b.jsDate - a.jsDate);
 
         listDiv.innerHTML = "";
         totalDiv.innerText = `₹${total.toLocaleString()}`;
 
         if (agentEntries.length === 0) {
-          listDiv.innerHTML = `<div style="text-align:center; color:#64748b; padding:40px; grid-column:1/-1;">
-            <p style="font-size:3rem; margin:0;">📝</p>
-            <h3>No pending entries.</h3>
-            <p>Go to 'Add Collection' to start.</p>
-          </div>`;
+          listDiv.innerHTML = `
+            <div style="text-align:center; padding:50px; opacity:0.6;">
+              <svg style="width:50px;height:50px;fill:#64748b;margin-bottom:10px" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              <p>No pending entries found.</p>
+            </div>`;
           return;
         }
 
         agentEntries.forEach(d => {
-          // Check for Due Number, default to 'Auto' if missing
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           
           const html = `
-            <div class="entry-card pending">
-              <div class="card-content">
-                <div class="card-row">
-                  <span class="cust-name">${d.customerName}</span>
-                  <span class="status-badge">Pending</span>
+            <div class="entry-card">
+              <div class="card-main">
+                <div class="card-top">
+                  <div class="c-name">${d.customerName}</div>
+                  <div class="c-id">${d.customerId}</div>
                 </div>
                 
-                <div class="info-group">
-                  <div>
-                    <span class="info-label">Customer ID</span>
-                    <span class="info-val">${d.customerId}</span>
+                <div class="card-mid">
+                  <div class="c-prod">
+                    <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z"/></svg>
+                    ${d.productName}
                   </div>
-                  <div style="text-align:right;">
-                    <span class="info-label">Amount</span>
-                    <span class="highlight">₹${d.amount}</span>
-                  </div>
+                  <div class="c-amt">₹${d.amount}</div>
                 </div>
 
-                <div class="meta-row">
-                  <span class="info-val">📦 ${d.productName}</span>
-                  <span class="due-tag">Due: ${dueDisplay}</span>
-                </div>
-                <div style="text-align:right; margin-top:5px;">
-                  <span class="info-label">📅 ${d.date}</span>
+                <div class="card-meta">
+                  <span class="due-badge">Due: ${dueDisplay}</span>
+                  <span>${d.date}</span>
                 </div>
               </div>
 
               <div class="card-actions">
-                <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')">✎ Edit</button>
-                <button class="btn-icon btn-delete" onclick="deleteEntry('${d.docId}')">🗑️ Delete</button>
+                <button class="action-btn btn-edit" onclick="openEdit('${d.docId}')">
+                  <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  Edit
+                </button>
+                <button class="action-btn btn-del" onclick="deleteEntry('${d.docId}')">
+                  <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  Delete
+                </button>
               </div>
             </div>
           `;
@@ -284,11 +312,11 @@
 
       } catch (e) {
         console.error(e);
-        listDiv.innerHTML = `<p style="color:#ef4444; text-align:center;">Error loading data: ${e.message}</p>`;
+        listDiv.innerHTML = `<p style="color:#ef4444;text-align:center;">Error: ${e.message}</p>`;
       }
     }
 
-    // --- 2. EDIT MODAL LOGIC ---
+    // --- 2. EDIT MODAL ---
     window.openEdit = (docId) => {
       const entry = agentEntries.find(e => e.docId === docId);
       if (!entry) return;
@@ -296,13 +324,17 @@
       document.getElementById("editDocId").value = docId;
       document.getElementById("editAmount").value = entry.amount;
       document.getElementById("editDate").value = entry.date;
-      document.getElementById("editDueNumber").value = entry.dueNumber || ""; 
+      document.getElementById("editDueNumber").value = entry.dueNumber || "";
       
-      document.getElementById("editModal").style.display = "flex";
+      const modal = document.getElementById("editModal");
+      modal.style.display = "flex";
+      setTimeout(() => modal.classList.add("open"), 10);
     };
 
     window.closeModal = () => {
-      document.getElementById("editModal").style.display = "none";
+      const modal = document.getElementById("editModal");
+      modal.classList.remove("open");
+      setTimeout(() => modal.style.display = "none", 300);
     };
 
     window.saveEdit = async () => {
@@ -311,37 +343,21 @@
       const newDate = document.getElementById("editDate").value;
       const newDue = parseInt(document.getElementById("editDueNumber").value);
 
-      if (!newAmt || !newDate) return alert("Please fill Amount and Date");
+      if (!newAmt || !newDate) return alert("Fill all fields");
 
-      const btn = document.querySelector(".btn-save");
+      const btn = document.querySelector(".m-save");
       btn.innerText = "Saving...";
       btn.disabled = true;
 
       try {
-        const ref = doc(db, "temp_entries", docId);
-        
-        // Prepare Update Data
-        const updateData = {
-          amount: newAmt,
-          date: newDate
-        };
-        
-        // Update Due logic
-        if (newDue > 0) {
-          updateData.dueNumber = newDue;
-        } else {
-          // If user clears it, we can remove the field or set to 0
-          updateData.dueNumber = 0;
-        }
+        const updateData = { amount: newAmt, date: newDate };
+        if(newDue > 0) updateData.dueNumber = newDue;
+        else updateData.dueNumber = 0; // Clear if empty
 
-        await updateDoc(ref, updateData);
-
-        // UI Feedback (No alert popup preferred in professional UI, but kept alert for clarity per user habit)
-        // Ideally we would use a toast, but keeping logic strict.
-        alert("✅ Updated Successfully"); 
+        await updateDoc(doc(db, "temp_entries", docId), updateData);
         
         closeModal();
-        loadAgentEntries(); // Refresh UI
+        loadAgentEntries();
       } catch (e) {
         alert("Error: " + e.message);
       } finally {
@@ -350,34 +366,30 @@
       }
     };
 
-    // --- 3. DELETE LOGIC ---
+    // --- 3. DELETE ---
     window.deleteEntry = async (docId) => {
-      if(!confirm("⚠️ Remove this entry? It will not be sent to Admin.")) return;
-
+      if(!confirm("Delete this entry permanently?")) return;
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
         loadAgentEntries();
-      } catch (e) {
-        alert("Error deleting: " + e.message);
-      }
+      } catch (e) { alert("Error: " + e.message); }
     };
 
-    // --- 4. SUBMIT NOTIFICATION ---
+    // --- 4. SUBMIT ---
     window.notifyAdmin = () => {
-      if(agentEntries.length === 0) return alert("No entries to submit.");
-      alert("✅ List is ready for Admin Review!\n\nThe Admin can now see these " + agentEntries.length + " entries in their dashboard.");
+      if(agentEntries.length === 0) return alert("Nothing to submit.");
+      alert("✅ Admin Notification Sent!\n\nThe admin can now review and approve these entries.");
     };
 
     // Init
     loadAgentEntries();
     
-    // Export for HTML access
+    // Exports
     window.openEdit = openEdit;
-    window.deleteEntry = deleteEntry;
-    window.saveEdit = saveEdit;
     window.closeModal = closeModal;
+    window.saveEdit = saveEdit;
+    window.deleteEntry = deleteEntry;
     window.notifyAdmin = notifyAdmin;
   </script>
 </body>
 </html>
-
