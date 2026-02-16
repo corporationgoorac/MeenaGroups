@@ -11,18 +11,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
   <style>
-    /* --- 1. HIGH CONTRAST THEME --- */
+    /* --- 1. HIGH CONTRAST ACCESSIBLE THEME --- */
     :root { 
       --bg: #000000; 
       --surface: #0a0a0a;
       --card: #141414; 
       --input-bg: #1a1a1a;
+      
+      /* NEON PALETTE FOR VISIBILITY */
       --primary: #00e676; /* Neon Green */
-      --secondary: #2979ff; /* Bright Blue */
-      --danger: #ff1744; 
-      --warning: #ffab00;
+      --secondary: #00b0ff; /* Bright Cyan */
+      --danger: #ff1744;  /* Bright Red/Pink */
+      --warning: #ffea00; /* Bright Yellow */
+      
       --text: #ffffff; 
-      --text-muted: #888888;
+      --text-muted: #b0b0b0; /* Lighter gray for readability */
       --border: #333333; 
     }
 
@@ -31,7 +34,7 @@
     body { 
       background: var(--bg); 
       color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
       margin: 0; padding: 0; 
       height: 100vh; 
       display: flex; flex-direction: column;
@@ -40,134 +43,164 @@
 
     /* --- 2. HEADER --- */
     header {
-      background: rgba(10, 10, 10, 0.95);
-      backdrop-filter: blur(10px);
+      background: #050505;
       border-bottom: 1px solid var(--border);
       padding: 15px 20px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 50; flex-shrink: 0;
     }
-    header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
-    .nav-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; text-decoration: none; }
+    header h1 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px; color: var(--text); }
+    .nav-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; }
 
     /* --- 3. ANALYTICS DASHBOARD --- */
     .dashboard-panel {
       padding: 20px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      display: grid; grid-template-columns: 1fr 120px; gap: 20px;
+      display: grid; grid-template-columns: 1fr 100px; gap: 20px;
       align-items: center;
     }
     
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .stat-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--border); }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-val { font-size: 1.4rem; font-weight: 700; margin-top: 5px; color: #fff; }
     
-    .chart-box { height: 100px; width: 100px; position: relative; }
+    .stat-card { 
+      background: var(--card); padding: 15px; border-radius: 12px; 
+      border: 1px solid var(--border); 
+    }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .stat-val { font-size: 1.5rem; font-weight: 800; margin-top: 5px; color: #fff; letter-spacing: 0.5px; }
+    
+    .chart-box { height: 90px; width: 90px; position: relative; }
 
-    /* --- 4. CONTROLS & LIST --- */
+    /* --- 4. CONTROLS BAR --- */
     .controls-bar {
       padding: 15px 20px;
       display: flex; gap: 10px;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
       overflow-x: auto; white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
     }
     
     .search-input {
       background: var(--input-bg); border: 1px solid var(--border); color: white;
-      padding: 10px 15px; border-radius: 8px; width: 200px;
+      padding: 12px 15px; border-radius: 8px; width: 220px; font-size: 0.95rem;
     }
+    .search-input:focus { border-color: var(--secondary); }
 
     .btn-ctrl {
       background: var(--card); border: 1px solid var(--border); color: var(--text);
-      padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
+      padding: 0 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; font-size: 0.85rem; height: 42px;
+      transition: background 0.2s;
     }
-    .btn-ctrl:active { background: #222; }
-    .btn-ctrl.primary { background: var(--secondary); border-color: var(--secondary); color: white; }
-    .btn-ctrl.danger { border-color: var(--danger); color: var(--danger); }
+    .btn-ctrl:active { background: #333; }
+    .btn-ctrl.primary { background: var(--secondary); border-color: var(--secondary); color: #000; }
+    .btn-ctrl.danger { border-color: var(--danger); color: var(--danger); background: rgba(255, 23, 68, 0.1); }
 
-    .list-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+    /* --- 5. REPORT LIST --- */
+    .list-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
 
-    /* Customer Row Card */
     .report-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      padding: 15px; display: flex; justify-content: space-between; align-items: center;
-      transition: 0.2s; cursor: pointer;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px; display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; position: relative; overflow: hidden;
     }
-    .report-card:hover { border-color: var(--primary); background: #1a1a1a; }
-    
-    .rc-left h3 { margin: 0; font-size: 1rem; color: white; }
-    .rc-left span { font-size: 0.8rem; color: var(--secondary); font-family: monospace; }
+    .report-card::before { content:''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border); transition: 0.2s; }
+    .report-card.due::before { background: var(--danger); }
+    .report-card.paid::before { background: var(--primary); }
+
+    .rc-left h3 { margin: 0; font-size: 1.1rem; color: white; font-weight: 700; }
+    .rc-left span { font-size: 0.85rem; color: var(--secondary); font-family: monospace; letter-spacing: 0.5px; margin-top: 4px; display: block; }
     
     .rc-right { text-align: right; }
-    .status-pill { 
-      font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; 
-      background: #222; border: 1px solid #333; color: #aaa; 
+    .status-badge { 
+      font-size: 0.8rem; padding: 6px 10px; border-radius: 6px; font-weight: 800; 
+      background: #222; border: 1px solid #333; color: #fff; letter-spacing: 0.5px;
     }
-    .status-pill.active { color: var(--primary); border-color: var(--primary); background: rgba(0, 230, 118, 0.1); }
+    .status-badge.due { color: var(--danger); border-color: var(--danger); background: rgba(255, 23, 68, 0.1); }
+    .status-badge.paid { color: var(--primary); border-color: var(--primary); background: rgba(0, 230, 118, 0.1); }
 
-    /* --- 5. SLIDE-IN MODAL (DETAILED VIEW) --- */
+    /* --- 6. SLIDE-IN MODAL (SIDE PANEL) --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
-      z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
 
     .slide-panel {
-      position: fixed; top: 0; right: 0; width: 100%; max-width: 500px; height: 100%;
-      background: var(--bg); border-left: 1px solid var(--border);
+      position: fixed; top: 0; right: 0; width: 100%; max-width: 480px; height: 100%;
+      background: #000000; border-left: 1px solid var(--border);
       transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
       display: flex; flex-direction: column; z-index: 101;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.5);
     }
     .slide-panel.active { transform: translateX(0); }
 
     .panel-header {
       padding: 20px; border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center; background: var(--surface);
+      display: flex; justify-content: space-between; align-items: flex-start; background: var(--surface);
     }
-    .panel-title h2 { margin: 0; font-size: 1.4rem; }
-    .panel-title p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.9rem; }
-    .btn-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+    .panel-title h2 { margin: 0; font-size: 1.5rem; font-weight: 800; }
+    .panel-title p { margin: 6px 0 0; color: var(--secondary); font-size: 0.95rem; font-family: monospace; }
+    
+    .btn-close { 
+      background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; 
+      border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; 
+    }
 
     .panel-body { flex: 1; overflow-y: auto; padding: 20px; }
 
-    /* Product Section in Modal */
-    .prod-detail-box { 
+    /* Product Detail in Modal */
+    .prod-box { 
       background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
-      padding: 20px; margin-bottom: 20px; 
+      padding: 0; margin-bottom: 25px; overflow: hidden;
     }
-    .prod-head { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 10px; }
-    .prod-name { font-weight: 700; color: var(--secondary); font-size: 1.1rem; }
-    
-    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
-    .ledger-table th { text-align: left; color: #666; padding: 8px; border-bottom: 1px solid #333; }
-    .ledger-table td { padding: 8px; border-bottom: 1px solid #222; color: #ddd; }
+    .prod-head { 
+      padding: 15px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.03);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .prod-name { font-weight: 800; color: #fff; font-size: 1.1rem; }
+    .prod-bal { font-weight: 800; font-size: 1rem; }
+    .prod-bal.red { color: var(--danger); }
+    .prod-bal.green { color: var(--primary); }
+
+    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .ledger-table th { 
+      text-align: left; color: var(--text-muted); padding: 10px 15px; 
+      border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; 
+    }
+    .ledger-table td { 
+      padding: 12px 15px; border-bottom: 1px solid #222; color: #fff; 
+    }
     .ledger-table tr:last-child td { border-bottom: none; }
+    
+    .col-money { text-align: right; font-family: monospace; font-size: 0.95rem; }
 
     .panel-footer { padding: 20px; border-top: 1px solid var(--border); background: var(--surface); }
     .btn-pdf { 
-      width: 100%; padding: 15px; background: var(--primary); color: #000; 
+      width: 100%; padding: 16px; background: var(--secondary); color: #000; 
       font-weight: 800; border: none; border-radius: 10px; font-size: 1rem; cursor: pointer; 
       display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 15px rgba(0, 176, 255, 0.2);
     }
+    .btn-pdf:active { transform: scale(0.98); }
 
     /* Mobile Responsive */
     @media (max-width: 768px) {
       .dashboard-panel { grid-template-columns: 1fr; }
-      .chart-box { display: none; } /* Hide chart on small screens to save space */
-      .controls-bar { flex-wrap: wrap; }
-      .search-input { width: 100%; }
+      .chart-box { display: none; } 
+      .search-input { width: 180px; }
+      .ledger-table { font-size: 0.8rem; }
+      .ledger-table td, .ledger-table th { padding: 10px; }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Analytics & Reports</h1>
+    <h1>Reports & PDF</h1>
     <a href="index.html" class="nav-btn">🏠</a>
   </header>
 
@@ -189,14 +222,14 @@
 
   <div class="controls-bar">
     <input type="text" id="searchInput" class="search-input" placeholder="Search ID or Name...">
-    <button class="btn-ctrl primary" onclick="searchCloud()">🔍 Cloud Search</button>
+    <button class="btn-ctrl primary" onclick="searchCloud()">🔍 Search</button>
     <button class="btn-ctrl" onclick="loadRecent(20)">🔄 Recent</button>
     <button class="btn-ctrl danger" onclick="loadAll()">⚠️ Load All</button>
   </div>
 
   <div id="reportList" class="list-container">
-    <div style="text-align:center; padding: 50px; color:#444;">
-      <p>Load data to view reports.</p>
+    <div style="text-align:center; padding: 60px; color:#666;">
+      <p style="font-size:1.1rem; color:var(--text-muted);">Please load data to view reports.</p>
     </div>
   </div>
 
@@ -215,7 +248,7 @@
 
     <div class="panel-footer">
       <button class="btn-pdf" id="btnDownloadPdf">
-        📄 DOWNLOAD STATEMENT PDF
+        📄 GENERATE PDF STATEMENT
       </button>
     </div>
   </div>
@@ -225,11 +258,11 @@
     import { collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let chartInstance = null;
-    let currentCustomer = null; // Stores data for PDF
+    let currentCustomer = null; 
 
-    // --- 1. DATA LOADING ---
+    // --- 1. DATA LOADING LOGIC ---
     window.loadRecent = async (count) => {
-      renderLoading();
+      showLoadingState();
       try {
         const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(count));
         const snap = await getDocs(q);
@@ -238,29 +271,29 @@
         renderList(data);
       } catch (e) {
         console.error(e);
-        alert("Error loading recent: " + e.message);
+        alert("Error loading recent data. Check console.");
       }
     };
 
     window.searchCloud = async () => {
       const term = document.getElementById("searchInput").value.trim().toUpperCase();
-      if(!term) return alert("Enter ID to search");
+      if(!term) return alert("Please enter a Customer ID (e.g., A20)");
       
-      renderLoading();
+      showLoadingState();
       try {
         const q = query(collection(db, "customers"), where("id", ">=", term), where("id", "<=", term + '\uf8ff'), limit(5));
         const snap = await getDocs(q);
         const data = [];
         snap.forEach(d => data.push(d.data()));
         
-        if(data.length === 0) alert("No results found.");
+        if(data.length === 0) alert("No customer found with that ID.");
         renderList(data);
       } catch(e) { alert(e.message); }
     };
 
     window.loadAll = async () => {
-      if(!confirm("⚠️ Load ALL customers? This consumes high data usage.")) return;
-      renderLoading();
+      if(!confirm("⚠️ Load ALL customers? This may be slow and use high data.")) return;
+      showLoadingState();
       try {
         const snap = await getDocs(collection(db, "customers"));
         const data = [];
@@ -269,11 +302,11 @@
       } catch(e) { alert(e.message); }
     };
 
-    function renderLoading() {
-      document.getElementById("reportList").innerHTML = `<p style="text-align:center; color:#666;">Fetching data...</p>`;
+    function showLoadingState() {
+      document.getElementById("reportList").innerHTML = `<p style="text-align:center; color:#888; margin-top:50px;">Fetching Data...</p>`;
     }
 
-    // --- 2. RENDER LIST & STATS ---
+    // --- 2. RENDER LIST & DASHBOARD ---
     function renderList(customers) {
       const listDiv = document.getElementById("reportList");
       listDiv.innerHTML = "";
@@ -281,8 +314,14 @@
       let totalPaid = 0;
       let totalDue = 0;
 
+      if(customers.length === 0) {
+        listDiv.innerHTML = `<p style="text-align:center; color:#888; margin-top:50px;">No records found.</p>`;
+        updateChart(0,0);
+        return;
+      }
+
       customers.forEach(c => {
-        // Calculate Totals per customer
+        // Calculate Totals
         let cPaid = 0, cTotal = 0;
         c.products.forEach(p => { cPaid += p.paid; cTotal += p.total; });
         
@@ -290,9 +329,12 @@
         totalPaid += cPaid;
         totalDue += cDue;
 
-        // Create Card
+        // Card Styling
+        const statusClass = cDue > 0 ? 'due' : 'paid';
+        const statusText = cDue > 0 ? `DUE: ₹${cDue.toLocaleString()}` : 'PAID ✔';
+
         const div = document.createElement("div");
-        div.className = "report-card";
+        div.className = `report-card ${statusClass}`;
         div.onclick = () => openModal(c);
         div.innerHTML = `
           <div class="rc-left">
@@ -300,15 +342,13 @@
             <span>${c.id}</span>
           </div>
           <div class="rc-right">
-            <span class="status-pill ${cDue > 0 ? '' : 'active'}">
-              ${cDue > 0 ? 'Due: ₹'+cDue.toLocaleString() : 'PAID'}
-            </span>
+            <div class="status-badge ${statusClass}">${statusText}</div>
           </div>
         `;
         listDiv.appendChild(div);
       });
 
-      // Update Dashboard
+      // Update Dashboard Stats
       document.getElementById("dispPaid").innerText = "₹" + totalPaid.toLocaleString();
       document.getElementById("dispDue").innerText = "₹" + totalDue.toLocaleString();
       updateChart(totalPaid, totalDue);
@@ -322,17 +362,26 @@
         type: 'doughnut',
         data: {
           labels: ["Paid", "Due"],
-          datasets: [{ data: [paid, due], backgroundColor: ["#00e676", "#ff1744"], borderWidth:0 }]
+          datasets: [{ data: [paid, due], backgroundColor: ["#00e676", "#ff1744"], borderWidth:0, hoverOffset: 4 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          cutout: '70%',
+          plugins: { legend: { display: false } } 
+        }
       });
     }
 
-    // --- 3. MODAL LOGIC ---
+    // --- 3. SLIDE-IN MODAL LOGIC (With Back Button Support) ---
     window.openModal = (c) => {
       currentCustomer = c;
+      
+      // Update Browser History for Back Button Logic
+      window.history.pushState({ modalOpen: true }, "");
+
       document.getElementById("modalName").innerText = c.name;
-      document.getElementById("modalId").innerText = `ID: ${c.id} | ${c.phone || ''}`;
+      document.getElementById("modalId").innerText = `ID: ${c.id} • ${c.phone || ''}`;
       
       const body = document.getElementById("modalBody");
       body.innerHTML = "";
@@ -340,102 +389,113 @@
       c.products.forEach(p => {
         const bal = p.total - p.paid;
         
-        // Ledger Rows
+        // Ledger Logic
         const sortedPay = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
         let rows = "";
         let runningPaid = 0;
 
-        if(sortedPay.length === 0) rows = `<tr><td colspan="4" style="text-align:center; color:#555;">No history</td></tr>`;
+        if(sortedPay.length === 0) rows = `<tr><td colspan="4" style="text-align:center; color:#666;">No payment history</td></tr>`;
         
         sortedPay.forEach(pay => {
           runningPaid += parseFloat(pay.amount);
           const currentBal = p.total - runningPaid;
           rows += `
             <tr>
-              <td>#${pay.dueNumber||'-'}</td>
+              <td style="color:var(--text-muted)">#${pay.dueNumber||'-'}</td>
               <td>${pay.date}</td>
-              <td style="color:var(--primary)">₹${pay.amount}</td>
-              <td>₹${currentBal}</td>
+              <td class="col-money" style="color:var(--primary)">₹${pay.amount}</td>
+              <td class="col-money" style="color:#fff">₹${currentBal}</td>
             </tr>
           `;
         });
 
         const box = document.createElement("div");
-        box.className = "prod-detail-box";
+        box.className = "prod-box";
         box.innerHTML = `
           <div class="prod-head">
             <span class="prod-name">${p.name}</span>
-            <span style="color:${bal>0 ? 'var(--danger)':'var(--primary)'}">
+            <span class="prod-bal ${bal>0 ? 'red':'green'}">
               ${bal>0 ? 'Bal: ₹'+bal : 'CLEARED'}
             </span>
           </div>
-          <div style="font-size:0.8rem; color:#888; margin-bottom:10px;">
-            Total Value: ₹${p.total} | Paid: ₹${p.paid}
-          </div>
           <table class="ledger-table">
-            <thead><tr><th>Due</th><th>Date</th><th>Paid</th><th>Bal</th></tr></thead>
+            <thead><tr><th>Due</th><th>Date</th><th style="text-align:right">Paid</th><th style="text-align:right">Bal</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         `;
         body.appendChild(box);
       });
 
-      // Show Modal
       document.getElementById("modalOverlay").classList.add("active");
       document.getElementById("detailPanel").classList.add("active");
       
-      // Update PDF Button Listener
+      // Attach PDF function
       document.getElementById("btnDownloadPdf").onclick = () => generatePDF(c);
     };
 
     window.closeModal = () => {
       document.getElementById("modalOverlay").classList.remove("active");
       document.getElementById("detailPanel").classList.remove("active");
+      // Remove history state if present
+      if (window.history.state && window.history.state.modalOpen) {
+        window.history.back();
+      }
     };
 
-    // --- 4. PROFESSIONAL PDF GENERATION ---
+    // Listen for Back Button to Close Modal
+    window.addEventListener('popstate', (event) => {
+      document.getElementById("modalOverlay").classList.remove("active");
+      document.getElementById("detailPanel").classList.remove("active");
+    });
+
+    // --- 4. PDF GENERATION ENGINE ---
     window.generatePDF = (c) => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Brand Header
-      doc.setFillColor(0, 0, 0); // Black Header
-      doc.rect(0, 0, 210, 35, 'F');
+      // -- Branding Header --
+      doc.setFillColor(0, 0, 0); // Black BG
+      doc.rect(0, 0, 210, 36, 'F');
       
-      doc.setTextColor(0, 230, 118); // Neon Green
-      doc.setFontSize(20);
+      doc.setTextColor(0, 230, 118); // Neon Green Text
+      doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("MeenaGroups", 14, 18);
+      doc.text("MeenaGroups", 14, 20);
       
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("EMI STATEMENT REPORT", 14, 26);
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 160, 26);
+      doc.text("FINANCIAL STATEMENT", 14, 28);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 28);
 
-      // Customer Details
+      // -- Customer Info --
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(12);
-      doc.text(`Customer: ${c.name.toUpperCase()}`, 14, 45);
-      doc.text(`ID: ${c.id}`, 14, 52);
-      doc.text(`Phone: ${c.phone || 'N/A'}`, 100, 45);
-      doc.text(`Place: ${c.place || 'N/A'}`, 100, 52);
+      doc.setFont("helvetica", "bold");
+      doc.text(`CUSTOMER: ${c.name.toUpperCase()}`, 14, 50);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`ID: ${c.id}`, 14, 57);
+      doc.text(`Phone: ${c.phone || 'N/A'}`, 80, 57);
+      doc.text(`Location: ${c.place || 'N/A'}`, 140, 57);
 
-      let finalY = 60;
+      let finalY = 65;
 
-      // Loop Products
+      // -- Products Loop --
       c.products.forEach(p => {
-        // Product Header
-        doc.setFillColor(240, 240, 240);
-        doc.rect(14, finalY, 182, 10, 'F');
+        // Product Summary Header
+        doc.setFillColor(245, 245, 245);
+        doc.rect(14, finalY, 182, 12, 'F');
+        
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.text(`${p.name} (Value: Rs.${p.total})`, 16, finalY + 7);
+        doc.text(`${p.name.toUpperCase()} (Total Value: Rs.${p.total})`, 18, finalY + 8);
         
         finalY += 15;
 
-        // Ledger Data
+        // Table Data Preparation
         const bodyData = [];
         let running = 0;
         const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
@@ -456,29 +516,38 @@
            });
         }
 
-        // Table
+        // Draw Table
         doc.autoTable({
           startY: finalY,
-          head: [['Due', 'Date', 'Type', 'Paid', 'Balance']],
+          head: [['Due', 'Date', 'Type', 'Paid', 'Running Bal']],
           body: bodyData,
-          theme: 'grid',
-          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
-          styles: { fontSize: 9 },
+          theme: 'striped',
+          headStyles: { 
+            fillColor: [30, 30, 30], 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold' 
+          },
+          styles: { fontSize: 9, cellPadding: 4 },
+          columnStyles: {
+            3: { fontStyle: 'bold', textColor: [0, 150, 0] }, // Paid column green
+            4: { fontStyle: 'bold' } // Balance column bold
+          },
           margin: { left: 14, right: 14 }
         });
 
         finalY = doc.lastAutoTable.finalY + 15;
       });
 
-      // Footer
+      // -- Footer --
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text("System Generated Report - MeenaGroups", 14, 285);
+      doc.text("Page 1", 195, 285);
 
-      doc.save(`Statement_${c.id}.pdf`);
+      doc.save(`${c.name}_Statement.pdf`);
     };
 
-    // Init
+    // Load initial list
     loadRecent(20);
 
   </script>
