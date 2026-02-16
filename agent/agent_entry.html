@@ -141,6 +141,15 @@
     .btn-save:active { transform: scale(0.98); }
     .btn-save:disabled { background: var(--text-muted); opacity: 0.5; }
 
+    /* Action Buttons (Print/Download) */
+    .action-row { display: flex; gap: 10px; margin-top: 15px; }
+    .btn-action { 
+      flex: 1; padding: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem;
+    }
+    .btn-print { background: var(--secondary); color: #000; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); }
+    .btn-download { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+
     /* --- BOTTOM NAV --- */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; width: 100%;
@@ -240,6 +249,17 @@
           SAVE ENTRY
         </button>
 
+        <div id="postSaveActions" class="action-row hidden">
+          <button class="btn-action btn-print" onclick="printLastReceipt()">
+            <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/><circle cx="18" cy="11.5" r="1"/></svg>
+            PRINT
+          </button>
+          <button class="btn-action btn-download" onclick="downloadLastReceipt()">
+            <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            IMG
+          </button>
+        </div>
+
       </div>
     </div>
   </main>
@@ -261,6 +281,8 @@
     </a>
   </nav>
 
+  <canvas id="receiptCanvas" style="display:none;"></canvas>
+
   <script type="module">
     import { db } from "./config.js";
     import { 
@@ -271,6 +293,11 @@
     let selectedProductIndex = 0;
     let calculatedNextDue = 0;
     let existingPaid = 0;
+    let pendingLogsPaid = 0;
+    
+    // Data for Receipt
+    let lastReceiptData = null;
+    let lastBalance = 0;
 
     // --- 1. SMART SEARCH LOGIC (Optimized Reads) ---
     const searchBox = document.getElementById("searchBox");
@@ -328,8 +355,8 @@
       }
     };
 
-    // --- 2. LOAD CUSTOMER ---
-    function loadCustomer(c) {
+    // --- 2. LOAD CUSTOMER & CHECK PENDING LOGS ---
+    async function loadCustomer(c) {
       selectedCustomer = c;
       
       document.getElementById("custName").innerText = c.name;
@@ -339,6 +366,7 @@
       searchBox.value = "";
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
+      document.getElementById("postSaveActions").classList.add("hidden"); // Hide actions on new load
 
       const dropdown = document.getElementById("productDropdown");
       dropdown.innerHTML = "";
@@ -350,23 +378,48 @@
         dropdown.appendChild(option);
       });
       
-      updateProductDetails(0);
+      await updateProductDetails(0);
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
-    // --- 3. CALCULATE STATS ---
-    function updateProductDetails(index) {
+    // --- 3. CALCULATE STATS (DB + PENDING LOGS) ---
+    async function updateProductDetails(index) {
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
       
-      existingPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+      // 1. Paid in Database
+      const dbPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+      
+      // 2. Paid in Pending Agent Logs
+      pendingLogsPaid = 0;
+      let pendingLogsCount = 0;
+
+      try {
+        const logsQ = query(
+          collection(db, "temp_entries"), 
+          where("customerId", "==", selectedCustomer.id),
+          where("productName", "==", p.name),
+          where("status", "==", "pending")
+        );
+        const logSnap = await getDocs(logsQ);
+        logSnap.forEach(doc => {
+          pendingLogsPaid += parseFloat(doc.data().amount || 0);
+          pendingLogsCount++;
+        });
+      } catch(e) {
+        console.warn("Could not check pending logs:", e);
+      }
+
+      // 3. Final Calculations
+      existingPaid = dbPaid + pendingLogsPaid;
       const balance = p.total - existingPaid;
       
-      const lastDue = (p.payments || []).length > 0 
+      // Due Logic: Max DB Due + Count of Pending Entries
+      const dbMaxDue = (p.payments || []).length > 0 
         ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
         : 0;
       
-      calculatedNextDue = lastDue + 1; 
+      calculatedNextDue = dbMaxDue + pendingLogsCount + 1; 
 
       document.getElementById("dispTotal").innerText = `₹${p.total}`;
       document.getElementById("dispPaid").innerText = `₹${existingPaid}`;
@@ -374,7 +427,7 @@
       document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
     }
 
-    // --- 4. SAVE ENTRY & GENERATE IMAGE ---
+    // --- 4. SAVE ENTRY ---
     window.saveToTempCollection = async () => {
       const amount = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
@@ -406,23 +459,33 @@
 
         await addDoc(collection(db, "temp_entries"), entryData);
 
-        // Generate Receipt Image
-        const newBalance = p.total - (existingPaid + amount);
-        generateReceipt(entryData, newBalance);
-
-        showToast("Entry Saved & Receipt Downloading!");
+        showToast("Entry Saved!");
         
-        // Reset
-        document.getElementById("customerInfo").classList.add("hidden");
+        // Prepare Receipt Data
+        lastBalance = p.total - (existingPaid + amount);
+        lastReceiptData = entryData;
+        
+        // Render Receipt on Hidden Canvas immediately for future use
+        drawReceiptToCanvas(lastReceiptData, lastBalance);
+
+        // UI Updates
         document.getElementById("amount").value = "";
-        selectedCustomer = null;
+        btn.innerHTML = "✅ Saved";
+        
+        // Show Print/Download Options
+        document.getElementById("postSaveActions").classList.remove("hidden");
+
+        // Reload data to update due count
+        await updateProductDetails(selectedProductIndex);
 
       } catch (e) {
         console.error(e);
         alert("Error saving: " + e.message);
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }, 2000);
       }
     };
 
@@ -433,9 +496,9 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- RECEIPT GENERATION LOGIC (WHITE THEME) ---
-    function generateReceipt(data, balance) {
-      const canvas = document.createElement('canvas');
+    // --- 5. RECEIPT LOGIC (CANVAS) ---
+    function drawReceiptToCanvas(data, balance) {
+      const canvas = document.getElementById('receiptCanvas');
       const size = 800; // Square format
       canvas.width = size;
       canvas.height = size;
@@ -457,7 +520,7 @@
       ctx.fillText("Meena Groups", size/2, 100);
 
       ctx.font = "30px Arial";
-      ctx.fillStyle = "#10b981"; // Green Accent
+      ctx.fillStyle = "#10b981"; 
       ctx.fillText("PAYMENT RECEIPT", size/2, 150);
 
       // 4. Details
@@ -468,9 +531,8 @@
       ctx.textAlign = "left";
       ctx.font = "bold 32px Courier New";
       
-      // Helper function to draw rows
       function drawRow(label, value, valueColor="#000") {
-        ctx.fillStyle = "#555"; // Label Color (Dark Gray)
+        ctx.fillStyle = "#555"; 
         ctx.fillText(label, startX, currentY);
         ctx.fillStyle = valueColor;
         ctx.textAlign = "right";
@@ -481,11 +543,11 @@
 
       drawRow("Date:", data.date);
       drawRow("Customer:", data.customerName.substring(0, 15));
-      drawRow("ID:", data.customerId, "#3b82f6"); // Blue for ID
+      drawRow("ID:", data.customerId, "#3b82f6"); 
       currentY += 10;
       drawRow("Due No:", `#${data.dueNumber}`);
       
-      // Amount Highlight (Light Green Box)
+      // Amount Highlight
       ctx.fillStyle = "rgba(16, 185, 129, 0.1)"; 
       ctx.fillRect(50, currentY - 35, size - 100, 80);
       ctx.strokeStyle = "#10b981";
@@ -496,13 +558,13 @@
       ctx.fillText("PAID AMOUNT:", 70, currentY+15);
       ctx.textAlign = "right";
       ctx.font = "bold 45px Courier New";
-      ctx.fillStyle = "#10b981"; // Bold Green Text
+      ctx.fillStyle = "#10b981"; 
       ctx.fillText(`Rs.${data.amount}`, size - 70, currentY+15);
       ctx.textAlign = "left";
       currentY += 100;
 
       ctx.font = "bold 32px Courier New";
-      drawRow("Balance:", `Rs.${balance}`, "#ef4444"); // Red for Balance
+      drawRow("Balance:", `Rs.${balance}`, "#ef4444");
 
       // 5. Signature & Footer
       currentY += 80;
@@ -515,13 +577,35 @@
       ctx.font = "20px Arial";
       ctx.fillStyle = "#666";
       ctx.fillText("Visit meena.goorac.biz for live status", size/2, currentY);
-      
-      // 6. Download
+    }
+
+    // --- 6. DOWNLOAD / PRINT ACTIONS ---
+    window.downloadLastReceipt = () => {
+      const canvas = document.getElementById('receiptCanvas');
       const link = document.createElement('a');
-      link.download = `Receipt_${data.customerId}_${data.dueNumber}.png`;
+      link.download = `Receipt_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    }
+    };
+
+    window.printLastReceipt = () => {
+      const canvas = document.getElementById('receiptCanvas');
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Open Image in New Window
+      const win = window.open('');
+      win.document.write(`
+        <html>
+          <head><title>Print Receipt</title></head>
+          <body style="margin:0; display:flex; justify-content:center; align-items:center; height:100vh;">
+            <img src="${dataUrl}" style="max-width:100%; height:auto; border:1px solid #ccc;">
+            <script>
+              setTimeout(() => { window.print(); window.close(); }, 500);
+            <\/script>
+          </body>
+        </html>
+      `);
+    };
 
     // Set Today's Date
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
