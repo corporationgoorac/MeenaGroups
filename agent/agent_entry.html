@@ -3,188 +3,232 @@
 <head>
   <meta charset="UTF-8">
   <title>Agent App - Add Collection</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* --- PROFESSIONAL MODERN THEME --- */
+    /* --- PREMIUM DARK AGENT THEME --- */
     :root { 
-      --bg: #0f172a; 
+      --bg: #020617; 
+      --surface: #0f172a; 
       --card: #1e293b; 
-      --input: #334155;
-      --primary: #10b981; /* Emerald */
-      --secondary: #0ea5e9; /* Sky Blue */
-      --danger: #ef4444; 
-      --text: #f8fafc; 
-      --text-muted: #94a3b8;
-      --border: #475569; 
+      --input: #1e293b;
+      
+      --primary: #10b981; /* Success Green */
+      --accent: #3b82f6;  /* Action Blue */
+      --danger: #ef4444;  /* Alert Red */
+      --warn: #f59e0b;    /* Warning Orange */
+      
+      --text: #f1f5f9; 
+      --text-muted: #64748b;
+      --border: #334155; 
     }
     
-    body { background: var(--bg); color: var(--text); font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 30px; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
-    /* Navigation */
-    nav { 
-      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
-      display: flex; gap: 10px; overflow-x: auto; margin-bottom: 25px;
+    body { 
+      background: var(--bg); color: var(--text); 
+      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      margin: 0; padding: 0; 
+      padding-bottom: 90px; /* Space for Bottom Nav */
     }
-    nav a { 
-      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
-      font-size: 0.9rem; white-space: nowrap; transition: 0.2s; background: rgba(255,255,255,0.05);
-    }
-    nav a:hover { background: var(--input); color: white; }
-    nav a.active { background: rgba(14, 165, 233, 0.2); color: var(--secondary); font-weight: 600; border: 1px solid rgba(14, 165, 233, 0.4); }
 
-    /* Layout */
-    main { max-width: 500px; margin: 0 auto; padding: 0 20px; }
-    
-    .page-title { text-align: center; margin-bottom: 25px; }
-    .page-title h1 { margin: 0; font-size: 1.5rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .page-title p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.9rem; }
+    /* --- GLASS HEADER --- */
+    header {
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+    .agent-status { font-size: 0.75rem; color: var(--primary); background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
 
-    /* Search Bar */
-    .search-container { position: relative; margin-bottom: 20px; }
+    /* --- SEARCH SECTION --- */
+    .search-wrapper { padding: 20px; position: relative; z-index: 40; }
+    
+    .input-group { position: relative; }
     .search-input {
-      width: 100%; padding: 16px 20px; padding-left: 45px;
+      width: 100%; padding: 14px 15px 14px 45px;
       background: var(--card); border: 1px solid var(--border);
-      color: white; border-radius: 12px; font-size: 1rem;
-      transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      box-sizing: border-box;
+      color: white; border-radius: 14px; font-size: 1rem;
+      transition: 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
-    .search-input:focus { border-color: var(--secondary); outline: none; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
-    .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+    .search-icon { 
+      position: absolute; left: 15px; top: 50%; transform: translateY(-50%); 
+      color: var(--text-muted); font-size: 1.2rem; pointer-events: none;
+    }
 
-    /* Suggestions */
+    /* Suggestions List */
     #suggestions {
       background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      display: none; max-height: 250px; overflow-y: auto;
-      position: absolute; top: 110%; left: 0; right: 0; z-index: 50;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      margin-top: 8px; max-height: 300px; overflow-y: auto;
+      position: absolute; width: calc(100% - 40px); left: 20px; z-index: 100;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none;
     }
-    .suggestion-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; }
-    .suggestion-item:hover { background: var(--input); }
-    .suggestion-item strong { color: var(--secondary); }
+    .suggestion-item { 
+      padding: 15px; border-bottom: 1px solid var(--border); 
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .suggestion-item:active { background: #334155; }
+    .s-name { font-weight: 600; color: #fff; display: block; }
+    .s-id { font-size: 0.8rem; color: var(--accent); font-family: monospace; background: rgba(59, 130, 246, 0.1); padding: 2px 6px; border-radius: 4px; }
 
-    /* Customer Card */
-    .customer-panel { 
-      background: var(--card); border-radius: 16px; border: 1px solid var(--border); 
-      overflow: hidden; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    /* --- CUSTOMER CARD --- */
+    .main-content { padding: 0 20px; }
     
-    .panel-header { background: rgba(255,255,255,0.03); padding: 20px; border-bottom: 1px solid var(--border); }
-    .panel-header h2 { margin: 0; font-size: 1.2rem; }
-    .panel-header p { margin: 4px 0 0; color: var(--text-muted); font-size: 0.9rem; }
-
-    .panel-body { padding: 20px; }
-
-    /* Product Info Grid */
-    .info-grid { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;
-      background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid var(--border);
+    .customer-card { 
+      background: var(--card); border-radius: 18px; border: 1px solid var(--border); 
+      overflow: hidden; animation: slideUp 0.4s ease-out; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    .info-item { display: flex; flex-direction: column; }
-    .info-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
-    .info-val { font-size: 1rem; font-weight: 600; }
-    .val-due { color: var(--secondary); }
+    .hidden { display: none; }
+
+    .card-header { 
+      padding: 20px; background: linear-gradient(to right, rgba(255,255,255,0.03), transparent); 
+      border-bottom: 1px solid var(--border);
+    }
+    .cust-name { margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .cust-meta { margin-top: 5px; font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 10px; font-family: monospace; }
+
+    .card-body { padding: 20px; }
+
+    /* Form Fields */
+    label { display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px; font-weight: 500; }
+    
+    .custom-select {
+      width: 100%; padding: 14px; background: #0f172a; border: 1px solid var(--border);
+      color: white; border-radius: 10px; font-size: 1rem; margin-bottom: 20px; appearance: none;
+    }
+
+    /* Info Grid */
+    .stats-grid { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
+    }
+    .stat-box { 
+      background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      display: flex; flex-direction: column; 
+    }
+    .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 1.1rem; font-weight: 700; margin-top: 4px; color: #fff; }
+    
+    .val-due { color: var(--warn); }
     .val-bal { color: var(--danger); }
+    .val-paid { color: var(--primary); }
 
-    /* Form Elements */
-    .form-group { margin-bottom: 15px; }
-    .form-label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
+    /* Input Row */
+    .input-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-bottom: 20px; }
     
-    select, input[type="number"], input[type="date"] {
-      width: 100%; padding: 14px; background: var(--input); border: 1px solid var(--border);
-      color: white; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: 0.2s;
+    .input-field {
+      width: 100%; padding: 14px; background: #0f172a; border: 1px solid var(--border);
+      color: white; border-radius: 10px; font-size: 1.1rem; font-weight: 600;
     }
-    select:focus, input:focus { border-color: var(--primary); outline: none; }
+    .input-field:focus { border-color: var(--primary); }
 
+    /* Save Button */
     .btn-save {
       width: 100%; padding: 16px; background: var(--primary); color: #000;
-      border: none; border-radius: 12px; font-weight: 700; font-size: 1rem;
-      cursor: pointer; transition: 0.2s; margin-top: 10px;
+      border: none; border-radius: 12px; font-weight: 800; font-size: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); transition: transform 0.1s;
     }
-    .btn-save:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    .btn-save:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+    .btn-save:active { transform: scale(0.98); }
+    .btn-save:disabled { background: var(--text-muted); opacity: 0.5; }
 
-    .hidden { display: none; }
+    /* --- BOTTOM NAV --- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
     
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* Toast Notification */
-    .toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #10b981; color: #000; padding: 12px 24px; border-radius: 30px;
-      font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100;
+    .nav-item {
+      text-decoration: none; color: var(--text-muted); font-size: 0.7rem;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 5px; width: 33%;
     }
-    .toast.show { opacity: 1; bottom: 40px; }
+    .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .nav-item.active { color: var(--accent); }
+    .nav-item.active svg { fill: var(--accent); filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
+
+    /* --- TOAST --- */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #10b981; color: #000; padding: 12px 24px; border-radius: 50px;
+      font-weight: bold; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 200;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="agent_entry.html" class="active">Add Collection</a>
-    <a href="agent_view.html">View Entries</a>
-  </nav>
+  <header>
+    <h1>New Collection</h1>
+    <div class="agent-status">● Online</div>
+  </header>
 
-  <main>
-    <div class="page-title">
-      <h1>New Collection</h1>
-      <p>Search customer and log payment.</p>
-    </div>
-
-    <div class="search-container">
+  <div class="search-wrapper">
+    <div class="input-group">
       <span class="search-icon">🔍</span>
-      <input type="text" id="searchBox" class="search-input" placeholder="Search Name, ID or Phone..." autocomplete="off">
-      <div id="suggestions"></div>
+      <input type="text" id="searchBox" class="search-input" placeholder="Search ID or Name..." autocomplete="off">
     </div>
+    <div id="suggestions"></div>
+  </div>
 
-    <div id="customerInfo" class="customer-panel hidden">
-      <div class="panel-header">
-        <h2 id="custName">Customer Name</h2>
-        <p id="custDetails">ID: 000 | Phone: 0000</p>
+  <main class="main-content">
+    <div id="customerInfo" class="customer-card hidden">
+      
+      <div class="card-header">
+        <h2 class="cust-name" id="custName">Customer Name</h2>
+        <div class="cust-meta">
+          <span id="custId">ID: --</span>
+          <span>|</span>
+          <span id="custPhone">Ph: --</span>
+        </div>
       </div>
 
-      <div class="panel-body">
+      <div class="card-body">
         
-        <div class="form-group">
-          <label class="form-label">Select Product</label>
-          <select id="productDropdown"></select>
+        <label>Select Product / Loan</label>
+        <select id="productDropdown" class="custom-select"></select>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">Total Value</span>
+            <span class="stat-val" id="dispTotal">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Paid So Far</span>
+            <span class="stat-val val-paid" id="dispPaid">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Next Due #</span>
+            <span class="stat-val val-due" id="dispDue">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Balance</span>
+            <span class="stat-val val-bal" id="dispBal">-</span>
+          </div>
         </div>
 
-        <div id="productInfo" class="info-grid">
-          <div class="info-item">
-            <span class="info-label">Total Amount</span>
-            <span class="info-val" id="dispTotal">-</span>
+        <div class="input-row">
+          <div>
+            <label>Amount (₹)</label>
+            <input type="number" id="amount" class="input-field" placeholder="0">
           </div>
-          <div class="info-item" style="text-align:right;">
-            <span class="info-label">Paid So Far</span>
-            <span class="info-val" id="dispPaid">-</span>
-          </div>
-          <div class="info-item" style="margin-top:10px;">
-            <span class="info-label">Current Due #</span>
-            <span class="info-val val-due" id="dispDue">-</span>
-          </div>
-          <div class="info-item" style="margin-top:10px; text-align:right;">
-            <span class="info-label">Balance</span>
-            <span class="info-val val-bal" id="dispBal">-</span>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px;">
-          <div class="form-group" style="flex:1;">
-            <label class="form-label">Amount (₹)</label>
-            <input type="number" id="amount" placeholder="0.00">
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label class="form-label">Date</label>
-            <input type="date" id="date">
+          <div>
+            <label>Date</label>
+            <input type="date" id="date" class="input-field">
           </div>
         </div>
 
         <button id="btnSave" class="btn-save" onclick="saveToTempCollection()">
-          ✅ Save Collection
+          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+          SAVE ENTRY
         </button>
 
       </div>
@@ -192,6 +236,21 @@
   </main>
 
   <div id="toast" class="toast">Entry Saved Successfully!</div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="agent_entry.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span>Collect</span>
+    </a>
+    <a href="agent_view.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>Logs</span>
+    </a>
+  </nav>
 
   <script type="module">
     import { db } from "./config.js";
@@ -203,7 +262,7 @@
     let selectedProductIndex = 0;
     let calculatedNextDue = 0;
 
-    // --- 1. SEARCH LOGIC ---
+    // --- 1. SMART SEARCH LOGIC (ID & NAME) ---
     const searchBox = document.getElementById("searchBox");
     const suggestionBox = document.getElementById("suggestions");
 
@@ -211,15 +270,19 @@
       const term = e.target.value.trim();
       if (term.length < 2) { suggestionBox.style.display = "none"; return; }
 
-      // Query Customers
-      const q = query(
-        collection(db, "customers"),
-        where("id", ">=", term),
-        where("id", "<=", term + '\uf8ff'),
-        limit(5)
-      );
+      const colRef = collection(db, "customers");
+      let snapshot;
 
-      const snapshot = await getDocs(q);
+      // Strategy 1: Search by ID
+      const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
+      snapshot = await getDocs(qId);
+
+      // Strategy 2: If no ID found, Search by Name (Case sensitive in Firestore, assumes Capitalized)
+      if (snapshot.empty) {
+        const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
+        snapshot = await getDocs(qName);
+      }
+
       suggestionBox.innerHTML = "";
       
       if (snapshot.empty) {
@@ -231,27 +294,31 @@
         const c = docSnap.data();
         const div = document.createElement("div");
         div.className = "suggestion-item";
-        div.innerHTML = `<span>${c.name}</span> <strong>${c.id}</strong>`;
+        div.innerHTML = `
+          <span class="s-name">${c.name}</span> 
+          <span class="s-id">${c.id}</span>
+        `;
         div.onclick = () => loadCustomer(c);
         suggestionBox.appendChild(div);
       });
       suggestionBox.style.display = "block";
     });
 
-    // --- 2. LOAD CUSTOMER INTO UI ---
+    // --- 2. LOAD CUSTOMER ---
     function loadCustomer(c) {
       selectedCustomer = c;
       
-      // Fill Header
+      // UI Update
       document.getElementById("custName").innerText = c.name;
-      document.getElementById("custDetails").innerText = `ID: ${c.id} | Ph: ${c.phone || 'N/A'}`;
+      document.getElementById("custId").innerText = `ID: ${c.id}`;
+      document.getElementById("custPhone").innerText = `Ph: ${c.phone || 'N/A'}`;
       
-      // Reset & Show
+      // Cleanup
       searchBox.value = "";
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
 
-      // Fill Dropdown
+      // Product Dropdown
       const dropdown = document.getElementById("productDropdown");
       dropdown.innerHTML = "";
       
@@ -262,11 +329,11 @@
         dropdown.appendChild(option);
       });
       
-      updateProductDetails(0); // Default first
+      updateProductDetails(0); // Trigger Calc
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
-    // --- 3. CALCULATE & SHOW STATS ---
+    // --- 3. CALCULATE STATS ---
     function updateProductDetails(index) {
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
@@ -274,36 +341,35 @@
       const paid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
       const balance = p.total - paid;
       
-      // Logic: Find max existing due number, next is +1
+      // Due Number Logic
       const lastDue = (p.payments || []).length > 0 
         ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
         : 0;
       
-      calculatedNextDue = lastDue + 1; // Store for saving
+      calculatedNextDue = lastDue + 1; 
 
-      // Update UI
       document.getElementById("dispTotal").innerText = `₹${p.total}`;
       document.getElementById("dispPaid").innerText = `₹${paid}`;
       document.getElementById("dispBal").innerText = `₹${balance}`;
       document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
     }
 
-    // --- 4. SAVE (WITH DUE NUMBER) ---
+    // --- 4. SAVE ENTRY ---
     window.saveToTempCollection = async () => {
       const amount = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
 
-      if (!amount || amount <= 0) return alert("❌ Enter a valid amount");
-      if (!date) return alert("❌ Select a date");
+      if (!amount || amount <= 0) return alert("❌ Enter valid amount");
+      if (!date) return alert("❌ Select date");
 
       const btn = document.getElementById("btnSave");
+      const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerText = "Processing...";
+      btn.innerHTML = "Saving...";
 
       try {
         const p = selectedCustomer.products[selectedProductIndex];
         
-        // Payload with Due Number
         const entryData = {
           customerId: selectedCustomer.id,
           customerName: selectedCustomer.name,
@@ -312,7 +378,7 @@
           productIndex: selectedProductIndex, 
           amount: amount,
           date: date,
-          dueNumber: calculatedNextDue, // <--- CRITICAL UPDATE: Saving Due Number
+          dueNumber: calculatedNextDue, 
           status: "pending", 
           timestamp: serverTimestamp(), 
           agentEntry: true
@@ -320,9 +386,9 @@
 
         await addDoc(collection(db, "temp_entries"), entryData);
 
-        showToast("Entry Logged Successfully!");
+        showToast("Entry Saved Successfully!");
         
-        // Reset UI
+        // Reset
         document.getElementById("customerInfo").classList.add("hidden");
         document.getElementById("amount").value = "";
         selectedCustomer = null;
@@ -332,7 +398,7 @@
         alert("Error saving: " + e.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = "✅ Save Collection";
+        btn.innerHTML = originalText;
       }
     };
 
@@ -343,10 +409,9 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // Default Date
+    // Set Today's Date
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
   </script>
 </body>
 </html>
-
