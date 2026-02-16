@@ -2,90 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard - EMI Manager</title>
+  <title>Dashboard - MeenaGroups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
   
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* --- 1. HIGH CONTRAST THEME --- */
+    /* --- 1. PROFESSIONAL HIGH CONTRAST THEME --- */
     :root { 
       --bg: #000000; 
-      --card: #121212; 
-      --primary: #00e676; /* High Contrast Neon Green */
-      --secondary: #2979ff; /* High Contrast Blue */
+      --surface: #0a0a0a;
+      --card: #141414; 
+      --primary: #00e676; /* Neon Green */
+      --primary-dim: rgba(0, 230, 118, 0.1);
+      --secondary: #2979ff; /* Blue */
       --text: #ffffff; 
-      --text-muted: #b0b0b0;
-      --border: #333333; 
-      --nav-bg: #1a1a1a;
+      --text-muted: #888888;
+      --border: #222222; 
+      --nav-bg: #0f0f0f;
     }
     
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
     body { 
       background: var(--bg); 
       color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
       margin: 0; 
       padding: 0; 
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden; /* Prevent body scroll, handle inside container */
     }
 
-    /* --- 2. DESKTOP NAVIGATION (Top) --- */
-    .desktop-nav { 
-      background: var(--nav-bg); 
-      padding: 15px 40px; 
-      border-bottom: 1px solid var(--border); 
-      display: flex; 
+    /* --- 2. HEADER / BRANDING (Shared Desktop & Mobile) --- */
+    .app-header {
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 15px 25px;
+      display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-    
-    .logo { font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; color: var(--primary); }
-
-    .nav-links { display: flex; gap: 20px; }
-    .nav-links a { 
-      color: var(--text-muted); 
-      text-decoration: none; 
-      padding: 8px 16px; 
-      border-radius: 6px; 
-      font-size: 0.9rem; 
-      transition: 0.3s;
-    }
-    .nav-links a:hover { color: white; background: #333; }
-    .nav-links a.active { color: var(--bg); background: var(--primary); font-weight: 700; }
-
-    /* --- 3. MOBILE NAVIGATION (Bottom) --- */
-    .mobile-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: var(--nav-bg);
-      border-top: 1px solid var(--border);
-      display: none; /* Hidden by default on desktop */
-      justify-content: space-around;
-      padding: 12px 0;
-      z-index: 100;
-      box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+      z-index: 50;
     }
 
-    .nav-item {
+    .brand-container {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-decoration: none;
+      line-height: 1.1;
+    }
+
+    .brand-main {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 0.65rem;
       color: var(--text-muted);
-      font-size: 0.75rem;
-      transition: 0.2s;
+      font-weight: 400;
+      letter-spacing: 1px;
+      margin-top: 2px;
     }
     
-    .nav-item svg { width: 24px; height: 24px; margin-bottom: 4px; fill: currentColor; }
-    .nav-item.active { color: var(--primary); }
+    .brand-sub span { color: var(--primary); font-weight: 600; }
+
+    /* --- 3. DESKTOP NAVIGATION (Right side of header) --- */
+    .desktop-nav-links { display: flex; gap: 5px; }
     
-    /* --- 4. MAIN WELCOME CONTENT --- */
-    .container { 
+    .desktop-link { 
+      color: var(--text-muted); 
+      text-decoration: none; 
+      padding: 10px 18px; 
+      border-radius: 8px; 
+      font-size: 0.9rem; 
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .desktop-link:hover { color: white; background: #222; }
+    .desktop-link.active { color: var(--primary); background: var(--primary-dim); border: 1px solid rgba(0,230,118,0.2); }
+
+    /* --- 4. MAIN CONTAINER --- */
+    .main-content { 
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -93,101 +96,173 @@
       align-items: center;
       text-align: center;
       padding: 20px;
-      margin-bottom: 60px; /* Space for mobile nav */
+      position: relative;
+      /* Background Mesh Gradient Effect */
+      background: radial-gradient(circle at 50% 10%, #111 0%, #000 70%);
     }
 
-    .greeting-box {
-      background: var(--card);
+    .greeting-card {
       padding: 40px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
       max-width: 600px;
       width: 100%;
-      box-shadow: 0 10px 40px rgba(0,230,118, 0.05);
-      animation: fadeIn 1s ease-out;
+      animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    .greeting-time { font-size: 1.2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-bottom: 10px;}
-    .greeting-title { font-size: 3rem; margin: 0; font-weight: 700; background: linear-gradient(to right, #fff, #b0b0b0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-    .greeting-sub { color: var(--text-muted); margin-top: 15px; font-size: 1.1rem; }
+    .greeting-badge { 
+      display: inline-block;
+      font-size: 0.8rem; 
+      color: var(--primary); 
+      background: var(--primary-dim);
+      border: 1px solid rgba(0,230,118,0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-transform: uppercase; 
+      letter-spacing: 1px; 
+      font-weight: 700; 
+      margin-bottom: 20px;
+    }
+
+    .greeting-title { 
+      font-size: 3.5rem; 
+      margin: 0; 
+      font-weight: 700; 
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 30%, #777777 100%); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent;
+    }
     
-    .clock-display {
-      margin-top: 30px;
-      font-size: 4rem;
+    .greeting-sub { 
+      color: var(--text-muted); 
+      margin-top: 15px; 
+      font-size: 1.1rem; 
       font-weight: 300;
+    }
+    
+    .live-clock {
+      margin-top: 40px;
+      font-size: 5rem;
+      font-weight: 200;
       font-variant-numeric: tabular-nums;
       color: var(--text);
+      text-shadow: 0 0 30px rgba(255,255,255,0.05);
+      line-height: 1;
     }
 
-    .date-display {
-      font-size: 1rem;
-      color: var(--text-muted);
-      margin-top: -5px;
+    .live-date {
+      font-size: 1.1rem;
+      color: var(--secondary);
+      margin-top: 10px;
+      font-weight: 500;
+      opacity: 0.9;
     }
 
-    /* --- 5. PWA INSTALL POPUP --- */
+    /* --- 5. MOBILE BOTTOM NAVIGATION --- */
+    .mobile-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: none;
+      justify-content: space-around;
+      padding: 10px 0 25px 0; /* Extra padding for iOS home indicator */
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: #666;
+      font-size: 0.7rem;
+      padding: 8px;
+      width: 20%; /* Equal spacing */
+      transition: 0.2s;
+    }
+    
+    .nav-item svg { width: 24px; height: 24px; margin-bottom: 5px; fill: currentColor; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item.active svg { filter: drop-shadow(0 0 8px rgba(0,230,118,0.4)); }
+
+    /* --- 6. INSTALL PROMPT --- */
     #adminInstallPrompt {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 400px;
-      background: var(--primary); color: #000;
-      padding: 12px 20px; border-radius: 50px; display: none;
-      align-items: center; justify-content: space-between;
-      z-index: 9999; box-shadow: 0 0 20px rgba(0,230,118, 0.4);
-      animation: slideDown 0.5s ease-out;
+      position: fixed; top: 80px; right: 20px;
+      width: auto;
+      background: var(--surface); 
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px; border-radius: 50px; display: none;
+      align-items: center; gap: 15px;
+      z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: slideInRight 0.5s ease-out;
     }
-    #adminInstallPrompt span { font-weight: 700; font-size: 0.9rem; }
+    #adminInstallPrompt span { font-weight: 600; font-size: 0.85rem; }
     #adminInstallPrompt button {
-      background: #000; color: #fff; border: none;
-      padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+      background: var(--primary); color: #000; border: none;
+      padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem;
     }
 
-    /* --- RESPONSIVENESS LOGIC --- */
+    /* --- RESPONSIVENESS --- */
     @media (max-width: 768px) {
-      .desktop-nav { display: none; } /* Hide Top Bar */
+      .desktop-nav-links { display: none; } /* Hide Desktop Links */
       .mobile-nav { display: flex; } /* Show Bottom Bar */
       
-      .greeting-title { font-size: 2.2rem; }
-      .clock-display { font-size: 3.5rem; }
-      .greeting-box { padding: 30px 20px; border: none; background: transparent; box-shadow: none; }
+      .greeting-title { font-size: 2.5rem; }
+      .live-clock { font-size: 4rem; }
+      .greeting-card { padding: 20px; }
+      .main-content { padding-bottom: 90px; } /* Space for bottom nav */
+      
+      /* Mobile Header Adjustments */
+      .app-header { padding: 12px 20px; background: var(--surface); }
+      #adminInstallPrompt { top: auto; bottom: 100px; right: 50%; transform: translateX(50%); width: 90%; max-width: 300px; justify-content: space-between; }
     }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes slideDown { from { transform: translate(-50%, -100px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInRight { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
   </style>
 </head>
 <body>
 
-  <nav class="desktop-nav">
-    <div class="logo">EMI ADMIN</div>
-    <div class="nav-links">
-      <a href="index.html" class="active">Dashboard</a>
-      <a href="customers.html">Customers</a>
-      <a href="entries.html">Entries</a>
-      <a href="review.html">Agent Sync</a>
-      <a href="report.html">Reports</a>
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-main">MeenaGroups</div>
+      <div class="brand-sub">powered by <span>Goorac</span></div>
     </div>
-  </nav>
+
+    <nav class="desktop-nav-links">
+      <a href="index.html" class="desktop-link active">Dashboard</a>
+      <a href="customers.html" class="desktop-link">Customers</a>
+      <a href="entries.html" class="desktop-link">Entries</a>
+      <a href="review.html" class="desktop-link">Agent Sync</a>
+      <a href="report.html" class="desktop-link">Reports</a>
+    </nav>
+  </header>
 
   <div id="adminInstallPrompt">
     <span>📲 Install App</span>
-    <button id="btnAdminInstall">Get</button>
+    <button id="btnAdminInstall">Install</button>
   </div>
 
-  <div class="container">
-    <div class="greeting-box">
-      <div class="greeting-time" id="greetingMessage">Welcome</div>
+  <div class="main-content">
+    <div class="greeting-card">
+      <div class="greeting-badge" id="greetingMessage">Hello</div>
       <h1 class="greeting-title">Admin Console</h1>
-      <p class="greeting-sub">Manage your EMI business efficiently.</p>
+      <p class="greeting-sub">Secure access to EMI management system.</p>
       
-      <div class="clock-display" id="liveClock">00:00:00</div>
-      <div class="date-display" id="liveDate">Loading date...</div>
+      <div class="live-clock" id="liveClock">00:00</div>
+      <div class="live-date" id="liveDate">Loading...</div>
     </div>
   </div>
 
   <nav class="mobile-nav">
     <a href="index.html" class="nav-item active">
-      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       <span>Home</span>
     </a>
     <a href="customers.html" class="nav-item">
@@ -199,7 +274,7 @@
       <span>Pay</span>
     </a>
     <a href="review.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       <span>Sync</span>
     </a>
     <a href="report.html" class="nav-item">
@@ -209,37 +284,34 @@
   </nav>
 
   <script type="module">
-    // Keeping your original imports as requested to ensure no breaks
-    import { db } from "./config.js"; 
-    // Note: specific stat fetching logic is removed to clear the display, 
-    // but the db import is kept for future use.
+    import { db } from "./config.js";
 
     // --- 1. CLOCK & GREETING LOGIC ---
     function updateClock() {
       const now = new Date();
       
-      // Time
+      // Time Logic
       let hours = now.getHours();
       let minutes = now.getMinutes();
-      let seconds = now.getSeconds();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       
-      // 12 Hour Format
       hours = hours % 12;
       hours = hours ? hours : 12; 
       
-      const strTime = `${pad(hours)}:${pad(minutes)} <span style="font-size:0.5em; vertical-align:top;">${ampm}</span>`;
+      const strTime = `${pad(hours)}:${pad(minutes)} <span style="font-size:0.4em; font-weight:700; color:var(--primary); vertical-align:top; margin-left:5px;">${ampm}</span>`;
       document.getElementById('liveClock').innerHTML = strTime;
 
-      // Date
+      // Date Logic
       const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       document.getElementById('liveDate').innerText = now.toLocaleDateString('en-US', options);
 
-      // Greeting
+      // Greeting Logic
       const rawHours = now.getHours();
-      let greeting = "Good Morning";
-      if (rawHours >= 12 && rawHours < 17) greeting = "Good Afternoon";
-      else if (rawHours >= 17) greeting = "Good Evening";
+      let greeting = "Welcome";
+      if (rawHours >= 5 && rawHours < 12) greeting = "Good Morning";
+      else if (rawHours >= 12 && rawHours < 17) greeting = "Good Afternoon";
+      else if (rawHours >= 17 && rawHours < 22) greeting = "Good Evening";
+      else greeting = "Good Night";
       
       document.getElementById('greetingMessage').innerText = greeting;
     }
@@ -249,9 +321,9 @@
     }
 
     setInterval(updateClock, 1000);
-    updateClock(); // Run immediately
+    updateClock(); 
 
-    // --- 2. PWA INSTALL LOGIC (KEPT INTACT) ---
+    // --- 2. PWA INSTALL LOGIC ---
     let deferredPrompt;
     const installBtn = document.getElementById('btnAdminInstall');
     const installBanner = document.getElementById('adminInstallPrompt');
@@ -274,7 +346,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(() => console.log('Admin SW Registered'));
+          .then(() => console.log('SW Registered'));
       });
     }
   </script>
