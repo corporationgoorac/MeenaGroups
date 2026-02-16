@@ -2,231 +2,496 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Customer Management - EMI Manager</title>
+  <title>Customers - MeenaGroups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  
   <style>
-    /* --- PROFESSIONAL DARK THEME (MOBILE OPTIMIZED) --- */
+    /* --- 1. HIGH CONTRAST / PROFESSIONAL THEME --- */
     :root { 
-      --bg: #0f172a; 
-      --card: #1e293b; 
-      --input: #0f172a;
-      --primary: #10b981; /* Emerald */
-      --secondary: #0ea5e9; /* Sky Blue */
-      --danger: #ef4444; 
-      --text: #f8fafc; 
-      --text-muted: #94a3b8;
-      --border: #334155; 
+      --bg: #000000; 
+      --surface: #0a0a0a;
+      --card: #141414; 
+      --input-bg: #1a1a1a;
+      --primary: #00e676; /* Neon Green */
+      --secondary: #2979ff; /* Bright Blue */
+      --danger: #ff1744; 
+      --text: #ffffff; 
+      --text-muted: #888888;
+      --border: #333333; 
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      margin: 0; padding: 0; 
+      height: 100vh; 
+      overflow: hidden; /* Main scroll handled in containers */
+      display: flex; flex-direction: column;
+    }
+
+    /* --- 2. HEADER --- */
+    header {
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 15px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 50; height: 60px; flex-shrink: 0;
+    }
+    header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
+    
+    .nav-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; padding: 5px; }
+
+    /* --- 3. MAIN LIST VIEW --- */
+    #main-view {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      position: relative;
+    }
+
+    /* Action Buttons (Top) */
+    .action-bar {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 20px;
     }
     
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 40px; }
-
-    /* Navigation - Scrollable on Mobile */
-    nav { 
-      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
-      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 1000;
-      white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; /* Hide scrollbar */
+    .btn-action {
+      background: var(--card); border: 1px solid var(--border); 
+      color: var(--primary); padding: 15px; border-radius: 12px;
+      font-weight: 600; font-size: 0.9rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: 0.2s;
     }
-    nav::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome/Safari */
+    .btn-action:active { background: #222; transform: scale(0.98); }
+    .btn-action.secondary { color: var(--secondary); }
+
+    /* Search Bar */
+    .search-wrapper { 
+      position: sticky; top: 0; z-index: 10; 
+      background: var(--bg); padding-bottom: 15px; margin-bottom: 5px;
+    }
+    .search-input {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+      color: white; padding: 12px 45px 12px 15px; border-radius: 50px;
+      font-size: 1rem;
+    }
+    .search-icon { position: absolute; right: 15px; top: 12px; color: var(--text-muted); }
+
+    /* Customer Cards */
+    .customer-list { display: flex; flex-direction: column; gap: 15px; padding-bottom: 80px; }
     
-    nav a { 
-      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
-      font-size: 0.95rem; transition: 0.2s; background: rgba(255,255,255,0.05);
+    .cust-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; position: relative;
+      animation: fadeIn 0.3s ease-out;
     }
-    nav a:hover { background: #2d3748; color: white; }
-    nav a.active { background: rgba(16, 185, 129, 0.15); color: var(--primary); font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .cust-card::before { content:''; position: absolute; top:0; left:0; bottom:0; width:3px; background: var(--primary); }
 
-    /* Main Layout */
-    .container { 
-      max-width: 1200px; margin: 20px auto; padding: 0 15px; 
-      display: grid; grid-template-columns: 380px 1fr; gap: 30px;
+    .cust-header {
+      padding: 12px 15px; background: #111; border-bottom: 1px solid #222;
+      display: flex; justify-content: space-between; align-items: center;
     }
-
-    /* Forms Section */
-    .forms-wrapper { display: flex; flex-direction: column; gap: 20px; }
-    
-    .form-card { 
-      background: var(--card); padding: 20px; border-radius: 16px; 
-      border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
-    .form-card h2 { margin: 0 0 15px 0; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-    
-    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; margin-top: 12px; }
-    
-    /* Inputs - Larger for Mobile Touch */
-    input { 
-      width: 100%; padding: 14px; background: var(--input); border: 1px solid var(--border); 
-      color: white; border-radius: 10px; font-size: 16px; /* Prevents zoom on iPhone */
-      transition: 0.2s; outline: none; appearance: none;
-    }
-    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
-
-    .btn-submit { 
-      width: 100%; padding: 16px; background: var(--primary); color: #000; font-weight: 700; font-size: 1rem;
-      border: none; border-radius: 10px; cursor: pointer; margin-top: 25px; transition: 0.2s;
-    }
-    .btn-submit:active { transform: scale(0.98); opacity: 0.9; }
-    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    /* List Section */
-    .list-header { 
-      display: flex; gap: 10px; margin-bottom: 20px; 
-      background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--border);
-      align-items: center;
-    }
-    .search-input { flex: 1; margin: 0; background: #0f172a; }
-    
-    .btn-icon { 
-      padding: 0 20px; height: 48px; background: var(--secondary); color: white; border: none; 
-      border-radius: 10px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center;
-    }
-    .btn-refresh { background: var(--card); border: 1px solid var(--border); color: var(--text-muted); width: 48px; padding: 0; }
-    .btn-refresh:active { background: var(--border); color: white; }
-
-    /* Customer Grid */
-    .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-
-    .cust-card { 
-      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
-      overflow: hidden; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .cust-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: var(--primary); }
-
-    .cust-header { 
-      padding: 12px 15px; border-bottom: 1px solid #334155; background: rgba(0,0,0,0.2);
-      display: flex; justify-content: space-between; align-items: center; 
-    }
-    .cust-info h3 { margin: 0; font-size: 1.1rem; color: white; font-weight: 600; }
-    .cust-info small { color: var(--secondary); font-family: monospace; font-size: 0.85rem; letter-spacing: 0.5px; }
-    
-    .btn-delete { 
-      background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); 
-      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
-    }
-    .btn-delete:active { background: var(--danger); color: white; }
+    .cust-name { font-weight: 700; font-size: 1.05rem; color: #fff; }
+    .cust-id { font-family: monospace; color: var(--secondary); font-size: 0.85rem; letter-spacing: 1px; }
 
     .cust-body { padding: 15px; }
-    .contact-row { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; display: flex; gap: 15px; }
+    .cust-row { display: flex; gap: 15px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; }
     
-    .product-badge { 
-      background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; 
-      font-size: 0.9rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    .prod-chip {
+      background: #000; border: 1px solid #333; padding: 8px 12px; border-radius: 8px;
+      font-size: 0.85rem; display: flex; justify-content: space-between; margin-top: 5px;
     }
     .bal-text { color: var(--danger); font-weight: bold; }
     .paid-text { color: var(--primary); font-weight: bold; }
 
-    /* Responsive Queries */
-    @media (max-width: 900px) {
-      .container { grid-template-columns: 1fr; gap: 20px; }
-      .forms-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .card-actions {
+      border-top: 1px solid #222; display: flex;
     }
+    .card-btn {
+      flex: 1; background: transparent; border: none; border-right: 1px solid #222;
+      color: var(--text-muted); padding: 12px; font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    }
+    .card-btn:last-child { border-right: none; }
+    .card-btn:active { background: #222; color: white; }
+    .btn-edit { color: var(--secondary); }
+    .btn-del { color: var(--danger); }
 
-    @media (max-width: 650px) {
-      .forms-wrapper { display: flex; flex-direction: column; }
-      
-      .list-header { flex-direction: column; gap: 10px; padding: 12px; }
-      .search-input { width: 100%; }
-      .list-header button { width: 100%; height: 45px; }
-      .btn-refresh { width: 100%; } /* Make refresh full width on mobile */
-      
-      .cust-card { margin-bottom: 5px; }
-      
-      h2 { font-size: 1.1rem; }
-      input { padding: 12px; }
+    /* Loading Sentinel */
+    #sentinel { height: 20px; margin-top: 20px; }
+
+    /* --- 4. MODALS (Slide from Right) --- */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg); z-index: 200;
+      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      display: flex; flex-direction: column;
     }
+    .modal.active { transform: translateX(0); }
+
+    .modal-header {
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 15px; background: var(--surface);
+    }
+    .btn-back { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; margin: 0; }
+
+    .modal-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+    /* Forms */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.85rem; }
+    
+    input {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+      color: white; padding: 14px; border-radius: 10px; font-size: 16px;
+    }
+    input:focus { border-color: var(--primary); }
+    input[readonly] { opacity: 0.6; cursor: not-allowed; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    .btn-submit {
+      width: 100%; padding: 16px; background: var(--primary); color: #000;
+      font-weight: 800; border: none; border-radius: 10px; font-size: 1rem;
+      margin-top: 10px; cursor: pointer;
+    }
+    .btn-submit.blue { background: var(--secondary); color: white; }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: #333; color: white; padding: 12px 24px; border-radius: 50px;
+      font-weight: 600; transition: transform 0.3s; z-index: 300;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="customers.html" class="active">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Sync</a>
-    <a href="report.html">Report</a>
-  </nav>
+  <div id="toast" class="toast">Action Successful</div>
 
-  <div class="container">
-    
-    <div class="forms-wrapper">
-      
-      <div class="form-card">
-        <h2>👤 New Customer</h2>
-        <input id="newId" placeholder="Customer ID (Unique)*">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <input id="newName" placeholder="Full Name*">
-          <input id="newPhone" placeholder="Phone Number">
-        </div>
-        <input id="newPlace" placeholder="City / Place">
-        
-        <label>Initial Product</label>
-        <input id="newProduct" placeholder="Product Name*">
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-          <input id="newTotal" type="number" placeholder="Total Price*">
-          <input id="newPaid" type="number" placeholder="Down Pay*">
-          <input id="newDueNum" type="number" placeholder="Due # (Opt)">
-        </div>
-        
-        <button id="btnAddCustomer" class="btn-submit">Create Profile</button>
-      </div>
+  <header>
+    <h1>Customers</h1>
+    <a href="index.html" style="text-decoration:none;"><button class="nav-btn">🏠</button></a>
+  </header>
 
-      <div class="form-card">
-        <h2>📦 Add Product</h2>
-        <label>Existing Customer</label>
-        <input id="existId" placeholder="Enter Customer ID*">
-        
-        <label>New Product Details</label>
-        <input id="addProduct" placeholder="Product Name*">
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-          <input id="addTotal" type="number" placeholder="Total Price*">
-          <input id="addPaid" type="number" placeholder="Down Pay*">
-          <input id="addDueNum" type="number" placeholder="Due # (Opt)">
-        </div>
-        
-        <button id="btnAddProduct" class="btn-submit" style="background:var(--secondary);">Add Product</button>
-      </div>
-
+  <div id="main-view">
+    <div class="search-wrapper">
+      <input type="text" id="searchBox" class="search-input" placeholder="Search ID or Name...">
+      <span class="search-icon">🔍</span>
     </div>
 
-    <div>
-      <div class="list-header">
-        <input id="searchBox" class="search-input" placeholder="🔍 Search ID or Name...">
-        <button class="btn-icon" onclick="searchData()">Search</button>
-        <button class="btn-icon btn-refresh" onclick="loadRecent()">🔄 Refresh</button>
+    <div class="action-bar">
+      <div class="btn-action" onclick="openModal('modal-add-customer')">
+        <span>👤</span> Add Customer
       </div>
-
-      <div id="customerList" class="customer-grid">
-        <p style="color:#666; width:100%; text-align:center; padding: 20px;">Loading database...</p>
+      <div class="btn-action secondary" onclick="openModal('modal-add-product')">
+        <span>📦</span> Add Product
       </div>
     </div>
 
+    <div id="customerList" class="customer-list">
+      </div>
+    <div id="sentinel"></div>
   </div>
+
+
+  <div id="modal-add-customer" class="modal">
+    <div class="modal-header">
+      <button class="btn-back" onclick="closeModal()">←</button>
+      <h2 class="modal-title">New Customer</h2>
+    </div>
+    <div class="modal-content">
+      <div class="form-group">
+        <label>Customer ID (Unique)</label>
+        <input id="newId" placeholder="e.g. A20" oninput="this.value = this.value.toUpperCase()">
+      </div>
+      <div class="form-group grid-2">
+        <div>
+          <label>Full Name</label>
+          <input id="newName" placeholder="Name">
+        </div>
+        <div>
+          <label>Phone</label>
+          <input id="newPhone" type="tel" placeholder="Mobile">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>City / Location</label>
+        <input id="newPlace" placeholder="Place">
+      </div>
+      
+      <hr style="border-color: #222; margin: 25px 0;">
+      
+      <div class="form-group">
+        <label>First Product Name</label>
+        <input id="newProduct" placeholder="Product Name">
+      </div>
+      <div class="form-group grid-3">
+        <div>
+          <label>Total Price</label>
+          <input id="newTotal" type="number" placeholder="0">
+        </div>
+        <div>
+          <label>Down Pay</label>
+          <input id="newPaid" type="number" placeholder="0">
+        </div>
+        <div>
+          <label>Due No.</label>
+          <input id="newDueNum" type="number" placeholder="0">
+        </div>
+      </div>
+      
+      <button id="btnSaveCustomer" class="btn-submit">Create Profile</button>
+    </div>
+  </div>
+
+
+  <div id="modal-add-product" class="modal">
+    <div class="modal-header">
+      <button class="btn-back" onclick="closeModal()">←</button>
+      <h2 class="modal-title">Add Product</h2>
+    </div>
+    <div class="modal-content">
+      <div class="form-group">
+        <label>Existing Customer ID</label>
+        <input id="existId" placeholder="Enter ID" oninput="this.value = this.value.toUpperCase()">
+      </div>
+      <div class="form-group">
+        <label>Product Name</label>
+        <input id="addProduct" placeholder="Item Name">
+      </div>
+      <div class="form-group grid-3">
+        <div>
+          <label>Total Price</label>
+          <input id="addTotal" type="number" placeholder="0">
+        </div>
+        <div>
+          <label>Down Pay</label>
+          <input id="addPaid" type="number" placeholder="0">
+        </div>
+        <div>
+          <label>Due No.</label>
+          <input id="addDueNum" type="number" placeholder="0">
+        </div>
+      </div>
+      <button id="btnSaveProduct" class="btn-submit blue">Add to Profile</button>
+    </div>
+  </div>
+
+
+  <div id="modal-edit-customer" class="modal">
+    <div class="modal-header">
+      <button class="btn-back" onclick="closeModal()">←</button>
+      <h2 class="modal-title">Edit Profile</h2>
+    </div>
+    <div class="modal-content">
+      <div class="form-group">
+        <label>Customer ID (Locked)</label>
+        <input id="editId" readonly style="color:#666">
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input id="editName">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input id="editPhone">
+      </div>
+      <div class="form-group">
+        <label>City / Location</label>
+        <input id="editPlace">
+      </div>
+      <button id="btnUpdateCustomer" class="btn-submit" style="background:#fff; color:#000">Save Changes</button>
+    </div>
+  </div>
+
 
   <script type="module">
     import { db } from "./config.js";
     import { 
-      doc, setDoc, getDoc, updateDoc, deleteDoc, 
-      collection, query, where, limit, getDocs, orderBy, 
+      doc, getDoc, updateDoc, deleteDoc, 
+      collection, query, where, limit, getDocs, orderBy, startAfter,
       runTransaction, increment 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- 1. ADD NEW CUSTOMER ---
-    document.getElementById("btnAddCustomer").addEventListener("click", async () => {
-      const id = document.getElementById("newId").value.trim();
+    // --- GLOBAL VARIABLES ---
+    let lastVisibleDoc = null;
+    let isFetching = false;
+    let noMoreData = false;
+    let searchTimeout = null;
+
+    // --- 1. UI: MODAL & NAVIGATION LOGIC ---
+    window.openModal = (modalId) => {
+      // Push state so back button works
+      window.history.pushState({modal: modalId}, '', `#${modalId}`);
+      document.getElementById(modalId).classList.add('active');
+    };
+
+    window.closeModal = () => {
+      // Remove active class from all modals
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+      // Clean up URL if hash exists
+      if(window.location.hash) {
+        window.history.back(); 
+      }
+    };
+
+    // Handle Hardware Back Button
+    window.addEventListener('popstate', (event) => {
+      // If we go back, remove active class
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    });
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    // --- 2. FIREBASE: LOAD & INFINITE SCROLL ---
+    async function loadCustomers(reset = false) {
+      if (isFetching || (noMoreData && !reset)) return;
+      isFetching = true;
+
+      const container = document.getElementById("customerList");
+      if (reset) {
+        container.innerHTML = "";
+        lastVisibleDoc = null;
+        noMoreData = false;
+      }
+
+      try {
+        let q;
+        const colRef = collection(db, "customers");
+        
+        if (reset) {
+          q = query(colRef, orderBy("createdAt", "desc"), limit(10));
+        } else {
+          q = query(colRef, orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(10));
+        }
+
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+          noMoreData = true;
+          if(reset) container.innerHTML = "<p style='text-align:center; color:#555; margin-top:30px;'>No customers found.</p>";
+        } else {
+          lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+          renderList(snapshot, container);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        isFetching = false;
+      }
+    }
+
+    // Intersection Observer for Infinite Scroll
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isFetching) {
+        loadCustomers(false);
+      }
+    }, { threshold: 0.5 });
+    observer.observe(document.getElementById("sentinel"));
+
+    // --- 3. RENDER LIST ---
+    function renderList(snapshot, container) {
+      snapshot.forEach(docSnap => {
+        const c = docSnap.data();
+        
+        // Product HTML
+        let prodHTML = "";
+        c.products.forEach(p => {
+          const bal = p.total - p.paid;
+          const status = bal > 0 ? `<span class="bal-text">Bal: ₹${bal}</span>` : `<span class="paid-text">Paid</span>`;
+          prodHTML += `<div class="prod-chip"><span>${p.name}</span>${status}</div>`;
+        });
+
+        // Card HTML
+        const div = document.createElement("div");
+        div.className = "cust-card";
+        div.innerHTML = `
+          <div class="cust-header">
+            <span class="cust-name">${c.name}</span>
+            <span class="cust-id">${c.id}</span>
+          </div>
+          <div class="cust-body">
+            <div class="cust-row">
+              <span>📱 ${c.phone || '--'}</span>
+              <span>📍 ${c.place || '--'}</span>
+            </div>
+            ${prodHTML}
+          </div>
+          <div class="card-actions">
+            <button class="card-btn btn-edit" onclick="editCustomer('${c.id}')">EDIT</button>
+            <button class="card-btn btn-del" onclick="deleteCustomer('${c.id}')">DELETE</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // --- 4. SEARCH FUNCTIONALITY ---
+    document.getElementById("searchBox").addEventListener("input", (e) => {
+      const term = e.target.value.trim().toUpperCase();
+      clearTimeout(searchTimeout);
+      
+      searchTimeout = setTimeout(async () => {
+        const container = document.getElementById("customerList");
+        container.innerHTML = "";
+        noMoreData = true; // Disable infinite scroll during search
+
+        if (!term) {
+          loadCustomers(true); // Reset to normal view
+          return;
+        }
+
+        try {
+          // Search by ID (Range query for exactish match)
+          const q = query(
+            collection(db, "customers"), 
+            where("id", ">=", term), 
+            where("id", "<=", term + '\uf8ff'),
+            limit(10)
+          );
+          const snap = await getDocs(q);
+          
+          if(snap.empty) {
+             container.innerHTML = "<p style='text-align:center; color:#555;'>No ID found. Searching Names...</p>";
+             // Optional: Add logic here to search by Name field if ID fails, 
+             // but Firestore doesn't support native partial text search easily without external services (Algolia).
+          } else {
+             renderList(snap, container);
+          }
+        } catch(e) { console.error(e); }
+      }, 600);
+    });
+
+    // --- 5. ADD CUSTOMER LOGIC ---
+    document.getElementById("btnSaveCustomer").addEventListener("click", async () => {
+      const idInput = document.getElementById("newId");
+      const id = idInput.value.trim().toUpperCase(); // Case Insensitive
       const name = document.getElementById("newName").value.trim();
       const product = document.getElementById("newProduct").value.trim();
       const total = parseFloat(document.getElementById("newTotal").value);
       const paid = parseFloat(document.getElementById("newPaid").value);
-      // New: Capture Due Number, default to 0 if empty
       const dueNum = parseInt(document.getElementById("newDueNum").value) || 0;
 
-      if (!id || !name || !product || isNaN(total) || isNaN(paid)) {
-        return alert("❌ Please fill all required fields marked with *");
-      }
+      if (!id || !name || !product || isNaN(total) || isNaN(paid)) return alert("Fill all fields");
 
-      const btn = document.getElementById("btnAddCustomer");
-      const originalText = btn.innerText;
-      btn.innerText = "Creating...";
+      const btn = document.getElementById("btnSaveCustomer");
+      btn.innerText = "Saving...";
       btn.disabled = true;
 
       try {
@@ -237,25 +502,16 @@
           const check = await transaction.get(custRef);
           if (check.exists()) throw "Customer ID already exists!";
 
-          const newCust = {
+          transaction.set(custRef, {
             id, name, 
             phone: document.getElementById("newPhone").value.trim(),
             place: document.getElementById("newPlace").value.trim(),
             createdAt: new Date().toISOString(),
             products: [{
-              name: product,
-              total: total,
-              paid: paid,
-              payments: [{
-                date: new Date().toISOString().split("T")[0],
-                amount: paid,
-                dueNumber: dueNum, // Updated to use Custom Due Number
-                type: "Downpayment"
-              }]
+              name: product, total, paid,
+              payments: [{ date: new Date().toISOString().split("T")[0], amount: paid, dueNumber: dueNum, type: "Downpayment" }]
             }]
-          };
-
-          transaction.set(custRef, newCust);
+          });
           
           const bal = total - paid;
           transaction.set(statsRef, {
@@ -266,213 +522,122 @@
           }, { merge: true });
         });
 
-        alert("✅ Customer Created!");
-        // Added "newDueNum" to clearInputs
-        clearInputs(["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid", "newDueNum"]);
-        loadRecent();
+        showToast("Customer Created!");
+        ["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid", "newDueNum"].forEach(i => document.getElementById(i).value = "");
+        closeModal(); // Trigger back logic
+        loadCustomers(true); // Refresh List
 
-      } catch (e) {
-        alert("Error: " + e);
-      } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-      }
+      } catch (e) { alert(e); } 
+      finally { btn.innerText = "Create Profile"; btn.disabled = false; }
     });
 
-    // --- 2. ADD PRODUCT TO EXISTING ---
-    document.getElementById("btnAddProduct").addEventListener("click", async () => {
-      const id = document.getElementById("existId").value.trim();
+    // --- 6. ADD PRODUCT LOGIC ---
+    document.getElementById("btnSaveProduct").addEventListener("click", async () => {
+      const id = document.getElementById("existId").value.trim().toUpperCase();
       const name = document.getElementById("addProduct").value.trim();
       const total = parseFloat(document.getElementById("addTotal").value);
       const paid = parseFloat(document.getElementById("addPaid").value);
-      // New: Capture Due Number for Add Product, default to 0
       const dueNum = parseInt(document.getElementById("addDueNum").value) || 0;
 
-      if (!id || !name || isNaN(total)) return alert("❌ Check inputs");
+      if (!id || !name || isNaN(total)) return alert("Check inputs");
 
-      const btn = document.getElementById("btnAddProduct");
-      btn.innerText = "Adding...";
+      const btn = document.getElementById("btnSaveProduct");
+      btn.innerText = "Processing...";
       btn.disabled = true;
 
       try {
         await runTransaction(db, async (transaction) => {
           const custRef = doc(db, "customers", id);
           const statsRef = doc(db, "metadata", "stats");
-          
-          const docSnap = await transaction.get(custRef);
-          if (!docSnap.exists()) throw "Customer not found!";
+          const snap = await transaction.get(custRef);
+          if (!snap.exists()) throw "ID not found!";
 
-          const data = docSnap.data();
-          const newProd = {
+          const data = snap.data();
+          data.products.push({
             name, total, paid,
-            payments: [{
-              date: new Date().toISOString().split("T")[0],
-              amount: paid,
-              dueNumber: dueNum, // Updated to use Custom Due Number
-              type: "Downpayment"
-            }]
-          };
-
-          data.products.push(newProd);
+            payments: [{ date: new Date().toISOString().split("T")[0], amount: paid, dueNumber: dueNum, type: "Downpayment" }]
+          });
 
           transaction.update(custRef, { products: data.products });
-          
-          const bal = total - paid;
           transaction.update(statsRef, {
             totalProducts: increment(1),
             totalPaid: increment(paid),
-            totalBalance: increment(bal)
+            totalBalance: increment(total - paid)
           });
         });
 
-        alert("✅ Product Added!");
-        // Added "addDueNum" to clearInputs
-        clearInputs(["existId", "addProduct", "addTotal", "addPaid", "addDueNum"]);
-        loadRecent();
-
-      } catch (e) {
-        alert("Error: " + e);
-      } finally {
-        btn.innerText = "Add Product";
-        btn.disabled = false;
-      }
+        showToast("Product Added!");
+        ["existId", "addProduct", "addTotal", "addPaid", "addDueNum"].forEach(i => document.getElementById(i).value = "");
+        closeModal();
+        loadCustomers(true);
+      } catch (e) { alert(e); }
+      finally { btn.innerText = "Add to Profile"; btn.disabled = false; }
     });
 
-    // --- 3. LOAD & SEARCH ---
-    window.loadRecent = async () => {
-      const container = document.getElementById("customerList");
-      container.innerHTML = `<p style="color:#888; text-align:center;">Fetching recent...</p>`;
-      
+    // --- 7. EDIT LOGIC ---
+    window.editCustomer = async (id) => {
       try {
-        const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(20));
-        const snap = await getDocs(q);
-        renderList(snap);
-      } catch (e) {
-        console.error(e);
-        container.innerHTML = `<p style="color:red; text-align:center;">Error loading list.</p>`;
-      }
-    };
-
-    window.searchData = async () => {
-      const term = document.getElementById("searchBox").value.trim();
-      if (!term) return loadRecent();
-
-      const container = document.getElementById("customerList");
-      container.innerHTML = `<p style="color:#aaa; text-align:center;">Searching...</p>`;
-      
-      try {
-        const q = query(
-          collection(db, "customers"), 
-          where("id", ">=", term), 
-          where("id", "<=", term + '\uf8ff'),
-          limit(10)
-        );
-        const snap = await getDocs(q);
-        renderList(snap);
-      } catch (e) {
-        container.innerHTML = `<p style="color:red; text-align:center;">Search Error: ${e.message}</p>`;
-      }
-    };
-
-    function renderList(snapshot) {
-      const container = document.getElementById("customerList");
-      container.innerHTML = "";
-
-      if (snapshot.empty) {
-        container.innerHTML = "<p style='color:#888; text-align:center;'>No customers found.</p>";
-        return;
-      }
-
-      snapshot.forEach(docSnap => {
-        const c = docSnap.data();
-        let prodHTML = "";
+        const snap = await getDoc(doc(db, "customers", id));
+        if(!snap.exists()) return;
+        const d = snap.data();
         
-        c.products.forEach(p => {
-          const bal = p.total - p.paid;
-          const balText = bal > 0 ? `<span class="bal-text">Bal: ₹${bal}</span>` : `<span class="paid-text">Paid ✔</span>`;
-          
-          prodHTML += `
-            <div class="product-badge">
-              <span>📦 ${p.name}</span>
-              ${balText}
-            </div>
-          `;
-        });
+        document.getElementById("editId").value = d.id;
+        document.getElementById("editName").value = d.name;
+        document.getElementById("editPhone").value = d.phone || "";
+        document.getElementById("editPlace").value = d.place || "";
+        
+        openModal('modal-edit-customer');
+      } catch(e) { console.error(e); }
+    };
 
-        const div = document.createElement("div");
-        div.className = "cust-card";
-        div.innerHTML = `
-          <div class="cust-header">
-            <div class="cust-info">
-              <h3>${c.name}</h3>
-              <small>ID: ${c.id}</small>
-            </div>
-            <button class="btn-delete" onclick="deleteCustomer('${c.id}')" title="Delete">🗑️</button>
-          </div>
-          <div class="cust-body">
-            <div class="contact-row">
-              <span>📞 ${c.phone || '-'}</span>
-              <span>📍 ${c.place || '-'}</span>
-            </div>
-            ${prodHTML}
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    // --- 4. DELETE CUSTOMER ---
-    window.deleteCustomer = async (id) => {
-      if (!confirm(`⚠️ DELETE ${id}?\n\nThis will remove the customer and their payment history forever.`)) return;
-
+    document.getElementById("btnUpdateCustomer").addEventListener("click", async () => {
+      const id = document.getElementById("editId").value;
       try {
-        await runTransaction(db, async (transaction) => {
-          const custRef = doc(db, "customers", id);
-          const statsRef = doc(db, "metadata", "stats");
-          
-          const snap = await transaction.get(custRef);
-          if (!snap.exists()) throw "Customer not found!";
-          
+        await updateDoc(doc(db, "customers", id), {
+          name: document.getElementById("editName").value.trim(),
+          phone: document.getElementById("editPhone").value.trim(),
+          place: document.getElementById("editPlace").value.trim()
+        });
+        showToast("Profile Updated");
+        closeModal();
+        loadCustomers(true);
+      } catch(e) { alert(e); }
+    });
+
+    // --- 8. DELETE LOGIC ---
+    window.deleteCustomer = async (id) => {
+      if(!confirm(`Delete customer ${id}?\nIrreversible action.`)) return;
+      try {
+        await runTransaction(db, async (t) => {
+          const ref = doc(db, "customers", id);
+          const snap = await t.get(ref);
+          if(!snap.exists()) throw "Error";
           const data = snap.data();
           
-          // Stats Logic
-          let removePaid = 0;
-          let removeBal = 0;
-          let removeProds = data.products.length;
+          let remPaid = 0, remBal = 0;
+          data.products.forEach(p => { remPaid += p.paid; remBal += (p.total - p.paid); });
 
-          data.products.forEach(p => {
-            removePaid += p.paid;
-            removeBal += (p.total - p.paid);
-          });
-
-          transaction.delete(custRef);
-
-          transaction.update(statsRef, {
+          t.delete(ref);
+          t.update(doc(db, "metadata", "stats"), {
             totalCustomers: increment(-1),
-            totalProducts: increment(-removeProds),
-            totalPaid: increment(-removePaid),
-            totalBalance: increment(-removeBal)
+            totalProducts: increment(-data.products.length),
+            totalPaid: increment(-remPaid),
+            totalBalance: increment(-remBal)
           });
         });
-
-        alert("🗑️ Deleted Successfully");
-        loadRecent();
-
-      } catch (e) {
-        alert("Error deleting: " + e);
-      }
+        showToast("Deleted");
+        loadCustomers(true);
+      } catch(e) { alert(e); }
     };
 
-    function clearInputs(ids) {
-      ids.forEach(id => document.getElementById(id).value = "");
-    }
-
     // Init
-    loadRecent();
+    loadCustomers(true);
     
-    window.searchData = searchData;
-    window.loadRecent = loadRecent;
+    // Attach globals for HTML inline calls
+    window.editCustomer = editCustomer;
     window.deleteCustomer = deleteCustomer;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
 
   </script>
 </body>
