@@ -748,218 +748,197 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. RECEIPT (REDESIGNED TO MATCH DOWNLOAD IMAGE EXACTLY) ---
-    // Note: This logic now clones the visual style of drawDownloadImage
+    // --- 5. RECEIPT (REDESIGNED FOR 58MM POCKET PRINTER) ---
     function drawThermalReceipt(data, balance, totalPaid) {
       const canvas = document.getElementById('receiptCanvas');
-      const width = 600; 
-      const height = 850; 
+      // 576px wide is ideal for high-density 58mm printing
+      const width = 576; 
+      // Height can be variable, but fixed 800 covers most receipt lengths
+      const height = 800; 
       
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // White BG
+      // 1. Background (White - Essential for Thermal)
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
 
-      // Border
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 10;
-      ctx.strokeRect(5, 5, width-10, height-10);
+      // NO OUTER BORDER (Crucial: Thermal printers cut off edge borders)
 
       // Text Setup
-      ctx.fillStyle = "#000000";
+      ctx.fillStyle = "#000000"; // Strictly Black
       ctx.textAlign = "center";
       
-      let y = 80;
+      let y = 60; // Top Margin
 
       // Header
-      ctx.font = "bold 50px Arial"; 
+      ctx.font = "bold 48px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
       y += 50;
       
       ctx.font = "30px Arial"; 
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 60;
+      y += 50;
 
-      // Line
+      // Divider Line
       ctx.beginPath();
-      ctx.moveTo(50, y);
-      ctx.lineTo(width-50, y);
+      ctx.moveTo(20, y);
+      ctx.lineTo(width-20, y);
       ctx.lineWidth = 4;
+      ctx.strokeStyle = "#000000";
       ctx.stroke();
       y += 50;
 
-      // Details
+      // Details - Left/Right Aligned
       ctx.textAlign = "left";
-      ctx.font = "bold 30px Arial";
-      const x = 60;
-      const xVal = 320;
-      const gap = 50;
-
-      // Row 1: Date
-      ctx.fillText("Date:", x, y);
-      ctx.fillText(data.date, xVal, y);
-      y += gap;
-
-      // Row 2: ID
-      ctx.fillText("Cust ID:", x, y);
-      ctx.fillText(data.customerId, xVal, y);
-      y += gap;
-
-      // Row 3: Due Number
-      ctx.fillText("Due No:", x, y);
-      ctx.fillText("#" + data.dueNumber, xVal, y);
-      y += gap;
-
-      // Row 4: Name
-      ctx.fillText("Name:", x, y);
-      ctx.fillText(data.customerName.substring(0,15), xVal, y);
-      y += gap + 20;
-
-      // Amount Box
-      ctx.strokeRect(50, y - 10, width - 100, 150);
+      ctx.font = "bold 32px Arial";
       
-      let boxY = y + 40;
+      const leftX = 20; // Safe margin left
+      const rightX = width - 20; // Safe margin right
+      const gap = 50; // Spacing between rows
+
+      // Helper function for rows
+      function drawRow(label, value) {
+          ctx.textAlign = "left";
+          ctx.fillText(label, leftX, y);
+          ctx.textAlign = "right";
+          ctx.fillText(value, rightX, y);
+          y += gap;
+      }
+
+      drawRow("Date:", data.date);
+      drawRow("Cust ID:", data.customerId);
+      drawRow("Due No:", "#" + data.dueNumber);
+      
+      // Name might be long, check length or just print
+      drawRow("Name:", data.customerName.substring(0,18));
+      
+      y += 20; // Extra space before box
+
+      // Amount Box (Inner box is okay, just not edge-to-edge)
+      ctx.lineWidth = 4;
+      ctx.strokeRect(40, y, width - 80, 160);
+      
+      let boxInnerY = y + 50;
+      
       ctx.textAlign = "center";
-      ctx.fillText("AMOUNT RECEIVED", width/2, boxY);
+      ctx.font = "28px Arial";
+      ctx.fillText("AMOUNT RECEIVED", width/2, boxInnerY);
       
-      boxY += 70;
-      ctx.font = "bold 70px Arial";
-      ctx.fillText(`₹ ${data.amount}`, width/2, boxY);
+      boxInnerY += 70;
+      ctx.font = "bold 80px Arial"; // Very big for visibility
+      ctx.fillText(`₹ ${data.amount}`, width/2, boxInnerY);
       
-      y += 200;
+      y += 200; // Move past the box
 
       // Summary
-      ctx.textAlign = "left";
       ctx.font = "30px Arial";
-      ctx.fillText("Total Paid:", 60, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${totalPaid}`, width - 60, y);
-      y += 40;
-
-      ctx.font = "bold 35px Arial";
-      ctx.textAlign = "left";
-      ctx.fillText("Balance Due:", 60, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${balance}`, width - 60, y);
+      drawRow("Total Paid:", `₹ ${totalPaid}`);
+      
+      y += 10; // little extra breathing room
+      ctx.font = "bold 36px Arial"; // Larger for Balance
+      drawRow("Balance Due:", `₹ ${balance}`);
+      
       y += 80;
 
       // Footer
       ctx.textAlign = "center";
-      ctx.font = "italic 24px Arial";
-      ctx.fillText("visit meena.goorac.biz for all payment history", width/2, y);
+      // Removed Italic, kept normal for better thermal print quality
+      ctx.font = "24px Arial"; 
+      ctx.fillText("visit meena.goorac.biz", width/2, y);
+      y += 30;
+      ctx.fillText("for all payment history", width/2, y);
     }
 
-    // --- 6. DOWNLOAD RECEIPT (WITH DUE NUMBER) ---
+    // --- 6. DOWNLOAD RECEIPT (EXACT COPY OF THERMAL LOGIC) ---
     function drawDownloadImage(data, balance, totalPaid) {
+      // Re-using the logic from drawThermalReceipt so downloaded image matches printed image
       const canvas = document.getElementById('downloadCanvas');
-      const width = 600; 
-      const height = 850; // Increased slightly for spacing
+      const width = 576; 
+      const height = 800; 
       
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // White BG
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
-
-      // Border
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 10;
-      ctx.strokeRect(5, 5, width-10, height-10);
-
-      // Text Setup
       ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
       
-      let y = 80;
+      let y = 60;
 
-      // Header
-      ctx.font = "bold 50px Arial"; 
+      ctx.font = "bold 48px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
       y += 50;
       
       ctx.font = "30px Arial"; 
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 60;
+      y += 50;
 
-      // Line
       ctx.beginPath();
-      ctx.moveTo(50, y);
-      ctx.lineTo(width-50, y);
+      ctx.moveTo(20, y);
+      ctx.lineTo(width-20, y);
       ctx.lineWidth = 4;
+      ctx.strokeStyle = "#000000";
       ctx.stroke();
       y += 50;
 
-      // Details
       ctx.textAlign = "left";
-      ctx.font = "bold 30px Arial";
-      const x = 60;
-      const xVal = 320;
+      ctx.font = "bold 32px Arial";
+      
+      const leftX = 20; 
+      const rightX = width - 20; 
       const gap = 50;
 
-      // Row 1: Date
-      ctx.fillText("Date:", x, y);
-      ctx.fillText(data.date, xVal, y);
-      y += gap;
+      function drawRow(label, value) {
+          ctx.textAlign = "left";
+          ctx.fillText(label, leftX, y);
+          ctx.textAlign = "right";
+          ctx.fillText(value, rightX, y);
+          y += gap;
+      }
 
-      // Row 2: ID
-      ctx.fillText("Cust ID:", x, y);
-      ctx.fillText(data.customerId, xVal, y);
-      y += gap;
-
-      // Row 3: Due Number (ADDED)
-      ctx.fillText("Due No:", x, y);
-      ctx.fillText("#" + data.dueNumber, xVal, y);
-      y += gap;
-
-      // Row 4: Name
-      ctx.fillText("Name:", x, y);
-      ctx.fillText(data.customerName.substring(0,15), xVal, y);
-      y += gap + 20;
-
-      // Amount Box
-      ctx.strokeRect(50, y - 10, width - 100, 150);
+      drawRow("Date:", data.date);
+      drawRow("Cust ID:", data.customerId);
+      drawRow("Due No:", "#" + data.dueNumber);
+      drawRow("Name:", data.customerName.substring(0,18));
       
-      let boxY = y + 40;
+      y += 20; 
+
+      ctx.lineWidth = 4;
+      ctx.strokeRect(40, y, width - 80, 160);
+      
+      let boxInnerY = y + 50;
       ctx.textAlign = "center";
-      ctx.fillText("AMOUNT RECEIVED", width/2, boxY);
+      ctx.font = "28px Arial";
+      ctx.fillText("AMOUNT RECEIVED", width/2, boxInnerY);
       
-      boxY += 70;
-      ctx.font = "bold 70px Arial";
-      ctx.fillText(`₹ ${data.amount}`, width/2, boxY);
+      boxInnerY += 70;
+      ctx.font = "bold 80px Arial"; 
+      ctx.fillText(`₹ ${data.amount}`, width/2, boxInnerY);
       
-      y += 200;
+      y += 200; 
 
-      // Summary
-      ctx.textAlign = "left";
       ctx.font = "30px Arial";
-      ctx.fillText("Total Paid:", 60, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${totalPaid}`, width - 60, y);
-      y += 40;
-
-      ctx.font = "bold 35px Arial";
-      ctx.textAlign = "left";
-      ctx.fillText("Balance Due:", 60, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${balance}`, width - 60, y);
+      drawRow("Total Paid:", `₹ ${totalPaid}`);
+      y += 10; 
+      ctx.font = "bold 36px Arial"; 
+      drawRow("Balance Due:", `₹ ${balance}`);
       y += 80;
 
-      // Footer
       ctx.textAlign = "center";
-      ctx.font = "italic 24px Arial";
-      ctx.fillText("visit meena.goorac.biz for all payment history", width/2, y);
+      ctx.font = "24px Arial"; 
+      ctx.fillText("visit meena.goorac.biz", width/2, y);
+      y += 30;
+      ctx.fillText("for all payment history", width/2, y);
     }
 
-    // --- 7. PRINT ACTION (UPDATED TO FULL SIZE) ---
+    // --- 7. PRINT ACTION (ADAPTED FOR 58MM WIDTH) ---
     window.printLastReceipt = () => {
       if(!lastReceiptData) return alert("No receipt to print");
       
-      // Draw updated canvas (Now Full Quality, same as download)
       drawThermalReceipt(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('receiptCanvas');
       const dataUrl = canvas.toDataURL('image/png');
@@ -970,7 +949,7 @@
         return;
       }
 
-      // Write HTML designed for full page printing
+      // Updated Print Window HTML for Thermal Paper (58mm)
       win.document.write(`
         <html>
           <head>
@@ -978,22 +957,16 @@
             <style>
               body { 
                 margin: 0; 
-                padding: 20px; 
+                padding: 0;
                 display: flex; 
                 justify-content: center; 
-                align-items: flex-start;
-                background: #eee;
               }
               img { 
-                width: 100%; 
-                max-width: 600px; /* Full size */
+                width: 100%;
+                /* Forces image to respect paper width of printer (58mm) */
+                max-width: 58mm; 
                 height: auto; 
                 display: block; 
-                box-shadow: 0 0 20px rgba(0,0,0,0.1);
-              }
-              @media print {
-                body { background: white; padding: 0; }
-                img { box-shadow: none; max-width: 100%; }
               }
             </style>
           </head>
