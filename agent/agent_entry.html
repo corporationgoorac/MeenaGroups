@@ -382,11 +382,11 @@
     .btn-save:active { transform: scale(0.98); }
     .btn-save:disabled { background: var(--text-muted); opacity: 0.5; box-shadow: none; }
 
-    /* Action Buttons Row */
+    /* Action Buttons Row - UPDATED: 2 Columns Only */
     .action-row { 
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr; /* 3 Columns for Copy, Print, Download */
-      gap: 8px; 
+      grid-template-columns: 1fr 1fr; /* 2 Columns: Copy & Download */
+      gap: 12px; 
       margin-top: 20px; 
       padding-top: 20px;
       border-top: 1px dashed var(--border);
@@ -394,40 +394,36 @@
     }
     
     .btn-action { 
-      padding: 12px 8px; 
+      padding: 14px 10px; 
       border-radius: 12px; 
       border: none; 
       font-weight: 700; 
       cursor: pointer;
       display: flex; 
-      flex-direction: column;
+      flex-direction: row; /* Horizontal layout for buttons */
       align-items: center; 
       justify-content: center; 
-      gap: 5px; 
-      font-size: 0.8rem;
+      gap: 8px; 
+      font-size: 0.95rem;
       transition: 0.2s;
       text-align: center;
     }
     
-    .btn-print { 
-      background: var(--secondary); 
-      color: white; 
-      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); 
-    }
-    
+    /* Download Button Style */
     .btn-download { 
       background: var(--surface); 
       border: 1px solid var(--border); 
       color: var(--text); 
     }
+    .btn-download:hover { border-color: var(--text-muted); }
 
+    /* Copy Button Style */
     .btn-copy {
       background: var(--warn);
       color: #000;
       box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
     }
-    
-    .btn-download:hover { border-color: var(--text-muted); }
+    .btn-copy:active { transform: scale(0.98); }
 
     /* * ==========================================
      * 7. UTILITIES & ANIMATIONS
@@ -537,18 +533,13 @@
 
         <div id="postSaveActions" class="action-row hidden">
           <button class="btn-action btn-copy" onclick="copyReceiptText()">
-             <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-             <span>Copy Txt</span>
-          </button>
-
-          <button class="btn-action btn-print" onclick="printLastReceipt()">
-            <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/><circle cx="18" cy="11.5" r="1"/></svg>
-            <span>Print</span>
+             <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+             <span>COPY TXT</span>
           </button>
           
           <button class="btn-action btn-download" onclick="downloadLastReceipt()">
-            <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            <span>Download</span>
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span>DOWNLOAD IMG</span>
           </button>
         </div>
 
@@ -558,7 +549,6 @@
 
   <div id="toast" class="toast">Entry Saved Successfully!</div>
 
-  <canvas id="receiptCanvas" style="display:none;"></canvas>
   <canvas id="downloadCanvas" style="display:none;"></canvas>
 
   <script type="module">
@@ -700,7 +690,7 @@
       document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
     }
 
-    // --- 4. SAVE ENTRY ---
+    // --- 4. SAVE ENTRY & VOICE FEEDBACK ---
     window.saveToTempCollection = async () => {
       const amount = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
@@ -733,6 +723,14 @@
 
         showToast("Entry Saved Successfully!");
         
+        // --- VOICE LOGIC ADDED HERE ---
+        if ('speechSynthesis' in window) {
+          const speech = new SpeechSynthesisUtterance(`Payment Received. Rupees ${amount}`);
+          speech.rate = 1;
+          speech.pitch = 1;
+          window.speechSynthesis.speak(speech);
+        }
+
         // Prepare Receipt Data
         lastBalance = p.total - (existingPaid + amount);
         lastTotalPaid = existingPaid + amount;
@@ -765,11 +763,12 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. RECEIPT (MINI THERMAL STYLE - 384px WIDTH) ---
+    // --- 5. RECEIPT IMAGE GENERATOR (OPTIMIZED FOR 58mm THERMAL) ---
     // Specifically designed for 58mm pocket printers
-    function drawThermalReceipt(data, balance, totalPaid) {
-      const canvas = document.getElementById('receiptCanvas');
-      // 58mm printer usually prints approx 384 pixels wide
+    // Width: 384px (Standard 203 DPI for 58mm)
+    // High contrast black on white
+    function drawDownloadImage(data, balance, totalPaid) {
+      const canvas = document.getElementById('downloadCanvas');
       const width = 384; 
       const height = 650; // Long strip
       
@@ -872,119 +871,44 @@
       ctx.setLineDash([]); // Reset
     }
 
-    // --- 6. DOWNLOAD RECEIPT (Identical to Thermal) ---
-    function drawDownloadImage(data, balance, totalPaid) {
-      // Re-use the exact same logic for consistency
-      const canvas = document.getElementById('downloadCanvas');
-      // We use the same thermal dimensions so the saved image looks like the print
-      const width = 384; 
-      const height = 650;
-      
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
 
-      // White BG
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-
-      // Black Text
-      ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
-      
-      let y = 40;
-
-      // Header
-      ctx.font = "bold 28px Arial"; 
-      ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 30;
-      
-      ctx.font = "18px Arial"; 
-      ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 20;
-
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 30;
-
-      // Details
-      ctx.textAlign = "left";
-      ctx.font = "bold 18px Courier New"; 
-      const xLeft = 20;
-      const gap = 30;
-
-      ctx.fillText(`Date  : ${data.date}`, xLeft, y);
-      y += gap;
-      ctx.fillText(`ID    : ${data.customerId}`, xLeft, y);
-      y += gap;
-      ctx.fillText(`Due # : ${data.dueNumber}`, xLeft, y);
-      y += gap;
-      
-      let nameStr = data.customerName.length > 20 ? data.customerName.substring(0,20)+".." : data.customerName;
-      ctx.fillText(`Name  : ${nameStr}`, xLeft, y);
-      y += gap + 10;
-
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 40;
-
-      // Amount
-      ctx.textAlign = "center";
-      ctx.font = "bold 20px Arial";
-      ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 40;
-      
-      ctx.font = "bold 50px Arial";
-      ctx.fillText(`₹ ${data.amount}`, width/2, y);
-      y += 40;
-
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 30;
-
-      // Summary
-      ctx.textAlign = "left";
-      ctx.font = "18px Courier New";
-      
-      ctx.fillText("Total Paid:", xLeft, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${totalPaid}`, width - 20, y);
-      y += gap;
-
-      ctx.textAlign = "left";
-      ctx.font = "bold 20px Courier New";
-      ctx.fillText("Balance:", xLeft, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${balance}`, width - 20, y);
-      y += 50;
-
-      // Footer
-      ctx.textAlign = "center";
-      ctx.font = "italic 14px Arial";
-      ctx.fillText("Thank you!", width/2, y);
-      y += 20;
-      ctx.fillText("meena.goorac.biz", width/2, y);
-    }
-
-    // --- 7. NEW FEATURE: COPY TEXT (For BT Apps) ---
+    // --- 6. NEW FEATURE: ALIGNED COPY TEXT (For BT Thermal Apps) ---
+    // This logic pads text with spaces so it aligns left/right on monospaced printers
     window.copyReceiptText = () => {
       if(!lastReceiptData) return alert("No receipt data");
+
+      // Helper to align text: "Label ........... Value"
+      // Assumes roughly 32 character width for standard BT printer text mode
+      const width = 32; 
       
-      // Formatting text for raw printing/pasting
+      const pad = (label, val) => {
+        let l = String(label);
+        let v = String(val);
+        let spaces = width - l.length - v.length;
+        if(spaces < 1) spaces = 1;
+        return l + " ".repeat(spaces) + v;
+      };
+
+      const line = "-".repeat(width);
+
       const txt = `
 MEENA GROUPS
 Payment Receipt
---------------------------------
-Date: ${lastReceiptData.date}
-ID: ${lastReceiptData.customerId}
-Due No: #${lastReceiptData.dueNumber}
+${line}
+${pad("Date:", lastReceiptData.date)}
+${pad("ID:", lastReceiptData.customerId)}
+${pad("Due No:", "#"+lastReceiptData.dueNumber)}
 Name: ${lastReceiptData.customerName}
---------------------------------
-AMOUNT RECEIVED
-Rs. ${lastReceiptData.amount}
---------------------------------
-Total Paid: Rs. ${lastTotalPaid}
-Balance: Rs. ${lastBalance}
---------------------------------
-visit meena.goorac.biz
-      `;
+${line}
+   AMOUNT RECEIVED
+   Rs. ${lastReceiptData.amount}
+${line}
+${pad("Total Paid:", "Rs."+lastTotalPaid)}
+${pad("Balance:", "Rs."+lastBalance)}
+${line}
+   Thank you!
+   meena.goorac.biz
+`;
       
       navigator.clipboard.writeText(txt.trim()).then(() => {
         showToast("Receipt Copied to Clipboard!");
@@ -993,39 +917,8 @@ visit meena.goorac.biz
       });
     };
 
-    // --- 8. PRINT ACTION ---
-    window.printLastReceipt = () => {
-      if(!lastReceiptData) return alert("No receipt to print");
-      
-      drawThermalReceipt(lastReceiptData, lastBalance, lastTotalPaid);
-      const canvas = document.getElementById('receiptCanvas');
-      const dataUrl = canvas.toDataURL('image/png');
 
-      const win = window.open('', '_blank');
-      if(!win) {
-        alert("Please allow pop-ups to print");
-        return;
-      }
-
-      // HTML for print window - Centers the image
-      win.document.write(`
-        <html>
-          <head>
-            <title>Print</title>
-            <style>
-              body { margin: 0; display: flex; justify-content: center; }
-              img { width: 100%; max-width: 384px; } /* Max 58mm width */
-            </style>
-          </head>
-          <body>
-            <img src="${dataUrl}" onload="window.print();" />
-          </body>
-        </html>
-      `);
-      win.document.close();
-    };
-
-    // --- 9. DOWNLOAD ACTION ---
+    // --- 7. DOWNLOAD ACTION (Executes Image Gen) ---
     window.downloadLastReceipt = () => {
       if(!lastReceiptData) return;
       
