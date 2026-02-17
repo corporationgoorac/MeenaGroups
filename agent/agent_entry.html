@@ -788,12 +788,13 @@
     }
 
     // --- 6. OPTIMIZED IMAGE GENERATION (FOR THERMAL PRINT) ---
+    // NO ITALICS, LARGE TEXT, COMPACT HEIGHT (485px)
     function drawDownloadImage(data, balance, totalPaid) {
       const canvas = document.getElementById('downloadCanvas');
       // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      // Increased height to 750px to prevent footer cutoff
-      const height = 750; 
+      // STRICT HEIGHT for "Very Low Roll Consumption" and large fonts
+      const height = 485; 
       
       canvas.width = width;
       canvas.height = height;
@@ -806,99 +807,97 @@
       // 2. Text Settings (Black, High Contrast)
       ctx.fillStyle = "#000000";
       
-      let y = 40; // Start Y position
+      // Start Y position
+      let y = 35; 
 
       // --- HEADER ---
       ctx.textAlign = "center";
-      ctx.font = "bold 28px Arial"; 
+      ctx.font = "bold 28px Arial"; // Larger Header
       ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 35;
+      y += 30; 
       
-      ctx.font = "16px Arial"; 
+      ctx.font = "bold 16px Arial"; // Larger Subheader
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 25;
+      y += 20; 
 
       // Divider
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 35;
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
 
       // --- DETAILS ---
-      // Left aligned labels, slightly indented
       ctx.textAlign = "left";
-      // Monospace font ensures numbers align if we were using text, 
-      // but here we use coordinates for precision
-      ctx.font = "bold 18px Courier New"; 
+      ctx.font = "bold 19px Courier New"; // LARGER Details Font
       
-      const xLeft = 15;
-      const gap = 35; // Line height
+      const xLeft = 10;
+      const gap = 26; // Tight gap for large font
 
-      ctx.fillText(`Date  : ${data.date}`, xLeft, y);
+      ctx.fillText(`Date : ${data.date}`, xLeft, y);
       y += gap;
-      ctx.fillText(`ID    : ${data.customerId}`, xLeft, y);
+      ctx.fillText(`ID   : ${data.customerId}`, xLeft, y);
       y += gap;
-      ctx.fillText(`Due # : ${data.dueNumber}`, xLeft, y);
+      ctx.fillText(`Due #: ${data.dueNumber}`, xLeft, y);
       y += gap;
       
       // Handle long names
       let nameStr = data.customerName;
       if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
-      ctx.fillText(`Name  : ${nameStr}`, xLeft, y);
-      y += gap + 10;
+      ctx.fillText(`Name : ${nameStr}`, xLeft, y);
+      y += gap + 5;
 
       // Divider
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 45;
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
 
-      // --- AMOUNT (CENTERED HUGE) ---
+      // --- AMOUNT (CENTERED) ---
       ctx.textAlign = "center";
-      ctx.font = "bold 22px Arial";
+      ctx.font = "bold 20px Arial"; // Larger Label
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 50;
+      y += 50; // Space for big number
       
-      ctx.font = "bold 55px Arial";
-      ctx.fillText(`₹${data.amount}`, width/2, y);
-      y += 50;
+      ctx.font = "bold 50px Arial"; // HUGE Amount
+      ctx.fillText(`₹${data.amount}`, width/2, y - 10);
+      y += 15;
 
       // Divider
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 35;
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
 
       // --- SUMMARY ---
-      ctx.font = "18px Courier New";
+      ctx.font = "bold 18px Courier New"; // Larger Summary Font
       
       // Line 1: Total Paid
       ctx.textAlign = "left";
       ctx.fillText("Total Paid:", xLeft, y);
       ctx.textAlign = "right";
-      ctx.fillText(`₹${totalPaid}`, width - 15, y);
+      ctx.fillText(`₹${totalPaid}`, width - 10, y);
       y += gap;
 
       // Line 2: Balance (Bold)
-      ctx.font = "bold 22px Courier New";
+      ctx.font = "bold 20px Courier New"; // Even Larger Balance
       ctx.textAlign = "left";
       ctx.fillText("Balance:", xLeft, y);
       ctx.textAlign = "right";
-      ctx.fillText(`₹${balance}`, width - 15, y);
-      y += 60;
+      ctx.fillText(`₹${balance}`, width - 10, y);
+      y += 40;
 
-      // --- FOOTER ---
+      // --- FOOTER (Compact & No Italic) ---
       ctx.textAlign = "center";
-      ctx.font = "italic 16px Arial";
+      ctx.font = "bold 16px Arial"; 
       ctx.fillText("Thank you!", width/2, y);
-      y += 30;
-      ctx.font = "14px Arial";
-      ctx.fillText("Visit meena.goorac.biz", width/2, y);
       y += 20;
+      ctx.font = "bold 14px Arial";
+      ctx.fillText("Visit meena.goorac.biz", width/2, y);
+      y += 15;
       ctx.fillText("to see your eCard", width/2, y);
     }
 
     // Helper for thermal style dashed lines
     function drawDashedLine(ctx, x1, y1, x2, y2) {
       ctx.beginPath();
-      ctx.setLineDash([5, 5]); // 5px dash, 5px gap
+      ctx.setLineDash([4, 4]); 
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.strokeStyle = "#000000";
       ctx.stroke();
       ctx.setLineDash([]); // Reset
@@ -928,7 +927,7 @@
 
       const separator = "-".repeat(LINE_WIDTH);
 
-      // Construct aligned text
+      // Construct aligned text (NO extra newlines at bottom for paper saving)
       const txt = 
 `${centerText("MEENA GROUPS")}
 ${centerText("Payment Receipt")}
@@ -946,10 +945,7 @@ ${formatLine("Balance:", "Rs." + lastBalance)}
 ${separator}
 ${centerText("Thank You!")}
 ${centerText("Visit meena.goorac.biz")}
-${centerText("to see your eCard")}
-
-.
-.`; 
+${centerText("to see your eCard")}`; 
       
       navigator.clipboard.writeText(txt).then(() => {
         showToast("Receipt Copied to Clipboard!");
@@ -990,6 +986,7 @@ ${centerText("to see your eCard")}
       if(!printWindow) return alert("Allow popups to print");
 
       // Forces strict 58mm width layout for printing
+      // Added margins: 0mm to remove headers/footers from browser print
       printWindow.document.write(`
         <html>
         <head>
