@@ -792,8 +792,8 @@
       const canvas = document.getElementById('downloadCanvas');
       // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      // REDUCED HEIGHT for paper consumption optimization
-      const height = 580; 
+      // Increased height to 750px to prevent footer cutoff
+      const height = 750; 
       
       canvas.width = width;
       canvas.height = height;
@@ -885,10 +885,10 @@
       ctx.textAlign = "center";
       ctx.font = "italic 16px Arial";
       ctx.fillText("Thank you!", width/2, y);
-      y += 25;
+      y += 30;
       ctx.font = "14px Arial";
       ctx.fillText("Visit meena.goorac.biz", width/2, y);
-      y += 18;
+      y += 20;
       ctx.fillText("to see your eCard", width/2, y);
     }
 
@@ -986,16 +986,18 @@ ${centerText("to see your eCard")}
       const canvas = document.getElementById('downloadCanvas');
       const imgData = canvas.toDataURL("image/png");
 
-      const printWindow = window.open('', '', 'width=400,height=600');
+      const printWindow = window.open('', '', 'width=384,height=600');
       if(!printWindow) return alert("Allow popups to print");
 
+      // Forces strict 58mm width layout for printing
       printWindow.document.write(`
         <html>
         <head>
           <title>Print Receipt</title>
           <style>
-            body { margin: 0; display: flex; justify-content: center; background: #fff; }
-            img { width: 100%; max-width: 384px; height: auto; display: block; }
+            @page { size: auto; margin: 0mm; }
+            body { margin: 0; padding: 0; display: flex; justify-content: center; background: #fff; }
+            img { width: 384px; max-width: 100%; height: auto; display: block; }
           </style>
         </head>
         <body>
