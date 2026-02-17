@@ -875,95 +875,103 @@
       ctx.fillText("meena.goorac.biz", width/2, y);
     }
 
-    // --- 6. SQUARE RECEIPT LOGIC (High Contrast Professional) ---
+    // --- 6. SQUARE RECEIPT LOGIC (PURE B&W FOR THERMAL/DOWNLOAD) ---
     function drawSquareReceipt(data, balance) {
       const canvas = document.getElementById('squareCanvas');
-      const size = 1080; 
+      const size = 1080; // High Res Square
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
 
-      // 1. Background: Pure White
-      ctx.fillStyle = "#ffffff";
+      // 1. Background (Pure White)
+      ctx.fillStyle = "#ffffff"; 
       ctx.fillRect(0, 0, size, size);
 
-      // Heavy Dark Border
+      // Border (Thick Black)
       ctx.strokeStyle = "#000000";
       ctx.lineWidth = 30;
       ctx.strokeRect(0, 0, size, size);
 
-      // 2. Header
+      // 2. Header (Black Text)
       ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
-      ctx.font = "bold 85px sans-serif";
-      ctx.fillText("MEENA GROUPS", size/2, 160);
+      ctx.font = "bold 80px monospace";
+      ctx.fillText("MEENA GROUPS", size/2, 140);
       
-      ctx.font = "bold 45px sans-serif";
-      ctx.fillText("PAYMENT RECEIPT", size/2, 230);
-
       // Separator Line
       ctx.beginPath();
-      ctx.moveTo(100, 270);
-      ctx.lineTo(size - 100, 270);
-      ctx.lineWidth = 5;
+      ctx.moveTo(50, 200);
+      ctx.lineTo(size-50, 200);
+      ctx.lineWidth = 8;
       ctx.stroke();
 
-      // 3. Information Grid
+      ctx.font = "bold 50px monospace";
+      ctx.fillText("PAYMENT CONFIRMED", size/2, 280);
+
+      // 3. Central Details (Left Aligned)
       ctx.textAlign = "left";
-      ctx.font = "bold 45px sans-serif";
+      ctx.font = "bold 45px monospace";
       
-      let x = 120;
+      let x = 80;
       let y = 380;
       let valX = 450;
-      let gap = 90;
+      let lineHeight = 90;
 
-      const drawRow = (label, val, color = "#000000") => {
-        ctx.fillStyle = "#555555";
+      function drawRow(label, value) {
         ctx.fillText(label, x, y);
-        ctx.fillStyle = color;
-        ctx.fillText(val, valX, y);
-        y += gap;
-      };
+        ctx.fillText(value, valX, y);
+        y += lineHeight;
+      }
 
       drawRow("DATE:", data.date);
       drawRow("CUST ID:", data.customerId);
-      drawRow("NAME:", data.customerName.toUpperCase());
       drawRow("DUE NO:", `#${data.dueNumber}`);
-
-      y += 40;
       
-      // 4. Amount Section
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(100, y, size - 200, 220);
+      // Name (Auto Wrap if needed, but simple here)
+      ctx.fillText("NAME:", x, y);
+      const name = data.customerName.toUpperCase();
+      // If name is too long, truncate for image safety
+      ctx.fillText(name.length > 15 ? name.substring(0,15)+"..." : name, valX, y);
+      y += 120; // Big Gap
 
+      // 4. Amount Box (Black Border, White Fill, Black Text)
+      const boxY = y - 60;
       ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.font = "bold 40px sans-serif";
-      ctx.fillText("PAID AMOUNT", size/2, y + 60);
-      
-      ctx.font = "bold 110px sans-serif";
-      ctx.fillText(`₹ ${data.amount}`, size/2, y + 170);
+      ctx.fillRect(50, boxY, size - 100, 250);
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(50, boxY, size - 100, 250);
 
-      // 5. Balance Section
-      y += 320;
-      ctx.fillStyle = "#000000";
-      ctx.font = "bold 55px sans-serif";
-      ctx.fillText(`BALANCE DUE: ₹ ${balance}`, size/2, y);
+      ctx.fillStyle = "#000000"; // Black Text
+      ctx.textAlign = "center";
+      
+      y += 20;
+      ctx.font = "bold 50px monospace";
+      ctx.fillText("RECEIVED AMOUNT", size/2, y);
+      
+      y += 100;
+      ctx.font = "bold 110px monospace";
+      ctx.fillText(`Rs. ${data.amount}`, size/2, y);
+      
+      // 5. Balance
+      y += 180;
+      ctx.font = "bold 50px monospace";
+      ctx.fillText(`BALANCE PENDING: Rs. ${balance}`, size/2, y);
 
       // 6. Footer
-      y = size - 100;
-      ctx.fillStyle = "#888888";
-      ctx.font = "bold 35px sans-serif";
-      ctx.fillText("Verified by Goorac Digital Ecosystem", size/2, y);
-      ctx.fillText("meena.goorac.biz", size/2, y + 50);
+      y = size - 50;
+      ctx.font = "italic 30px monospace";
+      ctx.fillText("Generated via Agent App", size/2, y);
     }
 
-    // --- 7. PRINT & DOWNLOAD ACTIONS (Mobile Optimized) ---
+    // --- 7. PRINT & DOWNLOAD ACTIONS ---
     window.downloadLastReceipt = () => {
+      // 1. Generate the Square Image specifically for download
       drawSquareReceipt(lastReceiptData, lastBalance);
+      
       const canvas = document.getElementById('squareCanvas');
       const link = document.createElement('a');
-      link.download = `RECEIPT_${lastReceiptData.customerId}.png`;
+      link.download = `IMG_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
@@ -972,26 +980,50 @@
       const canvas = document.getElementById('receiptCanvas');
       const dataUrl = canvas.toDataURL('image/png');
       
-      // Create a Blob from the dataURL for better mobile compatibility
-      fetch(dataUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const blobUrl = URL.createObjectURL(blob);
-          const printWindow = window.open(blobUrl, '_blank');
-          
-          // Mobile Safari/Chrome Fix: Trigger print after short delay
-          if (printWindow) {
-            printWindow.addEventListener('load', () => {
-              setTimeout(() => {
-                printWindow.print();
-                // Clean up memory
-                URL.revokeObjectURL(blobUrl);
-              }, 500);
-            }, true);
-          } else {
-            alert("Please allow pop-ups to open the print window.");
-          }
-        });
+      // --- MOBILE BLUETOOTH PRINT FIX ---
+      // Instead of window.open (which is blocked or formats badly), we use an invisible iframe.
+      // This triggers the system print service, where apps like "RawBT" or "PrinterShare"
+      // will pick up the image to print.
+      
+      let printFrame = document.getElementById('printFrame');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'printFrame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        document.body.appendChild(printFrame);
+      }
+
+      const doc = printFrame.contentWindow.document;
+      doc.open();
+      doc.write(`
+        <html>
+          <head>
+            <style>
+              @page { margin: 0; size: auto; }
+              body { margin: 0; padding: 0; display: flex; justify-content: center; }
+              img { width: 100%; max-width: 384px; height: auto; display: block; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}">
+            <script>
+              // Wait for image to load then trigger print
+              window.onload = function() { 
+                setTimeout(function() { 
+                  window.focus(); 
+                  window.print(); 
+                }, 500); 
+              }
+            <\/script>
+          </body>
+        </html>
+      `);
+      doc.close();
     };
 
     // Set Today's Date
