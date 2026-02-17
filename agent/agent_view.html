@@ -161,13 +161,13 @@
 <body>
 
   <header>
-    <h1>View Log</h1>
-    <div class="status-pill">Pending Sync</div>
+    <h1>View Drafts</h1>
+    <div class="status-pill">Draft Mode</div>
   </header>
 
   <div class="summary-card">
     <div>
-      <div class="sum-label">Total Collected Today</div>
+      <div class="sum-label">Ready to Submit</div>
       <div class="sum-val" id="totalAmt">₹0</div>
     </div>
     <div class="sum-icon">💰</div>
@@ -181,7 +181,7 @@
 
   <div class="fab-wrapper">
     <button class="fab-submit" onclick="notifyAdmin()">
-      <span>📤 Notify Admin</span>
+      <span>🚀 Submit All to Admin</span>
     </button>
   </div>
 
@@ -230,18 +230,19 @@
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, deleteDoc, doc, updateDoc 
+      collection, query, where, getDocs, deleteDoc, doc, updateDoc, writeBatch 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let agentEntries = [];
 
-    // --- 1. LOAD ENTRIES ---
+    // --- 1. LOAD ENTRIES (Now loads DRAFTS instead of pending) ---
     async function loadAgentEntries() {
       const listDiv = document.getElementById("entriesList");
       const totalDiv = document.getElementById("totalAmt");
       
       try {
-        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
+        // FIXED: Query for 'draft' instead of 'pending'
+        const q = query(collection(db, "temp_entries"), where("status", "==", "draft"));
         const snapshot = await getDocs(q);
         
         agentEntries = [];
@@ -265,7 +266,8 @@
           listDiv.innerHTML = `
             <div style="text-align:center; padding:50px; opacity:0.6;">
               <svg style="width:50px;height:50px;fill:#64748b;margin-bottom:10px" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-              <p>No pending entries found.</p>
+              <p>No draft entries found.</p>
+              <p style="font-size:0.8rem">Collections will appear here.</p>
             </div>`;
           return;
         }
@@ -302,7 +304,7 @@
                 </button>
                 <button class="action-btn btn-del" onclick="deleteEntry('${d.docId}')">
                   <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                  Delete
+                  Discard
                 </button>
               </div>
             </div>
@@ -366,19 +368,45 @@
       }
     };
 
-    // --- 3. DELETE ---
+    // --- 3. DELETE (DISCARD) ---
     window.deleteEntry = async (docId) => {
-      if(!confirm("Delete this entry permanently?")) return;
+      if(!confirm("Discard this draft entry?")) return;
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
         loadAgentEntries();
       } catch (e) { alert("Error: " + e.message); }
     };
 
-    // --- 4. SUBMIT ---
-    window.notifyAdmin = () => {
+    // --- 4. SUBMIT (BATCH UPDATE) ---
+    window.notifyAdmin = async () => {
       if(agentEntries.length === 0) return alert("Nothing to submit.");
-      alert("✅ Admin Notification Sent!\n\nThe admin can now review and approve these entries.");
+      if(!confirm(`Submit ${agentEntries.length} entries to Admin?`)) return;
+
+      const btn = document.querySelector(".fab-submit");
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "<span>⏳ Sending...</span>";
+      btn.disabled = true;
+
+      try {
+        const batch = writeBatch(db);
+
+        // Add every draft to the batch
+        agentEntries.forEach(entry => {
+          const ref = doc(db, "temp_entries", entry.docId);
+          batch.update(ref, { status: "pending" });
+        });
+
+        // ONE single network request
+        await batch.commit();
+
+        alert("✅ Sent Successfully! Admin can now see these.");
+        loadAgentEntries(); // List will now be empty as they are no longer drafts
+
+      } catch (e) {
+        alert("Error submitting: " + e.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     };
 
     // Init
