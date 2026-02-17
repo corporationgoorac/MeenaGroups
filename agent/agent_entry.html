@@ -656,7 +656,8 @@
           collection(db, "temp_entries"), 
           where("customerId", "==", selectedCustomer.id),
           where("productName", "==", p.name),
-          where("status", "==", "pending")
+          // UPDATED: Look for BOTH 'pending' (sent) AND 'draft' (local) so the count updates immediately
+          where("status", "in", ["pending", "draft"])
         );
         const logSnap = await getDocs(logsQ);
         logSnap.forEach(doc => {
