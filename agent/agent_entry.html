@@ -788,13 +788,13 @@
     }
 
     // --- 6. OPTIMIZED IMAGE GENERATION (FOR THERMAL PRINT) ---
-    // NO ITALICS, LARGE TEXT, COMPACT HEIGHT (485px)
+    // NO ITALICS, VERY COMPACT HEIGHT FOR PAPER SAVING
     function drawDownloadImage(data, balance, totalPaid) {
       const canvas = document.getElementById('downloadCanvas');
       // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      // FIXED HEIGHT: 485px (Compact)
-      const height = 485; 
+      // DRASTICALLY REDUCED HEIGHT for paper saving (450px)
+      const height = 450; 
       
       canvas.width = width;
       canvas.height = height;
@@ -807,29 +807,29 @@
       // 2. Text Settings (Black, High Contrast)
       ctx.fillStyle = "#000000";
       
-      // Start much higher to save top margin
-      let y = 35; 
+      // Start very high up to save top roll
+      let y = 30; 
 
       // --- HEADER ---
       ctx.textAlign = "center";
-      ctx.font = "bold 30px Arial"; // Larger Header
+      ctx.font = "bold 26px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 25; 
+      y += 22; 
       
-      ctx.font = "bold 16px Arial"; // Larger Subheader
+      ctx.font = "bold 14px Arial"; // No Italic
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 15; 
+      y += 10; 
 
       // Divider
       drawDashedLine(ctx, 5, y, width-5, y);
-      y += 25;
+      y += 20;
 
       // --- DETAILS ---
       ctx.textAlign = "left";
-      ctx.font = "bold 20px Courier New"; // Larger Body Text
+      ctx.font = "bold 16px Courier New"; // Monospace for alignment
       
       const xLeft = 10;
-      const gap = 28; // Increased gap for larger font
+      const gap = 22; // Tight line height
 
       ctx.fillText(`Date : ${data.date}`, xLeft, y);
       y += gap;
@@ -840,39 +840,40 @@
       
       // Handle long names
       let nameStr = data.customerName;
-      if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
+      if(nameStr.length > 20) nameStr = nameStr.substring(0,20) + "..";
       ctx.fillText(`Name : ${nameStr}`, xLeft, y);
       y += gap + 5;
 
       // Divider
       drawDashedLine(ctx, 5, y, width-5, y);
-      y += 30;
+      y += 25;
 
       // --- AMOUNT (CENTERED) ---
       ctx.textAlign = "center";
-      ctx.font = "bold 20px Arial";
+      ctx.font = "bold 18px Arial";
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 45;
+      y += 30;
       
-      ctx.font = "bold 52px Arial"; // Huge Amount
+      ctx.font = "bold 45px Arial"; // Big Impact
       ctx.fillText(`₹${data.amount}`, width/2, y);
       y += 30;
 
       // Divider
       drawDashedLine(ctx, 5, y, width-5, y);
-      y += 30;
+      y += 20;
 
       // --- SUMMARY ---
-      ctx.font = "bold 19px Courier New"; // Larger Summary Text
+      ctx.font = "16px Courier New";
       
       // Line 1: Total Paid
       ctx.textAlign = "left";
       ctx.fillText("Total Paid:", xLeft, y);
       ctx.textAlign = "right";
       ctx.fillText(`₹${totalPaid}`, width - 10, y);
-      y += 30;
+      y += gap;
 
-      // Line 2: Balance
+      // Line 2: Balance (Bold)
+      ctx.font = "bold 18px Courier New";
       ctx.textAlign = "left";
       ctx.fillText("Balance:", xLeft, y);
       ctx.textAlign = "right";
@@ -881,19 +882,19 @@
 
       // --- FOOTER (Compact & No Italic) ---
       ctx.textAlign = "center";
-      ctx.font = "bold 15px Arial"; // Larger Footer
+      ctx.font = "bold 14px Arial"; // Removed Italic
       ctx.fillText("Thank you!", width/2, y);
-      y += 20;
-      ctx.font = "bold 14px Arial";
-      ctx.fillText("Visit meena.goorac.biz", width/2, y);
       y += 18;
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("Visit meena.goorac.biz", width/2, y);
+      y += 14;
       ctx.fillText("to see your eCard", width/2, y);
     }
 
     // Helper for thermal style dashed lines
     function drawDashedLine(ctx, x1, y1, x2, y2) {
       ctx.beginPath();
-      ctx.setLineDash([4, 4]); 
+      ctx.setLineDash([4, 4]); // Tighter dashes
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.lineWidth = 1.5;
