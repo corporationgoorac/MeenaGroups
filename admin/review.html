@@ -1,16 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Review - MeenaGroups</title>
+  <title>Review - MeenaGroups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#000000">
 
   <style>
-    /* * ==========================================
-     * 1. PROFESSIONAL HIGH CONTRAST THEME
-     * ==========================================
-     */
+    /* --- 1. PROFESSIONAL HIGH CONTRAST THEME --- */
     :root { 
       --bg: #000000; 
       --surface: #0a0a0a;
@@ -23,393 +21,212 @@
       --text: #ffffff; 
       --text-muted: #888888;
       --border: #333333; 
-      --header-height: 60px;
-      --summary-height: 70px;
     }
 
-    * { 
-      box-sizing: border-box; 
-      -webkit-tap-highlight-color: transparent; 
-      outline: none; 
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
     body { 
       background: var(--bg); 
       color: var(--text); 
       font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
-      margin: 0; 
-      padding: 0; 
+      margin: 0; padding: 0; 
       height: 100vh; 
-      display: flex; 
-      flex-direction: column;
-      overflow: hidden; /* Lock body, use container scroll */
+      display: flex; flex-direction: column;
+      overflow: hidden; /* Main body scroll disabled to fix layout */
     }
 
-    /* * ==========================================
-     * 2. FIXED HEADER
-     * ==========================================
-     */
+    /* --- 2. HEADER --- */
     header {
       background: rgba(10, 10, 10, 0.95);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center;
-      z-index: 50; 
-      height: var(--header-height);
-      flex-shrink: 0;
+      padding: 15px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 50; flex-shrink: 0;
     }
     header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
-    .nav-btn { 
-      background: none; 
-      border: none; 
-      color: var(--text); 
-      font-size: 1.5rem; 
-      cursor: pointer; 
-      text-decoration: none; 
-      display: flex;
-      align-items: center;
-    }
+    .nav-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; text-decoration: none; }
 
-    /* * ==========================================
-     * 3. SUMMARY BAR (STATISTICS)
-     * ==========================================
-     */
+    /* --- 3. DASHBOARD SUMMARY --- */
     .summary-bar {
       background: var(--card);
-      padding: 0 20px;
+      padding: 15px 20px;
       border-bottom: 1px solid var(--border);
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center;
-      height: var(--summary-height);
+      display: flex; justify-content: space-between; align-items: center;
       flex-shrink: 0;
     }
     
     .stats-box { display: flex; flex-direction: column; }
     .stats-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-    .stats-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .stats-value { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
 
     .btn-approve-all {
-      background: var(--text); 
-      color: #000; 
-      border: none;
-      padding: 10px 22px; 
-      border-radius: 50px;
-      font-weight: 800; 
-      font-size: 0.85rem; 
-      cursor: pointer;
+      background: var(--text); color: #000; border: none;
+      padding: 10px 20px; border-radius: 50px;
+      font-weight: 700; font-size: 0.85rem; cursor: pointer;
       box-shadow: 0 4px 15px rgba(255,255,255,0.1);
-      transition: transform 0.2s, background 0.2s;
-      text-transform: uppercase;
+      transition: 0.2s;
     }
     .btn-approve-all:active { transform: scale(0.95); }
-    .btn-approve-all:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+    .btn-approve-all:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
-    /* * ==========================================
-     * 4. MAIN REVIEW LIST (THE SCROLLABLE AREA)
-     * ==========================================
-     */
+    /* --- 4. REVIEW LIST --- */
     .review-container {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: auto; /* Fixed scrolling issue */
       padding: 20px;
-      display: flex; 
-      flex-direction: column; 
-      gap: 18px;
-      -webkit-overflow-scrolling: touch; /* Kinetic scroll for iOS */
+      display: flex; flex-direction: column; gap: 15px;
+      padding-bottom: 40px;
     }
 
-    /* Custom Scrollbar for Desktop */
-    .review-container::-webkit-scrollbar { width: 6px; }
-    .review-container::-webkit-scrollbar-track { background: var(--bg); }
-    .review-container::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-
-    /* Entry Card UI */
+    /* Entry Card */
     .entry-card {
-      background: var(--card); 
-      border: 1px solid var(--border);
-      border-radius: 16px; 
-      overflow: hidden;
-      animation: slideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      animation: slideIn 0.3s ease-out;
       position: relative;
-      transition: border-color 0.2s;
     }
-    .entry-card:hover { border-color: #444; }
-    .entry-card::before { 
-      content:''; 
-      position: absolute; 
-      left:0; 
-      top:0; 
-      bottom:0; 
-      width:5px; 
-      background: var(--secondary); 
-    }
+    .entry-card::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; background: var(--secondary); }
 
     .card-top {
-      padding: 15px 18px; 
-      border-bottom: 1px solid #222;
-      display: flex; 
-      justify-content: space-between; 
-      align-items: flex-start;
-      background: rgba(255,255,255,0.01);
+      padding: 15px; border-bottom: 1px solid #222;
+      display: flex; justify-content: space-between; align-items: flex-start;
     }
-    .user-info h3 { margin: 0; font-size: 1.15rem; color: white; font-weight: 700; }
-    .user-info p { 
-      margin: 5px 0 0; 
-      color: var(--text-muted); 
-      font-size: 0.85rem; 
-      font-family: monospace; 
-      letter-spacing: 0.5px;
-    }
+    .user-info h3 { margin: 0; font-size: 1.1rem; color: white; font-weight: 600; }
+    .user-info p { margin: 4px 0 0; color: var(--text-muted); font-size: 0.85rem; font-family: monospace; }
     
     .date-badge { 
-      background: #111; 
-      padding: 5px 10px; 
-      border-radius: 6px; 
-      font-size: 0.75rem; 
-      color: var(--text-muted); 
-      border: 1px solid #333;
-      font-weight: 600;
+      background: #111; padding: 4px 8px; border-radius: 4px; 
+      font-size: 0.75rem; color: var(--text-muted); border: 1px solid #333;
     }
 
-    /* Middle Section showing the Amount clearly */
     .card-mid {
-      padding: 18px;
-      display: grid; 
-      grid-template-columns: 1fr auto; 
-      gap: 15px; 
-      align-items: center;
+      padding: 15px;
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
     }
     
-    .detail-row { display: flex; flex-direction: column; gap: 8px; }
-    .product-tag { 
-      color: var(--secondary); 
-      font-size: 0.95rem; 
-      font-weight: 600; 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-    }
+    .detail-row { display: flex; flex-direction: column; gap: 5px; }
+    .product-tag { color: var(--secondary); font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
     .due-tag { 
-      display: inline-block; 
-      background: rgba(255, 171, 0, 0.1); 
-      color: var(--warning); 
-      font-size: 0.85rem; 
-      padding: 4px 10px; 
-      border-radius: 6px; 
-      border: 1px solid rgba(255, 171, 0, 0.2); 
-      width: fit-content;
-      font-weight: 700;
+      display: inline-block; background: rgba(255, 171, 0, 0.15); color: var(--warning); 
+      font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255, 171, 0, 0.3); width: fit-content;
     }
 
     .amount-box { text-align: right; }
-    .amount-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;}
-    .amount-val { 
-      font-size: 1.7rem; 
-      font-weight: 900; 
-      color: var(--primary); 
-      letter-spacing: -0.5px;
-      text-shadow: 0 0 20px rgba(0, 230, 118, 0.1);
-    }
+    .amount-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .amount-val { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
 
-    /* Action Grid on each Card */
     .card-actions {
-      display: grid; 
-      grid-template-columns: 1fr 1fr 2fr;
+      display: grid; grid-template-columns: 1fr 1fr 2fr;
       border-top: 1px solid #222;
-      background: #0d0d0d;
     }
     
     .action-btn {
-      background: transparent; 
-      border: none; 
-      padding: 15px;
-      font-size: 0.9rem; 
-      cursor: pointer; 
-      transition: all 0.2s;
-      border-right: 1px solid #222; 
-      color: var(--text-muted);
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      gap: 10px;
-      font-weight: 600;
+      background: transparent; border: none; padding: 15px;
+      font-size: 1rem; cursor: pointer; transition: 0.2s;
+      border-right: 1px solid #222; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .action-btn:last-child { border-right: none; font-weight: 800; letter-spacing: 1px; }
+    .action-btn:last-child { border-right: none; font-weight: 700; }
     
-    .btn-edit:active { background: #222; color: var(--text); }
-    .btn-reject:active { background: rgba(255, 23, 68, 0.2); color: var(--danger); }
+    .btn-edit:hover { background: #222; color: var(--text); }
+    .btn-reject:hover { background: rgba(255, 23, 68, 0.1); color: var(--danger); }
     .btn-approve { color: var(--primary); background: rgba(0, 230, 118, 0.05); }
-    .btn-approve:active { background: var(--primary); color: #000; }
+    .btn-approve:hover { background: var(--primary); color: #000; }
 
-    /* * ==========================================
-     * 5. EDIT MODAL STYLES
-     * ==========================================
-     */
+    /* --- 5. EDIT MODAL --- */
     .modal-overlay {
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%;
-      background: rgba(0,0,0,0.85); 
-      backdrop-filter: blur(8px);
-      display: none; 
-      align-items: center; 
-      justify-content: center; 
-      z-index: 1000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
     }
     
     .modal-box {
-      background: var(--card); 
-      width: 90%; 
-      max-width: 400px;
-      border-radius: 24px; 
-      border: 1px solid var(--border);
-      box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-      animation: popIn 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.28);
-      display: flex;
-      flex-direction: column;
+      background: var(--card); width: 90%; max-width: 350px;
+      border-radius: 16px; border: 1px solid var(--border);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
     .modal-header {
-      padding: 20px 25px; 
-      border-bottom: 1px solid var(--border);
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center;
-      background: var(--surface);
-      border-radius: 24px 24px 0 0;
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
     }
-    .modal-header h3 { margin: 0; font-size: 1.2rem; font-weight: 800; color: #fff; }
-    .close-modal { 
-      background: rgba(255,255,255,0.05); 
-      border: none; 
-      color: #fff; 
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-size: 1.2rem; 
-      cursor: pointer; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .modal-header h3 { margin: 0; font-size: 1.1rem; }
+    .close-modal { background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; }
 
-    .modal-body { 
-      padding: 25px; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 18px; 
-    }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
     
-    .input-group { display: flex; flex-direction: column; gap: 8px; }
-    .input-group label { display: block; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
     .input-group input { 
-      width: 100%; 
-      padding: 14px; 
-      background: #000; 
-      border: 1px solid var(--border); 
-      color: white; 
-      border-radius: 12px; 
-      font-size: 1.1rem;
-      font-weight: 600;
-      font-family: monospace;
-    }
-    .input-group input:focus { border-color: var(--secondary); box-shadow: 0 0 10px rgba(41, 121, 255, 0.2); }
-
-    .modal-footer { padding: 0 25px 25px 25px; }
-    .btn-save-edit {
-      width: 100%; 
-      padding: 16px; 
-      background: var(--secondary); 
-      color: white;
-      border: none; 
-      border-radius: 12px; 
-      font-weight: 800; 
-      cursor: pointer;
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      box-shadow: 0 10px 20px rgba(41, 121, 255, 0.2);
-    }
-    .btn-save-edit:active { transform: scale(0.98); }
-
-    /* * ==========================================
-     * 6. SYSTEM ANIMATIONS
-     * ==========================================
-     */
-    @keyframes slideIn { 
-      from { opacity: 0; transform: translateY(15px); } 
-      to { opacity: 1; transform: translateY(0); } 
-    }
-    @keyframes popIn { 
-      from { opacity: 0; transform: scale(0.92); } 
-      to { opacity: 1; transform: scale(1); } 
+      width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); 
+      color: white; border-radius: 8px; font-size: 1rem;
     }
 
-    /* Mobile View Specific Tweaks */
+    .modal-footer { padding: 0 20px 20px 20px; }
+    .btn-save {
+      width: 100%; padding: 14px; background: var(--secondary); color: white;
+      border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+
+    /* Animations & Responsive */
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
     @media (max-width: 600px) {
-      .summary-bar { padding: 0 15px; }
-      .stats-value { font-size: 1.4rem; }
-      .review-container { padding: 15px; gap: 15px; }
-      .amount-val { font-size: 1.5rem; }
-      .card-actions { grid-template-columns: 1fr 1fr 1.5fr; }
-      .action-btn { padding: 12px; font-size: 0.85rem; }
+      .summary-bar { padding: 12px 15px; }
+      .stats-value { font-size: 1.3rem; }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Review Approval Queue</h1>
-    <a href="index.html" class="nav-btn" title="Go Home">🏠</a>
+    <h1>Review Entries</h1>
+    <a href="index.html" class="nav-btn">🏠</a>
   </header>
 
   <div class="summary-bar">
     <div class="stats-box">
-      <span class="stats-label">Volume to Sync</span>
+      <span class="stats-label">Pending Total</span>
       <span class="stats-value" id="totalPendingAmt">₹0</span>
     </div>
-    <button class="btn-approve-all" onclick="approveAll()" id="masterApproveBtn">Batch Approve</button>
+    <button class="btn-approve-all" onclick="approveAll()">✓ Approve All</button>
   </div>
 
   <div id="reviewList" class="review-container">
-    <div style="text-align:center; padding: 100px 0; color: var(--text-muted);">
-      <div style="font-size:4rem; margin-bottom:15px; opacity:0.2;">🔍</div>
-      <p style="letter-spacing: 1px; font-size: 0.9rem;">SCANNING PENDING LEDGERS...</p>
+    <div style="text-align:center; padding: 60px; color: var(--text-muted);">
+      <div style="font-size:3rem; margin-bottom:10px; opacity:0.3;">⏳</div>
+      <p>Loading Pending Entries...</p>
     </div>
   </div>
 
   <div class="modal-overlay" id="editModal">
     <div class="modal-box">
       <div class="modal-header">
-        <h3>✎ Modify Transaction</h3>
+        <h3>Edit Entry Details</h3>
         <button class="close-modal" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editDocId">
         
         <div class="input-group">
-          <label>Collection Amount (₹)</label>
-          <input type="number" id="editAmount" step="0.01">
+          <label>Collected Amount (₹)</label>
+          <input type="number" id="editAmount">
         </div>
         
         <div class="input-group">
-          <label>Due Number Assignment</label>
-          <input type="number" id="editDueNumber" placeholder="Leave empty for auto">
+          <label>Assign Due Number</label>
+          <input type="number" id="editDueNumber" placeholder="Auto if empty">
         </div>
 
         <div class="input-group">
-          <label>Reported Date</label>
+          <label>Collection Date</label>
           <input type="date" id="editDate">
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-save-edit" onclick="saveEdit()">UPDATE DATA RECORD</button>
+        <button class="btn-save" onclick="saveEdit()">SAVE & CLOSE</button>
       </div>
     </div>
   </div>
@@ -420,17 +237,13 @@
       collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // Internal State
     let pendingEntries = [];
 
-    /**
-     * @function loadPending
-     * Fetches entries from 'temp_entries' collection where status is pending.
-     */
+    // --- 1. LOAD DATA ---
     async function loadPending() {
       const listDiv = document.getElementById("reviewList");
       const totalDisplay = document.getElementById("totalPendingAmt");
-      const approveAllBtn = document.getElementById("masterApproveBtn");
+      const approveAllBtn = document.querySelector(".btn-approve-all");
 
       try {
         const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
@@ -442,24 +255,23 @@
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
           d.docId = docSnap.id;
-          // Handle Firestore Timestamp vs String Date
+          // Ensure jsDate is handled correctly for sorting
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
           pendingEntries.push(d);
           totalAmt += parseFloat(d.amount || 0);
         });
 
-        // Sort by Date (Newest on top)
+        // Sort Newest First
         pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
 
-        totalDisplay.innerText = "₹" + totalAmt.toLocaleString('en-IN');
+        totalDisplay.innerText = "₹" + totalAmt.toLocaleString();
         listDiv.innerHTML = "";
 
         if (pendingEntries.length === 0) {
           listDiv.innerHTML = `
-            <div style="text-align:center; padding:80px 0; color:var(--text-muted); opacity:0.6;">
-              <h2 style="margin:0; font-size:4rem; color: #222;">✓</h2>
-              <p style="font-weight: 800; color: #fff;">QUEUE EMPTY</p>
-              <p style="font-size: 0.8rem;">All agent entries have been approved.</p>
+            <div style="text-align:center; padding:60px; color:var(--text-muted); opacity:0.6;">
+              <h2 style="margin:0; font-size:3rem;">🎉</h2>
+              <p>All caught up! No pending reviews.</p>
             </div>`;
           approveAllBtn.disabled = true;
           return;
@@ -467,9 +279,9 @@
 
         approveAllBtn.disabled = false;
 
-        // Render individual cards
         pendingEntries.forEach(d => {
-          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `DUE #${d.dueNumber}` : 'AUTO';
+          // Display Logic
+          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `Due #${d.dueNumber}` : 'Auto-Assign Due';
 
           const card = document.createElement("div");
           card.className = "entry-card";
@@ -479,7 +291,7 @@
             <div class="card-top">
               <div class="user-info">
                 <h3>${d.customerName}</h3>
-                <p>CUSTOMER ID: ${d.customerId}</p>
+                <p>ID: ${d.customerId}</p>
               </div>
               <span class="date-badge">${d.date}</span>
             </div>
@@ -490,8 +302,8 @@
                 <span class="due-tag">${dueDisplay}</span>
               </div>
               <div class="amount-box">
-                <div class="amount-lbl">Ledger Amount</div>
-                <div class="amount-val">₹${parseFloat(d.amount).toLocaleString('en-IN')}</div>
+                <div class="amount-lbl">Collected</div>
+                <div class="amount-val">₹${d.amount}</div>
               </div>
             </div>
 
@@ -503,7 +315,7 @@
                 <span>✕</span> Delete
               </button>
               <button class="action-btn btn-approve" onclick="approveEntry('${d.docId}')">
-                APPROVE
+                <span>✓</span> APPROVE
               </button>
             </div>
           `;
@@ -511,15 +323,12 @@
         });
 
       } catch (e) {
-        console.error("FATAL LOAD ERROR:", e);
-        listDiv.innerHTML = `<p style="color:var(--danger); text-align:center; padding: 20px;">SYSTEM ERROR: ${e.message}</p>`;
+        console.error(e);
+        listDiv.innerHTML = `<p style="color:var(--danger); text-align:center;">Error: ${e.message}</p>`;
       }
     }
 
-    /**
-     * @function openEdit
-     * populates and shows the modify modal
-     */
+    // --- 2. EDIT MODAL LOGIC ---
     window.openEdit = (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
       if (!entry) return;
@@ -527,75 +336,59 @@
       document.getElementById("editDocId").value = docId;
       document.getElementById("editAmount").value = entry.amount;
       document.getElementById("editDate").value = entry.date;
-      document.getElementById("editDueNumber").value = entry.dueNumber || "";
+      document.getElementById("editDueNumber").value = entry.dueNumber || ""; // Empty for placeholder
 
       document.getElementById("editModal").style.display = "flex";
-      // Lock background scrolling when modal is open
-      document.body.style.overflow = "hidden";
     };
 
     window.closeModal = () => {
       document.getElementById("editModal").style.display = "none";
-      document.body.style.overflow = "";
     };
 
-    /**
-     * @function saveEdit
-     * Updates the temp entry in Firestore before approval
-     */
     window.saveEdit = async () => {
       const docId = document.getElementById("editDocId").value;
       const newAmt = parseFloat(document.getElementById("editAmount").value);
       const newDate = document.getElementById("editDate").value;
-      const newDue = parseInt(document.getElementById("editDueNumber").value);
+      const newDueInput = document.getElementById("editDueNumber").value;
+      const newDue = newDueInput === "" ? 0 : parseInt(newDueInput);
 
-      if(!newAmt || isNaN(newAmt) || !newDate) {
-        return alert("Validation Failed: Check Amount and Date fields.");
-      }
+      if(!newAmt || !newDate) return alert("Invalid inputs. Amount and Date are required.");
 
-      const btn = document.querySelector(".btn-save-edit");
-      const originalLabel = btn.innerText;
-      btn.innerText = "UPDATING...";
+      const btn = document.querySelector(".btn-save");
+      const originalText = btn.innerText;
+      btn.innerText = "SAVING...";
       btn.disabled = true;
 
       try {
         const ref = doc(db, "temp_entries", docId);
         
-        const payload = {
+        await updateDoc(ref, {
           amount: newAmt,
-          date: newDate
-        };
-
-        if (!isNaN(newDue) && newDue > 0) {
-           payload.dueNumber = newDue;
-        }
-
-        await updateDoc(ref, payload);
+          date: newDate,
+          dueNumber: newDue // Correctly updates value in DB
+        });
 
         closeModal();
-        loadPending(); // Refresh UI to show modified data
-        btn.innerText = originalLabel;
+        loadPending(); // Refresh UI to show new values
+        btn.innerText = originalText;
         btn.disabled = false;
 
       } catch (e) {
-        alert("Update Failed: " + e.message);
-        btn.innerText = originalLabel;
+        alert("Error updating: " + e.message);
+        btn.innerText = originalText;
         btn.disabled = false;
       }
     };
 
-    /**
-     * @function approveEntry
-     * Moves record from temp_entries to customer master and updates stats
-     */
+    // --- 3. APPROVE LOGIC ---
     window.approveEntry = async (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
       if (!entry) return;
 
       const card = document.getElementById(`card-${docId}`);
-      card.style.opacity = "0.3"; 
+      // UI Feedback immediately
+      card.style.opacity = "0.4"; 
       card.style.pointerEvents = "none";
-      card.style.filter = "grayscale(1)";
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -604,130 +397,112 @@
           const tempRef = doc(db, "temp_entries", docId);
 
           const custDoc = await transaction.get(custRef);
-          if (!custDoc.exists()) throw `CRITICAL: Customer ID ${entry.customerId} no longer exists.`;
+          if (!custDoc.exists()) throw `Customer ${entry.customerId} not found!`;
 
           const data = custDoc.data();
           
-          // Verify product alignment
+          // Find Product Index
           let pIndex = entry.productIndex;
           if (!data.products[pIndex] || data.products[pIndex].name !== entry.productName) {
             pIndex = data.products.findIndex(p => p.name === entry.productName);
           }
-          if (pIndex === -1) throw "Data Sync Conflict: Product mismatch detected.";
+          if (pIndex === -1) throw "Product mismatch - cannot merge.";
 
           const product = data.products[pIndex];
 
-          // Calculate Due Number if not edited manually
+          // Logic: Calculate Next Due if not provided
           let finalDue = entry.dueNumber; 
+          
           if (!finalDue || finalDue <= 0) {
-             const existingPayments = product.payments || [];
-             const maxNum = existingPayments.length > 0 
-               ? Math.max(...existingPayments.map(p => p.dueNumber || 0)) 
+             const max = (product.payments || []).length > 0 
+               ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
                : 0;
-             finalDue = maxNum + 1;
+             finalDue = max + 1;
           }
 
-          const approvedPaymentObject = {
+          const newPayment = {
             date: entry.date,
-            amount: parseFloat(entry.amount),
+            amount: entry.amount,
             dueNumber: parseInt(finalDue), 
             type: "Agent Collection",
-            approvalTimestamp: new Date().toISOString()
+            approvedAt: new Date().toISOString()
           };
 
           if (!product.payments) product.payments = [];
-          product.payments.push(approvedPaymentObject);
-          
-          // Update product aggregate
-          product.paid = (product.paid || 0) + parseFloat(entry.amount);
+          product.payments.push(newPayment);
+          product.paid += entry.amount;
 
-          // Update Customer Master Record
+          // DB Updates
           transaction.update(custRef, { products: data.products });
-
-          // Update Global Business Statistics
           transaction.update(statsRef, {
             totalPaid: increment(entry.amount),
             totalBalance: increment(-entry.amount)
           });
-
-          // Cleanup: Remove from review queue
           transaction.delete(tempRef);
         });
 
-        // Animation for success removal
-        card.style.transform = "translateX(200px)";
-        card.style.opacity = "0";
+        // Remove Animation
+        card.style.transform = "translateX(100px)";
         setTimeout(() => { 
           card.remove(); 
+          // Check if list is empty to show empty state
           const remaining = document.querySelectorAll(".entry-card");
           if(remaining.length === 0) loadPending();
-        }, 350);
+        }, 300);
 
       } catch (e) {
-        console.error("TRANSACTION ERROR:", e);
         alert("Approval Failed: " + e);
-        card.style.opacity = "1"; 
-        card.style.pointerEvents = "auto";
-        card.style.filter = "none";
+        card.style.opacity = "1"; card.style.pointerEvents = "auto";
       }
     };
 
-    /**
-     * @function rejectEntry
-     * Deletes the temp entry without committing to master
-     */
+    // --- 4. REJECT / DELETE LOGIC ---
     window.rejectEntry = async (docId) => {
-      if(!confirm("CONFIRM REJECTION?\nThis collection will be permanently deleted and agent must re-enter.")) return;
-      
+      if(!confirm("Are you sure you want to PERMANENTLY DELETE this entry?")) return;
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
         const card = document.getElementById(`card-${docId}`);
-        card.style.transform = "translateX(-200px)";
+        card.style.transform = "translateX(-100px)";
         card.style.opacity = "0";
         setTimeout(() => { 
            card.remove(); 
            const remaining = document.querySelectorAll(".entry-card");
            if(remaining.length === 0) loadPending();
-        }, 350);
+        }, 300);
       } catch (e) {
-        alert("System Error during deletion: " + e.message);
+        alert("Error: " + e.message);
       }
     };
 
-    /**
-     * @function approveAll
-     * Batch processing for high-volume approvals
-     */
+    // --- 5. APPROVE ALL ---
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
-      
-      const count = pendingEntries.length;
-      if (!confirm(`PROCESS BATCH?\nThis will approve ALL ${count} entries in the current queue.`)) return;
+      if (!confirm(`This will approve ALL ${pendingEntries.length} pending entries. Continue?`)) return;
 
-      const btn = document.getElementById("masterApproveBtn");
+      const btn = document.querySelector(".btn-approve-all");
       const originalText = btn.innerText;
-      btn.innerText = "SYNCING BATCH...";
+      btn.innerText = "Processing...";
       btn.disabled = true;
 
-      // Processing sequentially ensures transaction safety in high concurrency
+      // Process sequentially to prevent overwhelming UI
       for (const entry of pendingEntries) {
         if(document.getElementById(`card-${entry.docId}`)) {
           await window.approveEntry(entry.docId);
         }
       }
       
-      btn.innerText = "SYNC COMPLETE";
+      btn.innerText = "Done";
       setTimeout(() => {
         btn.innerText = originalText;
         btn.disabled = false;
         loadPending();
-      }, 1500);
+      }, 1000);
     };
 
-    // Initialize the console
+    // Initial Load
     loadPending();
     
-    // Module Exposures for HTML events
+    // Global Exposure
     window.openEdit = openEdit;
     window.closeModal = closeModal;
     window.saveEdit = saveEdit;
