@@ -747,96 +747,108 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. THERMAL RECEIPT (REDESIGNED FOR QUALITY) ---
+    // --- 5. RECEIPT (REDESIGNED TO MATCH DOWNLOAD IMAGE EXACTLY) ---
+    // Note: This logic now clones the visual style of drawDownloadImage
     function drawThermalReceipt(data, balance, totalPaid) {
       const canvas = document.getElementById('receiptCanvas');
-      // Standard width for 58mm printer at high density or 80mm
-      const width = 384; 
-      const height = 800; // ample height
+      const width = 600; 
+      const height = 850; 
       
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // 1. Clean White Background
+      // White BG
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = "#000000";
-      
-      let y = 40;
 
-      // 2. Header (Centered)
-      ctx.textAlign = "center";
-      ctx.font = "bold 28px Arial"; 
-      ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 30;
-      
-      ctx.font = "18px Arial";
-      ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 20;
-
-      // 3. Thick Divider
-      ctx.beginPath();
-      ctx.moveTo(10, y);
-      ctx.lineTo(width-10, y);
+      // Border
       ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      y += 35;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, width-10, height-10);
 
-      // 4. Details (Aligned Left & Right)
-      ctx.font = "bold 18px Arial";
-      const leftX = 15;
-      const rightX = width - 15;
-      const rowGap = 35;
-
-      // Helper for rows
-      const drawRow = (label, val) => {
-        ctx.textAlign = "left";
-        ctx.fillText(label, leftX, y);
-        ctx.textAlign = "right";
-        ctx.fillText(val, rightX, y);
-        y += rowGap;
-      };
-
-      drawRow("Date:", data.date);
-      drawRow("Cust ID:", data.customerId);
-      drawRow("Due No:", "#" + data.dueNumber); // Added Due No
-      
-      // Name (might be long, handle truncation)
-      ctx.textAlign = "left";
-      ctx.fillText("Name:", leftX, y);
-      ctx.textAlign = "right";
-      let shortName = data.customerName.length > 18 ? data.customerName.substring(0,18)+".." : data.customerName;
-      ctx.fillText(shortName, rightX, y);
-      y += rowGap + 10;
-
-      // 5. Amount Box (Mimics Download Image)
-      ctx.lineWidth = 2;
-      ctx.strokeRect(20, y, width - 40, 100);
-      
-      let boxY = y + 30;
+      // Text Setup
+      ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
-      ctx.font = "16px Arial";
+      
+      let y = 80;
+
+      // Header
+      ctx.font = "bold 50px Arial"; 
+      ctx.fillText("MEENA GROUPS", width/2, y);
+      y += 50;
+      
+      ctx.font = "30px Arial"; 
+      ctx.fillText("PAYMENT RECEIPT", width/2, y);
+      y += 60;
+
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(50, y);
+      ctx.lineTo(width-50, y);
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      y += 50;
+
+      // Details
+      ctx.textAlign = "left";
+      ctx.font = "bold 30px Arial";
+      const x = 60;
+      const xVal = 320;
+      const gap = 50;
+
+      // Row 1: Date
+      ctx.fillText("Date:", x, y);
+      ctx.fillText(data.date, xVal, y);
+      y += gap;
+
+      // Row 2: ID
+      ctx.fillText("Cust ID:", x, y);
+      ctx.fillText(data.customerId, xVal, y);
+      y += gap;
+
+      // Row 3: Due Number
+      ctx.fillText("Due No:", x, y);
+      ctx.fillText("#" + data.dueNumber, xVal, y);
+      y += gap;
+
+      // Row 4: Name
+      ctx.fillText("Name:", x, y);
+      ctx.fillText(data.customerName.substring(0,15), xVal, y);
+      y += gap + 20;
+
+      // Amount Box
+      ctx.strokeRect(50, y - 10, width - 100, 150);
+      
+      let boxY = y + 40;
+      ctx.textAlign = "center";
       ctx.fillText("AMOUNT RECEIVED", width/2, boxY);
       
-      boxY += 40;
-      ctx.font = "bold 45px Arial";
+      boxY += 70;
+      ctx.font = "bold 70px Arial";
       ctx.fillText(`₹ ${data.amount}`, width/2, boxY);
       
-      y += 130;
+      y += 200;
 
-      // 6. Summary
-      drawRow("Total Paid:", `₹ ${totalPaid}`);
-      drawRow("Balance:", `₹ ${balance}`);
+      // Summary
+      ctx.textAlign = "left";
+      ctx.font = "30px Arial";
+      ctx.fillText("Total Paid:", 60, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹ ${totalPaid}`, width - 60, y);
+      y += 40;
 
-      // 7. Footer
-      y += 20;
+      ctx.font = "bold 35px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("Balance Due:", 60, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹ ${balance}`, width - 60, y);
+      y += 80;
+
+      // Footer
       ctx.textAlign = "center";
-      ctx.font = "italic 14px Arial";
-      ctx.fillText("visit meena.goorac.biz for history", width/2, y);
-      y += 20;
-      ctx.fillText("Thank you", width/2, y);
+      ctx.font = "italic 24px Arial";
+      ctx.fillText("visit meena.goorac.biz for all payment history", width/2, y);
     }
 
     // --- 6. DOWNLOAD RECEIPT (WITH DUE NUMBER) ---
@@ -942,11 +954,11 @@
       ctx.fillText("visit meena.goorac.biz for all payment history", width/2, y);
     }
 
-    // --- 7. PRINT ACTION (FIXED) ---
+    // --- 7. PRINT ACTION (UPDATED TO FULL SIZE) ---
     window.printLastReceipt = () => {
       if(!lastReceiptData) return alert("No receipt to print");
       
-      // Draw updated canvas (High Quality Thermal)
+      // Draw updated canvas (Now Full Quality, same as download)
       drawThermalReceipt(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('receiptCanvas');
       const dataUrl = canvas.toDataURL('image/png');
@@ -957,25 +969,30 @@
         return;
       }
 
-      // Write HTML designed for thermal printing (no margins)
+      // Write HTML designed for full page printing
       win.document.write(`
         <html>
           <head>
             <title>Print Receipt</title>
             <style>
-              @page { margin: 0; size: auto; }
               body { 
                 margin: 0; 
-                padding: 0; 
+                padding: 20px; 
                 display: flex; 
-                justify-content: flex-start; 
+                justify-content: center; 
+                align-items: flex-start;
+                background: #eee;
               }
               img { 
                 width: 100%; 
-                max-width: 384px; /* Force 58mm width approx */
+                max-width: 600px; /* Full size */
                 height: auto; 
                 display: block; 
-                image-rendering: pixelated; /* Keeps text sharp */
+                box-shadow: 0 0 20px rgba(0,0,0,0.1);
+              }
+              @media print {
+                body { background: white; padding: 0; }
+                img { box-shadow: none; max-width: 100%; }
               }
             </style>
           </head>
@@ -987,7 +1004,7 @@
       win.document.close();
     };
 
-    // --- 8. DOWNLOAD ACTION (UPDATED) ---
+    // --- 8. DOWNLOAD ACTION (KEPT EXACTLY AS REQUESTED) ---
     window.downloadLastReceipt = () => {
       if(!lastReceiptData) return;
       
