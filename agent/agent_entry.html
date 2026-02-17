@@ -729,9 +729,6 @@
         lastBalance = p.total - (existingPaid + amount);
         lastReceiptData = entryData;
         
-        // Render Receipt on Hidden Canvas (Pre-load Thermal)
-        drawReceiptToCanvas(lastReceiptData, lastBalance);
-
         // Update UI
         document.getElementById("amount").value = "";
         btn.innerHTML = "✅ SAVED";
@@ -762,15 +759,14 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. THERMAL RECEIPT LOGIC (Pocket Printer 58mm) ---
+    // --- 5. THERMAL RECEIPT LOGIC (HIGH CONTRAST B&W) ---
+    // STRICTLY BLACK ON WHITE FOR THERMAL PRINTERS
     function drawReceiptToCanvas(data, balance) {
       const canvas = document.getElementById('receiptCanvas');
       
-      // 58mm printer width usually maps to approx 384px at standard DPI
+      // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      // Initial height, but we might increase it dynamically in a real app, 
-      // here we set enough space for wrapped text.
-      const height = 750; 
+      const height = 650; // Fixed height, plenty for details
       
       canvas.width = width;
       canvas.height = height;
@@ -783,247 +779,246 @@
       // 2. Text Settings: Pure Black
       ctx.fillStyle = "#000000";
       ctx.textAlign = "center";
+      
+      // --- HEADER ---
+      let y = 40;
+      ctx.font = "bold 28px Arial"; 
+      ctx.fillText("MEENA GROUPS", width/2, y);
+      y += 30;
+      
+      ctx.font = "16px monospace";
+      ctx.fillText("PAYMENT RECEIPT", width/2, y);
+      y += 15;
 
-      // 3. Header
-      ctx.font = "bold 26px monospace";
-      ctx.fillText("MEENA GROUPS", width/2, 40);
-      
-      ctx.font = "18px monospace";
-      ctx.fillText("PAYMENT RECEIPT", width/2, 70);
-      
-      // Separator Line
-      ctx.beginPath();
-      ctx.moveTo(10, 85);
-      ctx.lineTo(width-10, 85);
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // 4. Details (Left Aligned with wrapping)
-      ctx.textAlign = "left";
-      ctx.font = "bold 18px monospace";
-      let y = 120;
-      const gap = 30;
-      const leftMargin = 15;
-      const rightMargin = width - 15;
-
-      // Helper for Date/ID
-      function drawSimpleRow(label, value) {
-        ctx.fillText(label, leftMargin, y);
-        ctx.textAlign = "right";
-        ctx.fillText(value, rightMargin, y);
-        ctx.textAlign = "left";
-        y += gap;
-      }
-
-      drawSimpleRow("DATE:", data.date);
-      drawSimpleRow("ID:", data.customerId);
-      drawSimpleRow("DUE#:", `#${data.dueNumber}`);
-
-      // Name with Wrap Logic
-      y += 10; // Extra space before name
-      ctx.fillText("NAME:", leftMargin, y);
-      y += 25;
-      
-      const name = data.customerName.toUpperCase();
-      const maxWidth = width - 30;
-      
-      // Simple word wrap
-      const words = name.split(' ');
-      let line = '';
-      
-      for(let n = 0; n < words.length; n++) {
-        let testLine = line + words[n] + ' ';
-        let metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-          ctx.fillText(line, leftMargin, y);
-          line = words[n] + ' ';
-          y += 25;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line, leftMargin, y);
-      y += gap + 10;
-      
-      // Separator
+      // Dashed Line
+      ctx.setLineDash([10, 5]); 
       ctx.beginPath();
       ctx.moveTo(10, y);
       ctx.lineTo(width-10, y);
-      ctx.stroke();
-      y += 40;
-
-      // 5. Amount (Big & Bold)
-      ctx.textAlign = "center";
-      ctx.font = "bold 20px monospace";
-      ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 40;
-      
-      ctx.font = "bold 42px monospace"; 
-      ctx.fillText(`Rs.${data.amount}`, width/2, y);
-      y += 50;
-      
-      ctx.font = "bold 20px monospace";
-      ctx.fillText(`BAL: Rs.${balance}`, width/2, y);
-      y += 60;
-
-      // 6. Footer
-      ctx.font = "italic 16px monospace";
-      ctx.fillText("Goorac Digital Verified", width/2, y);
-      y += 25;
-      ctx.font = "14px monospace";
-      ctx.fillText("meena.goorac.biz", width/2, y);
-    }
-
-    // --- 6. SQUARE RECEIPT LOGIC (PURE B&W FOR THERMAL/DOWNLOAD) ---
-    function drawSquareReceipt(data, balance) {
-      const canvas = document.getElementById('squareCanvas');
-      const size = 1080; // High Res Square
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      // 1. Background (Pure White)
-      ctx.fillStyle = "#ffffff"; 
-      ctx.fillRect(0, 0, size, size);
-
-      // Border (Thick Black)
       ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 30;
-      ctx.strokeRect(0, 0, size, size);
-
-      // 2. Header (Black Text)
-      ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
-      ctx.font = "bold 80px monospace";
-      ctx.fillText("MEENA GROUPS", size/2, 140);
-      
-      // Separator Line
-      ctx.beginPath();
-      ctx.moveTo(50, 200);
-      ctx.lineTo(size-50, 200);
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 2;
       ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+      y += 30;
 
-      ctx.font = "bold 50px monospace";
-      ctx.fillText("PAYMENT CONFIRMED", size/2, 280);
-
-      // 3. Central Details (Left Aligned)
+      // --- DETAILS (Left/Right Aligned) ---
       ctx.textAlign = "left";
-      ctx.font = "bold 45px monospace";
+      ctx.font = "bold 20px monospace"; // Bold Monospace for legibility
       
-      let x = 80;
-      let y = 380;
-      let valX = 450;
-      let lineHeight = 90;
+      const leftX = 15;
+      const rightX = width - 15;
+      const lineHeight = 30;
 
       function drawRow(label, value) {
-        ctx.fillText(label, x, y);
-        ctx.fillText(value, valX, y);
+        ctx.textAlign = "left";
+        ctx.fillText(label, leftX, y);
+        ctx.textAlign = "right";
+        ctx.fillText(value, rightX, y);
         y += lineHeight;
       }
 
       drawRow("DATE:", data.date);
-      drawRow("CUST ID:", data.customerId);
-      drawRow("DUE NO:", `#${data.dueNumber}`);
+      drawRow("ID:", data.customerId);
+      drawRow("DUE NO:", "#" + data.dueNumber);
+
+      // Name Wrapper
+      ctx.textAlign = "left";
+      ctx.fillText("NAME:", leftX, y);
+      y += 25;
       
-      // Name (Auto Wrap if needed, but simple here)
-      ctx.fillText("NAME:", x, y);
+      // Name (Break into 2 lines if needed)
       const name = data.customerName.toUpperCase();
-      // If name is too long, truncate for image safety
-      ctx.fillText(name.length > 15 ? name.substring(0,15)+"..." : name, valX, y);
-      y += 120; // Big Gap
+      ctx.font = "bold 24px monospace"; // Larger for name
+      
+      if(name.length > 20) {
+        const mid = Math.floor(name.length/2);
+        const splitSpace = name.lastIndexOf(' ', mid);
+        const splitIdx = splitSpace > 0 ? splitSpace : mid;
+        
+        ctx.fillText(name.substring(0, splitIdx), leftX, y);
+        y += 28;
+        ctx.fillText(name.substring(splitIdx).trim(), leftX, y);
+      } else {
+        ctx.fillText(name, leftX, y);
+      }
+      y += 35;
 
-      // 4. Amount Box (Black Border, White Fill, Black Text)
-      const boxY = y - 60;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(50, boxY, size - 100, 250);
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 10;
-      ctx.strokeRect(50, boxY, size - 100, 250);
+      // Separator
+      ctx.beginPath();
+      ctx.moveTo(10, y);
+      ctx.lineTo(width-10, y);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      y += 40;
 
-      ctx.fillStyle = "#000000"; // Black Text
+      // --- AMOUNT (HUGE & CENTERED) ---
       ctx.textAlign = "center";
-      
-      y += 20;
-      ctx.font = "bold 50px monospace";
-      ctx.fillText("RECEIVED AMOUNT", size/2, y);
-      
-      y += 100;
-      ctx.font = "bold 110px monospace";
-      ctx.fillText(`Rs. ${data.amount}`, size/2, y);
-      
-      // 5. Balance
-      y += 180;
-      ctx.font = "bold 50px monospace";
-      ctx.fillText(`BALANCE PENDING: Rs. ${balance}`, size/2, y);
+      ctx.font = "bold 24px Arial"; 
+      ctx.fillText("RECEIVED AMOUNT", width/2, y);
+      y += 45;
 
-      // 6. Footer
-      y = size - 50;
-      ctx.font = "italic 30px monospace";
-      ctx.fillText("Generated via Agent App", size/2, y);
+      ctx.font = "bold 50px Arial"; // MAX SIZE
+      ctx.fillText("Rs." + data.amount, width/2, y);
+      y += 45;
+
+      // --- BALANCE ---
+      ctx.font = "bold 22px monospace";
+      ctx.fillText(`BALANCE: Rs.${balance}`, width/2, y);
+      y += 60;
+
+      // --- FOOTER ---
+      ctx.font = "italic 16px monospace";
+      ctx.fillText("** Goorac Digital Verified **", width/2, y);
+      y += 20;
+      ctx.font = "14px monospace";
+      ctx.fillText("Thank you", width/2, y);
     }
 
-    // --- 7. PRINT & DOWNLOAD ACTIONS ---
-    window.downloadLastReceipt = () => {
-      // 1. Generate the Square Image specifically for download
-      drawSquareReceipt(lastReceiptData, lastBalance);
-      
+    // --- 6. SQUARE RECEIPT (DOWNLOAD) ---
+    // Pure White BG, Bold Black Text, Sharp Lines
+    function drawSquareReceipt(data, balance) {
       const canvas = document.getElementById('squareCanvas');
-      const link = document.createElement('a');
-      link.download = `IMG_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    };
+      const size = 1200; // High Res
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
 
-    window.printLastReceipt = () => {
-      const canvas = document.getElementById('receiptCanvas');
-      const dataUrl = canvas.toDataURL('image/png');
+      // 1. White Background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+
+      // 2. Thick Black Border
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 30;
+      ctx.strokeRect(0, 0, size, size);
+
+      // 3. Header
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      ctx.font = "bold 90px Arial";
+      ctx.fillText("MEENA GROUPS", size/2, 150);
+
+      ctx.fillStyle = "#000000"; // Pure Black
+      ctx.font = "bold 50px Arial";
+      ctx.fillText("PAYMENT CONFIRMATION", size/2, 230);
+
+      // Black Separator
+      ctx.beginPath();
+      ctx.moveTo(100, 270);
+      ctx.lineTo(size-100, 270);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#000000";
+      ctx.stroke();
+
+      // 4. Details
+      let x = 120;
+      let y = 400;
+      let valX = 450;
+      let gap = 100;
+
+      ctx.textAlign = "left";
+      ctx.font = "bold 50px Arial"; // Keys
       
-      // --- MOBILE BLUETOOTH PRINT FIX ---
-      // Instead of window.open (which is blocked or formats badly), we use an invisible iframe.
-      // This triggers the system print service, where apps like "RawBT" or "PrinterShare"
-      // will pick up the image to print.
-      
-      let printFrame = document.getElementById('printFrame');
-      if (!printFrame) {
-        printFrame = document.createElement('iframe');
-        printFrame.id = 'printFrame';
-        printFrame.style.position = 'fixed';
-        printFrame.style.right = '0';
-        printFrame.style.bottom = '0';
-        printFrame.style.width = '0';
-        printFrame.style.height = '0';
-        printFrame.style.border = '0';
-        document.body.appendChild(printFrame);
+      // Helper
+      function drawDetail(key, val) {
+        ctx.fillStyle = "#000000"; // Black
+        ctx.fillText(key, x, y);
+        ctx.fillText(val, valX, y);
+        y += gap;
       }
 
-      const doc = printFrame.contentWindow.document;
-      doc.open();
-      doc.write(`
+      drawDetail("DATE:", data.date);
+      drawDetail("CUST ID:", data.customerId);
+      drawDetail("DUE NO:", "#" + data.dueNumber);
+      
+      // Name might need space
+      ctx.fillText("NAME:", x, y);
+      ctx.fillText(data.customerName.toUpperCase(), valX, y);
+      y += 140; // Extra gap before amount
+
+      // 5. Amount Box (Black Border, White Fill)
+      ctx.strokeRect(100, y - 80, size - 200, 250);
+      
+      ctx.textAlign = "center";
+      ctx.font = "bold 50px Arial";
+      ctx.fillText("AMOUNT RECEIVED", size/2, y);
+      
+      y += 100;
+      ctx.font = "bold 110px Arial"; // Huge Amount
+      ctx.fillText(`₹ ${data.amount}`, size/2, y);
+      
+      y += 180;
+
+      // 6. Balance
+      ctx.font = "bold 50px Arial";
+      ctx.fillText(`BALANCE PENDING: ₹ ${balance}`, size/2, y);
+      
+      // Footer
+      y = size - 60;
+      ctx.font = "italic 30px Arial";
+      ctx.fillText("Generated by Goorac Agent App", size/2, y);
+    }
+
+    // --- 7. PRINT ACTION (MOBILE OPTIMIZED) ---
+    // Improved for Bluetooth Thermal Printers on Android/iOS
+    window.printLastReceipt = () => {
+      // 1. Ensure Canvas is drawn with latest data
+      if(!lastReceiptData) return alert("No receipt to print");
+      drawReceiptToCanvas(lastReceiptData, lastBalance);
+
+      const canvas = document.getElementById('receiptCanvas');
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // 2. Open a simplified window solely for the image
+      // This method works best for mobile browsers sharing to print apps
+      const win = window.open('', '_blank');
+      if(!win) {
+        alert("Pop-up blocked! Allow pop-ups to print.");
+        return;
+      }
+
+      win.document.write(`
+        <!DOCTYPE html>
         <html>
           <head>
+            <title>Print Receipt</title>
             <style>
-              @page { margin: 0; size: auto; }
-              body { margin: 0; padding: 0; display: flex; justify-content: center; }
+              body { margin: 0; padding: 0; background: #fff; display: flex; justify-content: center; }
               img { width: 100%; max-width: 384px; height: auto; display: block; }
             </style>
           </head>
           <body>
-            <img src="${dataUrl}">
+            <img src="${dataUrl}" id="printImg" />
             <script>
               // Wait for image to load then trigger print
-              window.onload = function() { 
-                setTimeout(function() { 
-                  window.focus(); 
-                  window.print(); 
-                }, 500); 
-              }
+              document.getElementById('printImg').onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  // Optional: Close after print (commented out as some mobile browsers close too fast)
+                  // window.close(); 
+                }, 500);
+              };
             <\/script>
           </body>
         </html>
       `);
-      doc.close();
+      win.document.close();
+    };
+
+    // --- 8. DOWNLOAD ACTION (SQUARE HIGH RES) ---
+    window.downloadLastReceipt = () => {
+      if(!lastReceiptData) return;
+      drawSquareReceipt(lastReceiptData, lastBalance);
+      
+      const canvas = document.getElementById('squareCanvas');
+      
+      // Create a temporary link to force download
+      const link = document.createElement('a');
+      link.download = `REC_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     };
 
     // Set Today's Date
