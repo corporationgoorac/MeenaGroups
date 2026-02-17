@@ -875,110 +875,95 @@
       ctx.fillText("meena.goorac.biz", width/2, y);
     }
 
-    // --- 6. SQUARE RECEIPT LOGIC (For Image Download) ---
+    // --- 6. SQUARE RECEIPT LOGIC (High Contrast Professional) ---
     function drawSquareReceipt(data, balance) {
       const canvas = document.getElementById('squareCanvas');
-      const size = 1080; // High Res Square
+      const size = 1080; 
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
 
-      // 1. Background
-      ctx.fillStyle = "#f8fafc"; // Very light grey/white
+      // 1. Background: Pure White
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, size, size);
 
-      // Border
-      ctx.strokeStyle = "#0f172a";
-      ctx.lineWidth = 20;
+      // Heavy Dark Border
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 30;
       ctx.strokeRect(0, 0, size, size);
 
-      // 2. Header Box
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(0, 0, size, 250);
+      // 2. Header
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      ctx.font = "bold 85px sans-serif";
+      ctx.fillText("MEENA GROUPS", size/2, 160);
+      
+      ctx.font = "bold 45px sans-serif";
+      ctx.fillText("PAYMENT RECEIPT", size/2, 230);
+
+      // Separator Line
+      ctx.beginPath();
+      ctx.moveTo(100, 270);
+      ctx.lineTo(size - 100, 270);
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // 3. Information Grid
+      ctx.textAlign = "left";
+      ctx.font = "bold 45px sans-serif";
+      
+      let x = 120;
+      let y = 380;
+      let valX = 450;
+      let gap = 90;
+
+      const drawRow = (label, val, color = "#000000") => {
+        ctx.fillStyle = "#555555";
+        ctx.fillText(label, x, y);
+        ctx.fillStyle = color;
+        ctx.fillText(val, valX, y);
+        y += gap;
+      };
+
+      drawRow("DATE:", data.date);
+      drawRow("CUST ID:", data.customerId);
+      drawRow("NAME:", data.customerName.toUpperCase());
+      drawRow("DUE NO:", `#${data.dueNumber}`);
+
+      y += 40;
+      
+      // 4. Amount Section
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(100, y, size - 200, 220);
 
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "center";
-      ctx.font = "bold 80px sans-serif";
-      ctx.fillText("MEENA GROUPS", size/2, 120);
-      
-      ctx.font = "40px sans-serif";
-      ctx.fillText("PAYMENT CONFIRMATION", size/2, 190);
-
-      // 3. Central Details
-      ctx.fillStyle = "#334155";
-      ctx.textAlign = "left";
       ctx.font = "bold 40px sans-serif";
+      ctx.fillText("PAID AMOUNT", size/2, y + 60);
       
-      let x = 100;
-      let y = 350;
-      let valX = 400;
-      let lineHeight = 80;
+      ctx.font = "bold 110px sans-serif";
+      ctx.fillText(`₹ ${data.amount}`, size/2, y + 170);
 
-      // Date
-      ctx.fillText("DATE:", x, y);
-      ctx.fillStyle = "#000";
-      ctx.fillText(data.date, valX, y);
-      y += lineHeight;
-
-      // ID
-      ctx.fillStyle = "#334155";
-      ctx.fillText("CUST ID:", x, y);
-      ctx.fillStyle = "#000";
-      ctx.fillText(data.customerId, valX, y);
-      y += lineHeight;
-
-      // Name (Can be long)
-      ctx.fillStyle = "#334155";
-      ctx.fillText("NAME:", x, y);
-      ctx.fillStyle = "#000";
-      // We assume digital doesn't need wrap as much, but let's be safe
-      ctx.fillText(data.customerName.toUpperCase(), valX, y); 
-      y += lineHeight;
-
-      // Due No
-      ctx.fillStyle = "#334155";
-      ctx.fillText("DUE NO:", x, y);
-      ctx.fillStyle = "#000";
-      ctx.fillText(`#${data.dueNumber}`, valX, y);
-      y += 120; // Big Gap
-
-      // 4. Amount Box
-      ctx.fillStyle = "#dcfce7"; // Light green bg
-      ctx.fillRect(100, y - 60, size - 200, 200);
-      ctx.strokeStyle = "#166534";
-      ctx.lineWidth = 4;
-      ctx.strokeRect(100, y - 60, size - 200, 200);
-
-      ctx.fillStyle = "#166534"; // Dark Green Text
-      ctx.textAlign = "center";
-      ctx.font = "bold 40px sans-serif";
-      ctx.fillText("AMOUNT RECEIVED", size/2, y);
-      
-      y += 80;
-      ctx.font = "bold 90px sans-serif";
-      ctx.fillText(`₹ ${data.amount}`, size/2, y);
-      y += 150;
-
-      // 5. Balance
-      ctx.fillStyle = "#ef4444";
-      ctx.font = "bold 45px sans-serif";
-      ctx.fillText(`BALANCE PENDING: ₹ ${balance}`, size/2, y);
+      // 5. Balance Section
+      y += 320;
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 55px sans-serif";
+      ctx.fillText(`BALANCE DUE: ₹ ${balance}`, size/2, y);
 
       // 6. Footer
-      y = size - 80;
-      ctx.fillStyle = "#64748b";
-      ctx.font = "italic 30px sans-serif";
-      ctx.fillText("Generated Digitally via Goorac Agent App", size/2, y);
+      y = size - 100;
+      ctx.fillStyle = "#888888";
+      ctx.font = "bold 35px sans-serif";
+      ctx.fillText("Verified by Goorac Digital Ecosystem", size/2, y);
+      ctx.fillText("meena.goorac.biz", size/2, y + 50);
     }
 
-    // --- 7. PRINT & DOWNLOAD ACTIONS ---
+    // --- 7. PRINT & DOWNLOAD ACTIONS (Mobile Optimized) ---
     window.downloadLastReceipt = () => {
-      // 1. Generate the Square Image specifically for download
       drawSquareReceipt(lastReceiptData, lastBalance);
-      
       const canvas = document.getElementById('squareCanvas');
       const link = document.createElement('a');
-      link.download = `IMG_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+      link.download = `RECEIPT_${lastReceiptData.customerId}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
@@ -987,23 +972,26 @@
       const canvas = document.getElementById('receiptCanvas');
       const dataUrl = canvas.toDataURL('image/png');
       
-      // Open Image in New Window for System Print Dialog
-      const win = window.open('');
-      win.document.write(`
-        <html>
-          <head>
-            <title>Print Receipt</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              body { margin: 0; padding: 0; display: flex; justify-content: center; background: #eee; }
-              img { width: 100%; max-width: 384px; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${dataUrl}" onload="setTimeout(function(){window.print();}, 500);">
-          </body>
-        </html>
-      `);
+      // Create a Blob from the dataURL for better mobile compatibility
+      fetch(dataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const printWindow = window.open(blobUrl, '_blank');
+          
+          // Mobile Safari/Chrome Fix: Trigger print after short delay
+          if (printWindow) {
+            printWindow.addEventListener('load', () => {
+              setTimeout(() => {
+                printWindow.print();
+                // Clean up memory
+                URL.revokeObjectURL(blobUrl);
+              }, 500);
+            }, true);
+          } else {
+            alert("Please allow pop-ups to open the print window.");
+          }
+        });
     };
 
     // Set Today's Date
