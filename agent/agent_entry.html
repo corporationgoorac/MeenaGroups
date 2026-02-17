@@ -382,11 +382,11 @@
     .btn-save:active { transform: scale(0.98); }
     .btn-save:disabled { background: var(--text-muted); opacity: 0.5; box-shadow: none; }
 
-    /* Action Buttons Row - UPDATED: 2 Columns Only */
+    /* Action Buttons Row */
     .action-row { 
       display: grid;
-      grid-template-columns: 1fr 1fr; /* 2 Columns: Copy & Download */
-      gap: 12px; 
+      grid-template-columns: 1fr 1fr; /* Modified to 2 Columns since Print is gone */
+      gap: 15px; 
       margin-top: 20px; 
       padding-top: 20px;
       border-top: 1px dashed var(--border);
@@ -394,36 +394,35 @@
     }
     
     .btn-action { 
-      padding: 14px 10px; 
+      padding: 15px; 
       border-radius: 12px; 
       border: none; 
       font-weight: 700; 
       cursor: pointer;
       display: flex; 
-      flex-direction: row; /* Horizontal layout for buttons */
+      flex-direction: column;
       align-items: center; 
       justify-content: center; 
-      gap: 8px; 
-      font-size: 0.95rem;
+      gap: 5px; 
+      font-size: 0.9rem;
       transition: 0.2s;
       text-align: center;
     }
     
-    /* Download Button Style */
     .btn-download { 
       background: var(--surface); 
       border: 1px solid var(--border); 
       color: var(--text); 
+      background: linear-gradient(145deg, #1e293b, #0f172a);
     }
-    .btn-download:hover { border-color: var(--text-muted); }
 
-    /* Copy Button Style */
     .btn-copy {
       background: var(--warn);
       color: #000;
       box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
     }
-    .btn-copy:active { transform: scale(0.98); }
+    
+    .btn-download:active, .btn-copy:active { transform: translateY(2px); }
 
     /* * ==========================================
      * 7. UTILITIES & ANIMATIONS
@@ -533,13 +532,13 @@
 
         <div id="postSaveActions" class="action-row hidden">
           <button class="btn-action btn-copy" onclick="copyReceiptText()">
-             <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-             <span>COPY TXT</span>
+             <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+             <span>Copy Text</span>
           </button>
           
           <button class="btn-action btn-download" onclick="downloadLastReceipt()">
-            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            <span>DOWNLOAD IMG</span>
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span>Download Img</span>
           </button>
         </div>
 
@@ -723,19 +722,14 @@
 
         showToast("Entry Saved Successfully!");
         
-        // --- VOICE LOGIC ADDED HERE ---
-        if ('speechSynthesis' in window) {
-          const speech = new SpeechSynthesisUtterance(`Payment Received. Rupees ${amount}`);
-          speech.rate = 1;
-          speech.pitch = 1;
-          window.speechSynthesis.speak(speech);
-        }
-
         // Prepare Receipt Data
         lastBalance = p.total - (existingPaid + amount);
         lastTotalPaid = existingPaid + amount;
         lastReceiptData = entryData;
         
+        // --- VOICE: READ ALOUD AMOUNT ---
+        speakAmount(amount);
+
         document.getElementById("amount").value = "";
         btn.innerHTML = "✅ SAVED";
         
@@ -763,48 +757,69 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. RECEIPT IMAGE GENERATOR (OPTIMIZED FOR 58mm THERMAL) ---
-    // Specifically designed for 58mm pocket printers
-    // Width: 384px (Standard 203 DPI for 58mm)
-    // High contrast black on white
+    // --- 5. TEXT-TO-SPEECH (TTS) FUNCTION ---
+    function speakAmount(amount) {
+      if ('speechSynthesis' in window) {
+        // Cancel any current speech
+        window.speechSynthesis.cancel();
+        
+        const text = `Received amount, ${amount} rupees.`;
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Optional: Set voice properties (rate, pitch)
+        utterance.rate = 1; 
+        utterance.pitch = 1;
+        
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.log("Browser does not support TTS");
+      }
+    }
+
+    // --- 6. OPTIMIZED IMAGE GENERATION (FOR THERMAL PRINT) ---
     function drawDownloadImage(data, balance, totalPaid) {
       const canvas = document.getElementById('downloadCanvas');
+      // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      const height = 650; // Long strip
+      // Calculate dynamic height based on content or use fixed long strip
+      const height = 650; 
       
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // White BG (Thermal Paper)
+      // 1. Background (White)
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
 
-      // Black Text
+      // 2. Text Settings (Black, High Contrast)
       ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
       
-      let y = 40;
+      let y = 40; // Start Y position
 
-      // --- Header ---
+      // --- HEADER ---
+      ctx.textAlign = "center";
       ctx.font = "bold 28px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 30;
+      y += 35;
       
-      ctx.font = "18px Arial"; 
+      ctx.font = "16px Arial"; 
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 20;
+      y += 25;
 
-      // Dashed Line
+      // Divider
       drawDashedLine(ctx, 10, y, width-10, y);
-      y += 30;
+      y += 35;
 
-      // --- Details (Left Aligned) ---
+      // --- DETAILS ---
+      // Left aligned labels, slightly indented
       ctx.textAlign = "left";
-      ctx.font = "bold 18px Courier New"; // Monospace good for thermal
-      const xLeft = 20;
-      const xRight = 200;
-      const gap = 30;
+      // Monospace font ensures numbers align if we were using text, 
+      // but here we use coordinates for precision
+      ctx.font = "bold 18px Courier New"; 
+      
+      const xLeft = 15;
+      const gap = 35; // Line height
 
       ctx.fillText(`Date  : ${data.date}`, xLeft, y);
       y += gap;
@@ -813,120 +828,136 @@
       ctx.fillText(`Due # : ${data.dueNumber}`, xLeft, y);
       y += gap;
       
-      // Name wrap logic simplified
-      let nameStr = data.customerName.length > 20 ? data.customerName.substring(0,20)+".." : data.customerName;
+      // Handle long names
+      let nameStr = data.customerName;
+      if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
       ctx.fillText(`Name  : ${nameStr}`, xLeft, y);
       y += gap + 10;
 
-      // Dashed Line
+      // Divider
       drawDashedLine(ctx, 10, y, width-10, y);
-      y += 40;
+      y += 45;
 
-      // --- Amount (Centered, Large) ---
+      // --- AMOUNT (CENTERED HUGE) ---
       ctx.textAlign = "center";
-      ctx.font = "bold 20px Arial";
+      ctx.font = "bold 22px Arial";
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 40;
+      y += 50;
       
-      ctx.font = "bold 50px Arial";
-      ctx.fillText(`₹ ${data.amount}`, width/2, y);
-      y += 40;
-
-      // Dashed Line
-      drawDashedLine(ctx, 10, y, width-10, y);
-      y += 30;
-
-      // --- Summary ---
-      ctx.textAlign = "left";
-      ctx.font = "18px Courier New";
-      
-      ctx.fillText("Total Paid:", xLeft, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${totalPaid}`, width - 20, y);
-      y += gap;
-
-      ctx.textAlign = "left";
-      ctx.font = "bold 20px Courier New";
-      ctx.fillText("Balance:", xLeft, y);
-      ctx.textAlign = "right";
-      ctx.fillText(`₹ ${balance}`, width - 20, y);
+      ctx.font = "bold 55px Arial";
+      ctx.fillText(`₹${data.amount}`, width/2, y);
       y += 50;
 
-      // --- Footer ---
+      // Divider
+      drawDashedLine(ctx, 10, y, width-10, y);
+      y += 35;
+
+      // --- SUMMARY ---
+      ctx.font = "18px Courier New";
+      
+      // Line 1: Total Paid
+      ctx.textAlign = "left";
+      ctx.fillText("Total Paid:", xLeft, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹${totalPaid}`, width - 15, y);
+      y += gap;
+
+      // Line 2: Balance (Bold)
+      ctx.font = "bold 22px Courier New";
+      ctx.textAlign = "left";
+      ctx.fillText("Balance:", xLeft, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹${balance}`, width - 15, y);
+      y += 60;
+
+      // --- FOOTER ---
       ctx.textAlign = "center";
-      ctx.font = "italic 14px Arial";
+      ctx.font = "italic 16px Arial";
       ctx.fillText("Thank you!", width/2, y);
-      y += 20;
+      y += 25;
+      ctx.font = "14px Arial";
       ctx.fillText("meena.goorac.biz", width/2, y);
     }
 
     // Helper for thermal style dashed lines
     function drawDashedLine(ctx, x1, y1, x2, y2) {
       ctx.beginPath();
-      ctx.setLineDash([5, 5]);
+      ctx.setLineDash([5, 5]); // 5px dash, 5px gap
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.lineWidth = 2;
+      ctx.strokeStyle = "#000000";
       ctx.stroke();
       ctx.setLineDash([]); // Reset
     }
 
-
-    // --- 6. NEW FEATURE: ALIGNED COPY TEXT (For BT Thermal Apps) ---
-    // This logic pads text with spaces so it aligns left/right on monospaced printers
+    // --- 7. NEW COPY TEXT (ALIGNED WITH SPACE BARS) ---
     window.copyReceiptText = () => {
       if(!lastReceiptData) return alert("No receipt data");
-
-      // Helper to align text: "Label ........... Value"
-      // Assumes roughly 32 character width for standard BT printer text mode
-      const width = 32; 
       
-      const pad = (label, val) => {
-        let l = String(label);
-        let v = String(val);
-        let spaces = width - l.length - v.length;
-        if(spaces < 1) spaces = 1;
-        return l + " ".repeat(spaces) + v;
+      // Constants for line width (typical thermal printer line is 32 or 42 chars)
+      // We will assume 32 characters width for safe mobile Bluetooth printing
+      const LINE_WIDTH = 32;
+
+      // Helper to align text: "Label" + spaces + "Value"
+      const formatLine = (label, value) => {
+        let strVal = String(value);
+        let strLab = String(label);
+        let spacesNeeded = LINE_WIDTH - (strLab.length + strVal.length);
+        if (spacesNeeded < 1) spacesNeeded = 1; // Ensure at least 1 space
+        return strLab + " ".repeat(spacesNeeded) + strVal;
       };
 
-      const line = "-".repeat(width);
+      const centerText = (text) => {
+        let spaces = Math.floor((LINE_WIDTH - text.length) / 2);
+        if(spaces < 0) spaces = 0;
+        return " ".repeat(spaces) + text;
+      };
 
-      const txt = `
-MEENA GROUPS
-Payment Receipt
-${line}
-${pad("Date:", lastReceiptData.date)}
-${pad("ID:", lastReceiptData.customerId)}
-${pad("Due No:", "#"+lastReceiptData.dueNumber)}
+      const separator = "-".repeat(LINE_WIDTH);
+
+      // Construct aligned text
+      const txt = 
+`${centerText("MEENA GROUPS")}
+${centerText("Payment Receipt")}
+${separator}
+${formatLine("Date:", lastReceiptData.date)}
+${formatLine("ID:", lastReceiptData.customerId)}
+${formatLine("Due No:", "#" + lastReceiptData.dueNumber)}
 Name: ${lastReceiptData.customerName}
-${line}
-   AMOUNT RECEIVED
-   Rs. ${lastReceiptData.amount}
-${line}
-${pad("Total Paid:", "Rs."+lastTotalPaid)}
-${pad("Balance:", "Rs."+lastBalance)}
-${line}
-   Thank you!
-   meena.goorac.biz
-`;
+${separator}
+${centerText("RECEIVED AMOUNT")}
+${centerText("Rs. " + lastReceiptData.amount)}
+${separator}
+${formatLine("Total Paid:", "Rs." + lastTotalPaid)}
+${formatLine("Balance:", "Rs." + lastBalance)}
+${separator}
+${centerText("Thank You!")}
+${centerText("meena.goorac.biz")}
+
+.
+.`; // Extra dots at bottom for paper feed
       
-      navigator.clipboard.writeText(txt.trim()).then(() => {
+      navigator.clipboard.writeText(txt).then(() => {
         showToast("Receipt Copied to Clipboard!");
       }).catch(err => {
         alert("Failed to copy text");
       });
     };
 
-
-    // --- 7. DOWNLOAD ACTION (Executes Image Gen) ---
+    // --- 8. DOWNLOAD ACTION ---
     window.downloadLastReceipt = () => {
       if(!lastReceiptData) return;
       
       drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('downloadCanvas');
       
+      // Create filename
+      const filename = `REC_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+
+      // Trigger download
       const link = document.createElement('a');
-      link.download = `PAY_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+      link.download = filename;
       link.href = canvas.toDataURL("image/png");
       document.body.appendChild(link);
       link.click();
