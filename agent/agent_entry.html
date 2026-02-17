@@ -54,7 +54,6 @@
       font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
       margin: 0; 
       padding: 0; 
-      /* Changed from 90px to 20px since Nav is removed */
       padding-bottom: 20px; 
       height: 100vh;
       overflow-y: auto;
@@ -123,7 +122,7 @@
     
     .search-input {
       width: 100%; 
-      padding: 14px 50px 14px 15px; /* Right padding for button */
+      padding: 14px 50px 14px 15px; 
       background: var(--card); 
       border: 1px solid var(--border);
       color: white; 
@@ -180,7 +179,7 @@
       left: 20px; 
       z-index: 100;
       box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-      display: none; /* Hidden by default */
+      display: none; 
     }
     
     .suggestion-item { 
@@ -424,7 +423,7 @@
      */
     .toast {
       position: fixed; 
-      bottom: 50px; /* Adjusted since Nav is gone */
+      bottom: 50px; 
       left: 50%; 
       transform: translateX(-50%) translateY(20px);
       background: #10b981; 
@@ -531,7 +530,7 @@
           </button>
           <button class="btn-action btn-download" onclick="downloadLastReceipt()">
             <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            Save IMG
+            Download IMG
           </button>
         </div>
 
@@ -542,7 +541,7 @@
   <div id="toast" class="toast">Entry Saved Successfully!</div>
 
   <canvas id="receiptCanvas" style="display:none;"></canvas>
-  <canvas id="squareCanvas" style="display:none;"></canvas>
+  <canvas id="downloadCanvas" style="display:none;"></canvas>
 
   <script type="module">
     import { db } from "./config.js";
@@ -560,12 +559,12 @@
     // Receipt Data
     let lastReceiptData = null;
     let lastBalance = 0;
+    let lastTotalPaid = 0;
 
-    // --- 1. SMART SEARCH LOGIC (Manual Trigger) ---
+    // --- 1. SMART SEARCH LOGIC ---
     const searchBox = document.getElementById("searchBox");
     const suggestionBox = document.getElementById("suggestions");
 
-    // Allow Enter key to trigger search
     searchBox.addEventListener("keypress", (e) => {
       if (e.key === "Enter") executeSearch();
     });
@@ -584,11 +583,9 @@
       let snapshot;
 
       try {
-        // Strategy 1: Search by ID (Exact or Range)
         const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
         snapshot = await getDocs(qId);
 
-        // Strategy 2: If no ID found, Search by Name
         if (snapshot.empty) {
           const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
           snapshot = await getDocs(qName);
@@ -628,9 +625,8 @@
       searchBox.value = "";
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
-      document.getElementById("postSaveActions").classList.add("hidden"); // Ensure actions hidden on new load
+      document.getElementById("postSaveActions").classList.add("hidden"); 
 
-      // Populate Products
       const dropdown = document.getElementById("productDropdown");
       dropdown.innerHTML = "";
       
@@ -645,15 +641,13 @@
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
-    // --- 3. CALCULATE STATS (With Pending Logic) ---
+    // --- 3. CALCULATE STATS ---
     async function updateProductDetails(index) {
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
       
-      // 1. Paid in Database
       const dbPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
       
-      // 2. Check for Pending Entries in Agent Log to avoid duplicate dues
       pendingLogsPaid = 0;
       let pendingLogsCount = 0;
 
@@ -673,18 +667,15 @@
         console.warn("Log check failed:", e);
       }
 
-      // 3. Final Calculations
       existingPaid = dbPaid + pendingLogsPaid;
       const balance = p.total - existingPaid;
       
-      // Due Logic: Max DB Due + Count of Pending Entries
       const dbMaxDue = (p.payments || []).length > 0 
         ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
         : 0;
       
       calculatedNextDue = dbMaxDue + pendingLogsCount + 1; 
 
-      // Update UI Stats
       document.getElementById("dispTotal").innerText = `₹${p.total}`;
       document.getElementById("dispPaid").innerText = `₹${existingPaid}`;
       document.getElementById("dispBal").innerText = `₹${balance}`;
@@ -700,7 +691,6 @@
       if (!date) return alert("❌ Select date");
 
       const btn = document.getElementById("btnSave");
-      const originalText = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = "Processing...";
 
@@ -727,16 +717,14 @@
         
         // Prepare Receipt Data
         lastBalance = p.total - (existingPaid + amount);
+        lastTotalPaid = existingPaid + amount;
         lastReceiptData = entryData;
         
-        // Update UI
         document.getElementById("amount").value = "";
         btn.innerHTML = "✅ SAVED";
         
-        // Show Print/Download Buttons ONLY NOW
         document.getElementById("postSaveActions").classList.remove("hidden");
 
-        // Refresh stats (increment due number locally)
         await updateProductDetails(selectedProductIndex);
 
       } catch (e) {
@@ -759,262 +747,229 @@
       setTimeout(() => toast.classList.remove("show"), 3000);
     }
 
-    // --- 5. THERMAL RECEIPT LOGIC (HIGH CONTRAST B&W) ---
-    // STRICTLY BLACK ON WHITE FOR THERMAL PRINTERS
-    function drawReceiptToCanvas(data, balance) {
+    // --- 5. THERMAL RECEIPT (FIT TO SCREEN, SHORT) ---
+    function drawThermalReceipt(data, balance, totalPaid) {
       const canvas = document.getElementById('receiptCanvas');
-      
-      // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      const height = 650; // Fixed height, plenty for details
-      
+      // Dynamic height calculation
+      const baseHeight = 450;
+      const canvasCtx = canvas.getContext('2d');
+      // Set tentative height
       canvas.width = width;
-      canvas.height = height;
+      canvas.height = baseHeight;
+
       const ctx = canvas.getContext('2d');
-
-      // 1. Background: Pure White
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-
-      // 2. Text Settings: Pure Black
+      ctx.fillRect(0, 0, width, baseHeight);
       ctx.fillStyle = "#000000";
+      
+      let y = 30;
+
+      // Header
       ctx.textAlign = "center";
-      
-      // --- HEADER ---
-      let y = 40;
-      ctx.font = "bold 28px Arial"; 
+      ctx.font = "bold 26px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
-      y += 30;
-      
-      ctx.font = "16px monospace";
-      ctx.fillText("PAYMENT RECEIPT", width/2, y);
-      y += 15;
-
-      // Dashed Line
-      ctx.setLineDash([10, 5]); 
-      ctx.beginPath();
-      ctx.moveTo(10, y);
-      ctx.lineTo(width-10, y);
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
-      y += 30;
-
-      // --- DETAILS (Left/Right Aligned) ---
-      ctx.textAlign = "left";
-      ctx.font = "bold 20px monospace"; // Bold Monospace for legibility
-      
-      const leftX = 15;
-      const rightX = width - 15;
-      const lineHeight = 30;
-
-      function drawRow(label, value) {
-        ctx.textAlign = "left";
-        ctx.fillText(label, leftX, y);
-        ctx.textAlign = "right";
-        ctx.fillText(value, rightX, y);
-        y += lineHeight;
-      }
-
-      drawRow("DATE:", data.date);
-      drawRow("ID:", data.customerId);
-      drawRow("DUE NO:", "#" + data.dueNumber);
-
-      // Name Wrapper
-      ctx.textAlign = "left";
-      ctx.fillText("NAME:", leftX, y);
       y += 25;
       
-      // Name (Break into 2 lines if needed)
-      const name = data.customerName.toUpperCase();
-      ctx.font = "bold 24px monospace"; // Larger for name
-      
-      if(name.length > 20) {
-        const mid = Math.floor(name.length/2);
-        const splitSpace = name.lastIndexOf(' ', mid);
-        const splitIdx = splitSpace > 0 ? splitSpace : mid;
-        
-        ctx.fillText(name.substring(0, splitIdx), leftX, y);
-        y += 28;
-        ctx.fillText(name.substring(splitIdx).trim(), leftX, y);
-      } else {
-        ctx.fillText(name, leftX, y);
-      }
-      y += 35;
+      ctx.font = "14px monospace";
+      ctx.fillText(data.date, width/2, y);
+      y += 20;
 
       // Separator
       ctx.beginPath();
       ctx.moveTo(10, y);
       ctx.lineTo(width-10, y);
+      ctx.strokeStyle = "#000000";
       ctx.lineWidth = 2;
       ctx.stroke();
-      y += 40;
+      y += 25;
 
-      // --- AMOUNT (HUGE & CENTERED) ---
-      ctx.textAlign = "center";
-      ctx.font = "bold 24px Arial"; 
-      ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 45;
+      // Details Left/Right
+      const left = 15;
+      const right = width - 15;
 
-      ctx.font = "bold 50px Arial"; // MAX SIZE
-      ctx.fillText("Rs." + data.amount, width/2, y);
-      y += 45;
-
-      // --- BALANCE ---
-      ctx.font = "bold 22px monospace";
-      ctx.fillText(`BALANCE: Rs.${balance}`, width/2, y);
-      y += 60;
-
-      // --- FOOTER ---
-      ctx.font = "italic 16px monospace";
-      ctx.fillText("** Goorac Digital Verified **", width/2, y);
-      y += 20;
-      ctx.font = "14px monospace";
-      ctx.fillText("Thank you", width/2, y);
-    }
-
-    // --- 6. SQUARE RECEIPT (DOWNLOAD) ---
-    // Pure White BG, Bold Black Text, Sharp Lines
-    function drawSquareReceipt(data, balance) {
-      const canvas = document.getElementById('squareCanvas');
-      const size = 1200; // High Res
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      // 1. White Background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, size, size);
-
-      // 2. Thick Black Border
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 30;
-      ctx.strokeRect(0, 0, size, size);
-
-      // 3. Header
-      ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
-      ctx.font = "bold 90px Arial";
-      ctx.fillText("MEENA GROUPS", size/2, 150);
-
-      ctx.fillStyle = "#000000"; // Pure Black
-      ctx.font = "bold 50px Arial";
-      ctx.fillText("PAYMENT CONFIRMATION", size/2, 230);
-
-      // Black Separator
-      ctx.beginPath();
-      ctx.moveTo(100, 270);
-      ctx.lineTo(size-100, 270);
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = "#000000";
-      ctx.stroke();
-
-      // 4. Details
-      let x = 120;
-      let y = 400;
-      let valX = 450;
-      let gap = 100;
+      ctx.font = "bold 18px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("ID:", left, y);
+      ctx.textAlign = "right";
+      ctx.fillText(data.customerId, right, y);
+      y += 25;
 
       ctx.textAlign = "left";
-      ctx.font = "bold 50px Arial"; // Keys
-      
-      // Helper
-      function drawDetail(key, val) {
-        ctx.fillStyle = "#000000"; // Black
-        ctx.fillText(key, x, y);
-        ctx.fillText(val, valX, y);
-        y += gap;
-      }
+      ctx.fillText("Due No:", left, y);
+      ctx.textAlign = "right";
+      ctx.fillText("#" + data.dueNumber, right, y);
+      y += 25;
 
-      drawDetail("DATE:", data.date);
-      drawDetail("CUST ID:", data.customerId);
-      drawDetail("DUE NO:", "#" + data.dueNumber);
-      
-      // Name might need space
-      ctx.fillText("NAME:", x, y);
-      ctx.fillText(data.customerName.toUpperCase(), valX, y);
-      y += 140; // Extra gap before amount
+      // Name
+      ctx.textAlign = "left";
+      ctx.fillText(data.customerName.substring(0,25), left, y);
+      y += 35;
 
-      // 5. Amount Box (Black Border, White Fill)
-      ctx.strokeRect(100, y - 80, size - 200, 250);
-      
+      // BIG AMOUNT
       ctx.textAlign = "center";
-      ctx.font = "bold 50px Arial";
-      ctx.fillText("AMOUNT RECEIVED", size/2, y);
-      
-      y += 100;
-      ctx.font = "bold 110px Arial"; // Huge Amount
-      ctx.fillText(`₹ ${data.amount}`, size/2, y);
-      
-      y += 180;
+      ctx.font = "bold 20px Arial";
+      ctx.fillText("RECEIVED:", width/2, y);
+      y += 40;
 
-      // 6. Balance
-      ctx.font = "bold 50px Arial";
-      ctx.fillText(`BALANCE PENDING: ₹ ${balance}`, size/2, y);
-      
+      ctx.font = "bold 55px Arial";
+      ctx.fillText("Rs." + data.amount, width/2, y);
+      y += 40;
+
+      // Stats
+      ctx.font = "16px monospace";
+      ctx.fillText(`Total Paid: ${totalPaid}`, width/2, y);
+      y += 20;
+      ctx.font = "bold 18px monospace";
+      ctx.fillText(`Balance: ${balance}`, width/2, y);
+      y += 30;
+
       // Footer
-      y = size - 60;
-      ctx.font = "italic 30px Arial";
-      ctx.fillText("Generated by Goorac Agent App", size/2, y);
+      ctx.font = "italic 12px Arial";
+      ctx.fillText("visit meena.goorac.biz for history", width/2, y);
+      y += 15;
+      ctx.fillText("Thank you", width/2, y);
+      
+      // Auto-crop height if needed (simulated by not drawing further)
     }
 
-    // --- 7. PRINT ACTION (MOBILE OPTIMIZED) ---
-    // Improved for Bluetooth Thermal Printers on Android/iOS
-    window.printLastReceipt = () => {
-      // 1. Ensure Canvas is drawn with latest data
-      if(!lastReceiptData) return alert("No receipt to print");
-      drawReceiptToCanvas(lastReceiptData, lastBalance);
+    // --- 6. DOWNLOAD RECEIPT (SHORT & SWEET) ---
+    function drawDownloadImage(data, balance, totalPaid) {
+      const canvas = document.getElementById('downloadCanvas');
+      const width = 600; 
+      const height = 800; // Not a perfect square, fits content better
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
 
+      // White BG
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+
+      // Border
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, width-10, height-10);
+
+      // Text Setup
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+      
+      let y = 80;
+
+      // Header
+      ctx.font = "bold 50px Arial"; 
+      ctx.fillText("MEENA GROUPS", width/2, y);
+      y += 50;
+      
+      ctx.font = "30px Arial"; 
+      ctx.fillText("PAYMENT RECEIPT", width/2, y);
+      y += 60;
+
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(50, y);
+      ctx.lineTo(width-50, y);
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      y += 50;
+
+      // Details
+      ctx.textAlign = "left";
+      ctx.font = "bold 30px Arial";
+      const x = 60;
+      const xVal = 320;
+      const gap = 50;
+
+      ctx.fillText("Date:", x, y);
+      ctx.fillText(data.date, xVal, y);
+      y += gap;
+
+      ctx.fillText("Cust ID:", x, y);
+      ctx.fillText(data.customerId, xVal, y);
+      y += gap;
+
+      ctx.fillText("Name:", x, y);
+      ctx.fillText(data.customerName.substring(0,15), xVal, y);
+      y += gap + 20;
+
+      // Amount Box
+      ctx.strokeRect(50, y - 10, width - 100, 150);
+      
+      let boxY = y + 40;
+      ctx.textAlign = "center";
+      ctx.fillText("AMOUNT RECEIVED", width/2, boxY);
+      
+      boxY += 70;
+      ctx.font = "bold 70px Arial";
+      ctx.fillText(`₹ ${data.amount}`, width/2, boxY);
+      
+      y += 200;
+
+      // Summary
+      ctx.textAlign = "left";
+      ctx.font = "30px Arial";
+      ctx.fillText("Total Paid:", 60, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹ ${totalPaid}`, width - 60, y);
+      y += 40;
+
+      ctx.font = "bold 35px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("Balance Due:", 60, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹ ${balance}`, width - 60, y);
+      y += 80;
+
+      // Footer
+      ctx.textAlign = "center";
+      ctx.font = "italic 24px Arial";
+      ctx.fillText("visit meena.goorac.biz for all payment history", width/2, y);
+    }
+
+    // --- 7. PRINT ACTION (FIXED) ---
+    window.printLastReceipt = () => {
+      if(!lastReceiptData) return alert("No receipt to print");
+      
+      // Draw updated canvas
+      drawThermalReceipt(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('receiptCanvas');
       const dataUrl = canvas.toDataURL('image/png');
 
-      // 2. Open a simplified window solely for the image
-      // This method works best for mobile browsers sharing to print apps
       const win = window.open('', '_blank');
       if(!win) {
-        alert("Pop-up blocked! Allow pop-ups to print.");
+        alert("Please allow pop-ups to print");
         return;
       }
 
       win.document.write(`
-        <!DOCTYPE html>
         <html>
           <head>
-            <title>Print Receipt</title>
+            <title>Print</title>
             <style>
-              body { margin: 0; padding: 0; background: #fff; display: flex; justify-content: center; }
+              @page { margin: 0; size: auto; }
+              body { margin: 0; display: flex; justify-content: center; }
               img { width: 100%; max-width: 384px; height: auto; display: block; }
             </style>
           </head>
           <body>
-            <img src="${dataUrl}" id="printImg" />
-            <script>
-              // Wait for image to load then trigger print
-              document.getElementById('printImg').onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  // Optional: Close after print (commented out as some mobile browsers close too fast)
-                  // window.close(); 
-                }, 500);
-              };
-            <\/script>
+            <img src="${dataUrl}" onload="window.print();" />
           </body>
         </html>
       `);
       win.document.close();
     };
 
-    // --- 8. DOWNLOAD ACTION (SQUARE HIGH RES) ---
+    // --- 8. DOWNLOAD ACTION (UPDATED) ---
     window.downloadLastReceipt = () => {
       if(!lastReceiptData) return;
-      drawSquareReceipt(lastReceiptData, lastBalance);
       
-      const canvas = document.getElementById('squareCanvas');
+      drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
+      const canvas = document.getElementById('downloadCanvas');
       
-      // Create a temporary link to force download
       const link = document.createElement('a');
-      link.download = `REC_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+      link.download = `PAY_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
       link.href = canvas.toDataURL("image/png");
       document.body.appendChild(link);
       link.click();
