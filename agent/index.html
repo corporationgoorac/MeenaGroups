@@ -164,7 +164,7 @@
     
     <div class="hero-card">
       <span class="hero-label">Today's Collection</span>
-      <div class="hero-amount" id="todayTotal">...</div>
+      <div class="hero-amount" id="todayTotal">Loading...</div>
       <div class="hero-sub">Synced with Server</div>
     </div>
 
@@ -227,23 +227,29 @@
     import { db } from "./config.js";
     import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- FETCH TODAY'S TOTAL ---
+    // --- FETCH TODAY'S TOTAL (DRAFTS ONLY) ---
     async function loadTodayStats() {
       const display = document.getElementById("todayTotal");
       
       try {
         const todayStr = new Date().toISOString().split('T')[0];
 
+        // Correctly filtering for "draft" status as requested
         const q = query(
           collection(db, "temp_entries"),
-          where("date", "==", todayStr)
+          where("date", "==", todayStr),
+          where("status", "==", "draft") 
         );
 
         const snapshot = await getDocs(q);
         let total = 0;
         
         snapshot.forEach(doc => {
-          total += parseFloat(doc.data().amount || 0);
+          // Safety check to ensure valid number
+          const amt = parseFloat(doc.data().amount || 0);
+          if(!isNaN(amt)) {
+             total += amt;
+          }
         });
 
         display.innerText = "₹" + total.toLocaleString();
