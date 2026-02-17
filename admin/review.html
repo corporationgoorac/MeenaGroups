@@ -326,7 +326,7 @@
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc 
+      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc, writeBatch, getDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let pendingEntries = [];
@@ -465,7 +465,7 @@
       }
     };
 
-    // --- 3. APPROVE LOGIC ---
+    // --- 3. SINGLE APPROVE (TRANSACTION) ---
     window.approveEntry = async (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
       if (!entry) return;
@@ -543,24 +543,103 @@
       }
     };
 
-    // --- 5. APPROVE ALL ---
+    // --- 5. BATCH APPROVE ALL (INSTANT) ---
+    // Heavily modified to perform ONE batch read/write operation
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
-      if (!confirm(`Approve all ${pendingEntries.length} entries?`)) return;
+      if (!confirm(`Approve all ${pendingEntries.length} entries instantly?`)) return;
 
       const btn = document.querySelector(".btn-approve-all");
       const originalHtml = btn.innerHTML;
-      btn.innerHTML = `<span class="loading-spinner" style="width:16px; height:16px; margin:0; border-width:2px;"></span> Syncing...`;
+      btn.innerHTML = `<span class="loading-spinner" style="width:16px; height:16px; margin:0; border-width:2px;"></span> Processing Batch...`;
       btn.disabled = true;
 
-      for (const entry of pendingEntries) {
-        if(document.getElementById(`card-${entry.docId}`)) {
-          await window.approveEntry(entry.docId);
-        }
+      try {
+        // 1. We need to fetch all affected customers first to ensure data integrity
+        // Group entries by customerId to avoid fetching same doc twice
+        const customerIds = [...new Set(pendingEntries.map(e => e.customerId))];
+        const customersSnapshot = await Promise.all(customerIds.map(id => getDoc(doc(db, "customers", id))));
+        
+        const customerMap = {};
+        customersSnapshot.forEach(snap => {
+          if (snap.exists()) customerMap[snap.id] = snap.data();
+        });
+
+        const batch = writeBatch(db);
+        let totalBatchAmount = 0;
+
+        // 2. Process each entry in memory
+        pendingEntries.forEach(entry => {
+          const customerData = customerMap[entry.customerId];
+          if (!customerData) {
+            console.error(`Skipping entry ${entry.docId}, customer not found`);
+            return;
+          }
+
+          // Find Product
+          let pIndex = entry.productIndex;
+          if (!customerData.products[pIndex] || customerData.products[pIndex].name !== entry.productName) {
+            pIndex = customerData.products.findIndex(p => p.name === entry.productName);
+          }
+
+          if (pIndex > -1) {
+            const product = customerData.products[pIndex];
+            
+            // Calculate Due
+            let finalDue = entry.dueNumber;
+            if (!finalDue || finalDue <= 0) {
+               const max = (product.payments || []).length > 0 
+                 ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
+                 : 0;
+               finalDue = max + 1;
+            }
+
+            const newPayment = {
+              date: entry.date,
+              amount: entry.amount,
+              dueNumber: parseInt(finalDue),
+              type: "Agent Collection",
+              approvedAt: new Date().toISOString()
+            };
+
+            if (!product.payments) product.payments = [];
+            product.payments.push(newPayment);
+            product.paid += entry.amount;
+            
+            totalBatchAmount += entry.amount;
+
+            // Mark temp entry for deletion
+            const tempRef = doc(db, "temp_entries", entry.docId);
+            batch.delete(tempRef);
+          }
+        });
+
+        // 3. Stage Customer Updates
+        Object.keys(customerMap).forEach(custId => {
+          const custRef = doc(db, "customers", custId);
+          batch.update(custRef, { products: customerMap[custId].products });
+        });
+
+        // 4. Stage Stats Update
+        const statsRef = doc(db, "metadata", "stats");
+        batch.update(statsRef, {
+          totalPaid: increment(totalBatchAmount),
+          totalBalance: increment(-totalBatchAmount)
+        });
+
+        // 5. COMMIT EVERYTHING ONCE
+        await batch.commit();
+
+        // UI Reset
+        alert("✅ All entries approved successfully!");
+        btn.innerHTML = originalHtml;
+        loadPending();
+
+      } catch (e) {
+        alert("Batch Approval Error: " + e.message);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
       }
-      
-      btn.innerHTML = originalHtml;
-      setTimeout(() => loadPending(), 1000);
     };
 
     function checkEmpty() {
