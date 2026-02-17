@@ -542,6 +542,7 @@
   <div id="toast" class="toast">Entry Saved Successfully!</div>
 
   <canvas id="receiptCanvas" style="display:none;"></canvas>
+  <canvas id="squareCanvas" style="display:none;"></canvas>
 
   <script type="module">
     import { db } from "./config.js";
@@ -728,7 +729,7 @@
         lastBalance = p.total - (existingPaid + amount);
         lastReceiptData = entryData;
         
-        // Render Receipt on Hidden Canvas (Pre-load)
+        // Render Receipt on Hidden Canvas (Pre-load Thermal)
         drawReceiptToCanvas(lastReceiptData, lastBalance);
 
         // Update UI
@@ -767,13 +768,15 @@
       
       // 58mm printer width usually maps to approx 384px at standard DPI
       const width = 384; 
-      const height = 650; // Dynamic height based on content
+      // Initial height, but we might increase it dynamically in a real app, 
+      // here we set enough space for wrapped text.
+      const height = 750; 
       
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // 1. Background: Pure White (Critical for Thermal)
+      // 1. Background: Pure White
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
 
@@ -782,7 +785,7 @@
       ctx.textAlign = "center";
 
       // 3. Header
-      ctx.font = "bold 26px monospace"; // Adjusted for narrower width
+      ctx.font = "bold 26px monospace";
       ctx.fillText("MEENA GROUPS", width/2, 40);
       
       ctx.font = "18px monospace";
@@ -796,29 +799,54 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // 4. Details (Left Aligned)
+      // 4. Details (Left Aligned with wrapping)
       ctx.textAlign = "left";
-      ctx.font = "bold 18px monospace"; // Readable on small paper
-      let y = 115;
-      const gap = 35; // Tighter vertical spacing
+      ctx.font = "bold 18px monospace";
+      let y = 120;
+      const gap = 30;
+      const leftMargin = 15;
+      const rightMargin = width - 15;
 
-      // Helper for rows
-      function drawRow(label, value) {
-        ctx.fillText(label, 15, y);
+      // Helper for Date/ID
+      function drawSimpleRow(label, value) {
+        ctx.fillText(label, leftMargin, y);
         ctx.textAlign = "right";
-        ctx.fillText(value, width-15, y);
+        ctx.fillText(value, rightMargin, y);
         ctx.textAlign = "left";
         y += gap;
       }
 
-      drawRow("DATE:", data.date);
-      drawRow("ID:", data.customerId);
-      // Truncate name further for 58mm width
-      drawRow("NAME:", data.customerName.substring(0, 10).toUpperCase()); 
-      drawRow("DUE#:", `#${data.dueNumber}`);
+      drawSimpleRow("DATE:", data.date);
+      drawSimpleRow("ID:", data.customerId);
+      drawSimpleRow("DUE#:", `#${data.dueNumber}`);
+
+      // Name with Wrap Logic
+      y += 10; // Extra space before name
+      ctx.fillText("NAME:", leftMargin, y);
+      y += 25;
+      
+      const name = data.customerName.toUpperCase();
+      const maxWidth = width - 30;
+      
+      // Simple word wrap
+      const words = name.split(' ');
+      let line = '';
+      
+      for(let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, leftMargin, y);
+          line = words[n] + ' ';
+          y += 25;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, leftMargin, y);
+      y += gap + 10;
       
       // Separator
-      y += 10;
       ctx.beginPath();
       ctx.moveTo(10, y);
       ctx.lineTo(width-10, y);
@@ -831,7 +859,7 @@
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
       y += 40;
       
-      ctx.font = "bold 42px monospace"; // Big for visibility
+      ctx.font = "bold 42px monospace"; 
       ctx.fillText(`Rs.${data.amount}`, width/2, y);
       y += 50;
       
@@ -845,15 +873,112 @@
       y += 25;
       ctx.font = "14px monospace";
       ctx.fillText("meena.goorac.biz", width/2, y);
-      
-      // End padding for tear-off
     }
 
-    // --- 6. PRINT & DOWNLOAD ACTIONS ---
+    // --- 6. SQUARE RECEIPT LOGIC (For Image Download) ---
+    function drawSquareReceipt(data, balance) {
+      const canvas = document.getElementById('squareCanvas');
+      const size = 1080; // High Res Square
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Background
+      ctx.fillStyle = "#f8fafc"; // Very light grey/white
+      ctx.fillRect(0, 0, size, size);
+
+      // Border
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 20;
+      ctx.strokeRect(0, 0, size, size);
+
+      // 2. Header Box
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, size, 250);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.font = "bold 80px sans-serif";
+      ctx.fillText("MEENA GROUPS", size/2, 120);
+      
+      ctx.font = "40px sans-serif";
+      ctx.fillText("PAYMENT CONFIRMATION", size/2, 190);
+
+      // 3. Central Details
+      ctx.fillStyle = "#334155";
+      ctx.textAlign = "left";
+      ctx.font = "bold 40px sans-serif";
+      
+      let x = 100;
+      let y = 350;
+      let valX = 400;
+      let lineHeight = 80;
+
+      // Date
+      ctx.fillText("DATE:", x, y);
+      ctx.fillStyle = "#000";
+      ctx.fillText(data.date, valX, y);
+      y += lineHeight;
+
+      // ID
+      ctx.fillStyle = "#334155";
+      ctx.fillText("CUST ID:", x, y);
+      ctx.fillStyle = "#000";
+      ctx.fillText(data.customerId, valX, y);
+      y += lineHeight;
+
+      // Name (Can be long)
+      ctx.fillStyle = "#334155";
+      ctx.fillText("NAME:", x, y);
+      ctx.fillStyle = "#000";
+      // We assume digital doesn't need wrap as much, but let's be safe
+      ctx.fillText(data.customerName.toUpperCase(), valX, y); 
+      y += lineHeight;
+
+      // Due No
+      ctx.fillStyle = "#334155";
+      ctx.fillText("DUE NO:", x, y);
+      ctx.fillStyle = "#000";
+      ctx.fillText(`#${data.dueNumber}`, valX, y);
+      y += 120; // Big Gap
+
+      // 4. Amount Box
+      ctx.fillStyle = "#dcfce7"; // Light green bg
+      ctx.fillRect(100, y - 60, size - 200, 200);
+      ctx.strokeStyle = "#166534";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(100, y - 60, size - 200, 200);
+
+      ctx.fillStyle = "#166534"; // Dark Green Text
+      ctx.textAlign = "center";
+      ctx.font = "bold 40px sans-serif";
+      ctx.fillText("AMOUNT RECEIVED", size/2, y);
+      
+      y += 80;
+      ctx.font = "bold 90px sans-serif";
+      ctx.fillText(`₹ ${data.amount}`, size/2, y);
+      y += 150;
+
+      // 5. Balance
+      ctx.fillStyle = "#ef4444";
+      ctx.font = "bold 45px sans-serif";
+      ctx.fillText(`BALANCE PENDING: ₹ ${balance}`, size/2, y);
+
+      // 6. Footer
+      y = size - 80;
+      ctx.fillStyle = "#64748b";
+      ctx.font = "italic 30px sans-serif";
+      ctx.fillText("Generated Digitally via Goorac Agent App", size/2, y);
+    }
+
+    // --- 7. PRINT & DOWNLOAD ACTIONS ---
     window.downloadLastReceipt = () => {
-      const canvas = document.getElementById('receiptCanvas');
+      // 1. Generate the Square Image specifically for download
+      drawSquareReceipt(lastReceiptData, lastBalance);
+      
+      const canvas = document.getElementById('squareCanvas');
       const link = document.createElement('a');
-      link.download = `Receipt_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+      link.download = `IMG_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
@@ -863,7 +988,6 @@
       const dataUrl = canvas.toDataURL('image/png');
       
       // Open Image in New Window for System Print Dialog
-      // Optimized for mobile: renders image at 100% width
       const win = window.open('');
       win.document.write(`
         <html>
@@ -872,7 +996,6 @@
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
               body { margin: 0; padding: 0; display: flex; justify-content: center; background: #eee; }
-              /* Force image to fit 58mm paper visually on phone screen, but print actual size */
               img { width: 100%; max-width: 384px; height: auto; }
             </style>
           </head>
