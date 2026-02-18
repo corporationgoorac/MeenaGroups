@@ -79,6 +79,7 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
+    /* UPDATED BRAND COLORS */
     .brand-red { color: #ff1744; }
     .brand-white { color: #ffffff; }
 
@@ -126,6 +127,7 @@
     
     .header-sync-btn svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.5s ease; }
     
+    /* Animation Class applied via JS */
     .header-sync-btn.syncing svg { animation: spin 1s infinite linear; }
     .header-sync-btn.syncing { border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
 
@@ -157,7 +159,7 @@
       max-width: 1400px;
       width: 100%;
       margin: 0 auto;
-      padding-bottom: 100px; 
+      padding-bottom: 100px; /* Space for mobile nav */
     }
 
     /* Welcome Section */
@@ -207,12 +209,12 @@
     .trend-up { color: var(--primary); }
     .trend-down { color: var(--danger); }
 
-    /* Financial Advice Card */
+    /* Financial Advice Card (Special) */
     .advice-card {
-      grid-column: 1 / -1; 
+      grid-column: 1 / -1; /* Span Full Width */
       background: linear-gradient(145deg, #141414, #0f0f0f);
       border: 1px solid var(--border);
-      border-left: 5px solid var(--primary); 
+      border-left: 5px solid var(--primary); /* Dynamic Color via JS */
       padding: 25px;
       border-radius: 16px;
       display: flex;
@@ -271,7 +273,7 @@
       border-top: 1px solid var(--border);
       display: none;
       justify-content: space-around;
-      padding: 10px 0 25px 0; 
+      padding: 10px 0 25px 0; /* Extra padding for iOS home indicator */
       z-index: 100;
     }
 
@@ -283,7 +285,7 @@
       color: #666;
       font-size: 0.7rem;
       padding: 8px;
-      width: 20%; 
+      width: 20%; /* Equal spacing */
       transition: 0.2s;
     }
     
@@ -562,7 +564,12 @@
                 const pBalance = pTotal - effectivePaid;
 
                 calculatedPaid += effectivePaid;
-                calculatedDue += pBalance;
+                
+                // FIX: Only add positive outstanding due. 
+                // Don't let overpayments reduce the total collection target.
+                if(pBalance > 0) {
+                    calculatedDue += pBalance;
+                }
 
                 // 6. Product Categories
                 let pName = (p.name || '').toLowerCase();
