@@ -79,7 +79,7 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-    
+    /* UPDATED BRAND COLORS */
     .brand-red { color: #ff1744; }
     .brand-white { color: #ffffff; }
 
@@ -493,7 +493,7 @@
       }
     });
 
-    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS) ---
+    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS - SAME LOGIC AS ENTRY PAGE) ---
     window.manualSync = async () => {
       const btn = document.querySelector('.header-sync-btn');
       if(btn.classList.contains('syncing')) return; 
@@ -524,32 +524,36 @@
                 const pTotal = parseFloat(p.total) || 0;
                 let pPaidSum = 0;
                 
-                // 1. Calculate from Payment Array if exists
+                // 1. Calculate from Payment Array (ENTRY PAGE LOGIC)
                 if(p.payments && Array.isArray(p.payments)) {
                    p.payments.forEach(pay => {
-                      const amount = parseFloat(pay.amount) || 0;
-                      pPaidSum += amount;
-                      
-                      // 2. History & Activity Logic
-                      if(pay.date) {
-                         const dKey = pay.date; 
-                         historyMap[dKey] = (historyMap[dKey] || 0) + amount;
-                         
-                         const d = new Date(pay.date);
-                         if(!isNaN(d)) {
-                             const dayIndex = d.getDay();
-                             weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
-                         }
+                      const amount = parseFloat(pay.amount);
+                      if(!isNaN(amount)) {
+                          pPaidSum += amount;
+                          
+                          // History Logic
+                          if(pay.date) {
+                             const dKey = pay.date; 
+                             historyMap[dKey] = (historyMap[dKey] || 0) + amount;
+                             
+                             const d = new Date(pay.date);
+                             if(!isNaN(d)) {
+                                 const dayIndex = d.getDay();
+                                 weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
+                             }
+                          }
                       }
                    });
                 }
 
-                // 3. Handle Legacy 'paid' field
-                const legacyPaid = parseFloat(p.paid) || 0;
+                // 2. Handle Legacy 'paid' field (ENTRY PAGE LOGIC)
+                let legacyPaid = 0;
+                if(p.paid !== undefined) legacyPaid = parseFloat(p.paid) || 0;
                 
-                // Effective Paid: Use larger value (Log Sum OR Manual Field)
+                // Effective Paid: MAX(Logs, Legacy) (ENTRY PAGE LOGIC)
                 const effectivePaid = Math.max(pPaidSum, legacyPaid);
                 
+                // Balance Calculation (ENTRY PAGE LOGIC)
                 const pBalance = pTotal - effectivePaid;
 
                 calculatedPaid += effectivePaid;
@@ -569,7 +573,7 @@
 
         // Prepare History Object for Chart
         const sortedDates = Object.keys(historyMap).sort();
-        // Limit to last 30 days stored in dashboardHistory to prevent bloat
+        // Limit to last 14 days for cleaner chart
         let compactHistory = {};
         sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
