@@ -79,7 +79,7 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-    /* UPDATED BRAND COLORS */
+    
     .brand-red { color: #ff1744; }
     .brand-white { color: #ffffff; }
 
@@ -461,7 +461,7 @@
       <span>Pay</span>
     </a>
     <a href="review.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       <span>Sync</span>
     </a>
     <a href="report.html" class="nav-item">
@@ -520,28 +520,40 @@
           
           if(c.products && Array.isArray(c.products)) {
              c.products.forEach(p => {
-                // 1. Totals
-                let pPaid = 0;
-                if(p.payments) {
+                // FORCE NUMBER CONVERSION
+                const pTotal = parseFloat(p.total) || 0;
+                let pPaidSum = 0;
+                
+                // 1. Calculate from Payment Array if exists
+                if(p.payments && Array.isArray(p.payments)) {
                    p.payments.forEach(pay => {
-                      pPaid += parseFloat(pay.amount || 0);
+                      const amount = parseFloat(pay.amount) || 0;
+                      pPaidSum += amount;
                       
-                      // 2. History (Timeline)
+                      // 2. History & Activity Logic
                       if(pay.date) {
-                         const dKey = pay.date; // YYYY-MM-DD
-                         historyMap[dKey] = (historyMap[dKey] || 0) + parseFloat(pay.amount);
+                         const dKey = pay.date; 
+                         historyMap[dKey] = (historyMap[dKey] || 0) + amount;
                          
-                         // 3. Weekly Activity
-                         const dayIndex = new Date(pay.date).getDay();
-                         weekActivity[dayIndex] += 1;
+                         const d = new Date(pay.date);
+                         if(!isNaN(d)) {
+                             const dayIndex = d.getDay();
+                             weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
+                         }
                       }
                    });
                 }
-                // Fallback if 'paid' field exists but payments array incomplete
-                if(p.paid > pPaid) pPaid = p.paid;
 
-                calculatedPaid += pPaid;
-                calculatedDue += (parseFloat(p.total || 0) - pPaid);
+                // 3. Handle Legacy 'paid' field
+                const legacyPaid = parseFloat(p.paid) || 0;
+                
+                // Effective Paid: Use larger value (Log Sum OR Manual Field)
+                const effectivePaid = Math.max(pPaidSum, legacyPaid);
+                
+                const pBalance = pTotal - effectivePaid;
+
+                calculatedPaid += effectivePaid;
+                calculatedDue += pBalance;
 
                 // 4. Product Categories
                 let pName = (p.name || '').toLowerCase();
