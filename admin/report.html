@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MeenaGroups Analytics & Reports</title>
+  <title>MeenaGroups | Quantum Analytics</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#000000">
   <link rel="manifest" href="manifest.json">
@@ -13,407 +13,438 @@
 
   <style>
     /* * ==========================================
-     * 1. ULTRA-MODERN HIGH CONTRAST THEME
+     * 1. CORE THEME & VARIABLES
      * ==========================================
      */
-    :root { 
-      --bg: #000000; 
-      --surface: #0a0a0a;
-      --card: #121212; 
-      --input-bg: #1a1a1a;
+    :root {
+      --bg-root: #000000;
+      --bg-surface: #0f0f0f;
+      --bg-card: #141414;
+      --bg-input: #1f1f1f;
       
-      /* NEON PALETTE */
-      --brand: #00e676;       /* Success / Paid */
-      --accent: #2979ff;      /* Primary Action */
-      --danger: #ff1744;      /* Due / Warning */
-      --warning: #ffea00;     /* Alerts */
+      --primary: #2979ff;       /* Electric Blue */
+      --success: #00e676;       /* Neon Green */
+      --danger: #ff1744;        /* Bright Red */
+      --warning: #ffb74d;       /* Orange */
       
-      --text: #ffffff; 
-      --text-muted: #9e9e9e;
-      --border: #2a2a2a; 
+      --text-main: #ffffff;
+      --text-sub: #a0a0a0;
+      --border: #262626;
       
-      --shadow-brand: 0 0 15px rgba(0, 230, 118, 0.2);
-      --shadow-danger: 0 0 15px rgba(255, 23, 68, 0.2);
+      --glass: rgba(20, 20, 20, 0.85);
+      --blur: 12px;
+      
+      --ease: cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
-    body { 
-      background: var(--bg); 
-      color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-      margin: 0; padding: 0; 
-      height: 100vh; 
+    body {
+      background: var(--bg-root);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0; padding: 0;
+      height: 100vh;
       display: flex; flex-direction: column;
-      overflow: hidden; /* Prevent body scroll, use containers */
+      overflow: hidden;
     }
 
+    /* Scrollbar Polish */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
     /* * ==========================================
-     * 2. HEADER SECTION
+     * 2. HEADER & NAVIGATION
      * ==========================================
      */
     header {
-      background: rgba(5, 5, 5, 0.95);
-      backdrop-filter: blur(10px);
+      background: var(--glass);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
       border-bottom: 1px solid var(--border);
       padding: 15px 20px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 50; flex-shrink: 0;
-    }
-    
-    .brand-group { display: flex; flex-direction: column; }
-    .brand-group h1 { 
-      margin: 0; font-size: 1.2rem; font-weight: 900; 
-      text-transform: uppercase; letter-spacing: 1px; color: #fff;
-    }
-    .brand-group span { 
-      font-size: 0.65rem; color: var(--accent); 
-      letter-spacing: 2px; font-weight: 700; display: block; margin-top: 2px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
     }
 
-    .header-icons { display: flex; gap: 20px; align-items: center; }
-    .icon-btn { 
-      background: none; border: none; color: var(--text); cursor: pointer; 
-      transition: all 0.2s; display: flex; align-items: center; justify-content: center;
-      padding: 8px; border-radius: 50%;
+    .brand { display: flex; flex-direction: column; gap: 2px; }
+    .brand h1 { 
+      margin: 0; font-size: 1.1rem; font-weight: 800; 
+      letter-spacing: 0.5px; background: linear-gradient(to right, #fff, #aaa); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
-    .icon-btn:active { background: rgba(255,255,255,0.1); }
-    .icon-btn:hover { color: var(--brand); transform: scale(1.05); }
+    .brand span { font-size: 0.65rem; color: var(--primary); letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+
+    .nav-actions { display: flex; gap: 15px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.05); border: 1px solid transparent; 
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-main); cursor: pointer; transition: 0.3s var(--ease);
+    }
+    .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .icon-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); border-color: #333; }
+    .icon-btn:active { transform: scale(0.95); }
 
     /* * ==========================================
-     * 3. CONTROL BAR (SEARCH & FILTERS)
+     * 3. SEARCH & CONTROLS
      * ==========================================
      */
-    .controls-wrapper {
+    .controls-bar {
       padding: 15px 20px;
-      background: var(--bg);
+      background: var(--bg-root);
+      display: flex; flex-direction: column; gap: 15px;
       border-bottom: 1px solid var(--border);
-      display: flex; gap: 12px;
-      overflow-x: auto; white-space: nowrap;
-      -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
-    }
-    
-    /* Search Input Design */
-    .search-box { 
-      flex: 1; position: relative; min-width: 200px; 
-    }
-    .search-box input {
-      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-      color: white; padding: 12px 15px 12px 42px; border-radius: 12px; font-size: 0.95rem;
-      transition: 0.3s;
-    }
-    .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(41, 121, 255, 0.15); }
-    .search-icon { 
-      position: absolute; left: 14px; top: 50%; transform: translateY(-50%); 
-      width: 18px; fill: var(--text-muted); pointer-events: none;
     }
 
-    /* Filter Buttons */
-    .chip-btn {
-      background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
-      padding: 0 16px; border-radius: 50px; font-weight: 700; font-size: 0.8rem;
-      white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 6px;
-      transition: 0.2s; height: 42px;
+    /* Input Field */
+    .search-wrap { position: relative; width: 100%; }
+    .search-wrap svg {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      width: 20px; fill: var(--text-sub); pointer-events: none;
     }
-    .chip-btn:active { transform: scale(0.95); background: #222; }
+    .search-wrap input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      color: white; padding: 14px 15px 14px 48px; border-radius: 14px;
+      font-size: 1rem; transition: 0.3s;
+    }
+    .search-wrap input:focus { 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 4px rgba(41, 121, 255, 0.15); 
+      background: #252525;
+    }
+
+    /* Filter Chips */
+    .filter-row { 
+      display: flex; gap: 10px; overflow-x: auto; 
+      padding-bottom: 5px; -webkit-overflow-scrolling: touch;
+    }
+    .chip {
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-sub); padding: 8px 16px; border-radius: 50px;
+      font-size: 0.85rem; font-weight: 600; white-space: nowrap;
+      cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .chip svg { width: 16px; height: 16px; fill: currentColor; }
+    .chip:active { transform: scale(0.95); background: #222; }
     
-    .chip-btn.blue { border-color: var(--accent); color: var(--accent); background: rgba(41, 121, 255, 0.08); }
-    .chip-btn.green { border-color: var(--brand); color: var(--brand); background: rgba(0, 230, 118, 0.08); }
-    .chip-btn.red { border-color: var(--danger); color: var(--danger); background: rgba(255, 23, 68, 0.08); }
+    .chip.primary { color: var(--primary); border-color: rgba(41,121,255,0.3); background: rgba(41,121,255,0.05); }
+    .chip.success { color: var(--success); border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.05); }
+    .chip.danger { color: var(--danger); border-color: rgba(255,23,68,0.3); background: rgba(255,23,68,0.05); }
 
     /* * ==========================================
-     * 4. LIST AREA (SCROLLABLE)
+     * 4. MAIN LIST (CARDS)
      * ==========================================
      */
-    .content-area { 
-      flex: 1; overflow-y: auto; padding: 20px; 
-      display: flex; flex-direction: column; gap: 15px; 
-      padding-bottom: 80px; /* Space for bottom interaction */
+    .content-area {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      background: radial-gradient(circle at 50% 10%, #111 0%, #000 70%);
     }
 
-    .user-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 20px; display: flex; justify-content: space-between; align-items: center;
-      position: relative; overflow: hidden; transition: transform 0.2s;
-      cursor: pointer;
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 18px;
+      display: grid; grid-template-columns: 1fr auto; gap: 10px;
+      position: relative; transition: all 0.2s var(--ease);
+      cursor: pointer; overflow: hidden;
     }
-    .user-card:active { transform: scale(0.98); background: #1a1a1a; }
+    .card:active { transform: scale(0.98); background: #1c1c1c; }
     
-    /* Left border status indicator */
-    .user-card::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; }
-    .user-card.status-ok::before { background: var(--brand); box-shadow: var(--shadow-brand); }
-    .user-card.status-due::before { background: var(--danger); box-shadow: var(--shadow-danger); }
+    /* Status Indicator Bar */
+    .card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    }
+    .card.paid::before { background: var(--success); box-shadow: 2px 0 10px rgba(0,230,118,0.3); }
+    .card.due::before { background: var(--danger); box-shadow: 2px 0 10px rgba(255,23,68,0.3); }
 
-    .uc-info h3 { margin: 0; font-size: 1.1rem; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
-    .uc-info p { margin: 5px 0 0; font-size: 0.85rem; color: var(--text-muted); font-family: monospace; }
-    
-    .uc-meta { text-align: right; }
-    .badge { 
-      display: inline-block; padding: 6px 12px; border-radius: 8px; 
-      font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; 
+    .c-details h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .c-details p { margin: 0; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px; }
+    .c-details .cid { font-family: monospace; background: #222; padding: 2px 6px; border-radius: 4px; }
+
+    .c-meta { text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; }
+    .badge {
+      padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;
     }
-    .badge.due { background: rgba(255, 23, 68, 0.1); color: var(--danger); border: 1px solid rgba(255, 23, 68, 0.3); }
-    .badge.paid { background: rgba(0, 230, 118, 0.1); color: var(--brand); border: 1px solid rgba(0, 230, 118, 0.3); }
+    .badge.due { background: rgba(255, 23, 68, 0.1); color: var(--danger); }
+    .badge.paid { background: rgba(0, 230, 118, 0.1); color: var(--success); }
+    .c-date { font-size: 0.7rem; color: #666; margin-top: 6px; }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center; color: var(--text-sub); margin-top: 60px;
+      display: flex; flex-direction: column; align-items: center; gap: 15px;
+    }
+    .empty-icon { width: 64px; height: 64px; fill: #222; margin-bottom: 10px; }
 
     /* * ==========================================
-     * 5. CUSTOMER DRAWER (SLIDE-IN MODAL)
+     * 5. DRAWER (DETAILS)
      * ==========================================
      */
-    .modal-layer {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
+      transition: opacity 0.3s; z-index: 99;
     }
-    .modal-layer.open { opacity: 1; pointer-events: auto; }
+    .overlay.active { opacity: 1; pointer-events: auto; }
 
     .drawer {
-      position: fixed; top: 0; right: 0; width: 100%; max-width: 500px; height: 100%;
+      position: fixed; inset: 0; left: auto; width: 100%; max-width: 500px;
       background: #000; border-left: 1px solid var(--border);
-      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      display: flex; flex-direction: column; z-index: 101;
-      box-shadow: -10px 0 50px rgba(0,0,0,0.9);
+      transform: translateX(100%); transition: transform 0.4s var(--ease);
+      display: flex; flex-direction: column; z-index: 100;
+      box-shadow: -10px 0 40px rgba(0,0,0,0.8);
     }
-    .drawer.open { transform: translateX(0); }
+    .drawer.active { transform: translateX(0); }
 
-    /* Profile Header inside Drawer */
-    .profile-header { padding: 25px; background: #080808; border-bottom: 1px solid var(--border); }
-    .ph-nav { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-    .ph-name h2 { margin: 0; font-size: 1.6rem; font-weight: 800; color: #fff; }
-    .ph-name span { color: var(--accent); font-family: monospace; font-size: 1rem; }
-    
-    .close-btn { 
-      background: rgba(255,255,255,0.1); border: none; width: 36px; height: 36px; 
-      border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: 0.2s;
+    /* Drawer Header */
+    .d-head { 
+      padding: 20px 25px; background: #0a0a0a; border-bottom: 1px solid var(--border);
     }
-    .close-btn:active { background: var(--danger); transform: rotate(90deg); }
+    .dh-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .dh-title h2 { margin: 0; font-size: 1.8rem; font-weight: 800; background: linear-gradient(to bottom right, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+    .dh-title span { color: var(--primary); font-family: monospace; font-size: 0.9rem; }
+    
+    .btn-close { 
+      background: #222; border: none; width: 32px; height: 32px; border-radius: 50%; 
+      color: #fff; cursor: pointer; display: grid; place-items: center; font-size: 1.2rem;
+    }
 
     /* Info Grid */
-    .ph-details { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem; 
-      background: #111; padding: 15px; border-radius: 12px; border: 1px solid var(--border);
+    .d-grid { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
     }
-    .ph-item label { font-size: 0.7rem; text-transform: uppercase; color: #666; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
-    .ph-item span { color: #fff; font-weight: 600; font-family: monospace; }
+    .info-box { background: #111; padding: 12px; border-radius: 10px; border: 1px solid #222; }
+    .info-box label { display: block; font-size: 0.65rem; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+    .info-box div { font-size: 0.9rem; font-weight: 600; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .ph-actions { display: flex; gap: 10px; margin-top: 15px; }
-    .act-btn { 
-      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: #1a1a1a; color: white;
-      cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;
-      transition: 0.2s;
+    /* Action Buttons */
+    .d-actions { display: flex; gap: 10px; }
+    .act-btn {
+      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #151515; color: white; text-decoration: none; font-size: 0.9rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;
     }
-    .act-btn:active { transform: scale(0.96); background: #222; }
-    .act-btn.call { border-color: rgba(0, 230, 118, 0.4); color: var(--brand); }
-    .act-btn.loc { border-color: rgba(41, 121, 255, 0.4); color: var(--accent); }
+    .act-btn:active { transform: scale(0.97); }
+    .act-btn.call { border-color: rgba(0,230,118,0.3); color: var(--success); }
+    .act-btn.map { border-color: rgba(41,121,255,0.3); color: var(--primary); }
 
-    /* Drawer Scrollable Content */
-    .drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
-    .section-label { 
-      font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); 
-      margin-bottom: 12px; font-weight: 700; letter-spacing: 1px; display: flex; justify-content: space-between;
-    }
-
-    /* Product Card with Checkbox */
-    .product-box { 
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
-      margin-bottom: 15px; overflow: hidden; transition: 0.3s;
-    }
+    /* Drawer Body */
+    .d-body { flex: 1; overflow-y: auto; padding: 20px; background: #050505; }
     
-    .pb-head { 
-      padding: 15px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 12px;
-      background: rgba(255,255,255,0.02); cursor: pointer; user-select: none;
+    .prod-item { 
+      background: #121212; border: 1px solid #222; border-radius: 12px; 
+      margin-bottom: 12px; overflow: hidden;
     }
-    .pb-head:active { background: #222; }
+    .pi-header { 
+      padding: 15px; display: flex; align-items: center; gap: 12px; 
+      cursor: pointer; background: rgba(255,255,255,0.02);
+    }
+    .pi-header:active { background: #222; }
     
-    /* Neon Checkbox */
-    .check-wrap { display: flex; align-items: center; justify-content: center; z-index: 2; }
-    .custom-check {
-      appearance: none; width: 22px; height: 22px; border: 2px solid #444; border-radius: 6px;
-      background: transparent; cursor: pointer; position: relative; transition: 0.2s;
+    /* Custom Checkbox */
+    .chk-wrap { position: relative; width: 24px; height: 24px; }
+    .custom-chk { 
+      width: 100%; height: 100%; appearance: none; border: 2px solid #444; 
+      border-radius: 6px; background: transparent; transition: 0.2s; cursor: pointer;
     }
-    .custom-check:checked { background: var(--accent); border-color: var(--accent); }
-    .custom-check:checked::after {
-      content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      color: black; font-size: 14px; font-weight: bold;
+    .custom-chk:checked { background: var(--primary); border-color: var(--primary); }
+    .custom-chk:checked::after {
+      content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      color: #000; font-size: 16px; font-weight: bold; pointer-events: none;
     }
 
-    .pb-info { display: flex; flex-direction: column; pointer-events: none; }
-    .pb-name { font-weight: 700; color: #fff; font-size: 1rem; }
-    .pb-val { font-size: 0.75rem; color: #888; margin-top: 3px; font-family: monospace; }
+    .pi-info { flex: 1; }
+    .pi-title { font-weight: 700; font-size: 0.95rem; }
+    .pi-sub { font-size: 0.75rem; color: #888; font-family: monospace; margin-top: 2px; }
     
-    .pb-status { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; background: #000; border: 1px solid #333; }
-    .pb-status.red { color: var(--danger); border-color: var(--danger); }
-    .pb-status.green { color: var(--brand); border-color: var(--brand); }
-
-    /* Expanded Ledger */
-    .pb-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #000; }
-    .pb-body.expanded { max-height: 600px; overflow-y: auto; border-top: 1px solid var(--border); }
-
-    .ledger-row { 
-      display: grid; grid-template-columns: 0.6fr 1.4fr 1fr 1fr; padding: 12px 15px; 
-      border-bottom: 1px solid #1a1a1a; font-size: 0.8rem; color: #ccc;
+    .pi-stat { 
+      font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; 
+      background: #000; border: 1px solid #333; 
     }
-    .ledger-row span { display: flex; align-items: center; }
-    .amt-col { justify-content: flex-end; color: var(--brand); font-weight: 600; font-family: monospace; }
-    .bal-col { justify-content: flex-end; color: #fff; font-family: monospace; }
+    .pi-stat.red { color: var(--danger); border-color: var(--danger); }
+    .pi-stat.green { color: var(--success); border-color: var(--success); }
 
-    /* Footer Buttons (Fixed) */
-    .drawer-footer { 
-      padding: 15px 20px; background: #080808; border-top: 1px solid var(--border); 
-      display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;
-      /* Ensure it stays above iPhone home bar */
-      padding-bottom: max(15px, env(safe-area-inset-bottom)); 
+    /* Ledger Expansion */
+    .pi-ledger { 
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
+      background: #000; border-top: 1px solid #222; 
     }
+    .pi-ledger.open { max-height: 500px; overflow-y: auto; }
     
-    .btn-action { 
-      padding: 16px; border-radius: 12px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;
-      transition: 0.2s;
+    .led-row { 
+      display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 10px 15px;
+      font-size: 0.8rem; border-bottom: 1px solid #1a1a1a; color: #ccc;
     }
-    .btn-action:active { transform: scale(0.95); }
-    
-    .btn-action.sel { 
-      background: var(--accent); color: #000; 
-      box-shadow: 0 4px 15px rgba(41, 121, 255, 0.2); 
+    .led-head { color: #666; font-size: 0.7rem; font-weight: 700; background: #080808; text-transform: uppercase; letter-spacing: 0.5px;}
+
+    /* Footer Buttons */
+    .d-foot { 
+      padding: 15px 20px; background: #0a0a0a; border-top: 1px solid var(--border);
+      display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px;
+      padding-bottom: max(15px, env(safe-area-inset-bottom));
     }
-    .btn-action.all { 
-      background: transparent; border: 1px solid #444; color: var(--text-muted); 
+    .btn-main {
+      border: none; border-radius: 12px; padding: 14px; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-action.all:hover { border-color: var(--text); color: var(--text); background: #111; }
+    .btn-main.primary { background: var(--primary); color: #000; box-shadow: 0 4px 15px rgba(41,121,255,0.25); }
+    .btn-main.secondary { background: transparent; border: 1px solid #444; color: #aaa; }
+    .btn-main.secondary:hover { color: #fff; border-color: #fff; }
 
     /* * ==========================================
-     * 6. ANALYTICS MODAL (CENTER POPUP)
+     * 6. ANALYTICS POPUP
      * ==========================================
      */
-    .analytics-popup {
+    .modal {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
       width: 90%; max-width: 600px; background: #111; border: 1px solid var(--border);
-      border-radius: 24px; z-index: 200; opacity: 0; pointer-events: none; transition: 0.3s;
-      box-shadow: 0 25px 80px rgba(0,0,0,1); display: flex; flex-direction: column; overflow: hidden;
+      border-radius: 20px; opacity: 0; pointer-events: none; transition: 0.3s var(--ease);
+      z-index: 200; box-shadow: 0 20px 60px rgba(0,0,0,0.9); overflow: hidden;
     }
-    .analytics-popup.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+    .modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
     
-    .ap-head { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #080808; }
-    .ap-body { padding: 25px; overflow-y: auto; }
-
-    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-    .stat-tile { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); text-align: center; }
-    .stat-tile h4 { margin: 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; }
-    .stat-tile .mc-val { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 8px; font-family: monospace; }
+    .m-head { padding: 15px 20px; background: #161616; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;}
+    .m-head h3 { margin: 0; font-size: 1rem; color: #fff; letter-spacing: 1px; }
     
-    .chart-container { height: 250px; background: #050505; border-radius: 16px; padding: 15px; border: 1px solid #222; }
+    .m-body { padding: 25px; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: #1a1a1a; padding: 20px; border-radius: 14px; text-align: center; border: 1px solid #333; }
+    .stat-card h4 { margin: 0; font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+    .stat-card .val { font-size: 1.6rem; font-weight: 800; color: #fff; margin-top: 5px; font-family: monospace; }
+    
+    .chart-box { height: 250px; background: #080808; border-radius: 14px; padding: 15px; border: 1px solid #222; }
 
-    /* Mobile Tweaks */
+    /* Responsive */
     @media (max-width: 768px) {
-      .drawer { width: 100%; max-width: 100%; }
-      .drawer-footer { grid-template-columns: 1.5fr 1fr; }
-      .stat-row { grid-template-columns: 1fr; }
-      .chip-btn span { display: none; } /* Hide text keep icon on small screens */
+      .d-foot { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="brand-group">
-      <h1>Reports</h1>
+    <div class="brand">
+      <h1>Reports & Analytics</h1>
       <span>MEENA GROUPS</span>
     </div>
-    <div class="header-icons">
-      <button class="icon-btn" onclick="openAnalytics()" title="Analytics Overview">
+    <div class="nav-actions">
+      <div class="icon-btn" onclick="openAnalytics()" title="Analytics">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-      </button>
+      </div>
       <a href="index.html" class="icon-btn" title="Home">
         <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       </a>
     </div>
   </header>
 
-  <div class="controls-wrapper">
-    <div class="search-box">
-      <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input id="searchInput" placeholder="Search ID or Name..." type="text">
+  <div class="controls-bar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input id="searchInput" type="text" placeholder="Search Name, ID, or Phone..." onkeyup="filterLocalData()">
     </div>
-    <button class="chip-btn blue" onclick="searchCloud()">Find</button>
-    <button class="chip-btn green" onclick="loadRecent(10)">Recent</button>
-    <button class="chip-btn red" onclick="loadAll()">All</button>
+    
+    <div class="filter-row">
+      <button class="chip primary" onclick="searchCloud()">
+        <svg viewBox="0 0 24 24"><path d="M19.36 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96z"/></svg>
+        Find in Cloud
+      </button>
+      <button class="chip success" onclick="loadRecent(15)">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        Load Recent
+      </button>
+      <button class="chip danger" onclick="loadAll()">
+        <svg viewBox="0 0 24 24"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
+        Load All DB
+      </button>
+    </div>
   </div>
 
   <div id="resultContainer" class="content-area">
-    <div style="text-align:center; padding: 80px 20px; color:#444;">
-      <svg style="width:48px;height:48px;fill:#222;margin-bottom:10px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-      <p>Data not loaded.<br>Use "Recent" or "Find" to save data.</p>
+    <div class="empty-state">
+      <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+      <p>System Ready.<br>Search or Load Data to begin.</p>
     </div>
   </div>
 
-  <div class="modal-layer" id="overlay" onclick="closeAll()"></div>
-  
+  <div class="overlay" id="overlay" onclick="closeAll()"></div>
+
   <div class="drawer" id="customerDrawer">
-    <div class="profile-header">
-      <div class="ph-nav">
-        <div class="ph-name">
-          <h2 id="drawName">--</h2>
-          <span id="drawId">ID: --</span>
+    <div class="d-head">
+      <div class="dh-top">
+        <div class="dh-title">
+          <h2 id="drawName">Customer Name</h2>
+          <span id="drawId">ID: #000000</span>
         </div>
-        <button class="close-btn" onclick="closeAll()">✕</button>
+        <button class="btn-close" onclick="closeAll()">×</button>
       </div>
 
-      <div class="ph-details">
-        <div class="ph-item"><label>Phone</label><span id="drawPhone">--</span></div>
-        <div class="ph-item"><label>Location</label><span id="drawPlace">--</span></div>
-        <div class="ph-item"><label>Joined</label><span id="drawJoin">--</span></div>
-        <div class="ph-item"><label>Products</label><span id="drawCount">0</span></div>
+      <div class="d-grid">
+        <div class="info-box">
+          <label>Mobile</label>
+          <div id="drawPhone">--</div>
+        </div>
+        <div class="info-box">
+          <label>Location</label>
+          <div id="drawPlace">--</div>
+        </div>
+        <div class="info-box">
+          <label>Since</label>
+          <div id="drawJoin">--</div>
+        </div>
+        <div class="info-box">
+          <label>Orders</label>
+          <div id="drawCount">0</div>
+        </div>
       </div>
 
-      <div class="ph-actions">
+      <div class="d-actions">
         <a id="btnCall" href="#" class="act-btn call">
           <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
           CALL
         </a>
-        <a id="btnMap" href="#" target="_blank" class="act-btn loc">
+        <a id="btnMap" href="#" target="_blank" class="act-btn map">
           <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          LOCATE
+          MAP
         </a>
       </div>
     </div>
 
-    <div class="drawer-content" id="productContainer">
+    <div class="d-body" id="productContainer">
       </div>
 
-    <div class="drawer-footer">
-      <button class="btn-action sel" onclick="downloadSelected()">
-        <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        <span>Download Selected</span>
+    <div class="d-foot">
+      <button class="btn-main primary" onclick="downloadSelected()">
+        <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Download Selected
       </button>
-      <button class="btn-action all" onclick="downloadAllPDF()">
-        <span>Download All</span>
+      <button class="btn-main secondary" onclick="downloadAllPDF()">
+        Download All
       </button>
     </div>
   </div>
 
-  <div class="analytics-popup" id="analyticsPopup">
-    <div class="ap-head">
-      <h3 style="margin:0;color:#fff;letter-spacing:1px;">BUSINESS PULSE</h3>
-      <button class="close-btn" onclick="closeAll()">✕</button>
+  <div class="modal" id="analyticsPopup">
+    <div class="m-head">
+      <h3>BUSINESS PULSE</h3>
+      <button class="btn-close" onclick="closeAll()" style="width:24px;height:24px;font-size:1rem;">×</button>
     </div>
-    <div class="ap-body">
-      <div class="stat-row">
-        <div class="stat-tile">
-          <h4 style="color:var(--brand)">Collected</h4>
-          <p class="mc-val" id="anaPaid">₹0</p>
+    <div class="m-body">
+      <div class="stat-grid">
+        <div class="stat-card" style="border-color: rgba(0,230,118,0.3)">
+          <h4 style="color: var(--success)">Collected</h4>
+          <div class="val" id="anaPaid">₹0</div>
         </div>
-        <div class="stat-tile">
-          <h4 style="color:var(--danger)">Outstanding</h4>
-          <p class="mc-val" id="anaDue">₹0</p>
+        <div class="stat-card" style="border-color: rgba(255,23,68,0.3)">
+          <h4 style="color: var(--danger)">Outstanding</h4>
+          <div class="val" id="anaDue">₹0</div>
         </div>
       </div>
-      <div class="chart-container">
+      <div class="chart-box">
         <canvas id="financeChart"></canvas>
       </div>
-      <p style="text-align:center; color:#666; font-size:0.8rem; margin-top:15px;">
-        *Calculated based on loaded data. Use "Load All" for complete audit.
-      </p>
     </div>
   </div>
 
@@ -426,31 +457,20 @@
     let chartInstance = null;
 
     // ------------------------------------------
-    // 1. DATA FETCHING LOGIC
+    // 1. DATA FETCHING (ENHANCED SEARCH)
     // ------------------------------------------
-    
+
     window.loadRecent = async (n) => {
       uiLoading();
       try {
         const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(n));
         const snap = await getDocs(q);
         processData(snap);
-      } catch (e) { alert(e.message); }
-    };
-
-    window.searchCloud = async () => {
-      const v = document.getElementById("searchInput").value.trim().toUpperCase();
-      if(!v) return alert("Enter Customer ID");
-      uiLoading();
-      try {
-        const q = query(collection(db, "customers"), where("id", ">=", v), where("id", "<=", v + '\uf8ff'), limit(10));
-        const snap = await getDocs(q);
-        processData(snap);
-      } catch (e) { alert(e.message); }
+      } catch (e) { alert("Error loading: " + e.message); }
     };
 
     window.loadAll = async () => {
-      if(!confirm("⚠️ Load ALL records? Heavy data usage warning.")) return;
+      if(!confirm("⚠️ Load ALL records? This may take data.")) return;
       uiLoading();
       try {
         const snap = await getDocs(collection(db, "customers"));
@@ -458,47 +478,119 @@
       } catch (e) { alert(e.message); }
     };
 
+    // FIXED: Search now looks for Name, ID, or Phone matches
+    window.searchCloud = async () => {
+      const v = document.getElementById("searchInput").value.trim();
+      if(!v) return alert("Please enter Name, ID, or Phone");
+      
+      uiLoading();
+      const colRef = collection(db, "customers");
+      
+      try {
+        // Parallel Queries for better coverage
+        const promises = [
+          // 1. ID Match (Prefix)
+          getDocs(query(colRef, where("id", ">=", v), where("id", "<=", v + '\uf8ff'), limit(5))),
+          // 2. Name Match (Simple Case Sensitive Prefix)
+          getDocs(query(colRef, where("name", ">=", v), where("name", "<=", v + '\uf8ff'), limit(5))),
+          // 3. Phone Match (Exact)
+          getDocs(query(colRef, where("phone", "==", v)))
+        ];
+
+        const snapshots = await Promise.all(promises);
+        
+        // Merge results using Map to prevent duplicates
+        const resultMap = new Map();
+        snapshots.forEach(snap => {
+          snap.forEach(doc => resultMap.set(doc.id, doc.data()));
+        });
+        
+        const results = Array.from(resultMap.values());
+        
+        if (results.length === 0) {
+          document.getElementById("resultContainer").innerHTML = `
+            <div class="empty-state">
+              <p>No matches found for "${v}" in Cloud.</p>
+              <button class="chip primary" onclick="loadAll()">Try Load All</button>
+            </div>`;
+        } else {
+          loadedData = results; // Store globally
+          renderList(loadedData);
+          calcStats();
+        }
+      } catch (e) { alert(e.message); }
+    };
+
+    // NEW: Local Filter (Instant Search)
+    window.filterLocalData = () => {
+      const term = document.getElementById("searchInput").value.toLowerCase();
+      if(loadedData.length === 0) return;
+      
+      const filtered = loadedData.filter(c => {
+        return (c.name && c.name.toLowerCase().includes(term)) ||
+               (c.id && c.id.toLowerCase().includes(term)) ||
+               (c.phone && c.phone.includes(term)) ||
+               (c.place && c.place.toLowerCase().includes(term));
+      });
+      
+      renderList(filtered);
+    };
+
     function uiLoading() {
-      document.getElementById("resultContainer").innerHTML = `<p style="text-align:center; padding:60px; color:#666;">Syncing Cloud Database...</p>`;
+      document.getElementById("resultContainer").innerHTML = `<div style="text-align:center;padding:50px;color:#666;">Syncing...</div>`;
     }
 
+    // Handles both Snapshot or Array
     function processData(snap) {
       loadedData = [];
       snap.forEach(d => loadedData.push(d.data()));
+      
       if(loadedData.length === 0) {
-        document.getElementById("resultContainer").innerHTML = `<p style="text-align:center; padding:60px; color:#666;">No Records Found.</p>`;
+        document.getElementById("resultContainer").innerHTML = `<div class="empty-state"><p>No Records Found.</p></div>`;
       } else {
         renderList(loadedData);
       }
-      calcStats(); // Update analytics even if hidden
+      calcStats();
     }
 
     // ------------------------------------------
-    // 2. RENDER LIST
+    // 2. RENDERING
     // ------------------------------------------
-    
+
     function renderList(data) {
       const div = document.getElementById("resultContainer");
       div.innerHTML = "";
 
+      if(data.length === 0) {
+        div.innerHTML = `<div style="text-align:center;padding:20px;color:#555;">No matching results.</div>`;
+        return;
+      }
+
       data.forEach(c => {
         let totalVal = 0, totalPaid = 0;
-        c.products.forEach(p => { totalVal += p.total; totalPaid += p.paid; });
+        if(c.products) c.products.forEach(p => { totalVal += (p.total||0); totalPaid += (p.paid||0); });
+        
         const bal = totalVal - totalPaid;
-        const status = bal > 0 ? 'due' : 'ok';
+        const status = bal > 1 ? 'due' : 'paid';
 
         const card = document.createElement("div");
-        card.className = `user-card status-${status}`;
+        card.className = `card ${status}`;
         card.onclick = () => openDrawer(c);
         
+        // Highlight search term logic could go here
+        
         card.innerHTML = `
-          <div class="uc-info">
+          <div class="c-details">
             <h3>${c.name}</h3>
-            <p>ID: ${c.id}</p>
+            <p>
+              <span class="cid">${c.id}</span>
+              <span>${c.place || ''}</span>
+            </p>
+            <div class="c-date">Joined: ${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-'}</div>
           </div>
-          <div class="uc-meta">
-            <span class="badge ${bal > 0 ? 'due' : 'paid'}">
-              ${bal > 0 ? '₹' + bal.toLocaleString() : 'CLEARED'}
+          <div class="c-meta">
+            <span class="badge ${bal > 1 ? 'due' : 'paid'}">
+              ${bal > 1 ? '₹' + bal.toLocaleString() : 'CLEARED'}
             </span>
           </div>
         `;
@@ -507,92 +599,106 @@
     }
 
     // ------------------------------------------
-    // 3. CUSTOMER DRAWER & PRODUCTS
+    // 3. DRAWER & INTERACTIONS
     // ------------------------------------------
-    
+
     window.openDrawer = (c) => {
       currentCustomer = c;
-      // Push State for Back Button Logic
       window.history.pushState({ drawer: true }, "");
 
       // Populate Header
       document.getElementById("drawName").innerText = c.name;
-      document.getElementById("drawId").innerText = c.id;
+      document.getElementById("drawId").innerText = "ID: " + c.id;
       document.getElementById("drawPhone").innerText = c.phone || '-';
       document.getElementById("drawPlace").innerText = c.place || '-';
       document.getElementById("drawJoin").innerText = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
-      document.getElementById("drawCount").innerText = c.products.length;
+      document.getElementById("drawCount").innerText = (c.products || []).length;
       
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `https://maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
+      document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
 
-      // Populate Products (Accordion with Checkboxes)
+      // Populate Products
       const container = document.getElementById("productContainer");
-      container.innerHTML = `<div class="section-label"><span>Products</span><span>Select to Print</span></div>`;
+      container.innerHTML = "";
+      
+      if(!c.products || c.products.length === 0) {
+        container.innerHTML = "<div style='text-align:center;color:#666;padding:20px;'>No Products</div>";
+        return;
+      }
 
       c.products.forEach((p, idx) => {
-        const bal = p.total - p.paid;
+        const bal = (p.total||0) - (p.paid||0);
         
-        // Build Ledger Rows
+        // Ledger Logic
         const sorted = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
         let running = 0;
         let rows = "";
+        
+        sorted.forEach(pay => {
+          running += parseFloat(pay.amount);
+          const curBal = p.total - running;
+          rows += `
+            <div class="led-row">
+              <span style="color:#666">#${pay.dueNumber||'-'}</span>
+              <span>${pay.date}</span>
+              <span style="color:var(--success)">₹${pay.amount}</span>
+              <span style="text-align:right">₹${curBal}</span>
+            </div>`;
+        });
 
-        if(sorted.length === 0) {
-          rows = `<div style="padding:15px; text-align:center; color:#444;">No payment history recorded.</div>`;
-        } else {
-          sorted.forEach(pay => {
-            running += parseFloat(pay.amount);
-            const curBal = p.total - running;
-            rows += `
-              <div class="ledger-row">
-                <span style="color:#666">#${pay.dueNumber||'-'}</span>
-                <span>${pay.date}</span>
-                <span class="amt-col">₹${pay.amount}</span>
-                <span class="bal-col">₹${curBal}</span>
-              </div>
-            `;
-          });
-        }
+        if(!rows) rows = `<div style="padding:15px;color:#555;text-align:center;font-size:0.8rem">No payments yet.</div>`;
 
-        const box = document.createElement("div");
-        box.className = "product-box";
-        box.innerHTML = `
-          <div class="pb-head" onclick="toggleAccordion(this)">
-            <div class="check-wrap" onclick="event.stopPropagation()">
-              <input type="checkbox" class="custom-check product-checkbox" data-idx="${idx}">
+        const item = document.createElement("div");
+        item.className = "prod-item";
+        item.innerHTML = `
+          <div class="pi-header" onclick="toggleLedger(this)">
+            <div class="chk-wrap" onclick="event.stopPropagation()">
+              <input type="checkbox" class="custom-chk product-checkbox" data-idx="${idx}">
             </div>
-            <div class="pb-info">
-              <div class="pb-name">${p.name}</div>
-              <div class="pb-val">Value: ₹${p.total.toLocaleString()}</div>
+            <div class="pi-info">
+              <div class="pi-title">${p.name}</div>
+              <div class="pi-sub">Val: ₹${(p.total||0).toLocaleString()}</div>
             </div>
-            <div class="pb-status ${bal>0?'red':'green'}">
-              ${bal>0 ? '₹'+bal : 'PAID'}
+            <div class="pi-stat ${bal > 1 ? 'red' : 'green'}">
+              ${bal > 1 ? '₹'+bal : 'PAID'}
             </div>
           </div>
-          <div class="pb-body">
-            <div style="background:#111; padding:8px 15px; font-size:0.7rem; color:#666; border-bottom:1px solid #222; display:grid; grid-template-columns:0.6fr 1.4fr 1fr 1fr;">
-              <span>DUE</span><span>DATE</span><span style="text-align:right">AMT</span><span style="text-align:right">BAL</span>
-            </div>
-            ${rows}
+          <div class="pi-ledger">
+             <div class="led-row led-head">
+               <span>#</span><span>Date</span><span>Amt</span><span style="text-align:right">Bal</span>
+             </div>
+             ${rows}
           </div>
         `;
-        container.appendChild(box);
+        container.appendChild(item);
       });
 
-      document.getElementById("overlay").classList.add("open");
-      document.getElementById("customerDrawer").classList.add("open");
+      document.getElementById("overlay").classList.add("active");
+      document.getElementById("customerDrawer").classList.add("active");
     };
 
-    window.toggleAccordion = (header) => {
-      const body = header.nextElementSibling;
-      body.classList.toggle("expanded");
+    window.toggleLedger = (el) => {
+      const ledger = el.nextElementSibling;
+      ledger.classList.toggle("open");
+    };
+
+    window.closeAll = () => {
+      document.getElementById("overlay").classList.remove("active");
+      document.getElementById("customerDrawer").classList.remove("active");
+      document.getElementById("analyticsPopup").classList.remove("active");
+      if(history.state) history.back();
+    };
+
+    window.onpopstate = () => {
+      document.getElementById("overlay").classList.remove("active");
+      document.getElementById("customerDrawer").classList.remove("active");
+      document.getElementById("analyticsPopup").classList.remove("active");
     };
 
     // ------------------------------------------
-    // 4. PDF ENGINE
+    // 4. PDF GENERATION
     // ------------------------------------------
-    
+
     window.downloadAllPDF = () => {
       if(!currentCustomer) return;
       generatePDF(currentCustomer, currentCustomer.products);
@@ -601,11 +707,10 @@
     window.downloadSelected = () => {
       if(!currentCustomer) return;
       const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-      if(checkboxes.length === 0) return alert("Please select at least one product.");
+      if(checkboxes.length === 0) return alert("Select at least one product.");
       
       const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
       const selectedProducts = currentCustomer.products.filter((_, i) => selectedIndices.includes(i));
-      
       generatePDF(currentCustomer, selectedProducts);
     };
 
@@ -613,121 +718,114 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Brand Header (Black Band)
-      doc.setFillColor(0, 0, 0); 
+      // Modern Header
+      doc.setFillColor(15, 15, 15);
       doc.rect(0, 0, 210, 40, 'F');
       
-      doc.setTextColor(0, 230, 118); // Neon Green Text
-      doc.setFontSize(22); 
+      doc.setTextColor(41, 121, 255); // Brand Blue
+      doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
-      doc.text("MeenaGroups", 14, 20);
+      doc.text("MeenaGroups", 14, 22);
       
-      doc.setTextColor(255, 255, 255); 
-      doc.setFontSize(10); 
+      doc.setTextColor(200, 200, 200);
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("STATEMENT OF ACCOUNT", 14, 28);
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 28);
+      doc.text("ACCOUNT STATEMENT", 14, 30);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 30);
 
-      // Customer Details
-      doc.setTextColor(0, 0, 0); 
-      doc.setFontSize(12); 
+      // Customer Info
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text(`CUSTOMER: ${c.name.toUpperCase()}`, 14, 55);
+      doc.text(c.name.toUpperCase(), 14, 55);
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
       doc.text(`ID: ${c.id}`, 14, 62);
-      doc.text(`Phone: ${c.phone || '-'}`, 80, 62);
-      doc.text(`Location: ${c.place || '-'}`, 140, 62);
+      doc.text(`Mobile: ${c.phone || '-'}`, 60, 62);
+      doc.text(`City: ${c.place || '-'}`, 120, 62);
 
-      let finalY = 75;
+      let yPos = 75;
 
-      // Iterate Products
       products.forEach(p => {
-        // Product Header
-        doc.setFillColor(245, 245, 245); 
-        doc.rect(14, finalY, 182, 12, 'F');
-        doc.setTextColor(0, 0, 0); 
-        doc.setFontSize(11); 
-        doc.setFont("helvetica", "bold");
-        doc.text(p.name, 16, finalY + 8);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Total Value: Rs.${p.total}`, 140, finalY + 8);
+        // Product Title Bar
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, yPos, 182, 10, 'F');
         
-        finalY += 14;
+        doc.setTextColor(0,0,0);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(p.name, 16, yPos + 7);
+        doc.text(`Value: Rs.${p.total}`, 160, yPos + 7);
+        
+        yPos += 12;
 
-        // Prepare Data
+        // Table Data
         const rows = [];
         let running = 0;
         const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
 
         if(payments.length === 0) {
-           rows.push(['-', '-', 'No Payments Recorded', '-', `Rs.${p.total}`]);
+           rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]);
         } else {
            payments.forEach(pay => {
              running += parseFloat(pay.amount);
-             const bal = p.total - running;
              rows.push([ 
                `#${pay.dueNumber||'-'}`, 
                pay.date, 
-               pay.type||'Manual', 
+               pay.type||'Cash', 
                `Rs.${pay.amount}`, 
-               `Rs.${bal}` 
+               `Rs.${p.total - running}` 
              ]);
            });
         }
 
-        // Draw Table
         doc.autoTable({
-          startY: finalY,
-          head: [['Due', 'Date', 'Type', 'Paid', 'Bal']],
+          startY: yPos,
+          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']],
           body: rows,
-          theme: 'striped',
-          headStyles: { fillColor: [20, 20, 20] },
-          styles: { fontSize: 9 },
+          theme: 'grid',
+          headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+          styles: { fontSize: 9, cellPadding: 3 },
           columnStyles: { 
-            3: { fontStyle: 'bold', textColor: [0, 150, 0] }, // Paid Green
+            3: { fontStyle: 'bold', textColor: [0, 150, 0] },
             4: { fontStyle: 'bold' }
           },
           margin: { left: 14, right: 14 }
         });
 
-        finalY = doc.lastAutoTable.finalY + 15;
+        yPos = doc.lastAutoTable.finalY + 15;
       });
 
-      // Professional Footer with Link
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, pageHeight - 20, 196, pageHeight - 20);
-      
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      doc.text("Check live status at:", 14, pageHeight - 12);
-      
-      doc.setTextColor(41, 121, 255); // Blue Link
-      doc.textWithLink("meena.goorac.biz", 45, pageHeight - 12, { url: "http://meena.goorac.biz" });
-      
-      doc.setTextColor(150);
-      doc.text("System Generated Report", 150, pageHeight - 12);
+      // Footer
+      const h = doc.internal.pageSize.height;
+      doc.setDrawColor(200);
+      doc.line(14, h - 20, 196, h - 20);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text("Thank you for your business.", 14, h - 12);
+      doc.textWithLink("meena.goorac.biz", 170, h - 12, { url: "http://meena.goorac.biz" });
 
       doc.save(`Statement_${c.id}.pdf`);
     };
 
     // ------------------------------------------
-    // 5. ANALYTICS & UTILITIES
+    // 5. ANALYTICS
     // ------------------------------------------
-    
+
     window.openAnalytics = () => {
       window.history.pushState({ modal: true }, "");
       calcStats();
-      document.getElementById("overlay").classList.add("open");
-      document.getElementById("analyticsPopup").classList.add("open");
+      document.getElementById("overlay").classList.add("active");
+      document.getElementById("analyticsPopup").classList.add("active");
     };
 
     function calcStats() {
       let paid = 0, total = 0;
-      loadedData.forEach(c => c.products.forEach(p => { paid += p.paid; total += p.total; }));
+      loadedData.forEach(c => {
+        if(c.products) c.products.forEach(p => { paid += (p.paid||0); total += (p.total||0); });
+      });
       const due = total - paid;
       
       document.getElementById("anaPaid").innerText = "₹" + paid.toLocaleString();
@@ -737,47 +835,28 @@
       if(chartInstance) chartInstance.destroy();
       
       chartInstance = new Chart(ctx, {
-        type: 'bar',
+        type: 'doughnut',
         data: {
           labels: ['Collected', 'Pending'],
           datasets: [{ 
-            label: 'Amount (₹)', 
             data: [paid, due], 
             backgroundColor: ['#00e676', '#ff1744'],
-            borderWidth: 0
+            borderWidth: 0,
+            hoverOffset: 4
           }]
         },
         options: { 
           responsive: true, 
           maintainAspectRatio: false,
-          plugins: { legend: { display:false } },
-          scales: { 
-            x: { display:false }, 
-            y: { grid:{ color:'#222' }, ticks:{ color:'#666' } } 
-          } 
+          plugins: { 
+            legend: { position: 'bottom', labels: { color: '#fff', font: {size: 10} } } 
+          }
         }
       });
     }
 
-    // Modal Closing Logic
-    window.closeAll = () => {
-      document.getElementById("overlay").classList.remove("open");
-      document.getElementById("customerDrawer").classList.remove("open");
-      document.getElementById("analyticsPopup").classList.remove("open");
-      
-      // Clean history if closed manually
-      if(history.state) history.back();
-    };
-
-    // Hardware Back Button Listener
-    window.onpopstate = () => {
-      document.getElementById("overlay").classList.remove("open");
-      document.getElementById("customerDrawer").classList.remove("open");
-      document.getElementById("analyticsPopup").classList.remove("open");
-    };
-
-    // Default Load
-    loadRecent(10);
+    // Init
+    loadRecent(15);
   </script>
 </body>
 </html>
