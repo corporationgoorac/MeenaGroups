@@ -333,9 +333,9 @@
     /* Input Row */
     .input-row { 
       display: grid; 
-      grid-template-columns: 1.5fr 1fr; 
+      grid-template-columns: 1fr 1fr; 
       gap: 15px; 
-      margin-bottom: 25px; 
+      margin-bottom: 15px; 
     }
     
     .input-field {
@@ -526,14 +526,19 @@
             <input type="number" id="amount" class="input-field" placeholder="0">
           </div>
           <div>
-            <label>Date</label>
-            <input type="date" id="date" class="input-field">
+            <label>Target Due #</label>
+            <input type="number" id="targetDue" class="input-field">
           </div>
+        </div>
+        
+        <div style="margin-bottom:20px;">
+          <label>Date</label>
+          <input type="date" id="date" class="input-field">
         </div>
 
         <button id="btnSave" class="btn-save" onclick="saveToTempCollection()">
           <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-          CONFIRM & SAVE
+          CONFIRM & SPLIT
         </button>
 
         <div id="postSaveActions" class="action-row hidden">
@@ -659,7 +664,7 @@
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
-    // --- 3. CALCULATE STATS ---
+    // --- 3. CALCULATE STATS & PRE-FILL TARGET DUE ---
     async function updateProductDetails(index) {
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
@@ -674,7 +679,7 @@
           collection(db, "temp_entries"), 
           where("customerId", "==", selectedCustomer.id),
           where("productName", "==", p.name),
-          where("status", "in", ["pending", "draft"]) // FIXED: Correctly counts drafts too
+          where("status", "in", ["pending", "draft"]) 
         );
         const logSnap = await getDocs(logsQ);
         logSnap.forEach(doc => {
@@ -698,15 +703,26 @@
       document.getElementById("dispPaid").innerText = `₹${existingPaid}`;
       document.getElementById("dispBal").innerText = `₹${balance}`;
       document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
+      
+      // Auto-fill Target Due Input
+      document.getElementById("targetDue").value = calculatedNextDue;
     }
 
-    // --- 4. SAVE ENTRY & VOICE FEEDBACK ---
+    // --- 4. SAVE ENTRY (WITH SPLIT LOGIC) ---
     window.saveToTempCollection = async () => {
-      const amount = parseFloat(document.getElementById("amount").value);
+      const amountInput = parseFloat(document.getElementById("amount").value);
+      const targetDueInput = parseInt(document.getElementById("targetDue").value);
       const date = document.getElementById("date").value;
 
-      if (!amount || amount <= 0) return alert("❌ Enter valid amount");
+      if (!amountInput || amountInput <= 0) return alert("❌ Enter valid amount");
+      if (!targetDueInput || targetDueInput < 1) return alert("❌ Check Due Number");
       if (!date) return alert("❌ Select date");
+
+      // Validate Start vs Target
+      const startDue = calculatedNextDue;
+      if (targetDueInput < startDue) {
+          return alert(`❌ Target Due (#${targetDueInput}) cannot be less than Next Due (#${startDue})`);
+      }
 
       const btn = document.getElementById("btnSave");
       btn.disabled = true;
@@ -715,31 +731,51 @@
       try {
         const p = selectedCustomer.products[selectedProductIndex];
         
-        const entryData = {
-          customerId: selectedCustomer.id,
-          customerName: selectedCustomer.name,
-          customerPhone: selectedCustomer.phone,
-          productName: p.name,
-          productIndex: selectedProductIndex, 
-          amount: amount,
-          date: date,
-          dueNumber: calculatedNextDue, 
-          status: "draft", 
-          timestamp: serverTimestamp(), 
-          agentEntry: true
-        };
+        // --- CALCULATION FOR SPLIT ---
+        const numberOfDues = (targetDueInput - startDue) + 1;
+        const amountPerDue = amountInput / numberOfDues;
+        const roundedAmount = Math.floor(amountPerDue * 100) / 100;
 
-        await addDoc(collection(db, "temp_entries"), entryData);
+        // Loop to create entries
+        for(let i = 0; i < numberOfDues; i++) {
+           const currentDueNum = startDue + i;
+           
+           // Adjust last entry for remainder
+           let finalAmt = roundedAmount;
+           if(i === numberOfDues - 1) {
+              finalAmt = amountInput - (roundedAmount * (numberOfDues - 1));
+           }
 
-        showToast("Entry Saved Successfully!");
+           const entryData = {
+              customerId: selectedCustomer.id,
+              customerName: selectedCustomer.name,
+              customerPhone: selectedCustomer.phone,
+              productName: p.name,
+              productIndex: selectedProductIndex, 
+              amount: parseFloat(finalAmt.toFixed(2)),
+              date: date,
+              dueNumber: currentDueNum, 
+              status: "draft", 
+              timestamp: serverTimestamp(), 
+              agentEntry: true,
+              splitInfo: numberOfDues > 1 ? `(${i+1}/${numberOfDues})` : ""
+           };
+
+           await addDoc(collection(db, "temp_entries"), entryData);
+           
+           // Update Last Receipt Data (This ensures we print the LAST one)
+           lastReceiptData = entryData;
+        }
+
+        showToast(`Saved ${numberOfDues} Entries!`);
         
-        // Prepare Receipt Data
-        lastBalance = p.total - (existingPaid + amount);
-        lastTotalPaid = existingPaid + amount;
-        lastReceiptData = entryData;
+        // --- RECEIPT DATA (Cumulative for the whole split) ---
+        // We want the Receipt to show the FINAL status after ALL these splits are paid
+        lastTotalPaid = existingPaid + amountInput;
+        lastBalance = p.total - lastTotalPaid;
         
-        // --- VOICE: READ ALOUD AMOUNT ---
-        speakAmount(amount);
+        // Voice Feedback (Total Amount)
+        speakAmount(amountInput);
 
         document.getElementById("amount").value = "";
         btn.innerHTML = "✅ SAVED";
@@ -756,7 +792,7 @@
           btn.disabled = false;
           btn.innerHTML = `
             <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-            CONFIRM & SAVE`;
+            CONFIRM & SPLIT`;
         }, 2000);
       }
     };
@@ -771,19 +807,12 @@
     // --- 5. TEXT-TO-SPEECH (TTS) FUNCTION ---
     function speakAmount(amount) {
       if ('speechSynthesis' in window) {
-        // Cancel any current speech
         window.speechSynthesis.cancel();
-        
         const text = `Received amount, ${amount} rupees.`;
         const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Optional: Set voice properties (rate, pitch)
         utterance.rate = 1; 
         utterance.pitch = 1;
-        
         window.speechSynthesis.speak(utterance);
-      } else {
-        console.log("Browser does not support TTS");
       }
     }
 
@@ -850,6 +879,9 @@
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
       y += 50; 
       
+      // Note: We show the single entry amount here. 
+      // If user paid 5000 split into 5, this will show 1000. 
+      // But the Balance reflects the full payment.
       ctx.font = "bold 50px Arial"; 
       ctx.fillText(`₹${data.amount}`, width/2, y - 10);
       y += 15;
@@ -900,18 +932,14 @@
     }
 
     // --- 7. NEW: MACHINE LEARNING SPACE CALCULATOR (TEXT COPY) ---
-    // This function acts like a "Monospace Simulator" to align text even on bad printers.
     window.generateSmartReceiptText = (data, totalPaid, balance) => {
-      // Config: Total width of receipt (characters)
       const WIDTH = 32; 
 
-      // Basic helper to center text
       const center = (txt) => {
         let pad = Math.max(0, Math.floor((WIDTH - txt.length) / 2));
         return " ".repeat(pad) + txt;
       };
 
-      // Smart Spacer: Calculates needed spaces for "Label.........Value"
       const spread = (label, value) => {
         let valStr = String(value);
         let labStr = String(label);
@@ -921,8 +949,6 @@
 
       const line = "-".repeat(WIDTH);
 
-      // --- THE PAPER SAVER LAYOUT ---
-      // No extra newlines. Compact. Clean.
       let receipt = 
 `${center("MEENA GROUPS")}
 ${center("Payment Receipt")}
@@ -947,10 +973,7 @@ ${center("to see your eCard")}`;
 
     window.copyReceiptText = () => {
       if(!lastReceiptData) return alert("No receipt data");
-      
-      // Use the ML Smart Generator
       const smartText = generateSmartReceiptText(lastReceiptData, lastTotalPaid, lastBalance);
-      
       navigator.clipboard.writeText(smartText).then(() => {
         showToast("Receipt Copied (Optimized)!");
       }).catch(err => {
@@ -961,14 +984,10 @@ ${center("to see your eCard")}`;
     // --- 8. DOWNLOAD ACTION ---
     window.downloadLastReceipt = () => {
       if(!lastReceiptData) return;
-      
       drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('downloadCanvas');
-      
-      // Create filename
       const filename = `REC_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
 
-      // Trigger download
       const link = document.createElement('a');
       link.download = filename;
       link.href = canvas.toDataURL("image/png");
@@ -981,7 +1000,6 @@ ${center("to see your eCard")}`;
     window.printReceipt = () => {
       if(!lastReceiptData) return alert("No receipt to print");
       
-      // Update canvas first to ensure latest data
       drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
       const canvas = document.getElementById('downloadCanvas');
       const imgData = canvas.toDataURL("image/png");
@@ -989,8 +1007,6 @@ ${center("to see your eCard")}`;
       const printWindow = window.open('', '', 'width=384,height=600');
       if(!printWindow) return alert("Allow popups to print");
 
-      // Forces strict 58mm width layout for printing
-      // Added margins: 0mm to remove headers/footers from browser print
       printWindow.document.write(`
         <html>
         <head>
