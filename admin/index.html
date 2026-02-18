@@ -77,12 +77,11 @@
       font-size: 1.25rem;
       font-weight: 800;
       letter-spacing: 0.5px;
-      color: var(--text);
       text-transform: uppercase;
-      background: linear-gradient(90deg, #fff, #888);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
     }
+    /* UPDATED BRAND COLORS */
+    .brand-red { color: #ff1744; }
+    .brand-white { color: #ffffff; }
 
     .brand-sub {
       font-size: 0.65rem;
@@ -335,7 +334,9 @@
 
   <header class="app-header">
     <div class="brand-container">
-      <div class="brand-main">MeenaGroups</div>
+      <div class="brand-main">
+        <span class="brand-red">Meena</span><span class="brand-white">Groups</span>
+      </div>
       <div class="brand-sub">powered by <span>Goorac</span></div>
     </div>
 
@@ -460,7 +461,7 @@
       <span>Pay</span>
     </a>
     <a href="review.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       <span>Sync</span>
     </a>
     <a href="report.html" class="nav-item">
@@ -471,7 +472,7 @@
 
   <script type="module">
     import { db } from "./config.js";
-    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     // --- CHART INSTANCES (Global to allow updates) ---
     let charts = {};
@@ -488,46 +489,86 @@
         const parsed = JSON.parse(storedData);
         renderDashboard(parsed);
       } else {
-        // No data found? Prompt user or initial sync.
         document.getElementById('greetingTitle').innerText = "Welcome";
       }
     });
 
-    // --- 2. SYNC LOGIC (FETCH FIREBASE + UPDATE HISTORY) ---
+    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS) ---
     window.manualSync = async () => {
       const btn = document.querySelector('.header-sync-btn');
-      if(btn.classList.contains('syncing')) return; // Prevent double click
+      if(btn.classList.contains('syncing')) return; 
 
-      btn.classList.add('syncing'); // Start Spin
+      btn.classList.add('syncing'); 
 
       try {
-        console.log("Fetching from Firebase...");
+        console.log("Fetching Full Customer Data...");
         
-        // A. Get Global Stats
-        const statsRef = doc(db, "metadata", "stats");
-        const statsSnap = await getDoc(statsRef);
-        const stats = statsSnap.exists() ? statsSnap.data() : { totalPaid: 0, totalBalance: 0 };
+        // --- STEP A: Fetch ALL Customers ---
+        const custSnapshot = await getDocs(collection(db, "customers"));
+        
+        let calculatedPaid = 0;
+        let calculatedDue = 0;
+        
+        // Stats Accumulators
+        let historyMap = {}; // Date -> Total
+        let productCounts = { 'Loans': 0, 'EMI': 0, 'Ins.': 0, 'Other': 0 };
+        let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 }; // Sun-Sat
 
-        // B. Store in Daily History (For Graphs)
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        let history = JSON.parse(localStorage.getItem('dashboardHistory') || '{}');
-        
-        // Save today's snapshot
-        history[today] = {
-          paid: stats.totalPaid,
-          balance: stats.totalBalance,
-          timestamp: new Date().getTime()
-        };
-        
-        localStorage.setItem('dashboardHistory', JSON.stringify(history));
+        // --- STEP B: Iterate & Calculate ---
+        custSnapshot.forEach(doc => {
+          const c = doc.data();
+          
+          if(c.products && Array.isArray(c.products)) {
+             c.products.forEach(p => {
+                // 1. Totals
+                let pPaid = 0;
+                if(p.payments) {
+                   p.payments.forEach(pay => {
+                      pPaid += parseFloat(pay.amount || 0);
+                      
+                      // 2. History (Timeline)
+                      if(pay.date) {
+                         const dKey = pay.date; // YYYY-MM-DD
+                         historyMap[dKey] = (historyMap[dKey] || 0) + parseFloat(pay.amount);
+                         
+                         // 3. Weekly Activity
+                         const dayIndex = new Date(pay.date).getDay();
+                         weekActivity[dayIndex] += 1;
+                      }
+                   });
+                }
+                // Fallback if 'paid' field exists but payments array incomplete
+                if(p.paid > pPaid) pPaid = p.paid;
+
+                calculatedPaid += pPaid;
+                calculatedDue += (parseFloat(p.total || 0) - pPaid);
+
+                // 4. Product Categories
+                let pName = (p.name || '').toLowerCase();
+                if(pName.includes('loan')) productCounts['Loans']++;
+                else if(pName.includes('emi') || pName.includes('mobile')) productCounts['EMI']++;
+                else if(pName.includes('ins')) productCounts['Ins.']++;
+                else productCounts['Other']++;
+             });
+          }
+        });
+
+        const totals = { totalPaid: calculatedPaid, totalBalance: calculatedDue };
+
+        // Prepare History Object for Chart
+        const sortedDates = Object.keys(historyMap).sort();
+        // Limit to last 30 days stored in dashboardHistory to prevent bloat
+        let compactHistory = {};
+        sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
         // C. Prepare Data Object
         const data = {
-          totals: stats,
-          history: history, // Pass history to charts
-          // Mock data for things we don't have endpoints for yet
-          products: [30, 50, 20], 
-          efficiency: [80, 90, 70, 60, 85]
+          totals: totals,
+          history: compactHistory, 
+          products: [productCounts['Loans'], productCounts['EMI'], productCounts['Ins.'], productCounts['Other']], 
+          // Week activity array for bar chart
+          weekData: [weekActivity[1], weekActivity[2], weekActivity[3], weekActivity[4], weekActivity[5], weekActivity[6], weekActivity[0]],
+          efficiency: [85, 90, 75, 80, 88] // Derived or static for now
         };
 
         // D. Save to Cache
@@ -544,8 +585,8 @@
         alert("Sync Failed: " + e.message);
       } finally {
         setTimeout(() => {
-          btn.classList.remove('syncing'); // Stop Spin
-        }, 800); // Minimum spin time for effect
+          btn.classList.remove('syncing'); 
+        }, 800); 
       }
     };
 
@@ -563,7 +604,7 @@
       document.getElementById('dispRecovery').innerText = `${recoveryRate}%`;
 
       // Run Financial Advisor
-      analyzeHealth(totalPaid, totalBalance, recoveryRate);
+      analyzeHealth(totalPaid, totalBalance, recoveryRate, data.history);
 
       // Render Charts
       initCharts(data, recoveryRate);
@@ -578,7 +619,7 @@
     }
 
     // --- 4. AI FINANCIAL ADVISOR LOGIC ---
-    function analyzeHealth(paid, due, rate) {
+    function analyzeHealth(paid, due, rate, history) {
       const card = document.getElementById('financialAdviceCard');
       const scoreEl = document.getElementById('healthScore');
       const badgeEl = document.getElementById('healthBadge');
@@ -593,6 +634,16 @@
       scoreEl.style.borderColor = '';
       badgeEl.style.background = '';
       badgeEl.style.color = '';
+      
+      // Trend Analysis
+      const dates = Object.keys(history || {});
+      let trendTxt = "Data insufficient for trend analysis.";
+      if(dates.length > 1) {
+         const last = history[dates[dates.length-1]].paid;
+         const prev = history[dates[dates.length-2]].paid;
+         if(last > prev) trendTxt = "Recent collections are trending upwards 📈.";
+         else trendTxt = "Recent collections showed a slight dip compared to previous days.";
+      }
 
       if (rate >= 80) {
         card.style.borderLeftColor = 'var(--primary)';
@@ -601,7 +652,7 @@
         badgeEl.style.color = 'var(--primary)';
         badgeEl.innerText = 'EXCELLENT';
         titleEl.innerText = 'Strong Performance';
-        textEl.innerText = 'Recovery rate is exceptional. Low risk. Safe to expand high-value loans to trusted clients.';
+        textEl.innerText = `Recovery rate is exceptional. ${trendTxt} Low risk. Safe to expand high-value loans.`;
       } else if (rate >= 50) {
         card.style.borderLeftColor = 'var(--secondary)';
         scoreEl.style.borderColor = 'var(--secondary)';
@@ -609,7 +660,7 @@
         badgeEl.style.color = 'var(--secondary)';
         badgeEl.innerText = 'STABLE';
         titleEl.innerText = 'Balanced Growth';
-        textEl.innerText = 'Steady collections. Keep maintaining this pace. Review older dues before aggressive expansion.';
+        textEl.innerText = `Steady collections. ${trendTxt} Maintain pace. Review older dues before aggressive expansion.`;
       } else {
         card.style.borderLeftColor = 'var(--danger)';
         scoreEl.style.borderColor = 'var(--danger)';
@@ -617,7 +668,7 @@
         badgeEl.style.color = 'var(--danger)';
         badgeEl.innerText = 'CRITICAL';
         titleEl.innerText = 'High Risk Alert';
-        textEl.innerText = 'Outstanding debt exceeds safe limits. Halt new loans immediately. Focus agents purely on recovery.';
+        textEl.innerText = `Outstanding debt is high. ${trendTxt} Halt new loans immediately. Focus agents purely on recovery.`;
       }
     }
 
@@ -626,23 +677,16 @@
       const textColor = '#888';
       const gridColor = '#222';
 
-      // 1. Line Chart (Revenue History from LocalStorage)
-      // Extract last 7 entries from history
+      // 1. Line Chart (Real History)
       let labels = [];
       let historyData = [];
       
       if (data.history) {
-        const sortedDates = Object.keys(data.history).sort().slice(-7); // Last 7 days
-        labels = sortedDates.map(d => d.substring(5)); // Remove Year (MM-DD)
+        const sortedDates = Object.keys(data.history).sort();
+        labels = sortedDates.map(d => d.substring(5)); // Remove Year
         historyData = sortedDates.map(d => data.history[d].paid);
       }
       
-      // Fallback if no history
-      if (labels.length === 0) {
-        labels = ['Day 1', 'Day 2', 'Day 3', 'Today'];
-        historyData = [data.totals.totalPaid * 0.9, data.totals.totalPaid * 0.95, data.totals.totalPaid * 0.98, data.totals.totalPaid];
-      }
-
       const ctxRev = document.getElementById('chartRevenue').getContext('2d');
       if(charts.revenue) charts.revenue.destroy();
       charts.revenue = new Chart(ctxRev, {
@@ -650,7 +694,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Total Collected (₹)',
+            label: 'Collected (₹)',
             data: historyData,
             borderColor: '#00e676',
             backgroundColor: 'rgba(0, 230, 118, 0.1)',
@@ -690,7 +734,7 @@
         }
       });
 
-      // 3. Bar (Daily) - Simulated for Demo (Real daily data needs complex query)
+      // 3. Bar (Daily Activity from aggregated weekData)
       const ctxDaily = document.getElementById('chartDaily').getContext('2d');
       if(charts.daily) charts.daily.destroy();
       charts.daily = new Chart(ctxDaily, {
@@ -698,8 +742,8 @@
         data: {
           labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
           datasets: [{
-            label: 'Activity',
-            data: [12, 19, 3, 5, 2, 3, 10], 
+            label: 'Transactions',
+            data: data.weekData || [0,0,0,0,0,0,0], 
             backgroundColor: '#2979ff',
             borderRadius: 4
           }]
@@ -715,19 +759,20 @@
         }
       });
 
-      // 4. Polar Area (Products)
+      // 4. Polar Area (Real Product Counts)
       const ctxProd = document.getElementById('chartProduct').getContext('2d');
       if(charts.prod) charts.prod.destroy();
       charts.prod = new Chart(ctxProd, {
         type: 'polarArea',
         data: {
-          labels: ['Loans', 'EMI', 'Ins.'],
+          labels: ['Loans', 'EMI', 'Ins.', 'Other'],
           datasets: [{
             data: data.products,
             backgroundColor: [
               'rgba(0, 230, 118, 0.6)',
               'rgba(41, 121, 255, 0.6)',
-              'rgba(255, 145, 0, 0.6)'
+              'rgba(255, 145, 0, 0.6)',
+              'rgba(150, 150, 150, 0.6)'
             ],
             borderWidth: 0
           }]
@@ -740,7 +785,7 @@
         }
       });
 
-      // 5. Radar (Efficiency)
+      // 5. Radar (Efficiency - Static for now as agent logic is complex)
       const ctxEff = document.getElementById('chartEfficiency').getContext('2d');
       if(charts.eff) charts.eff.destroy();
       charts.eff = new Chart(ctxEff, {
