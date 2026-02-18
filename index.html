@@ -136,7 +136,7 @@
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* * ==========================================
-     * 4. MAIN DASHBOARD (HIDDEN INITIALLY)
+     * 4. MAIN DASHBOARD
      * ==========================================
      */
     #dashboard-view { display: none; padding: 20px; max-width: 900px; margin: 0 auto; padding-bottom: 80px; }
@@ -168,10 +168,10 @@
     .prod-name { font-weight: 700; font-size: 1.1rem; }
     .prod-val { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
 
-    /* Ledger Table - Detailed View */
-    .table-container { overflow-x: auto; } /* Scroll for small screens */
+    /* Ledger Table - Updated for Mobile Fitness */
+    .table-container { width: 100%; } 
     
-    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 500px; }
+    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     
     .ledger-table th { 
       text-align: left; padding: 15px; color: var(--text-muted); 
@@ -218,6 +218,47 @@
     }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* * ==========================================
+     * 6. MOBILE RESPONSIVE FIX (CARD LAYOUT)
+     * ==========================================
+     */
+    @media (max-width: 650px) {
+        .ledger-table thead { display: none; } /* Hide Headers */
+        
+        .ledger-table tr {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 Column Layout */
+            gap: 8px;
+            background: #151515;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #222;
+        }
+
+        .ledger-table td {
+            display: block;
+            padding: 2px 0;
+            border: none;
+        }
+
+        /* Detail (Top Left) */
+        .td-det { grid-column: 1 / span 1; }
+        
+        /* Status (Top Right) */
+        .td-stat { grid-column: 2 / span 1; text-align: right; }
+        
+        /* Paid (Bottom Left) */
+        .td-pay { grid-column: 1 / span 1; margin-top: 8px; }
+        .td-pay::before { content: "Paid: "; color: #555; font-size: 0.7rem; }
+
+        /* Balance (Bottom Right) */
+        .td-bal { grid-column: 2 / span 1; text-align: right; margin-top: 8px; }
+        .td-bal::before { content: "Bal: "; color: #555; font-size: 0.7rem; }
+        
+        .card-top, .card-footer { padding: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -296,7 +337,6 @@
         let accessGranted = false;
         
         // 2. CHECK APPROVED PAYMENTS
-        // Does any product have this Due Number in approved history?
         if (data.products) {
             accessGranted = data.products.some(p => {
                 if(!p.payments) return false;
@@ -305,7 +345,6 @@
         }
 
         // 3. CHECK PENDING/DRAFT PAYMENTS (Agent Entries)
-        // If not found in approved, check if an agent has it as draft/pending
         if (!accessGranted) {
             const q = query(
                 collection(db, "temp_entries"),
@@ -314,7 +353,7 @@
             );
             const tempSnap = await getDocs(q);
             if (!tempSnap.empty) {
-                accessGranted = true; // Found in pending/drafts!
+                accessGranted = true; 
             }
         }
 
@@ -341,7 +380,7 @@
       const container = document.getElementById("products-container");
       container.innerHTML = `<div style="text-align:center; padding:40px; color:#666;">Loading live transactions...</div>`;
 
-      // 5. Fetch Temporary Entries (Pending/Drafts) for Display
+      // 5. Fetch Temporary Entries (Pending/Drafts)
       let tempEntries = [];
       try {
         const q = query(collection(db, "temp_entries"), where("customerId", "==", custId));
@@ -349,7 +388,7 @@
         tempSnap.forEach(doc => tempEntries.push(doc.data()));
       } catch(e) { console.error("Live fetch error", e); }
 
-      container.innerHTML = ""; // Clear loader
+      container.innerHTML = ""; 
 
       // 6. Render Each Product Ledger
       customer.products.forEach(p => {
@@ -358,7 +397,7 @@
         let allTxns = (p.payments || []).map(pay => ({
           ...pay,
           status: 'approved',
-          timestamp: new Date(pay.date).getTime() // Approximation for sorting
+          timestamp: new Date(pay.date).getTime() 
         }));
 
         // B. Merge Pending/Drafts for THIS product
@@ -369,7 +408,7 @@
             dueNumber: t.dueNumber,
             date: t.date,
             amount: t.amount,
-            status: t.status, // 'pending' or 'draft'
+            status: t.status, 
             timestamp: t.timestamp ? (t.timestamp.toDate ? t.timestamp.toDate().getTime() : Date.now()) : Date.now()
           });
         });
@@ -384,7 +423,6 @@
         allTxns.forEach(tx => {
           runningPaid += parseFloat(tx.amount);
           
-          // Calculate Remaining Balance AFTER this specific payment
           let rowBalance = p.total - runningPaid;
 
           // Status Badge Logic
@@ -392,15 +430,16 @@
           if(tx.status === 'pending') badge = `<span class="status-badge st-pending">PENDING</span>`;
           if(tx.status === 'draft') badge = `<span class="status-badge st-draft">PROCESSING</span>`;
 
+          // Note: Added classes 'td-det', 'td-stat', etc. to enable mobile layout
           rowsHtml += `
             <tr>
-              <td>
+              <td class="td-det">
                 <span class="col-due">#${tx.dueNumber}</span>
                 <span class="col-date">${tx.date}</span>
               </td>
-              <td>${badge}</td>
-              <td class="col-amt">₹${parseInt(tx.amount).toLocaleString()}</td>
-              <td class="col-bal">₹${rowBalance.toLocaleString()}</td>
+              <td class="td-stat">${badge}</td>
+              <td class="td-pay col-amt">₹${parseInt(tx.amount).toLocaleString()}</td>
+              <td class="td-bal col-bal">₹${rowBalance.toLocaleString()}</td>
             </tr>
           `;
         });
@@ -419,8 +458,8 @@
             <table class="ledger-table">
               <thead>
                 <tr>
-                  <th width="20%">Due Detail</th>
-                  <th width="30%">Status</th>
+                  <th width="25%">Due Detail</th>
+                  <th width="25%">Status</th>
                   <th width="25%">Paid</th>
                   <th width="25%">Balance</th>
                 </tr>
