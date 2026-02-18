@@ -29,7 +29,7 @@
       font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
       margin: 0; padding: 0; 
       height: 100vh; 
-      overflow: hidden; /* Main scroll handled in containers */
+      overflow: hidden; 
       display: flex; flex-direction: column;
     }
 
@@ -54,6 +54,19 @@
       position: relative;
     }
 
+    /* Search Bar (Redesigned) */
+    .search-wrapper { 
+      position: sticky; top: 0; z-index: 10; 
+      background: var(--bg); padding-bottom: 15px; margin-bottom: 10px;
+    }
+    .search-input {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+      color: white; padding: 14px 45px 14px 15px; border-radius: 12px;
+      font-size: 1rem; transition: 0.3s;
+    }
+    .search-input:focus { border-color: var(--secondary); box-shadow: 0 0 10px rgba(41, 121, 255, 0.2); }
+    .search-icon { position: absolute; right: 15px; top: 14px; color: var(--text-muted); pointer-events: none; }
+
     /* Action Buttons (Top) */
     .action-bar {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
@@ -70,105 +83,120 @@
     .btn-action:active { background: #222; transform: scale(0.98); }
     .btn-action.secondary { color: var(--secondary); }
 
-    /* Search Bar */
-    .search-wrapper { 
-      position: sticky; top: 0; z-index: 10; 
-      background: var(--bg); padding-bottom: 15px; margin-bottom: 5px;
-    }
-    .search-input {
-      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-      color: white; padding: 12px 45px 12px 15px; border-radius: 50px;
-      font-size: 1rem;
-    }
-    .search-icon { position: absolute; right: 15px; top: 12px; color: var(--text-muted); }
-
-    /* Customer Cards */
+    /* Customer Cards (Redesigned) */
     .customer-list { display: flex; flex-direction: column; gap: 15px; padding-bottom: 80px; }
     
     .cust-card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden; position: relative;
+      border-radius: 16px; overflow: hidden; position: relative;
       animation: fadeIn 0.3s ease-out;
+      display: flex; flex-direction: column;
     }
-    .cust-card::before { content:''; position: absolute; top:0; left:0; bottom:0; width:3px; background: var(--primary); }
+    /* Status Stripe */
+    .cust-card::before { content:''; position: absolute; top:0; left:0; bottom:0; width:4px; background: var(--border); transition: 0.3s; }
+    .cust-card.status-ok::before { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+    .cust-card.status-due::before { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
 
     .cust-header {
-      padding: 12px 15px; background: #111; border-bottom: 1px solid #222;
-      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px; background: linear-gradient(to right, #111, #0a0a0a); 
+      border-bottom: 1px solid #222;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding-left: 20px; /* Space for stripe */
     }
-    .cust-name { font-weight: 700; font-size: 1.05rem; color: #fff; }
-    .cust-id { font-family: monospace; color: var(--secondary); font-size: 0.85rem; letter-spacing: 1px; }
+    .cust-info h3 { margin: 0; font-size: 1.1rem; color: #fff; font-weight: 700; }
+    .cust-info small { color: var(--secondary); font-family: monospace; font-size: 0.85rem; display: block; margin-top: 4px; }
+    
+    .cust-meta { text-align: right; font-size: 0.8rem; color: var(--text-muted); }
 
-    .cust-body { padding: 15px; }
-    .cust-row { display: flex; gap: 15px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; }
+    .cust-body { padding: 15px; padding-left: 20px; }
     
     .prod-chip {
-      background: #000; border: 1px solid #333; padding: 8px 12px; border-radius: 8px;
-      font-size: 0.85rem; display: flex; justify-content: space-between; margin-top: 5px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.03); border-radius: 8px;
+      padding: 10px; margin-bottom: 8px; border: 1px solid #222;
     }
-    .bal-text { color: var(--danger); font-weight: bold; }
-    .paid-text { color: var(--primary); font-weight: bold; }
+    .prod-name { font-size: 0.9rem; font-weight: 600; color: #ddd; }
+    .prod-status { font-size: 0.8rem; font-weight: 700; }
+    .bal-text { color: var(--danger); }
+    .paid-text { color: var(--primary); }
 
     .card-actions {
-      border-top: 1px solid #222; display: flex;
+      display: flex; border-top: 1px solid #222;
     }
     .card-btn {
       flex: 1; background: transparent; border: none; border-right: 1px solid #222;
-      color: var(--text-muted); padding: 12px; font-size: 0.9rem; font-weight: 500; cursor: pointer;
+      color: var(--text-muted); padding: 14px; font-size: 0.85rem; font-weight: 600; 
+      cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+      transition: 0.2s;
     }
     .card-btn:last-child { border-right: none; }
     .card-btn:active { background: #222; color: white; }
-    .btn-edit { color: var(--secondary); }
-    .btn-del { color: var(--danger); }
+    .btn-edit:hover { color: var(--secondary); background: rgba(41,121,255,0.05); }
+    .btn-del:hover { color: var(--danger); background: rgba(255,23,68,0.05); }
 
     /* Loading Sentinel */
     #sentinel { height: 20px; margin-top: 20px; }
 
-    /* --- 4. MODALS (Slide from Right) --- */
+    /* --- 4. MODALS (Slide Up on Mobile / Right on Desktop) --- */
     .modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: var(--bg); z-index: 200;
-      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
       display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
-    .modal.active { transform: translateX(0); }
+    .modal.active { opacity: 1; pointer-events: auto; }
+    
+    /* Content Slide Animation */
+    .modal-content-wrapper {
+      flex: 1; background: var(--bg); display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .modal.active .modal-content-wrapper { transform: translateY(0); }
+
+    @media (min-width: 768px) {
+      .modal-content-wrapper { transform: translateX(100%); max-width: 500px; margin-left: auto; border-left: 1px solid var(--border); }
+      .modal.active .modal-content-wrapper { transform: translateX(0); }
+    }
 
     .modal-header {
-      padding: 15px 20px; border-bottom: 1px solid var(--border);
+      padding: 20px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 15px; background: var(--surface);
     }
     .btn-back { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
     .modal-title { font-size: 1.2rem; font-weight: 700; margin: 0; }
 
-    .modal-content { flex: 1; overflow-y: auto; padding: 20px; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 25px; }
 
     /* Forms */
     .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.85rem; }
+    .form-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
     
     input {
       width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-      color: white; padding: 14px; border-radius: 10px; font-size: 16px;
+      color: white; padding: 16px; border-radius: 12px; font-size: 1rem;
+      transition: 0.2s;
     }
-    input:focus { border-color: var(--primary); }
-    input[readonly] { opacity: 0.6; cursor: not-allowed; }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,230,118,0.1); }
+    input[readonly] { opacity: 0.6; cursor: not-allowed; background: #111; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
     .btn-submit {
-      width: 100%; padding: 16px; background: var(--primary); color: #000;
-      font-weight: 800; border: none; border-radius: 10px; font-size: 1rem;
-      margin-top: 10px; cursor: pointer;
+      width: 100%; padding: 18px; background: var(--primary); color: #000;
+      font-weight: 800; border: none; border-radius: 12px; font-size: 1rem;
+      margin-top: 15px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+      box-shadow: 0 0 15px rgba(0,230,118,0.3);
     }
-    .btn-submit.blue { background: var(--secondary); color: white; }
+    .btn-submit.blue { background: var(--secondary); color: white; box-shadow: 0 0 15px rgba(41,121,255,0.3); }
 
     /* Toast Notification */
     .toast {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
-      background: #333; color: white; padding: 12px 24px; border-radius: 50px;
+      background: #222; color: white; padding: 14px 28px; border-radius: 50px;
       font-weight: 600; transition: transform 0.3s; z-index: 300;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid #333;
+      display: flex; align-items: center; gap: 10px;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -186,7 +214,7 @@
 
   <div id="main-view">
     <div class="search-wrapper">
-      <input type="text" id="searchBox" class="search-input" placeholder="Search ID or Name...">
+      <input type="text" id="searchBox" class="search-input" placeholder="Search by ID or Name...">
       <span class="search-icon">🔍</span>
     </div>
 
@@ -206,112 +234,118 @@
 
 
   <div id="modal-add-customer" class="modal">
-    <div class="modal-header">
-      <button class="btn-back" onclick="closeModal()">←</button>
-      <h2 class="modal-title">New Customer</h2>
-    </div>
-    <div class="modal-content">
-      <div class="form-group">
-        <label>Customer ID (Unique)</label>
-        <input id="newId" placeholder="e.g. A20" oninput="this.value = this.value.toUpperCase()">
+    <div class="modal-content-wrapper">
+      <div class="modal-header">
+        <button class="btn-back" onclick="closeModal()">✕</button>
+        <h2 class="modal-title">New Customer</h2>
       </div>
-      <div class="form-group grid-2">
-        <div>
-          <label>Full Name</label>
-          <input id="newName" placeholder="Name">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Customer ID</label>
+          <input id="newId" placeholder="e.g. A20" oninput="this.value = this.value.toUpperCase()">
         </div>
-        <div>
-          <label>Phone</label>
-          <input id="newPhone" type="tel" placeholder="Mobile">
+        <div class="form-group grid-2">
+          <div>
+            <label>Name</label>
+            <input id="newName" placeholder="Full Name">
+          </div>
+          <div>
+            <label>Phone</label>
+            <input id="newPhone" type="tel" placeholder="Mobile">
+          </div>
         </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input id="newPlace" placeholder="City / Area">
+        </div>
+        
+        <div style="border-top: 1px dashed #333; margin: 30px 0; padding-top: 20px; color: #666; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">Initial Product</div>
+        
+        <div class="form-group">
+          <label>Product Name</label>
+          <input id="newProduct" placeholder="Item Name">
+        </div>
+        <div class="form-group grid-3">
+          <div>
+            <label>Total ₹</label>
+            <input id="newTotal" type="number" placeholder="0">
+          </div>
+          <div>
+            <label>Paid ₹</label>
+            <input id="newPaid" type="number" placeholder="0">
+          </div>
+          <div>
+            <label>Due #</label>
+            <input id="newDueNum" type="number" placeholder="0">
+          </div>
+        </div>
+        
+        <button id="btnSaveCustomer" class="btn-submit">Create Profile</button>
       </div>
-      <div class="form-group">
-        <label>City / Location</label>
-        <input id="newPlace" placeholder="Place">
-      </div>
-      
-      <hr style="border-color: #222; margin: 25px 0;">
-      
-      <div class="form-group">
-        <label>First Product Name</label>
-        <input id="newProduct" placeholder="Product Name">
-      </div>
-      <div class="form-group grid-3">
-        <div>
-          <label>Total Price</label>
-          <input id="newTotal" type="number" placeholder="0">
-        </div>
-        <div>
-          <label>Down Pay</label>
-          <input id="newPaid" type="number" placeholder="0">
-        </div>
-        <div>
-          <label>Due No.</label>
-          <input id="newDueNum" type="number" placeholder="0">
-        </div>
-      </div>
-      
-      <button id="btnSaveCustomer" class="btn-submit">Create Profile</button>
     </div>
   </div>
 
 
   <div id="modal-add-product" class="modal">
-    <div class="modal-header">
-      <button class="btn-back" onclick="closeModal()">←</button>
-      <h2 class="modal-title">Add Product</h2>
-    </div>
-    <div class="modal-content">
-      <div class="form-group">
-        <label>Existing Customer ID</label>
-        <input id="existId" placeholder="Enter ID" oninput="this.value = this.value.toUpperCase()">
+    <div class="modal-content-wrapper">
+      <div class="modal-header">
+        <button class="btn-back" onclick="closeModal()">✕</button>
+        <h2 class="modal-title">Add Product</h2>
       </div>
-      <div class="form-group">
-        <label>Product Name</label>
-        <input id="addProduct" placeholder="Item Name">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Customer ID</label>
+          <input id="existId" placeholder="Enter existing ID" oninput="this.value = this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <label>Product Name</label>
+          <input id="addProduct" placeholder="Item Name">
+        </div>
+        <div class="form-group grid-3">
+          <div>
+            <label>Total ₹</label>
+            <input id="addTotal" type="number" placeholder="0">
+          </div>
+          <div>
+            <label>Paid ₹</label>
+            <input id="addPaid" type="number" placeholder="0">
+          </div>
+          <div>
+            <label>Due #</label>
+            <input id="addDueNum" type="number" placeholder="0">
+          </div>
+        </div>
+        <button id="btnSaveProduct" class="btn-submit blue">Add to Profile</button>
       </div>
-      <div class="form-group grid-3">
-        <div>
-          <label>Total Price</label>
-          <input id="addTotal" type="number" placeholder="0">
-        </div>
-        <div>
-          <label>Down Pay</label>
-          <input id="addPaid" type="number" placeholder="0">
-        </div>
-        <div>
-          <label>Due No.</label>
-          <input id="addDueNum" type="number" placeholder="0">
-        </div>
-      </div>
-      <button id="btnSaveProduct" class="btn-submit blue">Add to Profile</button>
     </div>
   </div>
 
 
   <div id="modal-edit-customer" class="modal">
-    <div class="modal-header">
-      <button class="btn-back" onclick="closeModal()">←</button>
-      <h2 class="modal-title">Edit Profile</h2>
-    </div>
-    <div class="modal-content">
-      <div class="form-group">
-        <label>Customer ID (Locked)</label>
-        <input id="editId" readonly style="color:#666">
+    <div class="modal-content-wrapper">
+      <div class="modal-header">
+        <button class="btn-back" onclick="closeModal()">✕</button>
+        <h2 class="modal-title">Edit Profile</h2>
       </div>
-      <div class="form-group">
-        <label>Full Name</label>
-        <input id="editName">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Customer ID (Locked)</label>
+          <input id="editId" readonly>
+        </div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input id="editName">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="editPhone">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input id="editPlace">
+        </div>
+        <button id="btnUpdateCustomer" class="btn-submit" style="background:#333; color:#fff; border:1px solid #555;">Save Changes</button>
       </div>
-      <div class="form-group">
-        <label>Phone</label>
-        <input id="editPhone">
-      </div>
-      <div class="form-group">
-        <label>City / Location</label>
-        <input id="editPlace">
-      </div>
-      <button id="btnUpdateCustomer" class="btn-submit" style="background:#fff; color:#000">Save Changes</button>
     </div>
   </div>
 
@@ -332,29 +366,22 @@
 
     // --- 1. UI: MODAL & NAVIGATION LOGIC ---
     window.openModal = (modalId) => {
-      // Push state so back button works
       window.history.pushState({modal: modalId}, '', `#${modalId}`);
       document.getElementById(modalId).classList.add('active');
     };
 
     window.closeModal = () => {
-      // Remove active class from all modals
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-      // Clean up URL if hash exists
-      if(window.location.hash) {
-        window.history.back(); 
-      }
+      if(window.location.hash) window.history.back(); 
     };
 
-    // Handle Hardware Back Button
     window.addEventListener('popstate', (event) => {
-      // If we go back, remove active class
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
     });
 
     function showToast(msg) {
       const t = document.getElementById("toast");
-      t.innerText = msg;
+      t.innerHTML = `<span>✅</span> ${msg}`;
       t.classList.add("show");
       setTimeout(() => t.classList.remove("show"), 3000);
     }
@@ -385,7 +412,7 @@
         
         if (snapshot.empty) {
           noMoreData = true;
-          if(reset) container.innerHTML = "<p style='text-align:center; color:#555; margin-top:30px;'>No customers found.</p>";
+          if(reset) container.innerHTML = "<div style='text-align:center; padding:40px; color:#555;'>No customers found.</div>";
         } else {
           lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
           renderList(snapshot, container);
@@ -397,7 +424,6 @@
       }
     }
 
-    // Intersection Observer for Infinite Scroll
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !isFetching) {
         loadCustomers(false);
@@ -405,33 +431,46 @@
     }, { threshold: 0.5 });
     observer.observe(document.getElementById("sentinel"));
 
-    // --- 3. RENDER LIST ---
+    // --- 3. RENDER LIST (REDESIGNED CARD) ---
     function renderList(snapshot, container) {
       snapshot.forEach(docSnap => {
         const c = docSnap.data();
+        let totalDue = 0;
         
         // Product HTML
         let prodHTML = "";
-        c.products.forEach(p => {
-          const bal = p.total - p.paid;
-          const status = bal > 0 ? `<span class="bal-text">Bal: ₹${bal}</span>` : `<span class="paid-text">Paid</span>`;
-          prodHTML += `<div class="prod-chip"><span>${p.name}</span>${status}</div>`;
-        });
+        if(c.products) {
+            c.products.forEach(p => {
+              const bal = (p.total || 0) - (p.paid || 0);
+              totalDue += bal;
+              const statusClass = bal > 0 ? "bal-text" : "paid-text";
+              const statusText = bal > 0 ? `₹${bal}` : "PAID";
+              
+              prodHTML += `
+                <div class="prod-chip">
+                  <span class="prod-name">${p.name}</span>
+                  <span class="prod-status ${statusClass}">${statusText}</span>
+                </div>`;
+            });
+        }
 
-        // Card HTML
+        const cardStatus = totalDue > 0 ? "status-due" : "status-ok";
+
         const div = document.createElement("div");
-        div.className = "cust-card";
+        div.className = `cust-card ${cardStatus}`;
         div.innerHTML = `
           <div class="cust-header">
-            <span class="cust-name">${c.name}</span>
-            <span class="cust-id">${c.id}</span>
+            <div class="cust-info">
+              <h3>${c.name}</h3>
+              <small>${c.id}</small>
+            </div>
+            <div class="cust-meta">
+              ${c.place || ''}<br>
+              ${c.phone || ''}
+            </div>
           </div>
           <div class="cust-body">
-            <div class="cust-row">
-              <span>📱 ${c.phone || '--'}</span>
-              <span>📍 ${c.place || '--'}</span>
-            </div>
-            ${prodHTML}
+            ${prodHTML || '<small style="color:#666">No Products</small>'}
           </div>
           <div class="card-actions">
             <button class="card-btn btn-edit" onclick="editCustomer('${c.id}')">EDIT</button>
@@ -442,37 +481,42 @@
       });
     }
 
-    // --- 4. SEARCH FUNCTIONALITY ---
+    // --- 4. SEARCH FUNCTIONALITY (FIXED: ID + NAME) ---
     document.getElementById("searchBox").addEventListener("input", (e) => {
-      const term = e.target.value.trim().toUpperCase();
+      const term = e.target.value.trim();
       clearTimeout(searchTimeout);
       
       searchTimeout = setTimeout(async () => {
         const container = document.getElementById("customerList");
         container.innerHTML = "";
-        noMoreData = true; // Disable infinite scroll during search
+        noMoreData = true; // Disable scroll loading
 
         if (!term) {
-          loadCustomers(true); // Reset to normal view
+          loadCustomers(true); 
           return;
         }
 
         try {
-          // Search by ID (Range query for exactish match)
-          const q = query(
-            collection(db, "customers"), 
-            where("id", ">=", term), 
-            where("id", "<=", term + '\uf8ff'),
-            limit(10)
-          );
-          const snap = await getDocs(q);
+          const colRef = collection(db, "customers");
           
-          if(snap.empty) {
-             container.innerHTML = "<p style='text-align:center; color:#555;'>No ID found. Searching Names...</p>";
-             // Optional: Add logic here to search by Name field if ID fails, 
-             // but Firestore doesn't support native partial text search easily without external services (Algolia).
+          // Parallel Queries: 1. ID Match  2. Name Match
+          const idTerm = term.toUpperCase();
+          const nameTerm = term; // Firestore is case-sensitive, assumes standard casing
+
+          const [idSnap, nameSnap] = await Promise.all([
+             getDocs(query(colRef, where("id", ">=", idTerm), where("id", "<=", idTerm + '\uf8ff'), limit(5))),
+             getDocs(query(colRef, where("name", ">=", nameTerm), where("name", "<=", nameTerm + '\uf8ff'), limit(5)))
+          ]);
+
+          // Merge Results (Unique IDs)
+          const results = new Map();
+          idSnap.forEach(doc => results.set(doc.id, doc));
+          nameSnap.forEach(doc => results.set(doc.id, doc));
+
+          if(results.size === 0) {
+             container.innerHTML = "<div style='text-align:center; padding:40px; color:#555;'>No matches found.</div>";
           } else {
-             renderList(snap, container);
+             renderList(results, container);
           }
         } catch(e) { console.error(e); }
       }, 600);
@@ -481,7 +525,7 @@
     // --- 5. ADD CUSTOMER LOGIC ---
     document.getElementById("btnSaveCustomer").addEventListener("click", async () => {
       const idInput = document.getElementById("newId");
-      const id = idInput.value.trim().toUpperCase(); // Case Insensitive
+      const id = idInput.value.trim().toUpperCase(); 
       const name = document.getElementById("newName").value.trim();
       const product = document.getElementById("newProduct").value.trim();
       const total = parseFloat(document.getElementById("newTotal").value);
@@ -497,7 +541,6 @@
       try {
         await runTransaction(db, async (transaction) => {
           const custRef = doc(db, "customers", id);
-          const statsRef = doc(db, "metadata", "stats");
           
           const check = await transaction.get(custRef);
           if (check.exists()) throw "Customer ID already exists!";
@@ -512,20 +555,12 @@
               payments: [{ date: new Date().toISOString().split("T")[0], amount: paid, dueNumber: dueNum, type: "Downpayment" }]
             }]
           });
-          
-          const bal = total - paid;
-          transaction.set(statsRef, {
-            totalCustomers: increment(1),
-            totalProducts: increment(1),
-            totalPaid: increment(paid),
-            totalBalance: increment(bal)
-          }, { merge: true });
         });
 
         showToast("Customer Created!");
         ["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid", "newDueNum"].forEach(i => document.getElementById(i).value = "");
-        closeModal(); // Trigger back logic
-        loadCustomers(true); // Refresh List
+        closeModal(); 
+        loadCustomers(true); 
 
       } catch (e) { alert(e); } 
       finally { btn.innerText = "Create Profile"; btn.disabled = false; }
@@ -548,22 +583,18 @@
       try {
         await runTransaction(db, async (transaction) => {
           const custRef = doc(db, "customers", id);
-          const statsRef = doc(db, "metadata", "stats");
           const snap = await transaction.get(custRef);
           if (!snap.exists()) throw "ID not found!";
 
           const data = snap.data();
+          if(!data.products) data.products = [];
+          
           data.products.push({
             name, total, paid,
             payments: [{ date: new Date().toISOString().split("T")[0], amount: paid, dueNumber: dueNum, type: "Downpayment" }]
           });
 
           transaction.update(custRef, { products: data.products });
-          transaction.update(statsRef, {
-            totalProducts: increment(1),
-            totalPaid: increment(paid),
-            totalBalance: increment(total - paid)
-          });
         });
 
         showToast("Product Added!");
@@ -608,23 +639,7 @@
     window.deleteCustomer = async (id) => {
       if(!confirm(`Delete customer ${id}?\nIrreversible action.`)) return;
       try {
-        await runTransaction(db, async (t) => {
-          const ref = doc(db, "customers", id);
-          const snap = await t.get(ref);
-          if(!snap.exists()) throw "Error";
-          const data = snap.data();
-          
-          let remPaid = 0, remBal = 0;
-          data.products.forEach(p => { remPaid += p.paid; remBal += (p.total - p.paid); });
-
-          t.delete(ref);
-          t.update(doc(db, "metadata", "stats"), {
-            totalCustomers: increment(-1),
-            totalProducts: increment(-data.products.length),
-            totalPaid: increment(-remPaid),
-            totalBalance: increment(-remBal)
-          });
-        });
+        await deleteDoc(doc(db, "customers", id));
         showToast("Deleted");
         loadCustomers(true);
       } catch(e) { alert(e); }
