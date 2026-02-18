@@ -174,7 +174,7 @@
       collection, query, where, getDocs, doc, runTransaction, increment, limit 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- 1. SMART SEARCH LOGIC (NOW PARALLEL) ---
+    // --- 1. SMART SEARCH LOGIC ---
     window.searchCustomer = async () => {
       const term = document.getElementById("searchInput").value.trim();
       const div = document.getElementById("resultArea");
@@ -187,21 +187,19 @@
         const colRef = collection(db, "customers");
         
         // Prepare terms
-        const idTerm = term.toUpperCase(); // For ID search (e.g. "A20")
-        const nameTerm = term;             // For Name search (e.g. "Ramesh")
+        const idTerm = term.toUpperCase(); 
+        const nameTerm = term; 
 
-        // RUN BOTH SEARCHES AT THE SAME TIME (ID AND NAME)
+        // RUN BOTH SEARCHES
         const [idSnap, nameSnap] = await Promise.all([
           getDocs(query(colRef, where("id", ">=", idTerm), where("id", "<=", idTerm + '\uf8ff'), limit(5))),
           getDocs(query(colRef, where("name", ">=", nameTerm), where("name", "<=", nameTerm + '\uf8ff'), limit(5)))
         ]);
 
-        // Merge Results (Use Map to remove duplicates if ID and Name both match)
         const results = new Map();
         idSnap.forEach(doc => results.set(doc.id, doc.data()));
         nameSnap.forEach(doc => results.set(doc.id, doc.data()));
 
-        // Render Results
         div.innerHTML = "";
         if (results.size === 0) {
           div.innerHTML = `
@@ -212,9 +210,10 @@
           return;
         }
 
-        results.forEach((data, docId) => {
-          renderCard(docId, data);
-        });
+        // Iterate results and fetch Pending Dues for accurate calculation
+        for (const [docId, data] of results) {
+          await renderCardWithPending(docId, data);
+        }
 
       } catch (e) {
         console.error(e);
@@ -226,11 +225,30 @@
       if(e.key === "Enter") searchCustomer();
     }
 
-    // --- 2. RENDER CARD UI ---
-    function renderCard(docId, c) {
+    // --- 2. RENDER CARD WITH SMART DUE CALCULATION ---
+    async function renderCardWithPending(docId, c) {
       const div = document.getElementById("resultArea");
       const card = document.createElement("div");
       card.className = "cust-card";
+
+      // 1. Fetch Agent Drafts/Pending Entries for this Customer
+      let pendingCounts = {}; // Key: productName, Value: count
+      let pendingAmounts = {}; // Key: productName, Value: amount
+      try {
+        const qPending = query(
+          collection(db, "temp_entries"),
+          where("customerId", "==", c.id),
+          where("status", "in", ["draft", "pending"])
+        );
+        const pendingSnap = await getDocs(qPending);
+        pendingSnap.forEach(doc => {
+          const d = doc.data();
+          const pName = d.productName;
+          if(!pendingCounts[pName]) { pendingCounts[pName] = 0; pendingAmounts[pName] = 0; }
+          pendingCounts[pName]++;
+          pendingAmounts[pName] += (parseFloat(d.amount) || 0);
+        });
+      } catch(e) { console.log("Pending fetch error", e); }
 
       let productsHtml = "";
       
@@ -238,26 +256,32 @@
         // Calculations
         let totalPaid = 0;
         if(p.payments) p.payments.forEach(pay => totalPaid += parseFloat(pay.amount));
-        
-        // Update local paid if legacy data issue
         if(p.paid !== undefined) totalPaid = Math.max(totalPaid, p.paid);
+        
+        // Add pending amount to visual balance? 
+        // No, keep Balance as "Real DB Balance", but note pending below.
         
         const balance = p.total - totalPaid;
         
-        // Next Due Logic
-        const lastDue = (p.payments || []).length > 0 
+        // --- SMART DUE LOGIC ---
+        // 1. Max due in Main DB
+        const lastConfirmedDue = (p.payments || []).length > 0 
           ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
           : 0;
-        const nextDue = lastDue + 1;
+        
+        // 2. Count Agent Pending Entries
+        const pendingCount = pendingCounts[p.name] || 0;
+        
+        // 3. Calculated Next Due
+        const nextDue = lastConfirmedDue + pendingCount + 1;
 
         // Badge Logic
-        const isPaid = balance <= 1; // Tolerance for float
+        const isPaid = balance <= 1; 
         const badgeHTML = isPaid 
           ? `<span class="badge badge-paid">COMPLETED</span>` 
           : `<span class="badge badge-due">OUTSTANDING</span>`;
 
         // Payment Form HTML (Hidden if paid)
-        // MODIFIED: Added Target Due Input
         const paymentForm = isPaid ? '' : `
           <div class="payment-area">
             <label class="pay-label">ADD PAYMENT / SPLIT DUES</label>
@@ -277,8 +301,11 @@
                  <input type="date" id="date_${docId}_${idx}" value="${new Date().toISOString().split('T')[0]}">
                </div>
             </div>
+            
+            ${pendingCount > 0 ? `<p style="font-size:0.75rem; color:#f59e0b; margin:5px 0;">⚠️ ${pendingCount} agent entries pending approval.</p>` : ''}
+            
             <p style="font-size:0.7rem; color:#888; margin:5px 0 10px 0;">
-              *If you increase Target Due #, amount will be split equally.
+              *If you increase Target Due #, amount will be split.
             </p>
             <button class="btn-pay" onclick="processPayment('${docId}', ${idx})">CONFIRM & SPLIT</button>
           </div>
@@ -305,7 +332,8 @@
             </div>
             
             <div style="margin-bottom:10px; font-size:0.8rem; color:#666; text-align:center;">
-               Last Due Paid: #${lastDue}
+               Last Confirmed Paid: #${lastConfirmedDue} <br>
+               (Next System Due: #${nextDue})
             </div>
 
             ${paymentForm}
@@ -342,7 +370,6 @@
       if (!totalAmount || totalAmount <= 0) return alert("❌ Enter a valid positive amount");
       if (!targetDue || targetDue < 1) return alert("❌ Invalid Due Number");
 
-      // Button State
       const btn = event.target;
       const originalText = btn.innerText;
       btn.innerText = "CALCULATING...";
@@ -351,39 +378,38 @@
 
       try {
         await runTransaction(db, async (transaction) => {
-          // Note: using doc ID directly now
           const custRef = doc(db, "customers", custId);
-          const statsRef = doc(db, "metadata", "stats"); // Optional stats doc
-
           const custDoc = await transaction.get(custRef);
           if (!custDoc.exists()) throw "Customer does not exist!";
 
           const data = custDoc.data();
           const product = data.products[prodIdx];
 
-          // 1. Determine Start Due Number
+          // 1. Determine Start Due (Based only on Confirmed payments in DB, ignoring drafts for write safety)
           let maxDue = 0;
           if (product.payments && product.payments.length > 0) {
             maxDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
           }
+          
+          // NOTE: If user sets Target Due #12, and maxDue is #10, we fill #11 and #12.
+          // Even if there is a 'draft' #11, the Admin is overriding/confirming it here.
+          
           const startDue = maxDue + 1;
 
           if (targetDue < startDue) {
-            throw `Target Due (${targetDue}) cannot be less than next due (${startDue}).`;
+            throw `Target Due (${targetDue}) cannot be less than next confirmed due (${startDue}).`;
           }
 
           // 2. Calculate Split
           const numberOfDues = (targetDue - startDue) + 1;
           const amountPerDue = totalAmount / numberOfDues;
-          const roundedAmount = Math.floor(amountPerDue * 100) / 100; // 2 decimal precision
+          const roundedAmount = Math.floor(amountPerDue * 100) / 100; 
 
           // 3. Create Entries
           if(!product.payments) product.payments = [];
           
           for(let i = 0; i < numberOfDues; i++) {
              const currentDueNum = startDue + i;
-             
-             // Adjust last entry to cover rounding errors
              let finalAmt = roundedAmount;
              if(i === numberOfDues - 1) {
                 finalAmt = totalAmount - (roundedAmount * (numberOfDues - 1));
@@ -393,7 +419,7 @@
                date: date,
                amount: parseFloat(finalAmt.toFixed(2)),
                dueNumber: currentDueNum,
-               type: numberOfDues > 1 ? `Split Entry (${i+1}/${numberOfDues})` : "Manual Entry"
+               type: numberOfDues > 1 ? `Split Admin (${i+1}/${numberOfDues})` : "Manual Entry"
              });
           }
 
@@ -402,15 +428,9 @@
 
           // 5. Commit
           transaction.update(custRef, { products: data.products });
-          
-          // Optional: Update global stats if stats document exists
-          // transaction.update(statsRef, {
-          //   totalPaid: increment(totalAmount),
-          //   totalBalance: increment(-totalAmount)
-          // });
         });
 
-        alert(`✅ Success! Split ${totalAmount} into ${targetDue - (parseInt(dueInput.defaultValue)-1)} entries.`);
+        alert(`✅ Success! Split ${totalAmount} into entries up to #${targetDue}.`);
         searchCustomer(); // Refresh UI
 
       } catch (e) {
