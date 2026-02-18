@@ -259,6 +259,49 @@
         
         .card-top, .card-footer { padding: 15px; }
     }
+
+    /* * ==========================================
+     * 7. CUSTOM POPUP MODAL (HIGH END)
+     * ==========================================
+     */
+    #custom-modal {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1000;
+      justify-content: center; align-items: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #111;
+      border: 1px solid #333;
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 400px; width: 100%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .modal-show .modal-content { transform: scale(1); opacity: 1; }
+
+    .modal-icon { font-size: 2rem; margin-bottom: 15px; display: block; }
+    .modal-title { color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0 0 10px 0; }
+    .modal-msg { color: #888; font-size: 0.9rem; line-height: 1.5; margin-bottom: 25px; }
+    
+    .modal-btn {
+      background: #fff; color: #000;
+      border: none; padding: 12px 24px;
+      font-weight: 600; border-radius: 8px;
+      cursor: pointer; width: 100%; font-size: 0.95rem;
+    }
+    .modal-btn:hover { background: #eee; }
+
   </style>
 </head>
 <body>
@@ -269,6 +312,15 @@
     </div>
     <div class="portal-tag">Client Portal</div>
   </header>
+
+  <div id="custom-modal">
+    <div class="modal-content">
+      <span class="modal-icon">🔒</span>
+      <h3 class="modal-title" id="modal-title">Access Denied</h3>
+      <p class="modal-msg" id="modal-msg">Credentials incorrect.</p>
+      <button class="modal-btn" onclick="closeModal()">Dismiss</button>
+    </div>
+  </div>
 
   <div id="auth-section" class="auth-container">
     <div class="login-card">
@@ -315,12 +367,33 @@
     import { db } from "./admin/config.js";
     import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+    // --- MODAL LOGIC ---
+    window.showModal = (title, message, isError = true) => {
+      const modal = document.getElementById("custom-modal");
+      document.getElementById("modal-title").innerText = title;
+      document.getElementById("modal-msg").innerText = message;
+      document.querySelector(".modal-icon").innerText = isError ? "🚫" : "✅";
+      
+      modal.style.display = "flex";
+      // Slight delay to trigger CSS transition
+      setTimeout(() => modal.classList.add("modal-show"), 10);
+    };
+
+    window.closeModal = () => {
+      const modal = document.getElementById("custom-modal");
+      modal.classList.remove("modal-show");
+      setTimeout(() => modal.style.display = "none", 300);
+    };
+
     // --- VERIFY & LOGIN ---
     window.verifyAccess = async () => {
       const idInput = document.getElementById("custId").value.trim().toUpperCase();
       const dueInput = parseInt(document.getElementById("dueNo").value);
 
-      if (!idInput || isNaN(dueInput)) return alert("Please enter ID and Due Number.");
+      if (!idInput || isNaN(dueInput)) {
+        window.showModal("Input Required", "Please enter both Customer ID and Receipt Due Number.");
+        return;
+      }
 
       const btn = document.querySelector(".btn-primary");
       btn.innerText = "Verifying...";
@@ -331,7 +404,7 @@
         const docRef = doc(db, "customers", idInput);
         const snap = await getDoc(docRef);
 
-        if (!snap.exists()) throw "Invalid Customer ID.";
+        if (!snap.exists()) throw "Invalid Customer ID"; // Generic error flag
 
         const data = snap.data();
         
@@ -364,14 +437,26 @@
 
         // 3. COMPARE: Strict check for LATEST NUMBER only
         if (dueInput !== maxSystemDue) {
-             throw `Access Denied: You must enter the LATEST Due Number (Current Latest: #${maxSystemDue})`;
+             // THROW GENERIC ERROR - DO NOT REVEAL maxSystemDue
+             throw "Incorrect Credentials";
         }
 
         // 4. Success: Load Data
         await loadDashboard(data, idInput);
 
       } catch (e) {
-        alert(e);
+        // Handle Errors Professionally
+        let title = "Access Denied";
+        let msg = "Credentials incorrect. Please use the latest Due Number.";
+        
+        // If system error (not auth failure)
+        if(e !== "Invalid Customer ID" && e !== "Incorrect Credentials") {
+            console.error(e); // Log actual error to console for dev
+            msg = "A system error occurred. Please try again.";
+        }
+
+        window.showModal(title, msg);
+        
         btn.innerText = "View Ledger";
         btn.disabled = false;
       }
