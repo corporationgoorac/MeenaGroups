@@ -2,287 +2,396 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Customer Ledger - MeenaGroups</title>
+  <title>Customer Portal - MeenaGroups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0a0a0a">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
-    /* --- 1. HIGH CONTRAST NEON THEME --- */
+    /* * ==========================================
+     * 1. PROFESSIONAL CORPORATE THEME
+     * ==========================================
+     */
     :root { 
-      --bg: #000000; 
-      --surface: #0a0a0a;
-      --card: #121212; 
-      --input-bg: #1a1a1a;
-      --primary: #00e676; /* Neon Green */
-      --accent: #00b0ff;  /* Bright Blue */
-      --danger: #ff1744; 
-      --text: #ffffff; 
-      --text-muted: #888888;
-      --border: #333333; 
+      --bg: #050505; 
+      --surface: #111111; 
+      --card: #1a1a1a; 
+      --border: #333;
+      
+      /* Branding Colors */
+      --brand-red: #ff3b30; 
+      --brand-white: #ffffff;
+      
+      /* Status Colors */
+      --success: #34c759; /* Approved */
+      --pending: #ffcc00; /* Sent to Admin */
+      --draft: #0a84ff;   /* With Agent */
+      
+      --text-main: #ffffff;
+      --text-muted: #8e8e93;
     }
-
+    
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
     body { 
       background: var(--bg); 
-      color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+      color: var(--text-main); 
+      font-family: 'Inter', sans-serif; 
       margin: 0; padding: 0; 
       min-height: 100vh;
       display: flex; flex-direction: column;
     }
 
-    /* --- 2. HEADER --- */
+    /* * ==========================================
+     * 2. BRANDED HEADER
+     * ==========================================
+     */
     header {
-      padding: 40px 20px;
-      text-align: center;
+      background: rgba(20, 20, 20, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(to bottom, #0a0a0a, #000);
+      padding: 20px;
+      position: sticky; top: 0; z-index: 50;
+      display: flex; justify-content: space-between; align-items: center;
     }
-    header h1 { margin: 0; font-size: 2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
-    header p { margin: 5px 0 0; font-size: 0.75rem; color: var(--accent); letter-spacing: 4px; font-weight: 700; text-transform: uppercase; }
 
-    /* --- 3. LOGIN / VERIFICATION SECTION --- */
-    .view-container {
+    .brand-logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+    .brand-meena { color: var(--brand-red); }
+    .brand-groups { color: var(--brand-white); }
+
+    .portal-tag {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    /* * ==========================================
+     * 3. AUTHENTICATION SCREEN
+     * ==========================================
+     */
+    .auth-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      animation: fadeIn 0.6s ease-out;
     }
 
-    .auth-card {
-      background: var(--card);
+    .login-card {
+      background: var(--surface);
       border: 1px solid var(--border);
-      padding: 30px;
+      padding: 40px 30px;
       border-radius: 24px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-      animation: fadeIn 0.5s ease-out;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
 
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+    .login-header { text-align: center; margin-bottom: 30px; }
+    .login-header h2 { margin: 0; font-size: 1.2rem; font-weight: 600; }
+    .login-header p { color: var(--text-muted); font-size: 0.85rem; margin-top: 5px; }
+
+    .input-group { margin-bottom: 20px; }
+    .input-group label { display: block; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.5px; }
     
-    input {
-      width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-      color: white; padding: 16px; border-radius: 12px; font-size: 1.1rem;
-      transition: 0.3s;
+    .styled-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: white;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: 0.2s;
     }
-    input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 176, 255, 0.1); }
+    .styled-input:focus { border-color: var(--brand-red); box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2); }
 
-    .btn-submit {
-      width: 100%; padding: 18px; background: var(--primary); color: #000;
-      font-weight: 900; border: none; border-radius: 12px; font-size: 1rem;
-      cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-      margin-top: 10px; transition: 0.2s;
+    .btn-primary {
+      width: 100%;
+      background: var(--brand-red);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s;
+      margin-top: 10px;
     }
-    .btn-submit:active { transform: scale(0.98); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* --- 4. PORTAL CONTENT --- */
-    #portal-view { display: none; padding: 20px; width: 100%; max-width: 800px; margin: 0 auto; }
+    /* * ==========================================
+     * 4. MAIN DASHBOARD (HIDDEN INITIALLY)
+     * ==========================================
+     */
+    #dashboard-view { display: none; padding: 20px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; }
 
-    .profile-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-      padding: 25px; margin-bottom: 25px; position: relative; overflow: hidden;
+    /* User Profile Header */
+    .user-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
     }
-    .profile-card::after { content: ''; position: absolute; top:0; left:0; width: 4px; height: 100%; background: var(--accent); }
-    .profile-card h2 { margin: 0; font-size: 1.5rem; color: #fff; }
-    .profile-card p { margin: 6px 0 0; color: var(--accent); font-family: monospace; font-size: 1rem; font-weight: 700; }
+    .user-info h1 { margin: 0; font-size: 1.5rem; }
+    .user-info p { margin: 5px 0 0; color: var(--text-muted); font-family: monospace; }
+    .btn-logout { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
 
-    .ledger-container {
-      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-      overflow: hidden; margin-bottom: 30px; animation: slideUp 0.5s ease-out;
+    /* Product Card */
+    .product-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 30px;
     }
-    .ledger-header { 
-      padding: 18px 20px; background: #111; border-bottom: 1px solid var(--border);
+
+    .card-top {
+      padding: 20px;
+      background: linear-gradient(to bottom, #1a1a1a, #111);
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .prod-name { font-weight: 700; font-size: 1.1rem; }
+    .prod-val { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+
+    /* Ledger Table */
+    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .ledger-table th { text-align: left; padding: 15px 20px; color: var(--text-muted); font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
+    .ledger-table td { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    
+    .status-badge { 
+      padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .st-approved { color: var(--success); background: rgba(52, 199, 89, 0.1); }
+    .st-pending { color: var(--pending); background: rgba(255, 204, 0, 0.1); }
+    .st-draft { color: var(--draft); background: rgba(10, 132, 255, 0.1); }
+
+    .amt-col { font-family: 'Inter', sans-serif; font-weight: 600; }
+    .bal-col { color: var(--brand-red); font-weight: 700; }
+
+    /* Footer Stats */
+    .card-footer {
+      padding: 20px; background: #080808; 
       display: flex; justify-content: space-between; align-items: center;
     }
-    .ledger-header h3 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+    .footer-label { font-size: 0.8rem; color: var(--text-muted); }
+    .footer-val { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
 
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 15px; color: var(--text-muted); border-bottom: 1px solid var(--border); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
-    td { padding: 15px; border-bottom: 1px solid #1a1a1a; color: #fff; font-family: monospace; font-size: 0.95rem; }
-    
-    .amt-in { color: var(--primary); font-weight: 700; }
-    .amt-out { color: var(--danger); font-weight: 700; }
-
-    .summary-footer { padding: 20px; background: rgba(0,230,118,0.03); text-align: right; border-top: 1px solid var(--border); }
-    .summary-footer label { color: var(--text-muted); font-size: 0.8rem; margin-right: 10px; }
-    .summary-footer span { font-size: 1.3rem; font-weight: 800; color: var(--danger); }
-
-    /* --- 5. FOOTER --- */
-    footer {
-      padding: 40px 20px; text-align: center; border-top: 1px solid var(--border);
-      color: var(--text-muted); font-size: 0.8rem; line-height: 1.6;
-    }
-    footer span { color: var(--primary); font-weight: 700; }
-
-    .logout-btn {
-      background: none; border: 1px solid var(--border); color: var(--text-muted);
-      padding: 10px 20px; border-radius: 50px; margin-bottom: 25px; cursor: pointer;
-      font-weight: 600; font-size: 0.8rem;
+    /* * ==========================================
+     * 5. FOOTER & ANIMATIONS
+     * ==========================================
+     */
+    .site-footer {
+      text-align: center; padding: 40px; color: var(--text-muted); font-size: 0.75rem;
+      border-top: 1px solid var(--border); margin-top: auto;
     }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-    @media (max-width: 480px) {
-        td, th { padding: 12px 10px; }
-        .auth-card { padding: 20px; }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>MeenaGroups</h1>
-    <p>Live Ledger Portal</p>
+    <div class="brand-logo">
+      <span class="brand-meena">MEENA</span><span class="brand-groups">GROUPS</span>
+    </div>
+    <div class="portal-tag">Client Portal</div>
   </header>
 
-  <div id="auth-section" class="view-container">
-    <div class="auth-card">
-      <div class="form-group">
+  <div id="auth-section" class="auth-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>Secure Access</h2>
+        <p>Verify your identity to view ledger.</p>
+      </div>
+      
+      <div class="input-group">
         <label>Customer ID</label>
-        <input type="text" id="custId" placeholder="Enter ID (e.g. M105)" oninput="this.value = this.value.toUpperCase()">
+        <input type="text" id="custId" class="styled-input" placeholder="e.g. M105" oninput="this.value = this.value.toUpperCase()">
       </div>
-      <div class="form-group">
+      
+      <div class="input-group">
         <label>Last Receipt Due No.</label>
-        <input type="number" id="dueNo" placeholder="Enter Due # (e.g. 8)">
+        <input type="number" id="dueNo" class="styled-input" placeholder="Check your last slip">
       </div>
-      <button class="btn-submit" onclick="verifyAccess()">Access Ledger</button>
+
+      <button class="btn-primary" onclick="verifyAccess()">View Ledger</button>
     </div>
-    <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 25px; text-align: center; max-width: 280px; line-height: 1.5;">
-        SECURITY NOTE: Enter your ID and the Due Number found on your latest payment receipt to verify ownership.
-    </p>
   </div>
 
-  <div id="portal-view">
-    <button class="logout-btn" onclick="location.reload()">← Exit Secure View</button>
+  <div id="dashboard-view">
     
-    <div class="profile-card">
-        <h2 id="userName">--</h2>
-        <p id="userId">--</p>
+    <div class="user-header">
+      <div class="user-info">
+        <h1 id="userName">User Name</h1>
+        <p id="userId">ID: --</p>
+      </div>
+      <button class="btn-logout" onclick="location.reload()">Sign Out</button>
     </div>
 
-    <div id="ledgerList">
-        </div>
+    <div id="products-container">
+      </div>
+
   </div>
 
-  <footer>
-    Official MeenaGroups Customer Service Portal<br>
-    Powered by <span>Goorac Systems</span>
+  <footer class="site-footer">
+    <div style="margin-bottom: 5px; font-weight: 600; color: #fff;">MEENA GROUPS FINANCIAL SERVICES</div>
+    <div>Powered by Goorac Secure Systems</div>
   </footer>
 
   <script type="module">
-    // Importing configuration from the path provided
     import { db } from "./admin/config.js";
-    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+    // --- VERIFY & LOGIN ---
     window.verifyAccess = async () => {
       const idInput = document.getElementById("custId").value.trim().toUpperCase();
       const dueInput = parseInt(document.getElementById("dueNo").value);
 
-      if (!idInput || isNaN(dueInput)) {
-        return alert("Please enter both your Customer ID and Last Due Number.");
-      }
+      if (!idInput || isNaN(dueInput)) return alert("Please enter ID and Due Number.");
 
-      const btn = document.querySelector(".btn-submit");
+      const btn = document.querySelector(".btn-primary");
       btn.innerText = "Verifying...";
       btn.disabled = true;
 
       try {
+        // 1. Fetch Customer Data
         const docRef = doc(db, "customers", idInput);
         const snap = await getDoc(docRef);
 
-        if (!snap.exists()) {
-          throw "Invalid Customer ID. Please check your receipt.";
-        }
+        if (!snap.exists()) throw "Invalid Customer ID.";
 
         const data = snap.data();
         
-        // Product Discovery:
-        // Identify products where the latest approved payment matches the provided due number
-        const matchedProducts = data.products.filter(p => {
-            const payments = p.payments || [];
-            if (payments.length === 0) return false;
-            // Get the highest due number currently recorded for this product
-            const maxDueInRecord = Math.max(...payments.map(pay => pay.dueNumber || 0));
-            return maxDueInRecord === dueInput;
+        // 2. Security Check: Does any product have this Due Number?
+        // We check approved payments strictly.
+        const validProduct = data.products.some(p => {
+            if(!p.payments) return false;
+            const maxDue = Math.max(...p.payments.map(pay => pay.dueNumber || 0));
+            return maxDue === dueInput;
         });
 
-        if (matchedProducts.length === 0) {
-          throw "Verification Failed: The Due Number provided does not match our records for this ID.";
-        }
+        if (!validProduct) throw "Verification Failed: Due Number mismtach.";
 
-        // Success: Render the view
-        renderPortal(data, matchedProducts);
+        // 3. Success: Load Data
+        await loadDashboard(data, idInput);
 
       } catch (e) {
         alert(e);
-        btn.innerText = "Access Ledger";
+        btn.innerText = "View Ledger";
         btn.disabled = false;
       }
     };
 
-    function renderPortal(customer, products) {
+    // --- LOAD DASHBOARD WITH LIVE STATUS ---
+    async function loadDashboard(customer, custId) {
       document.getElementById("auth-section").style.display = "none";
-      document.getElementById("portal-view").style.display = "block";
+      document.getElementById("dashboard-view").style.display = "block";
       
       document.getElementById("userName").innerText = customer.name;
       document.getElementById("userId").innerText = `ID: ${customer.id}`;
 
-      const container = document.getElementById("ledgerList");
-      container.innerHTML = "";
+      const container = document.getElementById("products-container");
+      container.innerHTML = `<div style="text-align:center; padding:40px; color:#666;">Loading live transactions...</div>`;
 
-      products.forEach(p => {
-        // Sort payments by due number for the running balance calculation
-        const sortedPayments = (p.payments || []).sort((a,b) => (a.dueNumber || 0) - (b.dueNumber || 0));
+      // 4. Fetch Temporary Entries (Pending/Drafts)
+      let tempEntries = [];
+      try {
+        const q = query(collection(db, "temp_entries"), where("customerId", "==", custId));
+        const tempSnap = await getDocs(q);
+        tempSnap.forEach(doc => tempEntries.push(doc.data()));
+      } catch(e) { console.error("Live fetch error", e); }
+
+      container.innerHTML = ""; // Clear loader
+
+      // 5. Render Each Product Ledger
+      customer.products.forEach(p => {
         
-        let rowsHtml = "";
-        let runningPaid = 0;
+        // A. Merge Approved Payments
+        let allTxns = (p.payments || []).map(pay => ({
+          ...pay,
+          status: 'approved',
+          timestamp: new Date(pay.date).getTime() // Approximation for sorting
+        }));
 
-        sortedPayments.forEach(pay => {
-            runningPaid += parseFloat(pay.amount);
-            const balAfterPay = p.total - runningPaid;
-
-            rowsHtml += `
-                <tr>
-                    <td>#${pay.dueNumber}</td>
-                    <td>${pay.date}</td>
-                    <td class="amt-in">₹${pay.amount.toLocaleString()}</td>
-                    <td class="amt-out">₹${balAfterPay.toLocaleString()}</td>
-                </tr>
-            `;
+        // B. Merge Pending/Drafts for THIS product
+        const relevantTemps = tempEntries.filter(t => t.productName === p.name);
+        
+        relevantTemps.forEach(t => {
+          allTxns.push({
+            dueNumber: t.dueNumber,
+            date: t.date,
+            amount: t.amount,
+            status: t.status, // 'pending' or 'draft'
+            timestamp: t.timestamp ? (t.timestamp.toDate ? t.timestamp.toDate().getTime() : Date.now()) : Date.now()
+          });
         });
 
+        // C. Sort by Due Number
+        allTxns.sort((a, b) => (a.dueNumber || 0) - (b.dueNumber || 0));
+
+        // D. Calculate Rows
+        let runningPaid = 0;
+        let rowsHtml = "";
+
+        allTxns.forEach(tx => {
+          runningPaid += parseFloat(tx.amount);
+          
+          // Badge Logic
+          let badge = `<span class="status-badge st-approved">PAID</span>`;
+          if(tx.status === 'pending') badge = `<span class="status-badge st-pending">PENDING</span>`;
+          if(tx.status === 'draft') badge = `<span class="status-badge st-draft">PROCESSING</span>`;
+
+          rowsHtml += `
+            <tr>
+              <td>
+                <div style="font-weight:700; color:#fff;">#${tx.dueNumber}</div>
+                <div style="font-size:0.7rem; color:#666; margin-top:2px;">${tx.date}</div>
+              </td>
+              <td>${badge}</td>
+              <td class="amt-col">₹${tx.amount}</td>
+            </tr>
+          `;
+        });
+
+        const outstanding = p.total - runningPaid;
+
+        // E. Build Card HTML
         const card = document.createElement("div");
-        card.className = "ledger-container";
+        card.className = "product-card";
         card.innerHTML = `
-            <div class="ledger-header">
-                <h3>📦 ${p.name}</h3>
-                <span style="font-size: 0.75rem; font-weight:700; color: var(--text-muted)">VALUE: ₹${p.total.toLocaleString()}</span>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Due</th>
-                            <th>Date</th>
-                            <th>Paid</th>
-                            <th>Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rowsHtml}</tbody>
-                </table>
-            </div>
-            <div class="summary-footer">
-                <label>Outstanding Balance:</label>
-                <span>₹${(p.total - runningPaid).toLocaleString()}</span>
-            </div>
+          <div class="card-top">
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-val">Val: ₹${p.total.toLocaleString()}</div>
+          </div>
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th width="30%">Due Detail</th>
+                <th width="40%">Status</th>
+                <th width="30%">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <div class="card-footer">
+            <div class="footer-label">Outstanding Balance</div>
+            <div class="footer-val">₹${outstanding.toLocaleString()}</div>
+          </div>
         `;
         container.appendChild(card);
       });
