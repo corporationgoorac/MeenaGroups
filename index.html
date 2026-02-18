@@ -8,7 +8,7 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* * ==========================================
@@ -139,7 +139,7 @@
      * 4. MAIN DASHBOARD (HIDDEN INITIALLY)
      * ==========================================
      */
-    #dashboard-view { display: none; padding: 20px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; }
+    #dashboard-view { display: none; padding: 20px; max-width: 900px; margin: 0 auto; padding-bottom: 80px; }
 
     /* User Profile Header */
     .user-header {
@@ -168,28 +168,45 @@
     .prod-name { font-weight: 700; font-size: 1.1rem; }
     .prod-val { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
 
-    /* Ledger Table */
-    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .ledger-table th { text-align: left; padding: 15px 20px; color: var(--text-muted); font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid var(--border); }
-    .ledger-table td { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    /* Ledger Table - Detailed View */
+    .table-container { overflow-x: auto; } /* Scroll for small screens */
     
-    .status-badge { 
-      padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 500px; }
+    
+    .ledger-table th { 
+      text-align: left; padding: 15px; color: var(--text-muted); 
+      font-weight: 600; font-size: 0.7rem; border-bottom: 1px solid var(--border);
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .st-approved { color: var(--success); background: rgba(52, 199, 89, 0.1); }
-    .st-pending { color: var(--pending); background: rgba(255, 204, 0, 0.1); }
-    .st-draft { color: var(--draft); background: rgba(10, 132, 255, 0.1); }
+    
+    .ledger-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    
+    /* Columns Styling */
+    .col-due { font-weight: 700; color: #fff; display: block; }
+    .col-date { font-size: 0.7rem; color: #666; margin-top: 3px; font-family: monospace; }
+    
+    .col-amt { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; }
+    
+    /* Balance Column (Running Total) */
+    .col-bal { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--text-muted); opacity: 0.8; }
 
-    .amt-col { font-family: 'Inter', sans-serif; font-weight: 600; }
-    .bal-col { color: var(--brand-red); font-weight: 700; }
+    /* Status Badges */
+    .status-badge { 
+      display: inline-block; padding: 4px 8px; border-radius: 6px; 
+      font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .st-approved { color: var(--success); background: rgba(52, 199, 89, 0.15); border: 1px solid rgba(52, 199, 89, 0.2); }
+    .st-pending { color: var(--pending); background: rgba(255, 204, 0, 0.15); border: 1px solid rgba(255, 204, 0, 0.2); }
+    .st-draft { color: var(--draft); background: rgba(10, 132, 255, 0.15); border: 1px solid rgba(10, 132, 255, 0.2); }
 
     /* Footer Stats */
     .card-footer {
       padding: 20px; background: #080808; 
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; justify-content: flex-end; align-items: center; gap: 15px;
+      border-top: 1px solid var(--border);
     }
     .footer-label { font-size: 0.8rem; color: var(--text-muted); }
-    .footer-val { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
+    .footer-val { font-size: 1.4rem; font-weight: 800; color: var(--brand-red); }
 
     /* * ==========================================
      * 5. FOOTER & ANIMATIONS
@@ -216,7 +233,7 @@
     <div class="login-card">
       <div class="login-header">
         <h2>Secure Access</h2>
-        <p>Verify your identity to view ledger.</p>
+        <p>Verify your identity to view detailed ledger.</p>
       </div>
       
       <div class="input-group">
@@ -357,17 +374,20 @@
           });
         });
 
-        // C. Sort by Due Number
+        // C. Sort by Due Number (Ascending)
         allTxns.sort((a, b) => (a.dueNumber || 0) - (b.dueNumber || 0));
 
-        // D. Calculate Rows
+        // D. Calculate Running Balance & Rows
         let runningPaid = 0;
         let rowsHtml = "";
 
         allTxns.forEach(tx => {
           runningPaid += parseFloat(tx.amount);
           
-          // Badge Logic
+          // Calculate Remaining Balance AFTER this specific payment
+          let rowBalance = p.total - runningPaid;
+
+          // Status Badge Logic
           let badge = `<span class="status-badge st-approved">PAID</span>`;
           if(tx.status === 'pending') badge = `<span class="status-badge st-pending">PENDING</span>`;
           if(tx.status === 'draft') badge = `<span class="status-badge st-draft">PROCESSING</span>`;
@@ -375,18 +395,16 @@
           rowsHtml += `
             <tr>
               <td>
-                <div style="font-weight:700; color:#fff;">#${tx.dueNumber}</div>
-                <div style="font-size:0.7rem; color:#666; margin-top:2px;">${tx.date}</div>
+                <span class="col-due">#${tx.dueNumber}</span>
+                <span class="col-date">${tx.date}</span>
               </td>
               <td>${badge}</td>
-              <td class="amt-col">₹${tx.amount}</td>
+              <td class="col-amt">₹${parseInt(tx.amount).toLocaleString()}</td>
+              <td class="col-bal">₹${rowBalance.toLocaleString()}</td>
             </tr>
           `;
         });
 
-        // Calculate Outstanding (Total - (Approved + Pending + Draft))
-        // Note: You might want to decide if Drafts count towards balance reduction visually.
-        // Currently, this code subtracts ALL shown payments from the total.
         const outstanding = p.total - runningPaid;
 
         // E. Build Card HTML
@@ -397,16 +415,19 @@
             <div class="prod-name">${p.name}</div>
             <div class="prod-val">Val: ₹${p.total.toLocaleString()}</div>
           </div>
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th width="30%">Due Detail</th>
-                <th width="40%">Status</th>
-                <th width="30%">Amount</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
+          <div class="table-container">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th width="20%">Due Detail</th>
+                  <th width="30%">Status</th>
+                  <th width="25%">Paid</th>
+                  <th width="25%">Balance</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
           <div class="card-footer">
             <div class="footer-label">Outstanding Balance</div>
             <div class="footer-val">₹${outstanding.toLocaleString()}</div>
