@@ -79,7 +79,6 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-    /* UPDATED BRAND COLORS */
     .brand-red { color: #ff1744; }
     .brand-white { color: #ffffff; }
 
@@ -159,7 +158,7 @@
       max-width: 1400px;
       width: 100%;
       margin: 0 auto;
-      padding-bottom: 100px; /* Space for mobile nav */
+      padding-bottom: 100px; 
     }
 
     /* Welcome Section */
@@ -175,11 +174,19 @@
     
     .greeting-box h1 { margin: 0; font-size: 1.8rem; font-weight: 800; color: #fff; }
     .greeting-box p { color: var(--text-muted); margin: 5px 0 0; font-size: 0.9rem; }
+    
+    .sync-status-group { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    
     .last-sync-tag { 
       font-size: 0.7rem; color: var(--secondary); 
       background: rgba(41, 121, 255, 0.1); 
       padding: 4px 8px; border-radius: 4px; 
-      display: inline-block; margin-top: 8px; font-family: monospace;
+      display: inline-block; font-family: monospace;
+    }
+    
+    .count-tag {
+      font-size: 0.7rem; color: var(--text-muted);
+      font-family: monospace;
     }
 
     /* Grid Layout for Cards */
@@ -327,6 +334,7 @@
       .advice-card { flex-direction: column; text-align: center; }
       .advice-score-circle { margin-bottom: 10px; }
       .hero-section { flex-direction: column; align-items: flex-start; gap: 15px; }
+      .sync-status-group { align-items: flex-start; margin-top: 10px; }
     }
   </style>
 </head>
@@ -366,7 +374,10 @@
       <div class="greeting-box">
         <h1 id="greetingTitle">Dashboard</h1>
         <p>System Overview & Financial Intelligence</p>
+      </div>
+      <div class="sync-status-group">
         <span id="lastSyncTime" class="last-sync-tag">Sync Required</span>
+        <span id="scanCount" class="count-tag">0 Records Scanned</span>
       </div>
     </div>
 
@@ -478,24 +489,26 @@
     let charts = {};
 
     // --- HELPER: ROBUST NUMBER PARSER ---
-    // Handles strings like "1,000", " 500 ", undefined, null, etc.
     const cleanNumber = (val) => {
       if (val === undefined || val === null || val === '') return 0;
-      // Convert to string, remove commas/spaces, then float
       const str = String(val).replace(/,/g, '').replace(/\s/g, '');
       const num = parseFloat(str);
       return isNaN(num) ? 0 : num;
     };
 
+    // Use a new key to ignore old corrupted data
+    const DATA_KEY = 'dashboardData_v2'; 
+
     // --- 1. INITIAL LOAD (FROM LOCAL STORAGE) ---
     window.addEventListener('DOMContentLoaded', () => {
-      const storedData = localStorage.getItem('dashboardData');
+      const storedData = localStorage.getItem(DATA_KEY);
       const lastSync = localStorage.getItem('lastSyncTime');
+      const count = localStorage.getItem('lastScanCount');
       
       if (lastSync) document.getElementById('lastSyncTime').innerText = `Cached: ${lastSync}`;
+      if (count) document.getElementById('scanCount').innerText = `${count} Records Scanned`;
 
       if (storedData) {
-        console.log("Loading from LocalStorage (0 Reads)");
         const parsed = JSON.parse(storedData);
         renderDashboard(parsed);
       } else {
@@ -503,7 +516,7 @@
       }
     });
 
-    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS) ---
+    // --- 2. SYNC LOGIC (STRICT REPORTS PAGE MATCH) ---
     window.manualSync = async () => {
       const btn = document.querySelector('.header-sync-btn');
       if(btn.classList.contains('syncing')) return; 
@@ -513,65 +526,51 @@
       try {
         console.log("Fetching Full Customer Data...");
         
-        // --- STEP A: Fetch ALL Customers ---
         const custSnapshot = await getDocs(collection(db, "customers"));
         
         let calculatedPaid = 0;
         let calculatedDue = 0;
+        let recordsScanned = 0;
         
         // Stats Accumulators
         let historyMap = {}; 
         let productCounts = { 'Loans': 0, 'EMI': 0, 'Ins.': 0, 'Other': 0 };
         let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 }; // Sun-Sat
 
-        // --- STEP B: Iterate & Calculate ---
         custSnapshot.forEach(doc => {
           const c = doc.data();
           
+          // Safety: Skip deleted users to avoid bad math
+          if (c.status === 'deleted' || c.status === 'archived') return;
+
           if(c.products && Array.isArray(c.products)) {
              c.products.forEach(p => {
-                // 1. Get Product Total (Robust Cleaning)
+                recordsScanned++;
+
+                // --- CORE REPORTS LOGIC (SIMPLE & STRICT) ---
                 const pTotal = cleanNumber(p.total);
+                const pPaid = cleanNumber(p.paid);
                 
-                // 2. Sum Payments from Log
-                let pPaidSum = 0;
+                calculatedPaid += pPaid;
+                const pBal = pTotal - pPaid;
+                
+                // Only add if positive. Negative balance (overpaid) should not reduce Total Due.
+                if(pBal > 0) calculatedDue += pBal;
+
+                // --- CHARTS LOGIC (ONLY FOR VISUALS) ---
                 if(p.payments && Array.isArray(p.payments)) {
                    p.payments.forEach(pay => {
-                      const amount = cleanNumber(pay.amount);
-                      pPaidSum += amount;
-                      
-                      // History Logic
                       if(pay.date) {
-                         const dKey = pay.date; 
-                         historyMap[dKey] = (historyMap[dKey] || 0) + amount;
+                         const amount = cleanNumber(pay.amount);
+                         historyMap[pay.date] = (historyMap[pay.date] || 0) + amount;
                          
                          const d = new Date(pay.date);
-                         if(!isNaN(d)) {
-                             const dayIndex = d.getDay();
-                             weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
-                         }
+                         if(!isNaN(d)) weekActivity[d.getDay()]++;
                       }
                    });
                 }
 
-                // 3. Get Legacy Paid
-                const legacyPaid = cleanNumber(p.paid);
-                
-                // 4. Effective Paid (Max of both methods)
-                const effectivePaid = Math.max(pPaidSum, legacyPaid);
-                
-                // 5. Balance (Total - Paid)
-                const pBalance = pTotal - effectivePaid;
-
-                calculatedPaid += effectivePaid;
-                
-                // FIX: Only add positive outstanding due. 
-                // Don't let overpayments reduce the total collection target.
-                if(pBalance > 0) {
-                    calculatedDue += pBalance;
-                }
-
-                // 6. Product Categories
+                // Categories
                 let pName = (p.name || '').toLowerCase();
                 if(pName.includes('loan')) productCounts['Loans']++;
                 else if(pName.includes('emi') || pName.includes('mobile')) productCounts['EMI']++;
@@ -588,7 +587,6 @@
         let compactHistory = {};
         sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
-        // C. Prepare Data Object
         const data = {
           totals: totals,
           history: compactHistory, 
@@ -597,12 +595,15 @@
           efficiency: [85, 90, 75, 80, 88] 
         };
 
-        // D. Save to Cache
-        localStorage.setItem('dashboardData', JSON.stringify(data));
+        // Overwrite new Clean Data
+        localStorage.setItem(DATA_KEY, JSON.stringify(data));
         
         const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         localStorage.setItem('lastSyncTime', timeNow);
+        localStorage.setItem('lastScanCount', recordsScanned);
+        
         document.getElementById('lastSyncTime').innerText = `Synced: ${timeNow}`;
+        document.getElementById('scanCount').innerText = `${recordsScanned} Records Scanned`;
 
         renderDashboard(data);
 
@@ -620,7 +621,6 @@
     function renderDashboard(data) {
       const { totalPaid, totalBalance } = data.totals;
       
-      // Update KPIs
       animateValue("dispTotalPaid", totalPaid, "₹");
       animateValue("dispTotalDue", totalBalance, "₹");
       
@@ -629,14 +629,10 @@
         : 0;
       document.getElementById('dispRecovery').innerText = `${recoveryRate}%`;
 
-      // Run Financial Advisor
       analyzeHealth(totalPaid, totalBalance, recoveryRate, data.history);
-
-      // Render Charts
       initCharts(data, recoveryRate);
     }
 
-    // Small animation for numbers
     function animateValue(id, value, prefix = "") {
       const obj = document.getElementById(id);
       obj.innerText = prefix + value.toLocaleString();
@@ -703,13 +699,12 @@
       const textColor = '#888';
       const gridColor = '#222';
 
-      // 1. Line Chart (Real History)
       let labels = [];
       let historyData = [];
       
       if (data.history) {
         const sortedDates = Object.keys(data.history).sort();
-        labels = sortedDates.map(d => d.substring(5)); // Remove Year
+        labels = sortedDates.map(d => d.substring(5)); 
         historyData = sortedDates.map(d => data.history[d].paid);
       }
       
@@ -739,7 +734,6 @@
         }
       });
 
-      // 2. Doughnut (Status)
       const ctxStatus = document.getElementById('chartStatus').getContext('2d');
       if(charts.status) charts.status.destroy();
       charts.status = new Chart(ctxStatus, {
@@ -760,7 +754,6 @@
         }
       });
 
-      // 3. Bar (Daily Activity from aggregated weekData)
       const ctxDaily = document.getElementById('chartDaily').getContext('2d');
       if(charts.daily) charts.daily.destroy();
       charts.daily = new Chart(ctxDaily, {
@@ -785,7 +778,6 @@
         }
       });
 
-      // 4. Polar Area (Real Product Counts)
       const ctxProd = document.getElementById('chartProduct').getContext('2d');
       if(charts.prod) charts.prod.destroy();
       charts.prod = new Chart(ctxProd, {
@@ -811,7 +803,6 @@
         }
       });
 
-      // 5. Radar (Efficiency - Static for now as agent logic is complex)
       const ctxEff = document.getElementById('chartEfficiency').getContext('2d');
       if(charts.eff) charts.eff.destroy();
       charts.eff = new Chart(ctxEff, {
