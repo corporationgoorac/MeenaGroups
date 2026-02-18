@@ -124,7 +124,7 @@
     }
     .pay-label { font-size: 0.8rem; color: var(--secondary); margin-bottom: 8px; display: block; font-weight: 600; }
     
-    .pay-inputs { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .pay-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     
     .btn-pay { 
       width: 100%; padding: 14px; background: var(--primary); color: #000; 
@@ -174,7 +174,7 @@
       collection, query, where, getDocs, doc, runTransaction, increment, limit 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- 1. SMART SEARCH LOGIC ---
+    // --- 1. SMART SEARCH LOGIC (NOW PARALLEL) ---
     window.searchCustomer = async () => {
       const term = document.getElementById("searchInput").value.trim();
       const div = document.getElementById("resultArea");
@@ -185,45 +185,35 @@
 
       try {
         const colRef = collection(db, "customers");
-        let snapshot;
+        
+        // Prepare terms
+        const idTerm = term.toUpperCase(); // For ID search (e.g. "A20")
+        const nameTerm = term;             // For Name search (e.g. "Ramesh")
 
-        // Strategy 1: Try ID Search First (Exact or Range)
-        const idTerm = term.toUpperCase(); // Assume IDs are Upper e.g. "A20"
-        const qID = query(
-          colRef,
-          where("id", ">=", idTerm),
-          where("id", "<=", idTerm + '\uf8ff'),
-          limit(5)
-        );
-        snapshot = await getDocs(qID);
+        // RUN BOTH SEARCHES AT THE SAME TIME (ID AND NAME)
+        const [idSnap, nameSnap] = await Promise.all([
+          getDocs(query(colRef, where("id", ">=", idTerm), where("id", "<=", idTerm + '\uf8ff'), limit(5))),
+          getDocs(query(colRef, where("name", ">=", nameTerm), where("name", "<=", nameTerm + '\uf8ff'), limit(5)))
+        ]);
 
-        // Strategy 2: If ID returns nothing, Search by Name
-        if (snapshot.empty) {
-          // Note: Firestore is case-sensitive. This is a simple prefix search.
-          // For best results, store a lowercase 'name_lower' field in DB. 
-          // Here we assume standard capitalization or exact match.
-          const qName = query(
-            colRef,
-            where("name", ">=", term),
-            where("name", "<=", term + '\uf8ff'),
-            limit(5)
-          );
-          snapshot = await getDocs(qName);
-        }
+        // Merge Results (Use Map to remove duplicates if ID and Name both match)
+        const results = new Map();
+        idSnap.forEach(doc => results.set(doc.id, doc.data()));
+        nameSnap.forEach(doc => results.set(doc.id, doc.data()));
 
         // Render Results
         div.innerHTML = "";
-        if (snapshot.empty) {
+        if (results.size === 0) {
           div.innerHTML = `
             <div style="text-align:center; padding:30px; border:1px dashed #333; border-radius:10px;">
               <p style="color:var(--danger); font-weight:bold;">No Customer Found</p>
-              <p style="color:#666; font-size:0.9rem;">Tried searching ID "${idTerm}" and Name "${term}"</p>
+              <p style="color:#666; font-size:0.9rem;">Tried searching ID "${idTerm}" and Name "${nameTerm}"</p>
             </div>`;
           return;
         }
 
-        snapshot.forEach(docSnap => {
-          renderCard(docSnap.data());
+        results.forEach((data, docId) => {
+          renderCard(docId, data);
         });
 
       } catch (e) {
@@ -237,7 +227,7 @@
     }
 
     // --- 2. RENDER CARD UI ---
-    function renderCard(c) {
+    function renderCard(docId, c) {
       const div = document.getElementById("resultArea");
       const card = document.createElement("div");
       card.className = "cust-card";
@@ -246,7 +236,13 @@
       
       c.products.forEach((p, idx) => {
         // Calculations
-        const balance = p.total - p.paid;
+        let totalPaid = 0;
+        if(p.payments) p.payments.forEach(pay => totalPaid += parseFloat(pay.amount));
+        
+        // Update local paid if legacy data issue
+        if(p.paid !== undefined) totalPaid = Math.max(totalPaid, p.paid);
+        
+        const balance = p.total - totalPaid;
         
         // Next Due Logic
         const lastDue = (p.payments || []).length > 0 
@@ -255,20 +251,36 @@
         const nextDue = lastDue + 1;
 
         // Badge Logic
-        const isPaid = balance <= 0;
+        const isPaid = balance <= 1; // Tolerance for float
         const badgeHTML = isPaid 
           ? `<span class="badge badge-paid">COMPLETED</span>` 
           : `<span class="badge badge-due">OUTSTANDING</span>`;
 
-        // Payment Form HTML (Hidden if paid, optional)
+        // Payment Form HTML (Hidden if paid)
+        // MODIFIED: Added Target Due Input
         const paymentForm = isPaid ? '' : `
           <div class="payment-area">
-            <label class="pay-label">ADD PAYMENT ENTRY (Due #${nextDue})</label>
+            <label class="pay-label">ADD PAYMENT / SPLIT DUES</label>
             <div class="pay-inputs">
-              <input type="number" id="amt_${c.id}_${idx}" placeholder="Amount ₹">
-              <input type="date" id="date_${c.id}_${idx}" value="${new Date().toISOString().split('T')[0]}">
+               <div style="display:flex; flex-direction:column;">
+                  <span style="font-size:0.7rem; color:#666;">Total Amount</span>
+                  <input type="number" id="amt_${docId}_${idx}" placeholder="Total ₹">
+               </div>
+               <div style="display:flex; flex-direction:column;">
+                  <span style="font-size:0.7rem; color:#666;">Target Due #</span>
+                  <input type="number" id="dueTarget_${docId}_${idx}" value="${nextDue}">
+               </div>
             </div>
-            <button class="btn-pay" onclick="processPayment('${c.id}', ${idx})">CONFIRM PAYMENT</button>
+            <div class="pay-inputs" style="margin-top:5px;">
+               <div style="display:flex; flex-direction:column;">
+                 <span style="font-size:0.7rem; color:#666;">Date</span>
+                 <input type="date" id="date_${docId}_${idx}" value="${new Date().toISOString().split('T')[0]}">
+               </div>
+            </div>
+            <p style="font-size:0.7rem; color:#888; margin:5px 0 10px 0;">
+              *If you increase Target Due #, amount will be split equally.
+            </p>
+            <button class="btn-pay" onclick="processPayment('${docId}', ${idx})">CONFIRM & SPLIT</button>
           </div>
         `;
 
@@ -290,6 +302,10 @@
                   ₹${balance.toLocaleString()}
                 </div>
               </div>
+            </div>
+            
+            <div style="margin-bottom:10px; font-size:0.8rem; color:#666; text-align:center;">
+               Last Due Paid: #${lastDue}
             </div>
 
             ${paymentForm}
@@ -313,27 +329,31 @@
       div.appendChild(card);
     }
 
-    // --- 3. PAYMENT TRANSACTION LOGIC ---
+    // --- 3. PAYMENT TRANSACTION LOGIC (WITH SPLIT) ---
     window.processPayment = async (custId, prodIdx) => {
       const amtInput = document.getElementById(`amt_${custId}_${prodIdx}`);
+      const dueInput = document.getElementById(`dueTarget_${custId}_${prodIdx}`);
       const dateInput = document.getElementById(`date_${custId}_${prodIdx}`);
       
-      const amount = parseFloat(amtInput.value);
+      const totalAmount = parseFloat(amtInput.value);
+      const targetDue = parseInt(dueInput.value);
       const date = dateInput.value;
 
-      if (!amount || amount <= 0) return alert("❌ Enter a valid positive amount");
+      if (!totalAmount || totalAmount <= 0) return alert("❌ Enter a valid positive amount");
+      if (!targetDue || targetDue < 1) return alert("❌ Invalid Due Number");
 
       // Button State
       const btn = event.target;
       const originalText = btn.innerText;
-      btn.innerText = "PROCESSING...";
+      btn.innerText = "CALCULATING...";
       btn.disabled = true;
       btn.style.opacity = "0.7";
 
       try {
         await runTransaction(db, async (transaction) => {
+          // Note: using doc ID directly now
           const custRef = doc(db, "customers", custId);
-          const statsRef = doc(db, "metadata", "stats");
+          const statsRef = doc(db, "metadata", "stats"); // Optional stats doc
 
           const custDoc = await transaction.get(custRef);
           if (!custDoc.exists()) throw "Customer does not exist!";
@@ -341,31 +361,56 @@
           const data = custDoc.data();
           const product = data.products[prodIdx];
 
-          // Calculate Due Number
+          // 1. Determine Start Due Number
           let maxDue = 0;
           if (product.payments && product.payments.length > 0) {
             maxDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
           }
+          const startDue = maxDue + 1;
 
-          const newPayment = {
-            date: date,
-            amount: amount,
-            dueNumber: maxDue + 1,
-            type: "Manual Entry"
-          };
+          if (targetDue < startDue) {
+            throw `Target Due (${targetDue}) cannot be less than next due (${startDue}).`;
+          }
 
-          product.payments.push(newPayment);
-          product.paid += amount; // Update local total
+          // 2. Calculate Split
+          const numberOfDues = (targetDue - startDue) + 1;
+          const amountPerDue = totalAmount / numberOfDues;
+          const roundedAmount = Math.floor(amountPerDue * 100) / 100; // 2 decimal precision
 
-          // Update DB
+          // 3. Create Entries
+          if(!product.payments) product.payments = [];
+          
+          for(let i = 0; i < numberOfDues; i++) {
+             const currentDueNum = startDue + i;
+             
+             // Adjust last entry to cover rounding errors
+             let finalAmt = roundedAmount;
+             if(i === numberOfDues - 1) {
+                finalAmt = totalAmount - (roundedAmount * (numberOfDues - 1));
+             }
+
+             product.payments.push({
+               date: date,
+               amount: parseFloat(finalAmt.toFixed(2)),
+               dueNumber: currentDueNum,
+               type: numberOfDues > 1 ? `Split Entry (${i+1}/${numberOfDues})` : "Manual Entry"
+             });
+          }
+
+          // 4. Update Totals
+          product.paid = (product.paid || 0) + totalAmount; 
+
+          // 5. Commit
           transaction.update(custRef, { products: data.products });
-          transaction.update(statsRef, {
-            totalPaid: increment(amount),
-            totalBalance: increment(-amount)
-          });
+          
+          // Optional: Update global stats if stats document exists
+          // transaction.update(statsRef, {
+          //   totalPaid: increment(totalAmount),
+          //   totalBalance: increment(-totalAmount)
+          // });
         });
 
-        alert("✅ Payment Recorded Successfully!");
+        alert(`✅ Success! Split ${totalAmount} into ${targetDue - (parseInt(dueInput.defaultValue)-1)} entries.`);
         searchCustomer(); // Refresh UI
 
       } catch (e) {
