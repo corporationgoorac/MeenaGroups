@@ -269,25 +269,41 @@
       btn.disabled = true;
 
       try {
-        // 1. Fetch Customer Data
+        // 1. Fetch Customer Data (Exists Check)
         const docRef = doc(db, "customers", idInput);
         const snap = await getDoc(docRef);
 
         if (!snap.exists()) throw "Invalid Customer ID.";
 
         const data = snap.data();
+        let accessGranted = false;
         
-        // 2. Security Check: Does any product have this Due Number?
-        // We check approved payments strictly.
-        const validProduct = data.products.some(p => {
-            if(!p.payments) return false;
-            const maxDue = Math.max(...p.payments.map(pay => pay.dueNumber || 0));
-            return maxDue === dueInput;
-        });
+        // 2. CHECK APPROVED PAYMENTS
+        // Does any product have this Due Number in approved history?
+        if (data.products) {
+            accessGranted = data.products.some(p => {
+                if(!p.payments) return false;
+                return p.payments.some(pay => pay.dueNumber === dueInput);
+            });
+        }
 
-        if (!validProduct) throw "Verification Failed: Due Number mismtach.";
+        // 3. CHECK PENDING/DRAFT PAYMENTS (Agent Entries)
+        // If not found in approved, check if an agent has it as draft/pending
+        if (!accessGranted) {
+            const q = query(
+                collection(db, "temp_entries"),
+                where("customerId", "==", idInput),
+                where("dueNumber", "==", dueInput)
+            );
+            const tempSnap = await getDocs(q);
+            if (!tempSnap.empty) {
+                accessGranted = true; // Found in pending/drafts!
+            }
+        }
 
-        // 3. Success: Load Data
+        if (!accessGranted) throw "Verification Failed: Due Number not found in system (Draft or Approved).";
+
+        // 4. Success: Load Data
         await loadDashboard(data, idInput);
 
       } catch (e) {
@@ -308,7 +324,7 @@
       const container = document.getElementById("products-container");
       container.innerHTML = `<div style="text-align:center; padding:40px; color:#666;">Loading live transactions...</div>`;
 
-      // 4. Fetch Temporary Entries (Pending/Drafts)
+      // 5. Fetch Temporary Entries (Pending/Drafts) for Display
       let tempEntries = [];
       try {
         const q = query(collection(db, "temp_entries"), where("customerId", "==", custId));
@@ -318,7 +334,7 @@
 
       container.innerHTML = ""; // Clear loader
 
-      // 5. Render Each Product Ledger
+      // 6. Render Each Product Ledger
       customer.products.forEach(p => {
         
         // A. Merge Approved Payments
@@ -368,6 +384,9 @@
           `;
         });
 
+        // Calculate Outstanding (Total - (Approved + Pending + Draft))
+        // Note: You might want to decide if Drafts count towards balance reduction visually.
+        // Currently, this code subtracts ALL shown payments from the total.
         const outstanding = p.total - runningPaid;
 
         // E. Build Card HTML
