@@ -79,7 +79,6 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-    /* UPDATED BRAND COLORS */
     .brand-red { color: #ff1744; }
     .brand-white { color: #ffffff; }
 
@@ -127,7 +126,6 @@
     
     .header-sync-btn svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.5s ease; }
     
-    /* Animation Class applied via JS */
     .header-sync-btn.syncing svg { animation: spin 1s infinite linear; }
     .header-sync-btn.syncing { border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
 
@@ -159,7 +157,7 @@
       max-width: 1400px;
       width: 100%;
       margin: 0 auto;
-      padding-bottom: 100px; /* Space for mobile nav */
+      padding-bottom: 100px; 
     }
 
     /* Welcome Section */
@@ -209,12 +207,12 @@
     .trend-up { color: var(--primary); }
     .trend-down { color: var(--danger); }
 
-    /* Financial Advice Card (Special) */
+    /* Financial Advice Card */
     .advice-card {
-      grid-column: 1 / -1; /* Span Full Width */
+      grid-column: 1 / -1; 
       background: linear-gradient(145deg, #141414, #0f0f0f);
       border: 1px solid var(--border);
-      border-left: 5px solid var(--primary); /* Dynamic Color via JS */
+      border-left: 5px solid var(--primary); 
       padding: 25px;
       border-radius: 16px;
       display: flex;
@@ -273,7 +271,7 @@
       border-top: 1px solid var(--border);
       display: none;
       justify-content: space-around;
-      padding: 10px 0 25px 0; /* Extra padding for iOS home indicator */
+      padding: 10px 0 25px 0; 
       z-index: 100;
     }
 
@@ -285,7 +283,7 @@
       color: #666;
       font-size: 0.7rem;
       padding: 8px;
-      width: 20%; /* Equal spacing */
+      width: 20%; 
       transition: 0.2s;
     }
     
@@ -474,8 +472,18 @@
     import { db } from "./config.js";
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- CHART INSTANCES (Global to allow updates) ---
+    // --- CHART INSTANCES (Global) ---
     let charts = {};
+
+    // --- HELPER: ROBUST NUMBER PARSER ---
+    // Handles strings like "1,000", " 500 ", undefined, null, etc.
+    const cleanNumber = (val) => {
+      if (val === undefined || val === null || val === '') return 0;
+      // Convert to string, remove commas/spaces, then float
+      const str = String(val).replace(/,/g, '').replace(/\s/g, '');
+      const num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
+    };
 
     // --- 1. INITIAL LOAD (FROM LOCAL STORAGE) ---
     window.addEventListener('DOMContentLoaded', () => {
@@ -493,7 +501,7 @@
       }
     });
 
-    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS - SAME LOGIC AS ENTRY PAGE) ---
+    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS) ---
     window.manualSync = async () => {
       const btn = document.querySelector('.header-sync-btn');
       if(btn.classList.contains('syncing')) return; 
@@ -510,7 +518,7 @@
         let calculatedDue = 0;
         
         // Stats Accumulators
-        let historyMap = {}; // Date -> Total
+        let historyMap = {}; 
         let productCounts = { 'Loans': 0, 'EMI': 0, 'Ins.': 0, 'Other': 0 };
         let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 }; // Sun-Sat
 
@@ -520,46 +528,43 @@
           
           if(c.products && Array.isArray(c.products)) {
              c.products.forEach(p => {
-                // FORCE NUMBER CONVERSION
-                const pTotal = parseFloat(p.total) || 0;
-                let pPaidSum = 0;
+                // 1. Get Product Total (Robust Cleaning)
+                const pTotal = cleanNumber(p.total);
                 
-                // 1. Calculate from Payment Array (ENTRY PAGE LOGIC)
+                // 2. Sum Payments from Log
+                let pPaidSum = 0;
                 if(p.payments && Array.isArray(p.payments)) {
                    p.payments.forEach(pay => {
-                      const amount = parseFloat(pay.amount);
-                      if(!isNaN(amount)) {
-                          pPaidSum += amount;
-                          
-                          // History Logic
-                          if(pay.date) {
-                             const dKey = pay.date; 
-                             historyMap[dKey] = (historyMap[dKey] || 0) + amount;
-                             
-                             const d = new Date(pay.date);
-                             if(!isNaN(d)) {
-                                 const dayIndex = d.getDay();
-                                 weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
-                             }
-                          }
+                      const amount = cleanNumber(pay.amount);
+                      pPaidSum += amount;
+                      
+                      // History Logic
+                      if(pay.date) {
+                         const dKey = pay.date; 
+                         historyMap[dKey] = (historyMap[dKey] || 0) + amount;
+                         
+                         const d = new Date(pay.date);
+                         if(!isNaN(d)) {
+                             const dayIndex = d.getDay();
+                             weekActivity[dayIndex] = (weekActivity[dayIndex] || 0) + 1;
+                         }
                       }
                    });
                 }
 
-                // 2. Handle Legacy 'paid' field (ENTRY PAGE LOGIC)
-                let legacyPaid = 0;
-                if(p.paid !== undefined) legacyPaid = parseFloat(p.paid) || 0;
+                // 3. Get Legacy Paid
+                const legacyPaid = cleanNumber(p.paid);
                 
-                // Effective Paid: MAX(Logs, Legacy) (ENTRY PAGE LOGIC)
+                // 4. Effective Paid (Max of both methods)
                 const effectivePaid = Math.max(pPaidSum, legacyPaid);
                 
-                // Balance Calculation (ENTRY PAGE LOGIC)
+                // 5. Balance (Total - Paid)
                 const pBalance = pTotal - effectivePaid;
 
                 calculatedPaid += effectivePaid;
                 calculatedDue += pBalance;
 
-                // 4. Product Categories
+                // 6. Product Categories
                 let pName = (p.name || '').toLowerCase();
                 if(pName.includes('loan')) productCounts['Loans']++;
                 else if(pName.includes('emi') || pName.includes('mobile')) productCounts['EMI']++;
@@ -573,7 +578,6 @@
 
         // Prepare History Object for Chart
         const sortedDates = Object.keys(historyMap).sort();
-        // Limit to last 14 days for cleaner chart
         let compactHistory = {};
         sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
@@ -582,9 +586,8 @@
           totals: totals,
           history: compactHistory, 
           products: [productCounts['Loans'], productCounts['EMI'], productCounts['Ins.'], productCounts['Other']], 
-          // Week activity array for bar chart
           weekData: [weekActivity[1], weekActivity[2], weekActivity[3], weekActivity[4], weekActivity[5], weekActivity[6], weekActivity[0]],
-          efficiency: [85, 90, 75, 80, 88] // Derived or static for now
+          efficiency: [85, 90, 75, 80, 88] 
         };
 
         // D. Save to Cache
