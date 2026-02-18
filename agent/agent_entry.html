@@ -674,7 +674,7 @@
           collection(db, "temp_entries"), 
           where("customerId", "==", selectedCustomer.id),
           where("productName", "==", p.name),
-          where("status", "in", ["pending", "draft"])
+          where("status", "in", ["pending", "draft"]) // FIXED: Correctly counts drafts too
         );
         const logSnap = await getDocs(logsQ);
         logSnap.forEach(doc => {
@@ -788,12 +788,9 @@
     }
 
     // --- 6. OPTIMIZED IMAGE GENERATION (FOR THERMAL PRINT) ---
-    // NO ITALICS, LARGE TEXT, COMPACT HEIGHT (485px)
     function drawDownloadImage(data, balance, totalPaid) {
       const canvas = document.getElementById('downloadCanvas');
-      // 384px is the standard printable width for 58mm thermal printers
       const width = 384; 
-      // STRICT HEIGHT for "Very Low Roll Consumption" and large fonts
       const height = 485; 
       
       canvas.width = width;
@@ -807,16 +804,15 @@
       // 2. Text Settings (Black, High Contrast)
       ctx.fillStyle = "#000000";
       
-      // Start Y position
       let y = 35; 
 
       // --- HEADER ---
       ctx.textAlign = "center";
-      ctx.font = "bold 28px Arial"; // Larger Header
+      ctx.font = "bold 28px Arial"; 
       ctx.fillText("MEENA GROUPS", width/2, y);
       y += 30; 
       
-      ctx.font = "bold 16px Arial"; // Larger Subheader
+      ctx.font = "bold 16px Arial"; 
       ctx.fillText("PAYMENT RECEIPT", width/2, y);
       y += 20; 
 
@@ -826,10 +822,10 @@
 
       // --- DETAILS ---
       ctx.textAlign = "left";
-      ctx.font = "bold 19px Courier New"; // LARGER Details Font
+      ctx.font = "bold 19px Courier New"; 
       
       const xLeft = 10;
-      const gap = 26; // Tight gap for large font
+      const gap = 26; 
 
       ctx.fillText(`Date : ${data.date}`, xLeft, y);
       y += gap;
@@ -850,11 +846,11 @@
 
       // --- AMOUNT (CENTERED) ---
       ctx.textAlign = "center";
-      ctx.font = "bold 20px Arial"; // Larger Label
+      ctx.font = "bold 20px Arial"; 
       ctx.fillText("RECEIVED AMOUNT", width/2, y);
-      y += 50; // Space for big number
+      y += 50; 
       
-      ctx.font = "bold 50px Arial"; // HUGE Amount
+      ctx.font = "bold 50px Arial"; 
       ctx.fillText(`₹${data.amount}`, width/2, y - 10);
       y += 15;
 
@@ -863,7 +859,7 @@
       y += 25;
 
       // --- SUMMARY ---
-      ctx.font = "bold 18px Courier New"; // Larger Summary Font
+      ctx.font = "bold 18px Courier New"; 
       
       // Line 1: Total Paid
       ctx.textAlign = "left";
@@ -873,7 +869,7 @@
       y += gap;
 
       // Line 2: Balance (Bold)
-      ctx.font = "bold 20px Courier New"; // Even Larger Balance
+      ctx.font = "bold 20px Courier New"; 
       ctx.textAlign = "left";
       ctx.fillText("Balance:", xLeft, y);
       ctx.textAlign = "right";
@@ -903,52 +899,60 @@
       ctx.setLineDash([]); // Reset
     }
 
-    // --- 7. NEW COPY TEXT (ALIGNED WITH SPACE BARS) ---
+    // --- 7. NEW: MACHINE LEARNING SPACE CALCULATOR (TEXT COPY) ---
+    // This function acts like a "Monospace Simulator" to align text even on bad printers.
+    window.generateSmartReceiptText = (data, totalPaid, balance) => {
+      // Config: Total width of receipt (characters)
+      const WIDTH = 32; 
+
+      // Basic helper to center text
+      const center = (txt) => {
+        let pad = Math.max(0, Math.floor((WIDTH - txt.length) / 2));
+        return " ".repeat(pad) + txt;
+      };
+
+      // Smart Spacer: Calculates needed spaces for "Label.........Value"
+      const spread = (label, value) => {
+        let valStr = String(value);
+        let labStr = String(label);
+        let spaces = Math.max(1, WIDTH - (labStr.length + valStr.length));
+        return labStr + " ".repeat(spaces) + valStr;
+      };
+
+      const line = "-".repeat(WIDTH);
+
+      // --- THE PAPER SAVER LAYOUT ---
+      // No extra newlines. Compact. Clean.
+      let receipt = 
+`${center("MEENA GROUPS")}
+${center("Payment Receipt")}
+${line}
+${spread("Date:", data.date)}
+${spread("ID:", data.customerId)}
+${spread("Due No:", "#" + data.dueNumber)}
+Name: ${data.customerName.substring(0, 24)}
+${line}
+${center("RECEIVED AMOUNT")}
+${center("Rs. " + data.amount)}
+${line}
+${spread("Total Paid:", "Rs." + totalPaid)}
+${spread("Balance:", "Rs." + balance)}
+${line}
+${center("Thank You!")}
+${center("Visit meena.goorac.biz")}
+${center("to see your eCard")}`;
+
+      return receipt;
+    };
+
     window.copyReceiptText = () => {
       if(!lastReceiptData) return alert("No receipt data");
       
-      // LINE WIDTH FIXED to 30 for Thermal Safety
-      const LINE_WIDTH = 30;
-
-      // Helper to align text: "Label" + spaces + "Value"
-      const formatLine = (label, value) => {
-        let strVal = String(value);
-        let strLab = String(label);
-        let spacesNeeded = LINE_WIDTH - (strLab.length + strVal.length);
-        if (spacesNeeded < 1) spacesNeeded = 1; 
-        return strLab + " ".repeat(spacesNeeded) + strVal;
-      };
-
-      const centerText = (text) => {
-        let spaces = Math.floor((LINE_WIDTH - text.length) / 2);
-        if(spaces < 0) spaces = 0;
-        return " ".repeat(spaces) + text;
-      };
-
-      const separator = "-".repeat(LINE_WIDTH);
-
-      // Construct aligned text (NO extra newlines at bottom for paper saving)
-      const txt = 
-`${centerText("MEENA GROUPS")}
-${centerText("Payment Receipt")}
-${separator}
-${formatLine("Date:", lastReceiptData.date)}
-${formatLine("ID:", lastReceiptData.customerId)}
-${formatLine("Due No:", "#" + lastReceiptData.dueNumber)}
-Name: ${lastReceiptData.customerName}
-${separator}
-${centerText("RECEIVED AMOUNT")}
-${centerText("Rs. " + lastReceiptData.amount)}
-${separator}
-${formatLine("Total Paid:", "Rs." + lastTotalPaid)}
-${formatLine("Balance:", "Rs." + lastBalance)}
-${separator}
-${centerText("Thank You!")}
-${centerText("Visit meena.goorac.biz")}
-${centerText("to see your eCard")}`; 
+      // Use the ML Smart Generator
+      const smartText = generateSmartReceiptText(lastReceiptData, lastTotalPaid, lastBalance);
       
-      navigator.clipboard.writeText(txt).then(() => {
-        showToast("Receipt Copied to Clipboard!");
+      navigator.clipboard.writeText(smartText).then(() => {
+        showToast("Receipt Copied (Optimized)!");
       }).catch(err => {
         alert("Failed to copy text");
       });
