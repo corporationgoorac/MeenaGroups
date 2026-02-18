@@ -283,8 +283,8 @@
       </div>
       
       <div class="input-group">
-        <label>Last Receipt Due No.</label>
-        <input type="number" id="dueNo" class="styled-input" placeholder="Check your last slip">
+        <label>Latest Receipt Due No.</label>
+        <input type="number" id="dueNo" class="styled-input" placeholder="Enter Lastest Due No">
       </div>
 
       <button class="btn-primary" onclick="verifyAccess()">View Ledger</button>
@@ -334,30 +334,38 @@
         if (!snap.exists()) throw "Invalid Customer ID.";
 
         const data = snap.data();
-        let accessGranted = false;
         
-        // 2. CHECK APPROVED PAYMENTS
+        // --- LOGIC TO FIND HIGHEST (LATEST) DUE NUMBER ---
+        let maxSystemDue = 0;
+
+        // A. Check Approved Payments in History
         if (data.products) {
-            accessGranted = data.products.some(p => {
-                if(!p.payments) return false;
-                return p.payments.some(pay => pay.dueNumber === dueInput);
+            data.products.forEach(p => {
+                if(p.payments) {
+                    p.payments.forEach(pay => {
+                        const dNo = parseInt(pay.dueNumber);
+                        if(dNo > maxSystemDue) maxSystemDue = dNo;
+                    });
+                }
             });
         }
 
-        // 3. CHECK PENDING/DRAFT PAYMENTS (Agent Entries)
-        if (!accessGranted) {
-            const q = query(
-                collection(db, "temp_entries"),
-                where("customerId", "==", idInput),
-                where("dueNumber", "==", dueInput)
-            );
-            const tempSnap = await getDocs(q);
-            if (!tempSnap.empty) {
-                accessGranted = true; 
-            }
-        }
+        // B. Check Live/Draft/Pending Payments (Agent Side)
+        const q = query(
+            collection(db, "temp_entries"),
+            where("customerId", "==", idInput)
+        );
+        const tempSnap = await getDocs(q);
+        tempSnap.forEach(doc => {
+            const t = doc.data();
+            const dNo = parseInt(t.dueNumber);
+            if(dNo > maxSystemDue) maxSystemDue = dNo;
+        });
 
-        if (!accessGranted) throw "Verification Failed: Due Number not found in system (Draft or Approved).";
+        // 3. COMPARE: Strict check for LATEST NUMBER only
+        if (dueInput !== maxSystemDue) {
+             throw `Access Denied: You must enter the LATEST Due Number (Current Latest: #${maxSystemDue})`;
+        }
 
         // 4. Success: Load Data
         await loadDashboard(data, idInput);
