@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make Payment - Meena Marketing</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; overflow-x: hidden; }
+
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.7em; color: var(--text-secondary); }
+
+        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; }
+        .desktop-nav a { color: var(--text-color); text-decoration: none; padding: 8px 20px; border-radius: 20px; background-color: #333; font-size: 0.9em; font-weight: 500; transition: 0.2s; }
+        .desktop-nav a:hover, .desktop-nav a.active { background-color: var(--accent-color); }
+
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; }
+        .mobile-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 0.75em; gap: 4px; }
+        .mobile-nav a.active { color: var(--marketing-white); }
+        .mobile-nav a.active .material-symbols-outlined { color: var(--meena-red); font-variation-settings: 'FILL' 1; }
+
+        @media (max-width: 768px) { .desktop-nav { display: none; } .mobile-nav { display: flex; } }
+        @media (min-width: 769px) { body { padding-bottom: 0; } }
+
+        /* Custom Install Popup */
+        #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
+        .install-img { width: 40px; height: 40px; border-radius: 8px; }
+        .install-text { flex-grow: 1; }
+        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; }
+        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
+        .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
+        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
+
+        /* Payment Page Specific Styles */
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        .search-section { background: var(--surface-color); padding: 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 25px; }
+        .search-section h2 { margin-top: 0; font-size: 1.2em; color: var(--marketing-white); }
+        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 1px solid #444; border-radius: 8px; padding: 0 15px; }
+        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px;}
+        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 15px 10px; color: white; font-size: 1.05em; outline: none; }
+
+        .company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
+        .company-card { background: var(--nav-bg); padding: 18px; border-radius: 10px; border: 1px solid #444; cursor: pointer; transition: transform 0.2s, background 0.2s; position: relative; overflow: hidden;}
+        .company-card:hover { background: #2a2a2a; transform: translateY(-3px); border-color: var(--accent-color); }
+        .company-card:active { transform: translateY(0); }
+        .company-card h3 { margin: 0 0 8px 0; font-size: 1.15em; font-family: 'Segoe UI', sans-serif; }
+        .company-card p { margin: 4px 0; font-size: 0.9em; color: var(--text-secondary); display: flex; justify-content: space-between;}
+        .company-card .bal { color: var(--meena-red); font-weight: bold; font-size: 1.1em;}
+        .company-card .paid { color: var(--success-color); font-weight: bold; }
+
+        .recent-section h2 { font-size: 1.2em; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; color: var(--text-secondary); }
+        .recent-list { list-style: none; padding: 0; margin: 0; }
+        .recent-list li { background: var(--surface-color); padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .payment-amount { color: var(--success-color); font-weight: bold; font-size: 1.1em; background: rgba(0, 200, 83, 0.1); padding: 5px 10px; border-radius: 6px; }
+
+        /* Slide-in Modal */
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal.active { right: 0; }
+        
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.3em; }
+
+        .payment-form { padding: 20px; }
+        .modal-company-name { font-size: 1.8em; font-family: sans-serif; font-weight: 800; text-align: center; margin-bottom: 5px; color: var(--marketing-white); }
+        .modal-total-balance { text-align: center; font-size: 1.2em; color: var(--text-secondary); margin-bottom: 30px; }
+        .modal-total-balance span { color: var(--meena-red); font-weight: bold; font-size: 1.3em; }
+
+        .input-group { position: relative; margin-bottom: 30px; }
+        .currency-symbol { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.5em; color: var(--text-secondary); }
+        #payAmount { width: 100%; padding: 20px 20px 20px 45px; border-radius: 12px; border: 2px solid #444; background: var(--input-bg); color: var(--success-color); font-size: 2em; font-weight: bold; box-sizing: border-box; transition: 0.3s;}
+        #payAmount:focus { outline: none; border-color: var(--success-color); box-shadow: 0 0 15px rgba(0, 200, 83, 0.2); }
+        
+        .calc-summary { background: rgba(255, 255, 255, 0.03); border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+        .calc-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.05em; color: var(--text-secondary); }
+        .calc-row.final { border-top: 1px dashed #555; margin-top: 15px; padding-top: 15px; font-weight: bold; color: var(--marketing-white); font-size: 1.2em; }
+        .calc-row.final span:last-child { color: var(--meena-red); }
+
+        .btn-pay { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--success-color); color: white; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-pay:hover:not(:disabled) { background: #00a844; }
+        .btn-pay:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        /* Professional Success Toast Animation */
+        .toast-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: none; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
+        .toast-overlay.show { display: flex; opacity: 1; }
+        .check-circle { width: 80px; height: 80px; border-radius: 50%; background: var(--success-color); display: flex; justify-content: center; align-items: center; margin-bottom: 20px; transform: scale(0); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .check-circle .material-symbols-outlined { font-size: 50px; color: white; font-weight: bold; }
+        .toast-text { color: white; font-size: 1.5em; font-weight: bold; transform: translateY(20px); opacity: 0; animation: slideUpText 0.5s ease forwards 0.3s; }
+
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes slideUpText { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">Powered by Goorac</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span class="material-symbols-outlined">account_circle</span>
+        </div>
+    </header>
+
+    <nav class="desktop-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="search.html">Search</a>
+        <a href="companies.html">Companies</a>
+        <a href="add.html">+ Add Data</a>
+        <a href="makePayment.html" class="active">₹ Make Payment</a>
+    </nav>
+
+    <nav class="mobile-nav">
+        <a href="index.html"><span class="material-symbols-outlined">dashboard</span>Home</a>
+        <a href="search.html"><span class="material-symbols-outlined">search</span>Search</a>
+        <a href="add.html"><span class="material-symbols-outlined">add_circle</span>Add</a>
+        <a href="makePayment.html" class="active"><span class="material-symbols-outlined">payments</span>Pay</a>
+        <a href="companies.html"><span class="material-symbols-outlined">business</span>Companies</a>
+    </nav>
+
+    <div id="installPopup">
+        <img src="icon.png" alt="App Icon" class="install-img">
+        <div class="install-text">
+            <h4>Install Goorac App</h4>
+            <p>Add to homescreen for offline access</p>
+        </div>
+        <button id="installBtn" class="install-btn">Install</button>
+        <button id="closeBtn" class="close-btn">&times;</button>
+    </div>
+
+    <div class="toast-overlay" id="successToast">
+        <div class="check-circle">
+            <span class="material-symbols-outlined">check</span>
+        </div>
+        <div class="toast-text">Payment Successful!</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="search-section">
+            <h2>Find Company to Pay</h2>
+            <div class="search-bar-container">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" id="searchInput" placeholder="Search company by name..." autocomplete="off">
+            </div>
+            <div class="company-grid" id="searchResults">
+                </div>
+        </div>
+
+        <div class="recent-section">
+            <h2>Recent Payments</h2>
+            <ul class="recent-list" id="recentPaymentsList">
+                <li style="color:var(--text-secondary); justify-content:center;">Loading recent transactions...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="modal" id="modalPayment">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Process Payment</h2>
+        </div>
+        
+        <div class="payment-form">
+            <input type="hidden" id="selectedCompanyId">
+            
+            <div class="modal-company-name" id="modalCompName">Company Name</div>
+            <div class="modal-total-balance">Pending Balance: <span id="modalCompBalance">₹0</span></div>
+
+            <label style="color:var(--text-secondary); margin-bottom: 8px; display:block;">Amount to Pay Now *</label>
+            <div class="input-group">
+                <span class="currency-symbol">₹</span>
+                <input type="number" id="payAmount" placeholder="0" min="1" step="1">
+            </div>
+
+            <div class="calc-summary">
+                <div class="calc-row">
+                    <span>Current Balance:</span>
+                    <span id="calcCurrent">₹0</span>
+                </div>
+                <div class="calc-row" style="color: var(--success-color);">
+                    <span>- Payment:</span>
+                    <span id="calcDeduction">₹0</span>
+                </div>
+                <div class="calc-row final">
+                    <span>Reduced Balance:</span>
+                    <span id="calcNew">₹0</span>
+                </div>
+            </div>
+
+            <button class="btn-pay" id="btnSubmitPayment" disabled>
+                <span class="material-symbols-outlined">verified_user</span>
+                Pay Securely
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // 1. Service Worker & Install Logic (Kept Intact)
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW Error', err)); }); }
+        let deferredPrompt; const installPopup = document.getElementById('installPopup');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
+
+        // 2. Firebase Imports
+        import { db } from './config.js';
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- UI & History API Logic ---
+        window.openModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            history.pushState({ modal: modalId }, '', `#${modalId}`);
+        };
+
+        window.addEventListener('popstate', () => {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            document.getElementById('payAmount').value = ''; // Reset input on close
+            updateMath();
+        });
+
+        // --- Load Recent Payments ---
+        async function loadRecentPayments() {
+            const listEl = document.getElementById('recentPaymentsList');
+            try {
+                // Fetch top 10 recent payments
+                const q = query(collection(db, "payments"), orderBy("date", "desc"), limit(10));
+                const snap = await getDocs(q);
+                
+                if(snap.empty) {
+                    listEl.innerHTML = '<li style="color:var(--text-secondary); justify-content:center;">No recent payments.</li>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                snap.forEach((doc) => {
+                    const data = doc.data();
+                    // Format date (handle null timestamp safely)
+                    let dateStr = "Just now";
+                    if (data.date && data.date.toDate) {
+                        const d = data.date.toDate();
+                        dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+                    }
+                    
+                    listEl.innerHTML += `
+                        <li>
+                            <div>
+                                <div style="font-weight: bold; font-size: 1.05em;">${data.companyName}</div>
+                                <div style="font-size: 0.8em; color: var(--text-secondary);">${dateStr}</div>
+                            </div>
+                            <div class="payment-amount">- ₹${data.amount.toLocaleString()}</div>
+                        </li>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error fetching payments", err);
+                listEl.innerHTML = '<li style="color:var(--meena-red);">Error loading recent transactions.</li>';
+            }
+        }
+        loadRecentPayments();
+
+        // --- Search Companies Logic ---
+        const searchInput = document.getElementById('searchInput');
+        const resultsBox = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', async (e) => {
+            const val = e.target.value.trim();
+            if(val.length < 2) { resultsBox.innerHTML = ''; return; }
+
+            try {
+                // Prefix search query
+                const q = query(collection(db, "companies"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(6));
+                const snap = await getDocs(q);
+                
+                resultsBox.innerHTML = '';
+                if(snap.empty) {
+                    resultsBox.innerHTML = '<div style="color:var(--text-secondary); padding: 10px;">No matching companies found.</div>';
+                    return;
+                }
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // Create safe data payload for onclick
+                    const compData = encodeURIComponent(JSON.stringify({id: doc.id, name: data.name, balance: data.balance || 0}));
+                    
+                    resultsBox.innerHTML += `
+                        <div class="company-card" onclick="openPaymentModal('${compData}')">
+                            <h3>${data.name}</h3>
+                            <p><span>ID: ${data.companyId || 'N/A'}</span></p>
+                            <p><span>Pending: <span class="bal">₹${(data.balance || 0).toLocaleString()}</span></span></p>
+                            <p><span>Total Paid: <span class="paid">₹${(data.totalPaid || 0).toLocaleString()}</span></span></p>
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error("Search error", err); }
+        });
+
+        // --- Modal Setup & Real-time Math ---
+        let currentModalBalance = 0;
+
+        window.openPaymentModal = function(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            
+            document.getElementById('selectedCompanyId').value = data.id;
+            document.getElementById('modalCompName').innerText = data.name;
+            currentModalBalance = data.balance;
+            
+            document.getElementById('modalCompBalance').innerText = `₹${currentModalBalance.toLocaleString()}`;
+            document.getElementById('calcCurrent').innerText = `₹${currentModalBalance.toLocaleString()}`;
+            
+            updateMath(); // Reset to zero
+            openModal('modalPayment');
+        };
+
+        const payInput = document.getElementById('payAmount');
+        const btnSubmit = document.getElementById('btnSubmitPayment');
+
+        payInput.addEventListener('input', updateMath);
+
+        function updateMath() {
+            let amount = parseFloat(payInput.value) || 0;
+            
+            // Prevent negative logic, allow exact or overpayment if user insists, but visually we track it.
+            if(amount > 0) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `Pay ₹${amount.toLocaleString()} Now`;
+            } else {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = `<span class="material-symbols-outlined">verified_user</span> Pay Securely`;
+            }
+
+            document.getElementById('calcDeduction').innerText = `₹${amount.toLocaleString()}`;
+            const newBal = currentModalBalance - amount;
+            document.getElementById('calcNew').innerText = `₹${newBal.toLocaleString()}`;
+        }
+
+        // --- Process Payment Transaction ---
+        btnSubmit.addEventListener('click', async () => {
+            const compId = document.getElementById('selectedCompanyId').value;
+            const compName = document.getElementById('modalCompName').innerText;
+            const amount = parseFloat(payInput.value) || 0;
+
+            if (!compId || amount <= 0) return;
+
+            // UI Feedback: Disable button to prevent double-click
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = "Processing...";
+
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Deduct balance and increase total paid for the Company
+                const compRef = doc(db, "companies", compId);
+                batch.update(compRef, {
+                    balance: increment(-amount),
+                    totalPaid: increment(amount)
+                });
+
+                // 2. Log the transaction in 'payments' collection
+                const paymentRef = doc(collection(db, "payments"));
+                batch.set(paymentRef, {
+                    companyId: compId,
+                    companyName: compName,
+                    amount: amount,
+                    date: serverTimestamp()
+                });
+
+                // 3. Update Global Dashboard Metadata
+                const metaRef = doc(db, "metadata", "dashboard");
+                batch.set(metaRef, {
+                    totalBalance: increment(-amount),
+                    totalPaid: increment(amount)
+                }, { merge: true });
+
+                // Commit transaction
+                await batch.commit();
+
+                // Show Success Toast Animation
+                const toast = document.getElementById('successToast');
+                toast.classList.add('show');
+                
+                // Wait for animation, then close modal and refresh UI
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    history.back(); // Close modal
+                    payInput.value = ''; // Clear input
+                    searchInput.value = ''; // Clear search
+                    resultsBox.innerHTML = ''; // Clear search results
+                    loadRecentPayments(); // Refresh recent list
+                }, 2000);
+
+            } catch (err) {
+                console.error("Payment failed", err);
+                alert("Error processing payment. Please check console.");
+                btnSubmit.disabled = false;
+                updateMath(); // Reset button text
+            }
+        });
+    </script>
+</body>
+</html>
