@@ -132,97 +132,104 @@
         .pending-item > div > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
         /* ---------------------------------------------------- */
-        /* --- HIGHLY PROFESSIONAL PRINT INVOICE LAYOUT (B&W A4) --- */
+        /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W A4) --- */
         /* ---------------------------------------------------- */
         #printArea { display: none; }
 
         @media print {
-            /* Strict Page Constraints for 1-Page Guarantee */
-            @page { size: A4 portrait; margin: 0; }
-            html, body { 
-                width: 210mm; 
-                height: 297mm; 
+            /* Hide App UI */
+            body * { visibility: hidden; }
+            body { 
+                background: white; 
                 margin: 0; 
                 padding: 0; 
-                overflow: hidden !important; 
-                background: white; 
-                color: black; 
-                font-family: Arial, Helvetica, sans-serif; 
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
             }
             
-            /* Hide the entire App UI */
-            #appUI, header, .fab-container, .modal, .toast-msg, #installPopup { display: none !important; }
+            /* Strict Page Constraints for 1-Page Guarantee */
+            @page { size: A4 portrait; margin: 0; }
             
-            /* Show only the Print Area */
+            #printArea, #printArea * { visibility: visible; }
             #printArea { 
-                display: flex !important; 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 210mm; 
+                height: 296mm; /* Strict A4 Height to prevent 2nd page */
+                background: white; 
+                color: #000; 
+                font-family: Arial, Helvetica, sans-serif;
+                display: flex !important;
                 flex-direction: column;
-                width: 100%; 
-                height: 100%; /* Force fill A4 page */
-                padding: 15mm 15mm 10mm 15mm;
+                overflow: hidden;
                 box-sizing: border-box;
             }
 
-            /* --- Header Area --- */
-            .pr-header-block { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-            
-            /* Left: Logo & Company Info */
-            .pr-company-info { display: flex; flex-direction: column; gap: 4px; }
-            .pr-logo { width: 100px; max-height: 80px; object-fit: contain; margin-bottom: 5px; }
-            .pr-comp-title { font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; color: #111; letter-spacing: -0.5px;}
-            .pr-comp-sub { font-size: 11px; font-weight: bold; margin: 0; color: #444; }
-            
-            /* Right: Huge Invoice Word & Details */
-            .pr-inv-title-block { text-align: right; }
-            .pr-inv-word { font-size: 42px; font-weight: 900; margin: 0 0 5px 0; letter-spacing: 2px; text-transform: uppercase; color: #000; line-height: 1; }
-            .pr-inv-meta-line { font-size: 13px; font-weight: bold; margin: 4px 0; color: #222; }
-            .pr-inv-meta-val { font-weight: normal; margin-left: 5px; color: #000; }
+            /* --- Header Banner Mimicking Image Layout --- */
+            .pr-header-banner {
+                background-color: #eaeaea; /* B&W substitute for yellow */
+                padding: 15mm 15mm 10mm 15mm;
+                display: flex;
+                justify-content: space-between;
+                border-bottom: 2px solid #ccc;
+            }
 
-            /* --- Bill To Section --- */
-            .pr-bill-to-box { margin-bottom: 25px; }
-            .pr-bill-to-label { font-size: 11px; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px 0; }
-            .pr-customer-name { font-size: 16px; font-weight: bold; margin: 0 0 4px 0; color: #000; }
-            .pr-customer-detail { font-size: 12px; margin: 2px 0; color: #333; }
+            .pr-header-left { width: 55%; }
+            .pr-header-right { width: 40%; text-align: right; }
 
-            /* --- The Data Table (Zebra Striped) --- */
-            .pr-table-container { flex-grow: 1; /* Pushes footer down */ margin-bottom: 20px; }
+            .pr-logo-box { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+            .pr-logo-img { width: 50px; height: 50px; object-fit: contain; }
+            .pr-logo-text h1 { margin: 0; font-size: 24px; text-transform: uppercase; font-weight: 900; letter-spacing: -0.5px; color: #000;}
+            .pr-logo-text p { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #555; }
+
+            .pr-bill-to-title { font-size: 11px; text-transform: uppercase; font-weight: bold; color: #555; margin: 0 0 5px 0; }
+            .pr-bill-to-name { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #000; text-transform: uppercase;}
+            .pr-bill-to-details p { margin: 3px 0; font-size: 11px; color: #333; }
+
+            .pr-inv-title { font-size: 40px; font-weight: 900; text-transform: uppercase; margin: 0 0 5px 0; line-height: 1; letter-spacing: 1px; color: #000;}
+            .pr-inv-no { font-size: 16px; font-weight: bold; margin: 0 0 15px 0; color: #000;}
+            .pr-inv-date-box { display: inline-flex; align-items: center; gap: 8px; text-align: right; }
+            .pr-inv-date-text { font-size: 11px; font-weight: bold; color: #333;}
+            .pr-inv-date-val { font-size: 12px; font-weight: bold; color: #000; }
+
+            /* --- Table Mimicking Image Layout --- */
+            .pr-table-wrapper { padding: 0 15mm; flex-grow: 1; margin-top: 10mm; }
             .pr-table { width: 100%; border-collapse: collapse; }
-            .pr-table th { background: #e0e0e0; padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: none; text-align: left; color: #000; }
-            .pr-table td { padding: 10px; font-size: 12px; border: none; vertical-align: middle; }
+            .pr-table th { padding: 10px; background-color: #f0f0f0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: bold; color: #000;}
+            .pr-table td { padding: 10px; font-size: 12px; border-bottom: 1px solid #eee; vertical-align: top; color: #000;}
+            
             /* Zebra Striping */
-            .pr-table tbody tr:nth-child(even) { background-color: #f5f5f5; }
-            .pr-table tbody tr { border-bottom: 1px solid #eee; }
+            .pr-table tbody tr:nth-child(even) td { background-color: #fafafa; }
             
-            .pr-table .t-center { text-align: center; }
-            .pr-table .t-right { text-align: right; }
-            .pr-table .t-bold { font-weight: bold; color: #000; }
+            /* Overriding JS classes smoothly */
+            .pr-table .text-center { text-align: center; }
+            .pr-table .text-right { text-align: right; }
 
-            /* --- Totals & Thank You Box Area --- */
-            .pr-bottom-grid { display: flex; justify-content: space-between; align-items: stretch; margin-bottom: 40px; }
+            /* --- Bottom Totals & Thanks Section --- */
+            .pr-bottom-wrapper { padding: 0 15mm; margin-top: 5mm; display: flex; justify-content: space-between; align-items: stretch; }
             
-            /* Left: Thank You Box */
-            .pr-thank-you { width: 48%; background: #f2f2f2; padding: 15px; border-left: 4px solid #000; display: flex; flex-direction: column; justify-content: center;}
-            .pr-thank-title { font-size: 13px; font-weight: bold; margin: 0 0 5px 0; color: #000; }
-            .pr-thank-text { font-size: 11px; margin: 0; color: #444; line-height: 1.4; }
+            .pr-thanks-box { width: 45%; background-color: #eaeaea; padding: 15px; border-left: 5px solid #444; height: fit-content; }
+            .pr-thanks-title { font-size: 12px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; color: #000;}
+            .pr-thanks-text { font-size: 10px; color: #444; margin: 0; line-height: 1.4; }
 
-            /* Right: Subtotals Box */
-            .pr-totals-box { width: 45%; background: #f9f9f9; }
-            .pr-t-row { display: flex; justify-content: space-between; padding: 8px 15px; font-size: 12px; font-weight: bold; color: #333; }
-            .pr-t-val { color: #000; }
-            .pr-grand-row { background: #000; color: #fff; padding: 12px 15px; font-size: 16px; margin-top: 5px; }
-            .pr-grand-row .pr-t-val { color: #fff; }
+            .pr-totals-box { width: 45%; }
+            .pr-totals-grid { width: 100%; border-collapse: collapse; }
+            .pr-totals-grid td { padding: 8px 10px; font-size: 12px; }
+            .pr-totals-grid .t-label { text-align: left; font-weight: bold; color: #555; }
+            .pr-totals-grid .t-val { text-align: right; font-weight: bold; color: #000;}
+            .pr-totals-grid tr.t-grand { background-color: #eaeaea; }
+            .pr-totals-grid tr.t-grand td { font-size: 16px; font-weight: 900; color: #000; padding: 12px 10px; border-top: 2px solid #000; border-bottom: 2px solid #000;}
 
-            /* --- Signatures Area --- */
-            .pr-signatures { display: flex; justify-content: space-between; padding: 0 20px; margin-top: auto; }
-            .pr-sign-block { width: 200px; text-align: center; }
-            .pr-sign-line { border-bottom: 1px solid #000; height: 50px; margin-bottom: 5px; }
-            .pr-sign-title { font-size: 12px; font-weight: bold; margin: 0; color: #000; }
-            .pr-sign-sub { font-size: 9px; color: #555; margin-top: 2px; }
+            /* --- Signatures Section --- */
+            .pr-signatures { display: flex; justify-content: space-between; padding: 0 15mm; margin-top: 20mm; }
+            .pr-sign-block { width: 180px; text-align: center; }
+            .pr-sign-line { border-bottom: 1px solid #000; height: 30px; margin-bottom: 8px; }
+            .pr-sign-name { font-size: 16px; font-family: 'Times New Roman', Times, serif, cursive; margin: 0 0 2px 0; color: #000;}
+            .pr-sign-title { font-size: 11px; font-weight: bold; color: #000; margin: 0; }
 
             /* Footer */
-            .pr-footer { text-align: center; font-size: 10px; color: #777; margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee; }
+            .pr-footer-bar { margin-top: auto; background-color: #eaeaea; padding: 10px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold; color: #555; border-top: 1px solid #ccc;}
         }
     </style>
 </head>
@@ -371,36 +378,47 @@
 
     <div id="printArea">
         
-        <div class="pr-header-block">
-            <div class="pr-company-info">
-                <img src="lax.jpg" alt="Company Logo" class="pr-logo">
-                <h2 class="pr-comp-title">Meena Marketing</h2>
-                <p class="pr-comp-sub">Dealers in Premium Quality Products</p>
+        <div class="pr-header-banner">
+            <div class="pr-header-left">
+                <div class="pr-logo-box">
+                    <img src="lax.jpg" alt="Company Logo" class="pr-logo-img">
+                    <div class="pr-logo-text">
+                        <h1>Meena Marketing</h1>
+                        <p>Dealers in Premium Quality Products</p>
+                    </div>
+                </div>
+                <p class="pr-bill-to-title">Invoice To</p>
+                <h2 class="pr-bill-to-name" id="prName">Customer Name</h2>
+                <div class="pr-bill-to-details">
+                    <p>Phone: <span id="prPhone">Phone Number</span></p>
+                    <p>Address: <span id="prAddress">Address</span></p>
+                </div>
             </div>
-            <div class="pr-inv-title-block">
-                <h1 class="pr-inv-word">INVOICE</h1>
-                <p class="pr-inv-meta-line">No: <span class="pr-inv-meta-val" id="prInvNo">INV-XXXX</span></p>
-                <p class="pr-inv-meta-line">Date: <span class="pr-inv-meta-val" id="prDate">DD/MM/YYYY</span></p>
+            
+            <div class="pr-header-right">
+                <h1 class="pr-inv-title">INVOICE</h1>
+                <p class="pr-inv-no">No. <span id="prInvNo">INV-XXXX</span></p>
+                
+                <div class="pr-inv-date-box">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: #333;">calendar_month</span>
+                    <div style="text-align: left;">
+                        <div class="pr-inv-date-text">Invoice Date</div>
+                        <div class="pr-inv-date-val" id="prDate">01-01-2022</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="pr-bill-to-box">
-            <p class="pr-bill-to-label">Invoice To</p>
-            <h3 class="pr-customer-name" id="prName">Customer Name</h3>
-            <p class="pr-customer-detail" id="prPhone">Phone Number</p>
-            <p class="pr-customer-detail" id="prAddress">Address</p>
-        </div>
-
-        <div class="pr-table-container">
+        <div class="pr-table-wrapper">
             <table class="pr-table">
                 <thead>
                     <tr>
                         <th style="width: 5%;">No.</th>
                         <th style="width: 45%;">Descriptions</th>
-                        <th style="width: 15%;" class="t-right">Unit Price</th>
-                        <th style="width: 10%;" class="t-center">Qty</th>
-                        <th style="width: 10%;" class="t-center">GST%</th>
-                        <th style="width: 15%;" class="t-right">Amount</th>
+                        <th style="width: 15%;" class="text-right">Unit Price</th>
+                        <th style="width: 10%;" class="text-center">Unit</th>
+                        <th style="width: 10%;" class="text-center">GST%</th>
+                        <th style="width: 15%;" class="text-right">Price</th>
                     </tr>
                 </thead>
                 <tbody id="prTableBody">
@@ -408,25 +426,27 @@
             </table>
         </div>
 
-        <div class="pr-bottom-grid">
-            <div class="pr-thank-you">
-                <p class="pr-thank-title">Thank you for your business!</p>
-                <p class="pr-thank-text">We appreciate your trust in Meena Marketing. If you have any questions concerning this invoice, please feel free to contact us.</p>
+        <div class="pr-bottom-wrapper">
+            <div class="pr-thanks-box">
+                <p class="pr-thanks-title">Thank you for your business</p>
+                <p class="pr-thanks-text">We appreciate your trust in Meena Marketing. If you have any questions concerning this invoice, please feel free to contact us.</p>
             </div>
             
             <div class="pr-totals-box">
-                <div class="pr-t-row">
-                    <span>Sub Total</span>
-                    <span class="pr-t-val" id="prSubTotal">₹0.00</span>
-                </div>
-                <div class="pr-t-row">
-                    <span>Tax (GST)</span>
-                    <span class="pr-t-val" id="prGstTotal">₹0.00</span>
-                </div>
-                <div class="pr-t-row pr-grand-row">
-                    <span>TOTAL</span>
-                    <span class="pr-t-val" id="prGrandTotal">₹0.00</span>
-                </div>
+                <table class="pr-totals-grid">
+                    <tr>
+                        <td class="t-label">Sub Total</td>
+                        <td class="t-val" id="prSubTotal">₹0.00</td>
+                    </tr>
+                    <tr>
+                        <td class="t-label">Tax (GST)</td>
+                        <td class="t-val" id="prGstTotal">₹0.00</td>
+                    </tr>
+                    <tr class="t-grand">
+                        <td class="t-label">TOTAL :</td>
+                        <td class="t-val" id="prGrandTotal">₹0.00</td>
+                    </tr>
+                </table>
             </div>
         </div>
 
@@ -437,28 +457,30 @@
             </div>
             <div class="pr-sign-block">
                 <div class="pr-sign-line"></div>
+                <p class="pr-sign-name">Meena Marketing</p>
                 <p class="pr-sign-title">Authorized Signatory</p>
-                <p class="pr-sign-sub">For Meena Marketing</p>
             </div>
         </div>
 
-        <div class="pr-footer">
-            Powered by Goorac Software Solutions
+        <div class="pr-footer-bar">
+            <span>Powered by Goorac Software Solutions</span>
+            <span>meenamarketing.com</span>
         </div>
+
     </div>
 
 
     <script type="module">
-        // 1. Service Worker & Install Logic (Points to root SW)
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('../sw.js').catch(err => console.error('SW Error', err)); }); }
+        // 1. Service Worker & Install Logic (Points to billing folder manifest and sw)
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports (Added 'where' and 'increment' for new validation and updating logic)
+        // 2. Firebase Imports (Points to root config correctly now)
         import { db } from '../config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Initialize Date to Today
         document.getElementById('cDate').valueAsDate = new Date();
@@ -746,10 +768,10 @@
                     <tr>
                         <td>${num}.</td>
                         <td>${desc}</td>
-                        <td class="t-right">₹${item.price.toFixed(2)}</td>
-                        <td class="t-center">${item.qty}</td>
-                        <td class="t-center">${item.gstPercent}%</td>
-                        <td class="t-right t-bold">₹${item.finalTotal.toFixed(2)}</td>
+                        <td class="text-right">₹${item.price.toFixed(2)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-center">${item.gstPercent}%</td>
+                        <td class="text-right" style="font-weight:bold; color:#000;">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
                 `;
             });
