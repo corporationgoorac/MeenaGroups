@@ -65,6 +65,11 @@
         .date-filter input { background: transparent; border: none; color: white; font-size: 1.1em; outline: none; width: 100%; }
         .date-filter input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
+        /* ADDED: Payment Filter Styles */
+        .payment-filter { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 8px 15px; border-radius: 8px; border: 1px solid #444; flex-grow: 1; min-width: 150px;}
+        .payment-filter select { background: transparent; border: none; color: white; font-size: 1em; outline: none; width: 100%; cursor: pointer; }
+        .payment-filter select option { background: var(--surface-color); color: white; }
+
         .sales-summary { display: flex; gap: 20px; text-align: right; flex-grow: 1; justify-content: flex-end;}
         .summary-item h4 { margin: 0; font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase; }
         .summary-item p { margin: 5px 0 0 0; font-size: 1.5em; font-weight: bold; color: var(--success-color); }
@@ -75,8 +80,12 @@
         .invoice-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; overflow: hidden; }
         
         .inv-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
-        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px;}
+        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
         .inv-meta span { font-size: 0.75em; color: var(--text-secondary); font-weight: normal; background: #333; padding: 2px 6px; border-radius: 4px;}
+        
+        /* ADDED: Payment Mode Tag Style */
+        .inv-meta span.pay-tag { background: var(--accent-color); color: white; font-weight: bold; letter-spacing: 0.5px; border: 1px solid #004494;}
+
         .inv-time { font-size: 0.85em; color: var(--text-secondary); }
 
         .inv-body { padding: 15px 20px; }
@@ -158,6 +167,18 @@
                 <span class="material-symbols-outlined">calendar_month</span>
                 <input type="date" id="dateFilter">
             </div>
+
+            <div class="payment-filter">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <select id="paymentFilter">
+                    <option value="All">All Payments</option>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Bank">Bank Transfer</option>
+                    <option value="Credit">Credit/Pending</option>
+                </select>
+            </div>
             
             <div class="sales-summary">
                 <div class="summary-item">
@@ -197,6 +218,7 @@
         };
 
         const dateFilterInput = document.getElementById('dateFilter');
+        const paymentFilterInput = document.getElementById('paymentFilter'); // ADDED
         const salesListEl = document.getElementById('salesList');
         const loaderEl = document.getElementById('loader');
         
@@ -206,6 +228,11 @@
 
         // Listen for Date Changes
         dateFilterInput.addEventListener('change', () => {
+            loadDailySales(dateFilterInput.value);
+        });
+
+        // ADDED: Listen for Payment Filter Changes
+        paymentFilterInput.addEventListener('change', () => {
             loadDailySales(dateFilterInput.value);
         });
 
@@ -252,9 +279,18 @@
                 let totalSalesSum = 0;
                 let invoiceCount = 0;
                 let htmlOutput = '';
+                
+                const selectedPayment = paymentFilterInput.value; // ADDED
 
                 snap.forEach(doc => {
                     const data = doc.data();
+                    
+                    // ADDED: Payment Filter Logic
+                    const paymentMode = data.paymentMethod || data.paymentMode || 'Unknown'; 
+                    if (selectedPayment !== 'All' && paymentMode.toLowerCase() !== selectedPayment.toLowerCase()) {
+                        return; // Skip if it doesn't match the selected filter
+                    }
+
                     invoiceCount++;
                     totalSalesSum += (data.totals?.grand || 0);
 
@@ -285,12 +321,12 @@
                         });
                     }
 
-                    // Build Card
+                    // Build Card (ADDED: <span class="pay-tag">${paymentMode}</span> inside inv-meta h3)
                     htmlOutput += `
                         <div class="invoice-card">
                             <div class="inv-header">
                                 <div class="inv-meta">
-                                    <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span></h3>
+                                    <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
                                 </div>
                                 <div class="inv-time">${timeString}</div>
                             </div>
@@ -315,7 +351,19 @@
                 });
 
                 loaderEl.style.display = 'none';
-                salesListEl.innerHTML = htmlOutput;
+
+                // ADDED: Handle case where filter returns zero results
+                if (invoiceCount === 0) {
+                    salesListEl.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">filter_alt_off</span>
+                            <h3>No Matches</h3>
+                            <p>No sales match the selected payment method.</p>
+                        </div>
+                    `;
+                } else {
+                    salesListEl.innerHTML = htmlOutput;
+                }
                 
                 // Update Top Stats
                 document.getElementById('totalInvoices').innerText = invoiceCount;
