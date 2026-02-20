@@ -233,6 +233,12 @@
             <input type="number" id="pPrice" placeholder="0">
             <label>Selling Price (₹) *</label>
             <input type="number" id="pSellingPrice" placeholder="0">
+            
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                <input type="checkbox" id="pSkipInventory" style="width: auto; margin: 0; box-shadow: none;">
+                <label for="pSkipInventory" style="margin: 0; cursor: pointer; color: #ff9800; font-weight: bold;">Don't add to inventory (Non-Stock)</label>
+            </div>
+
             <button type="button" class="btn-secondary" id="btnAddToList">Add to List</button>
         </div>
 
@@ -530,9 +536,16 @@
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
             const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
             const pSellingPrice = parseFloat(document.getElementById('pSellingPrice').value) || 0;
+            const pSkipInventory = document.getElementById('pSkipInventory').checked; // Read the checkbox
+            
             if (!pName || pPrice <= 0) { alert("Valid Product Name and Price required."); return; }
-            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice });
+            
+            // Push skipInventory status into the cart item
+            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, skipInventory: pSkipInventory });
+            
             document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pSellingPrice').value = '';
+            document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding
+            
             renderCart();
         });
 
@@ -541,7 +554,11 @@
             if (cart.length === 0) { list.innerHTML = '<div style="padding: 10px; text-align: center;">List is empty</div>'; document.getElementById('btnSaveProducts').disabled = true; } 
             else {
                 list.innerHTML = '';
-                cart.forEach(item => { currentPurchaseTotal += item.total; list.innerHTML += `<div class="product-item"><div><strong>${item.name}</strong> <small>x${item.qty}</small></div><div>₹${item.total.toLocaleString()}</div></div>`; });
+                cart.forEach(item => { 
+                    currentPurchaseTotal += item.total; 
+                    const skipTag = item.skipInventory ? ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>' : '';
+                    list.innerHTML += `<div class="product-item"><div><strong>${item.name}</strong>${skipTag} <small>x${item.qty}</small></div><div>₹${item.total.toLocaleString()}</div></div>`; 
+                });
                 document.getElementById('btnSaveProducts').disabled = false;
             }
             updateCartSummary();
@@ -569,33 +586,35 @@
                     // 2. Save full detail to products_sold (Always unique)
                     batch.set(doc(collection(db, "products_sold")), { ...item, companyId: compId, date: serverTimestamp() }); 
                     
-                    // 3. Save copy to global inventory (Check if exists to ADD QTY instead of duplicate)
-                    let invQ;
-                    if (item.model) {
-                        invQ = query(collection(db, "inventory"), where("model", "==", item.model), limit(1));
-                    } else {
-                        invQ = query(collection(db, "inventory"), where("name", "==", item.name), limit(1));
-                    }
-                    
-                    const invSnap = await getDocs(invQ);
-                    
-                    if (!invSnap.empty) {
-                        // Product exists in inventory! Just increment the quantity safely
-                        const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
-                        batch.update(existingInvRef, { 
-                            qty: increment(item.qty),
-                            price: item.sellingPrice // Optionally update selling price to newest entry
-                        });
-                    } else {
-                        // Completely new product for inventory! Create it
-                        const inventoryRef = doc(collection(db, "inventory"));
-                        batch.set(inventoryRef, {
-                            name: item.name,
-                            model: item.model,
-                            qty: item.qty,
-                            price: item.sellingPrice,
-                            createdAt: serverTimestamp()
-                        });
+                    // 3. Save copy to global inventory ONLY IF skipInventory is false
+                    if (!item.skipInventory) {
+                        let invQ;
+                        if (item.model) {
+                            invQ = query(collection(db, "inventory"), where("model", "==", item.model), limit(1));
+                        } else {
+                            invQ = query(collection(db, "inventory"), where("name", "==", item.name), limit(1));
+                        }
+                        
+                        const invSnap = await getDocs(invQ);
+                        
+                        if (!invSnap.empty) {
+                            // Product exists in inventory! Just increment the quantity safely
+                            const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
+                            batch.update(existingInvRef, { 
+                                qty: increment(item.qty),
+                                price: item.sellingPrice // Optionally update selling price to newest entry
+                            });
+                        } else {
+                            // Completely new product for inventory! Create it
+                            const inventoryRef = doc(collection(db, "inventory"));
+                            batch.set(inventoryRef, {
+                                name: item.name,
+                                model: item.model,
+                                qty: item.qty,
+                                price: item.sellingPrice,
+                                createdAt: serverTimestamp()
+                            });
+                        }
                     }
                 }
                 
