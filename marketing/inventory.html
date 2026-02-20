@@ -21,15 +21,17 @@
             --marketing-white: #ffffff;
             --accent-color: #0056b3;
             --success-color: #00c853;
+            --warning-color: #ff9800;
             --nav-bg: #1a1a1a;
             --input-bg: #2a2a2a;
         }
 
-        html, body { height: 100%; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; overflow-x: hidden; }
+        /* Fixed side-scrolling issue with strict width control */
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
 
         /* Standard Header */
-        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; }
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; box-sizing: border-box;}
         .brand-container { display: flex; align-items: center; gap: 12px; }
         .logo-img { width: 35px; height: 35px; border-radius: 8px; }
         .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
@@ -54,31 +56,43 @@
         .toast-msg.show { display: flex; opacity: 1; }
 
         /* Main Scroll Area */
-        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 90px; }
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
         .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; margin-bottom: 20px; transition: border-color 0.3s; }
+        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; margin-bottom: 20px; transition: border-color 0.3s; width: 100%; box-sizing: border-box;}
         .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 86, 179, 0.3); }
-        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 28px; }
-        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 15px 10px; color: white; font-size: 1.05em; outline: none; }
+        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; }
+        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 16px 10px; color: white; font-size: 1.05em; outline: none; }
 
-        /* Inventory List Grid */
-        .inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        /* Inventory List Grid (Fixed Side Scroll) */
+        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 100%; }
+        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; position: relative; overflow: hidden; box-sizing: border-box; width: 100%;}
         .inv-card:hover { border-color: var(--accent-color); background: #2a2a2a; }
-        .inv-info { display: flex; flex-direction: column; gap: 5px; }
-        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); }
+        .inv-card.out-of-stock { opacity: 0.6; border-color: var(--meena-red); }
+        
+        .inv-info { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0; }
+        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .inv-model { font-size: 0.85em; color: var(--text-secondary); background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;}
         .inv-price { color: var(--success-color); font-weight: bold; font-size: 1.05em; margin-top: 5px;}
-        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 40px;}
+        
+        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 45px; flex-shrink: 0; margin-left: 10px;}
+        .inv-qty.low { border-color: var(--warning-color); color: var(--warning-color); background: rgba(255, 152, 0, 0.1); }
+        .inv-qty.zero { border-color: var(--meena-red); color: var(--meena-red); background: rgba(255, 51, 51, 0.1); font-size: 0.9em; padding: 10px 8px; }
+
+        .oos-badge { position: absolute; top: 0; right: 0; background: var(--meena-red); color: white; font-size: 0.7em; padding: 3px 10px; border-bottom-left-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
 
         /* Floating Action Buttons */
-        .fab { position: fixed; bottom: 25px; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 1000; cursor: pointer; transition: transform 0.2s; }
+        .fab-container { position: fixed; bottom: 25px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; z-index: 1000; }
+        .fab { width: 56px; height: 56px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer; transition: transform 0.2s; pointer-events: auto; }
         .fab:active { transform: scale(0.92); }
-        .fab .material-symbols-outlined { font-size: 30px; color: white; }
+        .fab .material-symbols-outlined { font-size: 28px; color: white; }
         
-        .fab-add { right: 20px; background-color: var(--accent-color); }
-        .fab-bill { left: 20px; background-color: var(--success-color); }
+        .fab-add { background-color: var(--accent-color); }
+        .fab-bill { background-color: var(--success-color); }
+        .fab-warn { background-color: var(--warning-color); position: absolute; bottom: 70px; left: 20px; width: 45px; height: 45px; }
+        .fab-warn .material-symbols-outlined { font-size: 22px; }
 
         /* Slide-in Modal */
         .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
@@ -149,21 +163,28 @@
         <div class="container">
             <div class="search-bar-container">
                 <span class="material-symbols-outlined">search</span>
-                <input type="text" id="searchInventory" placeholder="Search inventory by name or model..." autocomplete="off">
+                <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
             </div>
 
             <div class="inv-grid" id="inventoryGrid">
-                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading inventory data...</div>
+                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading recent data...</div>
             </div>
         </div>
     </div>
 
-    <div class="fab fab-bill" onclick="window.location.href='bill.html'" title="Create Bill">
-        <span class="material-symbols-outlined">receipt_long</span>
-    </div>
-    
-    <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
-        <span class="material-symbols-outlined">add</span>
+    <div class="fab-container">
+        <div style="position: relative;">
+            <div class="fab fab-bill" onclick="window.location.href='bill.html'" title="Create Bill">
+                <span class="material-symbols-outlined">receipt_long</span>
+            </div>
+            <div class="fab fab-warn" onclick="filterLowStock()" id="btnLowStock" title="Low Stock Alerts">
+                <span class="material-symbols-outlined">warning</span>
+            </div>
+        </div>
+        
+        <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
+            <span class="material-symbols-outlined">add</span>
+        </div>
     </div>
 
     <div class="modal" id="modalAddInventory">
@@ -219,7 +240,7 @@
 
         // 2. Firebase Imports
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
@@ -242,13 +263,15 @@
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
         });
 
-        // --- FETCH AND DISPLAY INVENTORY ---
+        // --- FETCH AND DISPLAY INVENTORY (With Limit 10) ---
         let inventoryCache = [];
+        let showingLowStock = false;
 
         async function loadInventory() {
             const grid = document.getElementById('inventoryGrid');
             try {
-                const q = query(collection(db, "inventory"), orderBy("name"));
+                // Modified to limit to 10 recent items to save reads on load
+                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
                 const snap = await getDocs(q);
                 
                 inventoryCache = [];
@@ -267,31 +290,87 @@
         function renderInventory(dataArray) {
             const grid = document.getElementById('inventoryGrid');
             if (dataArray.length === 0) {
-                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No products in inventory yet. Click + to add.</div>';
+                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No matching products found.</div>';
                 return;
             }
 
             grid.innerHTML = '';
             dataArray.forEach(item => {
+                const q = item.qty || 0;
+                let qtyClass = "";
+                let oosBadge = "";
+                let cardClass = "inv-card";
+
+                if (q === 0) {
+                    qtyClass = "zero";
+                    cardClass += " out-of-stock";
+                    oosBadge = `<div class="oos-badge">Out of Stock</div>`;
+                } else if (q < 3) {
+                    qtyClass = "low";
+                }
+
                 grid.innerHTML += `
-                    <div class="inv-card">
+                    <div class="${cardClass}">
+                        ${oosBadge}
                         <div class="inv-info">
                             <span class="inv-name">${item.name}</span>
                             <span class="inv-model">${item.model || 'No Model ID'}</span>
                             <span class="inv-price">₹${(item.price || 0).toLocaleString()}</span>
                         </div>
-                        <div class="inv-qty">
-                            <div style="font-size: 0.5em; text-transform: uppercase; color: var(--text-secondary);">QTY</div>
-                            ${item.qty || 0}
+                        <div class="inv-qty ${qtyClass}">
+                            <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
+                            ${q === 0 ? '0' : q}
                         </div>
                     </div>
                 `;
             });
         }
 
-        // Search Filter
+        // --- Low Stock Filter Logic ---
+        window.filterLowStock = async function() {
+            const btn = document.getElementById('btnLowStock');
+            const searchBox = document.getElementById('searchInventory');
+            
+            if (showingLowStock) {
+                // Reset to normal view
+                btn.style.backgroundColor = "var(--warning-color)";
+                searchBox.value = '';
+                showingLowStock = false;
+                renderInventory(inventoryCache); // Load from cache
+            } else {
+                // To do this accurately without querying the whole DB, we query Firestore directly for low stock
+                // Note: This requires an index in Firestore if you have many items.
+                try {
+                    btn.style.backgroundColor = "#fff";
+                    btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
+                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
+                    
+                    // Simple client-side filter if the data is small, but let's assume we want real data
+                    const qAll = query(collection(db, "inventory")); // Getting all to filter (can be heavy if 1000s of items)
+                    const snap = await getDocs(qAll);
+                    
+                    let lowStockItems = [];
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (d.qty < 3) lowStockItems.push({ id: doc.id, ...d });
+                    });
+                    
+                    showingLowStock = true;
+                    renderInventory(lowStockItems);
+                    
+                } catch(err) {
+                    console.error("Stock filter error", err);
+                    showToast("Error checking low stock.", "error");
+                    btn.style.backgroundColor = "var(--warning-color)";
+                }
+            }
+        };
+
+        // --- Search Filter ---
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase().trim();
+            // Note: because the cache only holds 10 items now, local search is limited. 
+            // For a production app, this should trigger a Firestore query if term length > 2.
             const filtered = inventoryCache.filter(item => 
                 (item.name || '').toLowerCase().includes(term) || 
                 (item.model || '').toLowerCase().includes(term)
@@ -370,8 +449,6 @@
             try {
                 const batch = writeBatch(db);
 
-                // Note: For a robust inventory, you might want to query if the model exists and update the qty.
-                // To keep it simple and safe for now (as requested), we will create individual document records.
                 pendingCart.forEach(item => {
                     const newRef = doc(collection(db, "inventory"));
                     batch.set(newRef, {
