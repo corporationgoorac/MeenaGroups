@@ -283,18 +283,17 @@
                         <label>Phone Number</label>
                         <input type="tel" id="cPhone" placeholder="Mobile">
                     </div>
-                    <div>
-                        <label>Payment Mode</label>
-                        <select id="cPayment">
-                            <option value="Cash">Cash</option>
-                            <option value="Online / UPI">Online / UPI</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                        </select>
-                    </div>
                 </div>
                 <div>
                     <label>Address</label>
                     <input type="text" id="cAddress" placeholder="Location / Address">
+                </div>
+                <div style="margin-top: 12px;">
+                    <label>Payment Mode *</label>
+                    <select id="cPaymentMode">
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online (UPI / Bank Transfer)</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -437,7 +436,7 @@
                 </div>
                 
                 <div class="payment-methods">
-                    <p>Payment Mode:<br><span id="prPayment">Cash / Online</span></p>
+                    <p>Payment Mode:<br><span id="prPaymentMode">Cash / UPI / Bank Transfer</span></p>
                 </div>
             </div>
             
@@ -716,7 +715,7 @@
             const cPhone = document.getElementById('cPhone').value.trim();
             const cAddress = document.getElementById('cAddress').value.trim();
             const cDate = document.getElementById('cDate').value;
-            const cPayment = document.getElementById('cPayment').value;
+            const cPaymentMode = document.getElementById('cPaymentMode').value;
 
             if (!cName) { showToast("Customer Name is required."); return; }
             if (cartItems.length === 0) return;
@@ -736,8 +735,8 @@
                 batch.set(sellRef, {
                     invoiceNo: invNo,
                     customer: { name: cName, phone: cPhone, address: cAddress },
+                    paymentMode: cPaymentMode,
                     date: cDate ? new Date(cDate) : serverTimestamp(),
-                    paymentMode: cPayment,
                     items: cartItems,
                     totals: billTotals,
                     createdAt: serverTimestamp()
@@ -761,7 +760,7 @@
                 btnSave.style.display = "none";
                 document.getElementById('btnPrintBill').style.display = "flex";
                 
-                buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPayment);
+                buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPaymentMode);
 
             } catch (err) {
                 console.error("Billing Error", err);
@@ -772,13 +771,16 @@
         });
 
         // --- UPDATED JS FOR 5-COLUMN PRINT LAYOUT ---
-        function buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPayment) {
+        function buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPaymentMode) {
             // Fill Customer & Meta
             document.getElementById('prName').innerText = cName;
             document.getElementById('prPhone').innerText = cPhone || 'N/A';
             document.getElementById('prAddress').innerText = cAddress || 'N/A';
-            document.getElementById('prPayment').innerText = cPayment || 'Cash';
             
+            if(document.getElementById('prPaymentMode')) {
+                document.getElementById('prPaymentMode').innerText = cPaymentMode || 'Cash / UPI / Bank Transfer';
+            }
+
             document.getElementById('prInvNo').innerText = invNo;
             
             // Format Date nicely
