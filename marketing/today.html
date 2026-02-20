@@ -169,14 +169,11 @@
             </div>
 
             <div class="payment-filter">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <span class="material-symbols-outlined">payments</span>
                 <select id="paymentFilter">
                     <option value="All">All Payments</option>
                     <option value="Cash">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Card">Card</option>
-                    <option value="Bank">Bank Transfer</option>
-                    <option value="Credit">Credit/Pending</option>
+                    <option value="Online">Online</option>
                 </select>
             </div>
             
@@ -218,7 +215,7 @@
         };
 
         const dateFilterInput = document.getElementById('dateFilter');
-        const paymentFilterInput = document.getElementById('paymentFilter'); // ADDED
+        const paymentFilterInput = document.getElementById('paymentFilter'); 
         const salesListEl = document.getElementById('salesList');
         const loaderEl = document.getElementById('loader');
         
@@ -231,7 +228,7 @@
             loadDailySales(dateFilterInput.value);
         });
 
-        // ADDED: Listen for Payment Filter Changes
+        // Listen for Payment Filter Changes
         paymentFilterInput.addEventListener('change', () => {
             loadDailySales(dateFilterInput.value);
         });
@@ -280,15 +277,15 @@
                 let invoiceCount = 0;
                 let htmlOutput = '';
                 
-                const selectedPayment = paymentFilterInput.value; // ADDED
+                const selectedPayment = paymentFilterInput.value; 
 
                 snap.forEach(doc => {
                     const data = doc.data();
                     
-                    // ADDED: Payment Filter Logic
-                    const paymentMode = data.paymentMethod || data.paymentMode || 'Unknown'; 
+                    // Filter Logic for Cash/Online
+                    const paymentMode = data.paymentMethod || data.paymentMode || 'Cash'; 
                     if (selectedPayment !== 'All' && paymentMode.toLowerCase() !== selectedPayment.toLowerCase()) {
-                        return; // Skip if it doesn't match the selected filter
+                        return; 
                     }
 
                     invoiceCount++;
@@ -321,7 +318,7 @@
                         });
                     }
 
-                    // Build Card (ADDED: <span class="pay-tag">${paymentMode}</span> inside inv-meta h3)
+                    // Build Card
                     htmlOutput += `
                         <div class="invoice-card">
                             <div class="inv-header">
@@ -352,7 +349,6 @@
 
                 loaderEl.style.display = 'none';
 
-                // ADDED: Handle case where filter returns zero results
                 if (invoiceCount === 0) {
                     salesListEl.innerHTML = `
                         <div class="empty-state">
@@ -371,7 +367,7 @@
 
             } catch (err) {
                 console.error("Error fetching daily sales:", err);
-                showToast("Firebase Error: " + err.message); // Toast trigger added here
+                showToast("Firebase Error: " + err.message); 
                 loaderEl.style.display = 'none';
                 salesListEl.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error loading sales data. Please check connection and permissions.</div>';
             }
