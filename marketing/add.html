@@ -95,7 +95,7 @@
         .btn-secondary { background: #444; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 15px;}
 
         /* Product Cart Styles */
-        .autocomplete-suggestions { background: var(--surface-color); border: 1px solid #444; border-radius: 8px; max-height: 150px; overflow-y: auto; display: none; margin-top: -10px; margin-bottom: 15px; }
+        .autocomplete-suggestions { background: var(--surface-color); border: 1px solid #444; border-radius: 8px; max-height: 150px; overflow-y: auto; display: none; margin-top: -10px; margin-bottom: 15px; position: relative; z-index: 50; }
         .suggestion-item { padding: 10px 15px; border-bottom: 1px solid #333; cursor: pointer; }
         .suggestion-item:hover { background: #333; }
         .product-list { margin: 0 20px; background: var(--surface-color); border-radius: 8px; padding: 10px; border: 1px solid #333; }
@@ -223,9 +223,10 @@
 
         <div class="form-group" style="background: var(--nav-bg); margin: 0 20px; border-radius: 8px; border: 1px solid #333;">
             <label>Product Name</label>
-            <input type="text" id="pName" placeholder="e.g. Marketing Kit A">
+            <input type="text" id="pName" placeholder="e.g. Marketing Kit A" autocomplete="off">
+            <div class="autocomplete-suggestions" id="productSuggestions"></div>
             <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;"><label>Model / ID</label><input type="text" id="pModel" placeholder="Optional"></div>
+                <div style="flex: 1;"><label>Model / ID</label><input type="text" id="pModel" placeholder="Optional" autocomplete="off"></div>
                 <div style="flex: 1;"><label>Qty *</label><input type="number" id="pQty" value="1" min="1"></div>
             </div>
             <label>Unit Price (Buying Price) (₹) *</label>
@@ -473,6 +474,57 @@
             });
         });
 
+        // --- PRODUCT NAME SUGGESTIONS (INVENTORY LOOKUP) ---
+        const pNameInput = document.getElementById('pName');
+        const productSuggestionsBox = document.getElementById('productSuggestions');
+        
+        pNameInput.addEventListener('input', async (e) => {
+            const val = e.target.value.trim();
+            productSuggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
+            if(val.length < 2) return;
+            
+            try {
+                const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+                const snap = await getDocs(q);
+                productSuggestionsBox.innerHTML = '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const div = document.createElement('div'); div.className = 'suggestion-item';
+                    div.innerHTML = `<strong>${d.name}</strong> <small>(${d.model || 'No ID'})</small> - Sell: ₹${d.price}`;
+                    div.onclick = () => {
+                        pNameInput.value = d.name; 
+                        document.getElementById('pModel').value = d.model || '';
+                        document.getElementById('pSellingPrice').value = d.price || '';
+                        productSuggestionsBox.style.display = 'none';
+                    };
+                    productSuggestionsBox.appendChild(div);
+                });
+            } catch (err) { console.error(err); }
+        });
+        
+        // Hide suggestions on click outside
+        document.addEventListener('click', (e) => {
+            if(e.target !== pNameInput) productSuggestionsBox.style.display = 'none';
+        });
+
+        // --- PRODUCT MODEL/ID CHECK ---
+        const pModelInput = document.getElementById('pModel');
+        pModelInput.addEventListener('change', async (e) => {
+            const val = e.target.value.trim();
+            if(!val) return;
+            try {
+                const q = query(collection(db, "inventory"), where("model", "==", val), limit(1));
+                const snap = await getDocs(q);
+                if(!snap.empty) {
+                    const d = snap.docs[0].data();
+                    // Auto-fill existing details to help the user
+                    document.getElementById('pName').value = d.name;
+                    document.getElementById('pSellingPrice').value = d.price || '';
+                }
+            } catch(err) { console.error(err); }
+        });
+
+
         document.getElementById('btnAddToList').addEventListener('click', () => {
             const pName = document.getElementById('pName').value.trim();
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
@@ -512,27 +564,47 @@
                 // 1. Update company balance
                 batch.update(doc(db, "companies", compId), { balance: increment(currentPurchaseTotal), totalBilled: increment(currentPurchaseTotal) });
                 
-                cart.forEach(item => { 
-                    // 2. Save full detail to products_sold
+                // Process each cart item safely
+                for (const item of cart) {
+                    // 2. Save full detail to products_sold (Always unique)
                     batch.set(doc(collection(db, "products_sold")), { ...item, companyId: compId, date: serverTimestamp() }); 
                     
-                    // 3. Save copy to global inventory (with NO company details and NO buy price, just selling price)
-                    const inventoryRef = doc(collection(db, "inventory"));
-                    batch.set(inventoryRef, {
-                        name: item.name,
-                        model: item.model,
-                        qty: item.qty,
-                        price: item.sellingPrice, // Mapping sellingPrice to price for inventory display
-                        createdAt: serverTimestamp()
-                    });
-                });
+                    // 3. Save copy to global inventory (Check if exists to ADD QTY instead of duplicate)
+                    let invQ;
+                    if (item.model) {
+                        invQ = query(collection(db, "inventory"), where("model", "==", item.model), limit(1));
+                    } else {
+                        invQ = query(collection(db, "inventory"), where("name", "==", item.name), limit(1));
+                    }
+                    
+                    const invSnap = await getDocs(invQ);
+                    
+                    if (!invSnap.empty) {
+                        // Product exists in inventory! Just increment the quantity safely
+                        const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
+                        batch.update(existingInvRef, { 
+                            qty: increment(item.qty),
+                            price: item.sellingPrice // Optionally update selling price to newest entry
+                        });
+                    } else {
+                        // Completely new product for inventory! Create it
+                        const inventoryRef = doc(collection(db, "inventory"));
+                        batch.set(inventoryRef, {
+                            name: item.name,
+                            model: item.model,
+                            qty: item.qty,
+                            price: item.sellingPrice,
+                            createdAt: serverTimestamp()
+                        });
+                    }
+                }
                 
                 // 4. Update dashboard metadata
                 batch.set(doc(db, "metadata", "dashboard"), { totalProducts: increment(cart.length), totalBalance: increment(currentPurchaseTotal), totalBilled: increment(currentPurchaseTotal) }, { merge: true });
                 
                 await batch.commit();
 
-                alert("Products added and copied to inventory!"); cart = []; renderCart(); searchInput.value = ''; document.getElementById('selectedCompanyId').value = '';
+                alert("Products added to Company and Inventory Updated!"); cart = []; renderCart(); searchInput.value = ''; document.getElementById('selectedCompanyId').value = '';
                 history.back(); fetchAndRenderCompanies();
             } catch(err) { console.error(err); alert("Error saving data."); } 
             finally { btn.innerText = "Save & Update Balance"; btn.disabled = false; }
