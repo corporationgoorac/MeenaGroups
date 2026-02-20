@@ -103,9 +103,24 @@
 
         /* Loader */
         .loader { text-align: center; padding: 40px; color: var(--accent-color); font-weight: bold; display: none; }
+
+        /* Toasts Added */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s;}
+        .toast-msg.error { background: var(--meena-red); }
+        .toast-msg.success { background: var(--success-color); }
+        .toast-msg.show { display: flex; opacity: 1; }
     </style>
 </head>
 <body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
 
     <header>
         <div class="header-left">
@@ -170,6 +185,16 @@
         // 2. Firebase Imports
         import { db } from 'config.js';
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Toast Helper Added
+        window.showToast = function(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            if(!toast) return;
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 4000);
+        };
 
         const dateFilterInput = document.getElementById('dateFilter');
         const salesListEl = document.getElementById('salesList');
@@ -301,6 +326,7 @@
 
             } catch (err) {
                 console.error("Error fetching daily sales:", err);
+                showToast("Firebase Error: " + err.message); // Toast trigger added here
                 loaderEl.style.display = 'none';
                 salesListEl.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error loading sales data. Please check connection and permissions.</div>';
             }
