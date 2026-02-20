@@ -57,6 +57,10 @@
         .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
         .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
 
+        /* Firebase Error Toast Popup Styles */
+        .error-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--meena-red); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s; max-width: 90%; text-align: center;}
+        .error-toast.show { display: flex; opacity: 1; }
+
         /* Companies Page Specific Styles */
         .container { padding: 20px; max-width: 800px; margin: 0 auto; }
         
@@ -128,6 +132,11 @@
     </style>
 </head>
 <body>
+
+    <div class="error-toast" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
 
     <header>
         <div class="brand-container">
@@ -252,6 +261,18 @@
         let allCompaniesCache = [];
         let currentCompanyId = null;
 
+        // Firebase Error Toast Logic
+        window.showErrorToast = function(msg) {
+            const toast = document.getElementById('errorToast');
+            document.getElementById('errorToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 4000);
+        };
+
         // Modal Logic
         window.openModal = function(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -296,6 +317,7 @@
             } catch (error) {
                 console.error("Error loading companies:", error);
                 grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%;">Failed to load companies.</div>';
+                showErrorToast(error.message || "Failed to load companies.");
             }
         }
 
@@ -352,6 +374,9 @@
             switchTab('purchases');
             document.querySelector('.tab-btn').classList.add('active'); // ensure first tab is active visually
             
+            // Instantly open modal for responsive feeling before Firestore calls finish
+            openModal('modalProfile');
+
             // Get Total Products Count (Efficient Aggregation Query)
             try {
                 const countQ = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId));
@@ -359,13 +384,14 @@
                 document.getElementById('profProdCount').innerText = snapshot.data().count;
             } catch (err) {
                 document.getElementById('profProdCount').innerText = "N/A";
+                showErrorToast(err.message || "Error getting product count.");
             }
 
             // Load Initial Data for Tabs
             loadPurchases(false);
             loadPayments(false);
 
-            openModal('modalProfile');
+            openModal('modalProfile'); // keeping original line intact
         };
 
         // --- 3. Pagination Logic: Purchases ---
@@ -442,6 +468,7 @@
             } catch (err) {
                 console.error(err);
                 if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading purchases.</div>';
+                showErrorToast(err.message || "Error loading purchases.");
             }
         };
 
@@ -524,6 +551,7 @@
             } catch (err) {
                 console.error(err);
                 if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading payments.</div>';
+                showErrorToast(err.message || "Error loading payments.");
             }
         };
 
