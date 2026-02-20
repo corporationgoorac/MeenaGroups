@@ -508,12 +508,31 @@
 
             try {
                 const batch = writeBatch(db);
+                
+                // 1. Update company balance
                 batch.update(doc(db, "companies", compId), { balance: increment(currentPurchaseTotal), totalBilled: increment(currentPurchaseTotal) });
-                cart.forEach(item => { batch.set(doc(collection(db, "products_sold")), { ...item, companyId: compId, date: serverTimestamp() }); });
+                
+                cart.forEach(item => { 
+                    // 2. Save full detail to products_sold
+                    batch.set(doc(collection(db, "products_sold")), { ...item, companyId: compId, date: serverTimestamp() }); 
+                    
+                    // 3. Save copy to global inventory (with NO company details and NO buy price, just selling price)
+                    const inventoryRef = doc(collection(db, "inventory"));
+                    batch.set(inventoryRef, {
+                        name: item.name,
+                        model: item.model,
+                        qty: item.qty,
+                        price: item.sellingPrice, // Mapping sellingPrice to price for inventory display
+                        createdAt: serverTimestamp()
+                    });
+                });
+                
+                // 4. Update dashboard metadata
                 batch.set(doc(db, "metadata", "dashboard"), { totalProducts: increment(cart.length), totalBalance: increment(currentPurchaseTotal), totalBilled: increment(currentPurchaseTotal) }, { merge: true });
+                
                 await batch.commit();
 
-                alert("Products added!"); cart = []; renderCart(); searchInput.value = ''; document.getElementById('selectedCompanyId').value = '';
+                alert("Products added and copied to inventory!"); cart = []; renderCart(); searchInput.value = ''; document.getElementById('selectedCompanyId').value = '';
                 history.back(); fetchAndRenderCompanies();
             } catch(err) { console.error(err); alert("Error saving data."); } 
             finally { btn.innerText = "Save & Update Balance"; btn.disabled = false; }
