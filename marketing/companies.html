@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Companies - Meena Marketing</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; overflow-x: hidden; }
+
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.7em; color: var(--text-secondary); }
+
+        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; }
+        .desktop-nav a { color: var(--text-color); text-decoration: none; padding: 8px 20px; border-radius: 20px; background-color: #333; font-size: 0.9em; font-weight: 500; transition: 0.2s; }
+        .desktop-nav a:hover, .desktop-nav a.active { background-color: var(--accent-color); }
+
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; }
+        .mobile-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 0.75em; gap: 4px; }
+        .mobile-nav a.active { color: var(--marketing-white); }
+        .mobile-nav a.active .material-symbols-outlined { color: var(--meena-red); font-variation-settings: 'FILL' 1; }
+
+        @media (max-width: 768px) { .desktop-nav { display: none; } .mobile-nav { display: flex; } }
+        @media (min-width: 769px) { body { padding-bottom: 0; } }
+
+        /* Custom Install Popup */
+        #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
+        .install-img { width: 40px; height: 40px; border-radius: 8px; }
+        .install-text { flex-grow: 1; }
+        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; }
+        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
+        .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
+        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
+
+        /* Companies Page Specific Styles */
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        .search-hero { background: var(--surface-color); padding: 25px 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 25px; text-align: center; }
+        .search-hero h2 { margin-top: 0; font-size: 1.5em; color: var(--marketing-white); margin-bottom: 15px; }
+        
+        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; transition: border-color 0.3s; }
+        .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 86, 179, 0.3); }
+        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 28px; }
+        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 18px 10px; color: white; font-size: 1.1em; outline: none; }
+
+        .company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .company-card { background: var(--nav-bg); padding: 20px; border-radius: 12px; border: 1px solid #333; cursor: pointer; transition: transform 0.2s, background 0.2s; display: flex; align-items: center; gap: 15px; }
+        .company-card:hover { background: #2a2a2a; border-color: #555; transform: translateY(-3px); }
+        .company-card:active { transform: translateY(0); }
+        
+        .avatar-circle { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 1.5em; font-weight: bold; text-transform: uppercase; }
+        
+        .c-info { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
+        .c-name { font-weight: bold; font-size: 1.2em; color: var(--marketing-white); }
+        .c-id { font-size: 0.8em; color: var(--text-secondary); }
+        .c-bal { font-size: 1.1em; font-weight: bold; color: var(--meena-red); margin-top: 5px; }
+
+        /* Slide-in Modal (Profile UI) */
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal.active { right: 0; }
+        
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.2em; }
+
+        .profile-header { display: flex; flex-direction: column; align-items: center; padding: 30px 20px; background: linear-gradient(180deg, var(--surface-color) 0%, var(--bg-color) 100%); border-bottom: 1px solid #333; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 2.5em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .profile-name { font-size: 1.6em; font-weight: 800; color: white; margin-bottom: 5px; text-align: center; }
+        .profile-sub { color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px; }
+
+        .stats-row { display: flex; width: 100%; max-width: 600px; justify-content: space-around; background: var(--nav-bg); padding: 15px 0; border-radius: 12px; border: 1px solid #444; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 33%; }
+        .stat-item:not(:last-child) { border-right: 1px solid #444; }
+        .stat-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; }
+        .stat-val { font-size: 1.2em; font-weight: bold; }
+        .val-bal { color: var(--meena-red); }
+        .val-paid { color: var(--success-color); }
+        .val-prod { color: var(--marketing-white); }
+
+        /* Tabs UI */
+        .tabs-container { display: flex; border-bottom: 1px solid #444; margin-top: 10px; background: var(--surface-color); position: sticky; top: 56px; z-index: 9; }
+        .tab-btn { flex: 1; padding: 15px; text-align: center; background: none; border: none; color: var(--text-secondary); font-size: 1em; font-weight: bold; cursor: pointer; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+        
+        .tab-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        /* List Items & Date Dividers */
+        .date-divider { font-size: 0.85em; font-weight: bold; color: var(--text-secondary); margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .date-divider::after { content: ""; flex-grow: 1; height: 1px; background: #333; }
+
+        .list-card { background: var(--surface-color); padding: 15px; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .list-card-left { display: flex; flex-direction: column; gap: 4px; }
+        .item-title { font-weight: bold; font-size: 1.05em; color: var(--marketing-white); }
+        .item-sub { font-size: 0.8em; color: var(--text-secondary); }
+        .item-amt-buy { font-weight: bold; color: var(--meena-red); font-size: 1.1em; }
+        .item-amt-pay { font-weight: bold; color: var(--success-color); font-size: 1.1em; background: rgba(0, 200, 83, 0.1); padding: 5px 10px; border-radius: 6px; }
+
+        .load-more-btn { width: 100%; padding: 15px; background: var(--nav-bg); color: var(--accent-color); border: 1px solid #444; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.2s; }
+        .load-more-btn:hover { background: #333; }
+        .load-more-btn:disabled { color: #666; cursor: not-allowed; display: none; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">Powered by Goorac</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span class="material-symbols-outlined">account_circle</span>
+        </div>
+    </header>
+
+    <nav class="desktop-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="search.html">Search</a>
+        <a href="companies.html" class="active">Companies</a>
+        <a href="add.html">+ Add Data</a>
+        <a href="makePayment.html">₹ Make Payment</a>
+    </nav>
+
+    <nav class="mobile-nav">
+        <a href="index.html">
+            <span class="material-symbols-outlined">dashboard</span>Home
+        </a>
+        <a href="search.html">
+            <span class="material-symbols-outlined">search</span>Search
+        </a>
+        <a href="add.html">
+            <span class="material-symbols-outlined">add_circle</span>Add
+        </a>
+        <a href="makePayment.html">
+            <span class="material-symbols-outlined">payments</span>Pay
+        </a>
+        <a href="companies.html" class="active">
+            <span class="material-symbols-outlined">business</span>Companies
+        </a>
+    </nav>
+
+    <div id="installPopup">
+        <img src="icon.png" alt="App Icon" class="install-img">
+        <div class="install-text">
+            <h4>Install Goorac App</h4>
+            <p>Add to homescreen for offline access</p>
+        </div>
+        <button id="installBtn" class="install-btn">Install</button>
+        <button id="closeBtn" class="close-btn">&times;</button>
+    </div>
+
+    <div class="container">
+        <div class="search-hero">
+            <h2>Company Profiles</h2>
+            <div class="search-bar-container">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" id="searchInput" placeholder="Search by name or ID..." autocomplete="off">
+            </div>
+        </div>
+
+        <div class="company-grid" id="companiesGrid">
+            <div style="text-align:center; color:var(--text-secondary); width:100%; padding:20px;">Loading companies...</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalProfile">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Company Profile</h2>
+        </div>
+        
+        <div class="profile-header">
+            <div class="profile-avatar" id="profAvatar">C</div>
+            <div class="profile-name" id="profName">Company Name</div>
+            <div class="profile-sub" id="profLocationId">Location • ID: 123</div>
+            
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">Products</span>
+                    <span class="stat-val val-prod" id="profProdCount">...</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Paid</span>
+                    <span class="stat-val val-paid" id="profTotalPaid">₹0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Pending Bal</span>
+                    <span class="stat-val val-bal" id="profBalance">₹0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('purchases')">Purchases</button>
+            <button class="tab-btn" onclick="switchTab('payments')">Payments</button>
+        </div>
+
+        <div class="tab-content active" id="tab-purchases">
+            <div id="purchasesList">
+                </div>
+            <button class="load-more-btn" id="btnLoadMorePurchases" onclick="loadPurchases(true)">Load More</button>
+        </div>
+
+        <div class="tab-content" id="tab-payments">
+            <div id="paymentsList">
+                </div>
+            <button class="load-more-btn" id="btnLoadMorePayments" onclick="loadPayments(true)">Load More</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // 1. Service Worker Logic
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW Error', err)); }); }
+        let deferredPrompt; const installPopup = document.getElementById('installPopup');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
+
+        // 2. Firebase Imports
+        import { db } from './config.js';
+        import { collection, getDocs, query, orderBy, limit, where, startAfter, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        let allCompaniesCache = [];
+        let currentCompanyId = null;
+
+        // Modal Logic
+        window.openModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            history.pushState({ modal: modalId }, '', `#${modalId}`);
+        };
+        window.addEventListener('popstate', () => {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        });
+
+        // Tab Logic
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        };
+
+        // Date Formatter Helper
+        function formatDateGroup(dateObj) {
+            if (!dateObj) return "Older";
+            const d = dateObj.toDate();
+            const today = new Date();
+            const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+            if (isToday) return "Today";
+            return `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+        }
+
+        // --- 1. Load All Companies for Search ---
+        async function fetchAllCompanies() {
+            const grid = document.getElementById('companiesGrid');
+            try {
+                const q = query(collection(db, "companies"), orderBy("name"));
+                const snap = await getDocs(q);
+                
+                allCompaniesCache = [];
+                snap.forEach(doc => {
+                    allCompaniesCache.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderCompanies(allCompaniesCache);
+            } catch (error) {
+                console.error("Error loading companies:", error);
+                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%;">Failed to load companies.</div>';
+            }
+        }
+
+        function renderCompanies(dataArray) {
+            const grid = document.getElementById('companiesGrid');
+            if (dataArray.length === 0) {
+                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:20px;">No companies found.</div>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            dataArray.forEach(data => {
+                const initial = data.name ? data.name.charAt(0).toUpperCase() : '?';
+                const compData = encodeURIComponent(JSON.stringify(data));
+                
+                grid.innerHTML += `
+                    <div class="company-card" onclick="openCompanyProfile('${compData}')">
+                        <div class="avatar-circle">${initial}</div>
+                        <div class="c-info">
+                            <div class="c-name">${data.name}</div>
+                            <div class="c-id">ID: ${data.companyId || 'N/A'} • ${data.location || 'No Location'}</div>
+                            <div class="c-bal">₹${(data.balance || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Search Listener
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            const filtered = allCompaniesCache.filter(c => 
+                (c.name || '').toLowerCase().includes(term) || 
+                (c.companyId || '').toLowerCase().includes(term)
+            );
+            renderCompanies(filtered);
+        });
+
+        // --- 2. Open Company Profile Modal ---
+        window.openCompanyProfile = async function(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            currentCompanyId = data.id;
+
+            // Set Header UI
+            document.getElementById('profAvatar').innerText = data.name.charAt(0).toUpperCase();
+            document.getElementById('profName').innerText = data.name;
+            document.getElementById('profLocationId').innerText = `${data.location || 'Unknown Location'} • ID: ${data.companyId || 'N/A'}`;
+            
+            document.getElementById('profTotalPaid').innerText = `₹${(data.totalPaid || 0).toLocaleString()}`;
+            document.getElementById('profBalance').innerText = `₹${(data.balance || 0).toLocaleString()}`;
+            document.getElementById('profProdCount').innerText = "..."; // Loading state
+
+            // Reset Tabs and Data Arrays
+            switchTab('purchases');
+            document.querySelector('.tab-btn').classList.add('active'); // ensure first tab is active visually
+            
+            // Get Total Products Count (Efficient Aggregation Query)
+            try {
+                const countQ = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId));
+                const snapshot = await getCountFromServer(countQ);
+                document.getElementById('profProdCount').innerText = snapshot.data().count;
+            } catch (err) {
+                document.getElementById('profProdCount').innerText = "N/A";
+            }
+
+            // Load Initial Data for Tabs
+            loadPurchases(false);
+            loadPayments(false);
+
+            openModal('modalProfile');
+        };
+
+        // --- 3. Pagination Logic: Purchases ---
+        let lastVisiblePurchase = null;
+        let currentPurchaseDateGroup = "";
+
+        window.loadPurchases = async function(isNextPage) {
+            const listEl = document.getElementById('purchasesList');
+            const btnMore = document.getElementById('btnLoadMorePurchases');
+            
+            if (!isNextPage) {
+                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Loading purchases...</div>';
+                lastVisiblePurchase = null;
+                currentPurchaseDateGroup = "";
+                btnMore.style.display = 'none';
+            } else {
+                btnMore.innerText = "Loading...";
+                btnMore.disabled = true;
+            }
+
+            try {
+                let q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(25));
+                if (isNextPage && lastVisiblePurchase) {
+                    q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePurchase), limit(25));
+                }
+
+                const snap = await getDocs(q);
+                
+                if (!isNextPage) listEl.innerHTML = ''; // Clear loading text
+                
+                if (snap.empty && !isNextPage) {
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">No purchases recorded.</div>';
+                    btnMore.style.display = 'none';
+                    return;
+                }
+
+                if (snap.empty && isNextPage) {
+                    btnMore.style.display = 'none';
+                    return;
+                }
+
+                lastVisiblePurchase = snap.docs[snap.docs.length - 1];
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const dateGroup = formatDateGroup(data.date);
+                    
+                    // Insert Date Divider if it changes
+                    if (dateGroup !== currentPurchaseDateGroup) {
+                        listEl.innerHTML += `<div class="date-divider">${dateGroup}</div>`;
+                        currentPurchaseDateGroup = dateGroup;
+                    }
+
+                    listEl.innerHTML += `
+                        <div class="list-card">
+                            <div class="list-card-left">
+                                <div class="item-title">${data.name} <span style="font-weight:normal; color:var(--text-secondary);">x${data.qty}</span></div>
+                                <div class="item-sub">Model: ${data.model || 'N/A'} • Unit: ₹${(data.price || 0).toLocaleString()}</div>
+                            </div>
+                            <div class="item-amt-buy">₹${(data.total || 0).toLocaleString()}</div>
+                        </div>
+                    `;
+                });
+
+                // Manage Load More Button
+                if (snap.docs.length === 25) {
+                    btnMore.style.display = 'block';
+                    btnMore.innerText = "Load More Purchases";
+                    btnMore.disabled = false;
+                } else {
+                    btnMore.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading purchases.</div>';
+            }
+        };
+
+        // --- 4. Pagination Logic: Payments ---
+        let lastVisiblePayment = null;
+        let currentPaymentDateGroup = "";
+
+        window.loadPayments = async function(isNextPage) {
+            const listEl = document.getElementById('paymentsList');
+            const btnMore = document.getElementById('btnLoadMorePayments');
+            
+            if (!isNextPage) {
+                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Loading payments...</div>';
+                lastVisiblePayment = null;
+                currentPaymentDateGroup = "";
+                btnMore.style.display = 'none';
+            } else {
+                btnMore.innerText = "Loading...";
+                btnMore.disabled = true;
+            }
+
+            try {
+                let q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(25));
+                if (isNextPage && lastVisiblePayment) {
+                    q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePayment), limit(25));
+                }
+
+                const snap = await getDocs(q);
+                
+                if (!isNextPage) listEl.innerHTML = '';
+                
+                if (snap.empty && !isNextPage) {
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">No payments recorded.</div>';
+                    btnMore.style.display = 'none';
+                    return;
+                }
+
+                if (snap.empty && isNextPage) {
+                    btnMore.style.display = 'none';
+                    return;
+                }
+
+                lastVisiblePayment = snap.docs[snap.docs.length - 1];
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const dateGroup = formatDateGroup(data.date);
+                    
+                    // Specific time for payments
+                    let timeStr = "";
+                    if (data.date && data.date.toDate) {
+                        const d = data.date.toDate();
+                        timeStr = `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+                    }
+
+                    if (dateGroup !== currentPaymentDateGroup) {
+                        listEl.innerHTML += `<div class="date-divider">${dateGroup}</div>`;
+                        currentPaymentDateGroup = dateGroup;
+                    }
+
+                    listEl.innerHTML += `
+                        <div class="list-card">
+                            <div class="list-card-left">
+                                <div class="item-title">Payment Made</div>
+                                <div class="item-sub">Time: ${timeStr || 'Unknown'}</div>
+                            </div>
+                            <div class="item-amt-pay">₹${(data.amount || 0).toLocaleString()}</div>
+                        </div>
+                    `;
+                });
+
+                if (snap.docs.length === 25) {
+                    btnMore.style.display = 'block';
+                    btnMore.innerText = "Load More Payments";
+                    btnMore.disabled = false;
+                } else {
+                    btnMore.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading payments.</div>';
+            }
+        };
+
+        // Init
+        fetchAllCompanies();
+    </script>
+</body>
+</html>
