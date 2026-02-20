@@ -820,6 +820,31 @@
             document.getElementById('prGrandTotal').innerText = `₹${billTotals.grand.toFixed(2)}`;
         }
 
+        // --- RESET FORM AUTOMATICALLY AFTER PRINTING ---
+        window.addEventListener('afterprint', () => {
+            const btnPrint = document.getElementById('btnPrintBill');
+            const btnSave = document.getElementById('btnSaveBill');
+            
+            // Check if we just printed a generated bill (Print button is visible)
+            if (btnPrint.style.display === "flex" || window.getComputedStyle(btnPrint).display !== "none") {
+                
+                // 1. Reset Customer Details
+                document.getElementById('cName').value = '';
+                document.getElementById('cPhone').value = '';
+                document.getElementById('cAddress').value = '';
+                document.getElementById('cPaymentMode').value = 'Cash';
+                
+                // 2. Clear Cart & Re-render (This automatically resets totals & disables the Save button)
+                cartItems.splice(0, cartItems.length);
+                renderCart();
+
+                // 3. Swap buttons back to default state
+                btnPrint.style.display = "none";
+                btnSave.style.display = "flex";
+                btnSave.innerHTML = '<span class="material-symbols-outlined">save</span> Save Bill';
+            }
+        });
+
     </script>
 </body>
 </html>
