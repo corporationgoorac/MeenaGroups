@@ -471,9 +471,9 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports (Points to root config correctly now)
+        // 2. Firebase Imports (Points to root config correctly now) Added onSnapshot for realtime updates
         import { db } from '../marketing/config.js';
-        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
@@ -489,20 +489,24 @@
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
 
-        // --- CACHE INVENTORY FOR FAST LOCAL SEARCH ---
+        // --- CACHE INVENTORY FOR FAST LOCAL SEARCH AND REALTIME STOCK INTEGRITY ---
         let allInventoryCache = [];
         
-        async function fetchAllInventoryForSearch() {
+        function fetchAllInventoryForSearch() {
             try {
-                // Pulling up to 500 items into local memory so search is instant and case-insensitive
+                // Now using onSnapshot to pull live data into local memory. 
+                // This means the stock is ALWAYS 100% accurate in realtime, preventing duplicates or mismatch errors.
                 const q = query(collection(db, "inventory"), limit(500));
-                const snap = await getDocs(q);
-                allInventoryCache = [];
-                snap.forEach(doc => {
-                    allInventoryCache.push({ id: doc.id, ...doc.data() });
+                onSnapshot(q, (snap) => {
+                    allInventoryCache = [];
+                    snap.forEach(doc => {
+                        allInventoryCache.push({ id: doc.id, ...doc.data() });
+                    });
+                }, (err) => {
+                    console.error("Error setting up realtime inventory cache:", err);
                 });
             } catch (err) {
-                console.error("Error caching inventory for search:", err);
+                console.error("Error launching inventory listener:", err);
             }
         }
         
@@ -585,19 +589,30 @@
                 showToast("Enter valid product details (Name, Price > 0, Qty > 0)."); return;
             }
 
-            // --- STOCK VALIDATION LOGIC ---
+            // --- REALTIME DUPLICATE & STOCK VALIDATION LOGIC ---
+            let realtimeStock = currentStock; 
+            let existingItemIndex = -1;
+
             if (!isNonStock) {
                 if (!invId) {
                     showToast("Please select a product from the search dropdown, or mark as 'Non-Stock'."); return;
                 }
                 
-                // Check if this item is already in cart, sum the qty to validate stock correctly
-                let existingCartQty = 0;
-                cartItems.forEach(item => { if(item.invId === invId) existingCartQty += item.qty; });
+                // Fetch absolute latest realtime stock from the live onSnapshot cache
+                const liveItem = allInventoryCache.find(i => i.id === invId);
+                if (liveItem) realtimeStock = liveItem.qty || 0;
                 
-                if ((qty + existingCartQty) > currentStock) {
-                    showToast(`Not enough stock! Only ${currentStock} available in inventory.`); return;
+                // Check if this exact item is already in the cart so we don't duplicate rows
+                existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent);
+                let existingCartQty = existingItemIndex > -1 ? cartItems[existingItemIndex].qty : 0;
+                
+                // Validate against the realtime DB stock limit
+                if ((qty + existingCartQty) > realtimeStock) {
+                    showToast(`Not enough stock! Only ${realtimeStock} available in live inventory.`); return;
                 }
+            } else {
+                // Check if non-stock item matches an existing row to merge quantities
+                existingItemIndex = cartItems.findIndex(item => item.name === name && item.isNonStock && item.price === price && item.gstPercent === gstPercent);
             }
 
             // Calculate amounts (Price is considered Exclusive of GST)
@@ -605,11 +620,20 @@
             const gstAmount = (baseTotal * gstPercent) / 100;
             const finalTotal = baseTotal + gstAmount;
 
-            // Pushes isNonStock securely into the cart items mapping
-            cartItems.push({
-                invId: isNonStock ? null : invId,
-                name, model, price, qty, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock
-            });
+            if (existingItemIndex > -1) {
+                // If the product is already in the cart, merge quantities (No Duplicates)
+                let item = cartItems[existingItemIndex];
+                item.qty += qty;
+                item.baseTotal = item.price * item.qty;
+                item.gstAmount = (item.baseTotal * item.gstPercent) / 100;
+                item.finalTotal = item.baseTotal + item.gstAmount;
+            } else {
+                // Pushes securely into the cart items mapping
+                cartItems.push({
+                    invId: isNonStock ? null : invId,
+                    name, model, price, qty, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock
+                });
+            }
 
             // Clear Form
             document.getElementById('pInvId').value = '';
@@ -625,6 +649,9 @@
         });
 
         window.removeCartItem = function(index) {
+            // When deleted from the UI, the item is dropped from the array. 
+            // Because stock is only *actually* deducted from the DB on 'Save Bill', 
+            // dropping it from the local cart automatically puts the held local stock back into availability!
             cartItems.splice(index, 1);
             renderCart();
         };
