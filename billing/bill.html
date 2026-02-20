@@ -155,17 +155,18 @@
 
             /* Top Band Header (B&W replacement for yellow header) */
             .print-top-band {
-                background-color: #e0e0e0 !important; 
+                background-color: #cccccc !important; /* DARKER GRAY HEADER */
                 padding: 35px 40px;
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 20px;
+                border-bottom: 1px solid #999;
             }
 
             /* Header Left Side */
             .print-header-left { width: 55%; }
             .print-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 25px; }
-            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #000; line-height: 1;}
+            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;} /* LAL (RED) */
             .print-brand p { margin: 0; font-size: 11px; font-weight: bold; color: #333; }
             
             .print-invoice-to { margin-top: 10px; }
@@ -179,7 +180,7 @@
             .qr-box { border: 2px solid #000; background-color: #fff !important; padding: 5px; display: inline-block; margin-bottom: 15px; }
             .qr-box span { font-size: 36px; color: #000; display: block; }
             
-            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #000;}
+            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;} /* LAL (RED) */
             .invoice-no-text { font-size: 14px; font-weight: bold; margin: 5px 0 15px 0; color: #000;}
             
             .invoice-date-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
@@ -191,7 +192,7 @@
             /* Table Layout */
             .print-table-container { padding: 0 40px; }
             .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-            .print-table th { background-color: #e0e0e0 !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+            .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
             .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
@@ -200,7 +201,7 @@
             .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; }
             
             .print-left-footer-info { width: 45%; }
-            .thanks-box { background-color: #e0e0e0 !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #000;} 
+            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} /* RED BORDER */
             .thanks-box strong { display: block; font-size: 12px; margin-bottom: 4px; color: #000;}
             .thanks-box p { margin: 0; font-size: 9px; color: #444; line-height: 1.4; }
             
@@ -212,8 +213,8 @@
             .totals-grid td { padding: 8px 10px; font-size: 11px; border: none; font-weight: bold; color: #444;}
             .totals-grid .t-label { text-align: right; }
             .totals-grid .t-val { text-align: right; color: #000; }
-            .totals-grid .t-grand-row { background-color: #e0e0e0 !important; border-top: 2px solid #000;}
-            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #000; padding: 10px; }
+            .totals-grid .t-grand-row { background-color: #cccccc !important; border-top: 2px solid #000;}
+            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; } /* LAL (RED) */
 
             /* Signature Area */
             .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; }
@@ -223,7 +224,7 @@
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
             /* Absolute Footer (Powered By Goorac) */
-            .print-absolute-footer { background-color: #e0e0e0 !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; }
+            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
     </style>
@@ -474,8 +475,10 @@
         import { db } from '../marketing/config.js';
         import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        // Initialize Date to Today
-        document.getElementById('cDate').valueAsDate = new Date();
+        // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
+        const today = new Date();
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        document.getElementById('cDate').value = localIso;
 
         // Toast Helper
         window.showToast = function(msg, type = "error") {
