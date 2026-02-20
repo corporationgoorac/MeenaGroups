@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Data - Meena Marketing</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme (Matching index.html) */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; overflow-x: hidden; }
+
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.7em; color: var(--text-secondary); }
+
+        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; }
+        .desktop-nav a { color: var(--text-color); text-decoration: none; padding: 8px 20px; border-radius: 20px; background-color: #333; font-size: 0.9em; font-weight: 500; transition: 0.2s; }
+        .desktop-nav a:hover, .desktop-nav a.active { background-color: var(--accent-color); }
+
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; }
+        .mobile-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 0.75em; gap: 4px; }
+        .mobile-nav a.active { color: var(--marketing-white); }
+        .mobile-nav a.active .material-symbols-outlined { color: var(--meena-red); font-variation-settings: 'FILL' 1; }
+
+        @media (max-width: 768px) { .desktop-nav { display: none; } .mobile-nav { display: flex; } }
+        @media (min-width: 769px) { body { padding-bottom: 0; } }
+
+        /* Add Page Specific Styles */
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        .action-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+        .action-card { background: var(--surface-color); padding: 25px 15px; border-radius: 12px; text-align: center; border: 1px solid #333; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .action-card:active { transform: scale(0.98); background: #333; }
+        .action-card .material-symbols-outlined { font-size: 40px; color: var(--meena-red); }
+        .action-card h3 { margin: 0; font-size: 1.1em; }
+
+        .recent-section h2 { font-size: 1.2em; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; color: var(--text-secondary); }
+        .recent-list { list-style: none; padding: 0; margin: 0; }
+        .recent-list li { background: var(--surface-color); padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; border: 1px solid #333; }
+        .recent-balance { color: var(--meena-red); font-weight: bold; }
+
+        /* Slide-in Modals */
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal.active { right: 0; }
+        
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.3em; }
+
+        .form-group { padding: 15px 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9em; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; box-sizing: border-box; margin-bottom: 15px; }
+        input:focus { outline: none; border-color: var(--accent-color); }
+        
+        .btn-primary { width: calc(100% - 40px); margin: 20px; padding: 15px; border-radius: 8px; border: none; background: var(--accent-color); color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background 0.2s;}
+        .btn-primary:hover { background: #004494; }
+        .btn-secondary { background: #444; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 15px;}
+
+        /* Product Cart Styles */
+        .autocomplete-suggestions { background: var(--surface-color); border: 1px solid #444; border-radius: 8px; max-height: 150px; overflow-y: auto; display: none; margin-top: -10px; margin-bottom: 15px; }
+        .suggestion-item { padding: 10px 15px; border-bottom: 1px solid #333; cursor: pointer; }
+        .suggestion-item:hover { background: #333; }
+
+        .product-list { margin: 0 20px; background: var(--surface-color); border-radius: 8px; padding: 10px; border: 1px solid #333; }
+        .product-item { display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding: 10px 0; font-size: 0.9em; }
+        .product-item:last-child { border-bottom: none; }
+        
+        .summary-box { background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); padding: 15px; border-radius: 8px; margin: 20px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95em; }
+        .summary-row.total { font-weight: bold; font-size: 1.1em; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; color: var(--meena-red); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">Powered by Goorac</span>
+            </div>
+        </div>
+    </header>
+
+    <nav class="desktop-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="search.html">Search</a>
+        <a href="companies.html">Companies</a>
+        <a href="add.html" class="active">+ Add Data</a>
+        <a href="makePayment.html">₹ Make Payment</a>
+    </nav>
+
+    <nav class="mobile-nav">
+        <a href="index.html"><span class="material-symbols-outlined">dashboard</span>Home</a>
+        <a href="search.html"><span class="material-symbols-outlined">search</span>Search</a>
+        <a href="add.html" class="active"><span class="material-symbols-outlined">add_circle</span>Add</a>
+        <a href="makePayment.html"><span class="material-symbols-outlined">payments</span>Pay</a>
+        <a href="companies.html"><span class="material-symbols-outlined">business</span>Clients</a>
+    </nav>
+
+    <div class="container">
+        <div class="action-cards">
+            <div class="action-card" onclick="openModal('modalCompany')">
+                <span class="material-symbols-outlined">domain_add</span>
+                <h3>Add Company</h3>
+            </div>
+            <div class="action-card" onclick="openModal('modalProducts')">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <h3>Add Products</h3>
+            </div>
+        </div>
+
+        <div class="recent-section">
+            <h2>Recently Added Companies</h2>
+            <ul class="recent-list" id="recent-companies">
+                <li>Loading...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="modal" id="modalCompany">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>New Company</h2>
+        </div>
+        <form id="formAddCompany">
+            <div class="form-group">
+                <label>Company Name *</label>
+                <input type="text" id="cName" required placeholder="e.g. ABC Traders">
+                
+                <label>Company ID (Optional)</label>
+                <input type="text" id="cId" placeholder="e.g. ABC-001">
+                
+                <label>Location</label>
+                <input type="text" id="cLocation" placeholder="City or Area">
+                
+                <label>Mobile Number</label>
+                <input type="tel" id="cMobile" placeholder="10-digit number">
+                
+                <label>Opening Balance (₹) *</label>
+                <input type="number" id="cBalance" required value="0" min="0">
+            </div>
+            <button type="submit" class="btn-primary" id="btnSaveCompany">Save Company</button>
+        </form>
+    </div>
+
+    <div class="modal" id="modalProducts">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Add Products to Company</h2>
+        </div>
+        
+        <div class="form-group" style="padding-bottom: 0;">
+            <label>Search Company *</label>
+            <input type="text" id="pCompanySearch" placeholder="Type company name..." autocomplete="off">
+            <div class="autocomplete-suggestions" id="companySuggestions"></div>
+            
+            <input type="hidden" id="selectedCompanyId">
+            <input type="hidden" id="selectedCompanyBalance" value="0">
+        </div>
+
+        <div class="form-group" style="background: var(--nav-bg); margin: 0 20px; border-radius: 8px; border: 1px solid #333;">
+            <label>Product Name</label>
+            <input type="text" id="pName" placeholder="e.g. Marketing Kit A">
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Model / ID</label>
+                    <input type="text" id="pModel" placeholder="Optional">
+                </div>
+                <div style="flex: 1;">
+                    <label>Qty *</label>
+                    <input type="number" id="pQty" value="1" min="1">
+                </div>
+            </div>
+            
+            <label>Unit Price (₹) *</label>
+            <input type="number" id="pPrice" placeholder="0">
+            
+            <button type="button" class="btn-secondary" id="btnAddToList">Add to List</button>
+        </div>
+
+        <h3 style="margin: 20px 20px 5px 20px; font-size: 1em;">Current Purchase List</h3>
+        <div class="product-list" id="purchaseList">
+            <div style="padding: 10px; color: var(--text-secondary); text-align: center;">List is empty</div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-row"><span>Company Previous Balance:</span> <span id="sumPrev">₹0</span></div>
+            <div class="summary-row"><span>This Purchase Total:</span> <span id="sumCurrent">₹0</span></div>
+            <div class="summary-row total"><span>New Total Balance:</span> <span id="sumNew">₹0</span></div>
+        </div>
+
+        <button type="button" class="btn-primary" id="btnSaveProducts" disabled>Save & Update Balance</button>
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, getDoc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- 1. MODAL & HISTORY API LOGIC (Mobile Back Button Support) ---
+        window.openModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            history.pushState({ modal: modalId }, '', `#${modalId}`);
+        };
+
+        window.addEventListener('popstate', (e) => {
+            // When user hits mobile back button, close all modals
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        });
+
+        // --- 2. LOAD RECENT COMPANIES ---
+        async function loadRecentCompanies() {
+            const list = document.getElementById('recent-companies');
+            try {
+                // Fetching only the 5 most recent to save reads
+                const q = query(collection(db, "companies"), orderBy("createdAt", "desc"), limit(5));
+                const querySnapshot = await getDocs(q);
+                
+                if(querySnapshot.empty) {
+                    list.innerHTML = '<li style="color:var(--text-secondary);">No companies added yet.</li>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    list.innerHTML += `
+                        <li>
+                            <span>${data.name} <br><small style="color:var(--text-secondary)">${data.location || ''}</small></span>
+                            <span class="recent-balance">₹${data.balance.toLocaleString()}</span>
+                        </li>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+                list.innerHTML = '<li>Error loading data.</li>';
+            }
+        }
+        loadRecentCompanies();
+
+        // --- 3. ADD COMPANY LOGIC ---
+        document.getElementById('formAddCompany').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveCompany');
+            btn.innerText = "Saving..."; btn.disabled = true;
+
+            const name = document.getElementById('cName').value.trim();
+            const cid = document.getElementById('cId').value.trim();
+            const location = document.getElementById('cLocation').value.trim();
+            const mobile = document.getElementById('cMobile').value.trim();
+            const balance = parseFloat(document.getElementById('cBalance').value) || 0;
+
+            try {
+                // Check for duplicate names
+                const dupQuery = query(collection(db, "companies"), where("name", "==", name));
+                const dupSnap = await getDocs(dupQuery);
+                if (!dupSnap.empty) {
+                    alert("A company with this exact name already exists!");
+                    btn.innerText = "Save Company"; btn.disabled = false;
+                    return;
+                }
+
+                // Create Batch to update both Company and Metadata safely
+                const batch = writeBatch(db);
+                
+                // 1. Add new company doc
+                const newCompRef = doc(collection(db, "companies"));
+                batch.set(newCompRef, {
+                    name, companyId: cid, location, mobile, balance,
+                    totalBilled: balance, totalPaid: 0,
+                    createdAt: serverTimestamp()
+                });
+
+                // 2. Update Metadata
+                const metaRef = doc(db, "metadata", "dashboard");
+                batch.set(metaRef, {
+                    totalCompanies: increment(1),
+                    totalBalance: increment(balance),
+                    totalBilled: increment(balance)
+                }, { merge: true }); // merge true ensures we don't overwrite other fields if doc exists
+
+                await batch.commit();
+                
+                alert("Company Saved Successfully!");
+                document.getElementById('formAddCompany').reset();
+                history.back(); // Close modal using history API
+                loadRecentCompanies(); // Refresh list
+
+            } catch (err) {
+                console.error("Error adding company:", err);
+                alert("Error saving company.");
+            } finally {
+                btn.innerText = "Save Company"; btn.disabled = false;
+            }
+        });
+
+        // --- 4. PRODUCT CART LOGIC ---
+        let cart = [];
+        let currentPurchaseTotal = 0;
+
+        // Company Search Autocomplete
+        const searchInput = document.getElementById('pCompanySearch');
+        const suggestionsBox = document.getElementById('companySuggestions');
+
+        searchInput.addEventListener('input', async (e) => {
+            const val = e.target.value.trim();
+            suggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
+            if(val.length < 2) return;
+
+            // Simple prefix search trick for Firestore
+            const q = query(collection(db, "companies"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+            const snap = await getDocs(q);
+            
+            suggestionsBox.innerHTML = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerText = `${d.name} (Bal: ₹${d.balance})`;
+                div.onclick = () => selectCompany(doc.id, d.name, d.balance);
+                suggestionsBox.appendChild(div);
+            });
+        });
+
+        function selectCompany(id, name, balance) {
+            searchInput.value = name;
+            document.getElementById('selectedCompanyId').value = id;
+            document.getElementById('selectedCompanyBalance').value = balance;
+            suggestionsBox.style.display = 'none';
+            
+            document.getElementById('sumPrev').innerText = `₹${balance.toLocaleString()}`;
+            updateCartSummary();
+        }
+
+        // Add Product to Cart
+        document.getElementById('btnAddToList').addEventListener('click', () => {
+            const pName = document.getElementById('pName').value.trim();
+            const pQty = parseInt(document.getElementById('pQty').value) || 1;
+            const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
+            const pModel = document.getElementById('pModel').value.trim();
+
+            if (!pName || pPrice <= 0) { alert("Valid Product Name and Price required."); return; }
+
+            const total = pQty * pPrice;
+            cart.push({ name: pName, model: pModel, qty: pQty, price: pPrice, total: total });
+            
+            // Reset input fields
+            document.getElementById('pName').value = '';
+            document.getElementById('pQty').value = '1';
+            document.getElementById('pPrice').value = '';
+            document.getElementById('pModel').value = '';
+
+            renderCart();
+        });
+
+        function renderCart() {
+            const list = document.getElementById('purchaseList');
+            currentPurchaseTotal = 0;
+            
+            if (cart.length === 0) {
+                list.innerHTML = '<div style="padding: 10px; color: var(--text-secondary); text-align: center;">List is empty</div>';
+                document.getElementById('btnSaveProducts').disabled = true;
+            } else {
+                list.innerHTML = '';
+                cart.forEach((item, index) => {
+                    currentPurchaseTotal += item.total;
+                    list.innerHTML += `
+                        <div class="product-item">
+                            <div><strong>${item.name}</strong> <small>x${item.qty}</small></div>
+                            <div>₹${item.total.toLocaleString()}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('btnSaveProducts').disabled = false;
+            }
+            updateCartSummary();
+        }
+
+        function updateCartSummary() {
+            const prevBal = parseFloat(document.getElementById('selectedCompanyBalance').value) || 0;
+            document.getElementById('sumCurrent').innerText = `₹${currentPurchaseTotal.toLocaleString()}`;
+            document.getElementById('sumNew').innerText = `₹${(prevBal + currentPurchaseTotal).toLocaleString()}`;
+        }
+
+        // Save Products & Update Balances
+        document.getElementById('btnSaveProducts').addEventListener('click', async () => {
+            const compId = document.getElementById('selectedCompanyId').value;
+            if (!compId) { alert("Please search and select a company first."); return; }
+            if (cart.length === 0) return;
+
+            const btn = document.getElementById('btnSaveProducts');
+            btn.innerText = "Saving Data..."; btn.disabled = true;
+
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Update Company Balance
+                const compRef = doc(db, "companies", compId);
+                batch.update(compRef, {
+                    balance: increment(currentPurchaseTotal),
+                    totalBilled: increment(currentPurchaseTotal)
+                });
+
+                // 2. Save individual products to a global 'products_sold' catalog/log
+                cart.forEach(item => {
+                    const newProdRef = doc(collection(db, "products_sold"));
+                    batch.set(newProdRef, {
+                        ...item,
+                        companyId: compId,
+                        date: serverTimestamp()
+                    });
+                });
+
+                // 3. Update Global Dashboard Metadata
+                const metaRef = doc(db, "metadata", "dashboard");
+                batch.set(metaRef, {
+                    totalProducts: increment(cart.length),
+                    totalBalance: increment(currentPurchaseTotal),
+                    totalBilled: increment(currentPurchaseTotal)
+                }, { merge: true });
+
+                await batch.commit();
+
+                alert("Products added and balances updated successfully!");
+                cart = []; renderCart(); searchInput.value = ''; document.getElementById('selectedCompanyId').value = '';
+                history.back(); // close modal
+                loadRecentCompanies();
+
+            } catch(err) {
+                console.error("Transaction failed:", err);
+                alert("Error saving data.");
+            } finally {
+                btn.innerText = "Save & Update Balance"; btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
