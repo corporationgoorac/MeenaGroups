@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Companies - Meena Marketing</title>
     
     <link rel="manifest" href="manifest.json">
@@ -25,9 +25,23 @@
             --input-bg: #2a2a2a;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; overflow-x: hidden; }
+        /* Fixed Body Layout for bottom nav stability */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+        }
+        
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            display: flex; 
+            flex-direction: column; 
+            overflow-x: hidden; 
+        }
 
-        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; }
         .brand-container { display: flex; align-items: center; gap: 12px; }
         .logo-img { width: 35px; height: 35px; border-radius: 8px; }
         .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
@@ -36,17 +50,24 @@
         .marketing { color: var(--marketing-white); }
         .goorac { font-size: 0.7em; color: var(--text-secondary); }
 
-        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; }
+        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; flex-shrink: 0; }
         .desktop-nav a { color: var(--text-color); text-decoration: none; padding: 8px 20px; border-radius: 20px; background-color: #333; font-size: 0.9em; font-weight: 500; transition: 0.2s; }
         .desktop-nav a:hover, .desktop-nav a.active { background-color: var(--accent-color); }
 
-        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; }
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; flex-shrink: 0; }
         .mobile-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 0.75em; gap: 4px; }
         .mobile-nav a.active { color: var(--marketing-white); }
         .mobile-nav a.active .material-symbols-outlined { color: var(--meena-red); font-variation-settings: 'FILL' 1; }
 
-        @media (max-width: 768px) { .desktop-nav { display: none; } .mobile-nav { display: flex; } }
-        @media (min-width: 769px) { body { padding-bottom: 0; } }
+        @media (max-width: 768px) { 
+            .desktop-nav { display: none; } 
+            .mobile-nav { display: flex; } 
+            /* Ensure content doesn't get hidden behind the fixed mobile nav */
+            .main-scroll-area { padding-bottom: 80px; } 
+        }
+        @media (min-width: 769px) { 
+            .main-scroll-area { padding-bottom: 0; } 
+        }
 
         /* Custom Install Popup */
         #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
@@ -61,8 +82,11 @@
         .error-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--meena-red); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s; max-width: 90%; text-align: center;}
         .error-toast.show { display: flex; opacity: 1; }
 
+        /* Scrollable Main Area */
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; }
+
         /* Companies Page Specific Styles */
-        .container { padding: 20px; max-width: 800px; margin: 0 auto; }
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         
         .search-hero { background: var(--surface-color); padding: 25px 20px; border-radius: 12px; border: 1px solid #333; margin-bottom: 25px; text-align: center; }
         .search-hero h2 { margin-top: 0; font-size: 1.5em; color: var(--marketing-white); margin-bottom: 15px; }
@@ -72,7 +96,7 @@
         .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 28px; }
         .search-bar-container input { border: none; background: transparent; width: 100%; padding: 18px 10px; color: white; font-size: 1.1em; outline: none; }
 
-        .company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; min-height: 400px; align-content: start; }
         .company-card { background: var(--nav-bg); padding: 20px; border-radius: 12px; border: 1px solid #333; cursor: pointer; transition: transform 0.2s, background 0.2s; display: flex; align-items: center; gap: 15px; }
         .company-card:hover { background: #2a2a2a; border-color: #555; transform: translateY(-3px); }
         .company-card:active { transform: translateY(0); }
@@ -85,7 +109,7 @@
         .c-bal { font-size: 1.1em; font-weight: bold; color: var(--meena-red); margin-top: 5px; }
 
         /* Slide-in Modal (Profile UI) */
-        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
         .modal.active { right: 0; }
         
         .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
@@ -111,7 +135,7 @@
         .tab-btn { flex: 1; padding: 15px; text-align: center; background: none; border: none; color: var(--text-secondary); font-size: 1em; font-weight: bold; cursor: pointer; transition: 0.3s; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
         
-        .tab-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .tab-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; min-height: 200px; }
         .tab-content.active { display: block; }
 
         /* List Items & Date Dividers */
@@ -159,6 +183,22 @@
         <a href="makePayment.html">₹ Make Payment</a>
     </nav>
 
+    <div class="main-scroll-area">
+        <div class="container">
+            <div class="search-hero">
+                <h2>Company Profiles</h2>
+                <div class="search-bar-container">
+                    <span class="material-symbols-outlined">search</span>
+                    <input type="text" id="searchInput" placeholder="Search by name or ID..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="company-grid" id="companiesGrid">
+                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading companies...</div>
+            </div>
+        </div>
+    </div>
+
     <nav class="mobile-nav">
         <a href="index.html">
             <span class="material-symbols-outlined">dashboard</span>Home
@@ -185,20 +225,6 @@
         </div>
         <button id="installBtn" class="install-btn">Install</button>
         <button id="closeBtn" class="close-btn">&times;</button>
-    </div>
-
-    <div class="container">
-        <div class="search-hero">
-            <h2>Company Profiles</h2>
-            <div class="search-bar-container">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" id="searchInput" placeholder="Search by name or ID..." autocomplete="off">
-            </div>
-        </div>
-
-        <div class="company-grid" id="companiesGrid">
-            <div style="text-align:center; color:var(--text-secondary); width:100%; padding:20px;">Loading companies...</div>
-        </div>
     </div>
 
     <div class="modal" id="modalProfile">
@@ -248,7 +274,7 @@
 
     <script type="module">
         // 1. Service Worker Logic
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW Error', err)); }); }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
@@ -403,7 +429,7 @@
             const btnMore = document.getElementById('btnLoadMorePurchases');
             
             if (!isNextPage) {
-                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Loading purchases...</div>';
+                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">Loading purchases...</div>';
                 lastVisiblePurchase = null;
                 currentPurchaseDateGroup = "";
                 btnMore.style.display = 'none';
@@ -481,7 +507,7 @@
             const btnMore = document.getElementById('btnLoadMorePayments');
             
             if (!isNextPage) {
-                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Loading payments...</div>';
+                listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">Loading payments...</div>';
                 lastVisiblePayment = null;
                 currentPaymentDateGroup = "";
                 btnMore.style.display = 'none';
