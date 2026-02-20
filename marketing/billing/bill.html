@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Billing & Invoicing - Meena Marketing</title>
     
-    <link rel="manifest" href="../manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
@@ -141,6 +141,7 @@
             }
 
             .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 20px; }
+            .print-header-logo { width: 80px; height: 80px; margin-bottom: 10px; }
             .print-header h1 { margin: 0; font-size: 28px; color: black; font-weight: 900; text-transform: uppercase; }
             .print-header h1 span { color: #555; }
             .print-header p { margin: 5px 0 0 0; font-size: 14px; color: #444; }
@@ -315,6 +316,7 @@
 
     <div id="printArea">
         <div class="print-header">
+            <img src="lax.png" alt="Company Logo" class="print-header-logo">
             <h1>Meena <span>Marketing</span></h1>
             <p>Dealers in Premium Quality Products</p>
         </div>
@@ -373,7 +375,7 @@
 
     <script type="module">
         // 1. Service Worker & Install Logic (Points to root SW)
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('../sw.js').catch(err => console.error('SW Error', err)); }); }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
@@ -381,7 +383,7 @@
 
         // 2. Firebase Imports (Point to root config)
         import { db } from '../config.js';
-        import { collection, getDocs, query, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Initialize Date to Today
         document.getElementById('cDate').valueAsDate = new Date();
@@ -395,55 +397,74 @@
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
 
+        // --- CACHE INVENTORY FOR FAST LOCAL SEARCH ---
+        let allInventoryCache = [];
+        
+        async function fetchAllInventoryForSearch() {
+            try {
+                // Pulling up to 500 items into local memory so search is instant and case-insensitive
+                const q = query(collection(db, "inventory"), limit(500));
+                const snap = await getDocs(q);
+                allInventoryCache = [];
+                snap.forEach(doc => {
+                    allInventoryCache.push({ id: doc.id, ...doc.data() });
+                });
+            } catch (err) {
+                console.error("Error caching inventory for search:", err);
+            }
+        }
+        
+        fetchAllInventoryForSearch();
+
         // --- INVENTORY SEARCH LOGIC ---
         const searchInput = document.getElementById('pSearch');
         const suggestionsBox = document.getElementById('pSuggestions');
 
-        searchInput.addEventListener('input', async (e) => {
+        searchInput.addEventListener('input', (e) => {
             const val = e.target.value.trim().toLowerCase();
             suggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
             if(val.length < 2) return;
             
-            try {
-                // Search by Name or Model
-                const qName = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
-                const snap = await getDocs(qName); // Simplifying to name search for performance. 
-                
-                suggestionsBox.innerHTML = '';
-                if(snap.empty) {
-                    suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No items found. Check "Non-Stock" to add manually.</div>';
-                    return;
-                }
+            // Local JS Filter (Fast and Case-Insensitive)
+            const filteredData = allInventoryCache.filter(item => {
+                const n = (item.name || '').toLowerCase();
+                const m = (item.model || '').toLowerCase();
+                return n.includes(val) || m.includes(val);
+            }).slice(0, 8); // Only show top 8 results
 
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    const stockClass = d.qty <= 0 ? 'zero' : '';
-                    const stockText = d.qty <= 0 ? 'Out of Stock' : `${d.qty} in stock`;
+            suggestionsBox.innerHTML = '';
+            if(filteredData.length === 0) {
+                suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No items found. Check "Non-Stock" to add manually.</div>';
+                return;
+            }
+
+            filteredData.forEach(d => {
+                const stockClass = d.qty <= 0 ? 'zero' : '';
+                const stockText = d.qty <= 0 ? 'Out of Stock' : `${d.qty} in stock`;
+                
+                const div = document.createElement('div'); 
+                div.className = 'suggestion-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="s-name">${d.name}</div>
+                        <div style="font-size:0.8em; color:var(--text-secondary);">${d.model || 'No ID'} • Price: ₹${d.price}</div>
+                    </div>
+                    <div class="s-stock ${stockClass}">${stockText}</div>
+                `;
+                div.onclick = () => {
+                    document.getElementById('pInvId').value = d.id;
+                    document.getElementById('pCurrentStock').value = d.qty || 0;
+                    document.getElementById('pName').value = d.name;
+                    document.getElementById('pModel').value = d.model || '';
+                    document.getElementById('pPrice').value = d.price || '';
+                    document.getElementById('pQty').value = 1;
+                    document.getElementById('pNonStock').checked = false; // Reset to stock tracking
                     
-                    const div = document.createElement('div'); 
-                    div.className = 'suggestion-item';
-                    div.innerHTML = `
-                        <div>
-                            <div class="s-name">${d.name}</div>
-                            <div style="font-size:0.8em; color:var(--text-secondary);">${d.model || 'No ID'} • Price: ₹${d.price}</div>
-                        </div>
-                        <div class="s-stock ${stockClass}">${stockText}</div>
-                    `;
-                    div.onclick = () => {
-                        document.getElementById('pInvId').value = doc.id;
-                        document.getElementById('pCurrentStock').value = d.qty || 0;
-                        document.getElementById('pName').value = d.name;
-                        document.getElementById('pModel').value = d.model || '';
-                        document.getElementById('pPrice').value = d.price || '';
-                        document.getElementById('pQty').value = 1;
-                        document.getElementById('pNonStock').checked = false; // Reset to stock tracking
-                        
-                        searchInput.value = '';
-                        suggestionsBox.style.display = 'none';
-                    };
-                    suggestionsBox.appendChild(div);
-                });
-            } catch (err) { console.error(err); }
+                    searchInput.value = '';
+                    suggestionsBox.style.display = 'none';
+                };
+                suggestionsBox.appendChild(div);
+            });
         });
 
         // Hide suggestions on outside click
