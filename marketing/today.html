@@ -182,8 +182,8 @@
         // 1. Service Worker Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
 
-        // 2. Firebase Imports
-        import { db } from '/config.js';
+        // 2. Firebase Imports (FIXED PATH: Added dot to ensure local folder resolution)
+        import { db } from './config.js';
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Toast Helper Added
@@ -200,8 +200,9 @@
         const salesListEl = document.getElementById('salesList');
         const loaderEl = document.getElementById('loader');
         
-        // Initialize Default Date to Today
-        dateFilterInput.valueAsDate = new Date();
+        // FIXED DATE INITIALIZATION: Safely gets today's date in local YYYY-MM-DD format
+        const todayStr = new Date().toLocaleDateString('en-CA'); // 'en-CA' safely formats to YYYY-MM-DD
+        dateFilterInput.value = todayStr;
 
         // Listen for Date Changes
         dateFilterInput.addEventListener('change', () => {
@@ -219,14 +220,10 @@
             document.getElementById('totalInvoices').innerText = '0';
             document.getElementById('totalSales').innerText = '₹0';
 
-            // Establish Start and End bounds for the chosen day
-            const targetDate = new Date(dateString);
-            
-            const startOfDay = new Date(targetDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            
-            const endOfDay = new Date(targetDate);
-            endOfDay.setHours(23, 59, 59, 999);
+            // FIXED TIMEZONE BOUNDS: Manually parse the year, month, day to prevent UTC shifting
+            const [year, month, day] = dateString.split('-');
+            const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+            const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
 
             try {
                 // Query Sellings Collection with Date Bounds & Safety Limit
