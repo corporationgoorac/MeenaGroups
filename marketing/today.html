@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Sales - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --warning-color: #ff9800;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; padding-bottom: 80px; }
+
+        /* Standard Header */
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
+        .brand-container { display: flex; align-items: center; gap: 10px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+
+        /* Navigation */
+        .desktop-nav { display: flex; justify-content: center; gap: 15px; padding: 15px; background: var(--nav-bg); border-bottom: 1px solid #333; }
+        .desktop-nav a { color: var(--text-color); text-decoration: none; padding: 8px 20px; border-radius: 20px; background-color: #333; font-size: 0.9em; font-weight: 500; transition: 0.2s; }
+        .desktop-nav a:hover, .desktop-nav a.active { background-color: var(--accent-color); }
+
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--surface-color); box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 500; justify-content: space-around; padding: 10px 0 15px 0; border-top: 1px solid #333; }
+        .mobile-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 0.75em; gap: 4px; }
+        .mobile-nav a.active { color: var(--marketing-white); }
+        .mobile-nav a.active .material-symbols-outlined { color: var(--meena-red); font-variation-settings: 'FILL' 1; }
+
+        @media (max-width: 768px) { .desktop-nav { display: none; } .mobile-nav { display: flex; } }
+        @media (min-width: 769px) { body { padding-bottom: 0; } }
+
+        /* Main Container */
+        .container { padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+        /* Summary & Filter Section */
+        .top-controls { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px;}
+        
+        .date-filter { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 8px 15px; border-radius: 8px; border: 1px solid #444; flex-grow: 1; min-width: 200px;}
+        .date-filter input { background: transparent; border: none; color: white; font-size: 1.1em; outline: none; width: 100%; }
+        .date-filter input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+        .sales-summary { display: flex; gap: 20px; text-align: right; flex-grow: 1; justify-content: flex-end;}
+        .summary-item h4 { margin: 0; font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase; }
+        .summary-item p { margin: 5px 0 0 0; font-size: 1.5em; font-weight: bold; color: var(--success-color); }
+        .summary-item p.count { color: var(--marketing-white); }
+
+        /* Invoice Cards */
+        .sales-list { display: flex; flex-direction: column; gap: 15px; }
+        .invoice-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; overflow: hidden; }
+        
+        .inv-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
+        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px;}
+        .inv-meta span { font-size: 0.75em; color: var(--text-secondary); font-weight: normal; background: #333; padding: 2px 6px; border-radius: 4px;}
+        .inv-time { font-size: 0.85em; color: var(--text-secondary); }
+
+        .inv-body { padding: 15px 20px; }
+        .customer-info { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #444; }
+        .customer-info p { margin: 3px 0; font-size: 0.9em; color: var(--text-secondary); }
+        .customer-info strong { color: white; font-size: 1.05em; }
+
+        .item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;}
+        .item-row { display: flex; justify-content: space-between; font-size: 0.9em; align-items: flex-start;}
+        .item-desc { flex: 1; padding-right: 15px; }
+        .item-name { font-weight: bold; color: white; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;}
+        .item-sub { color: var(--text-secondary); font-size: 0.85em; margin-top: 2px;}
+        .item-price { text-align: right; font-weight: bold; white-space: nowrap; }
+        
+        .tag-ns { background: rgba(255, 152, 0, 0.2); color: var(--warning-color); padding: 1px 6px; border-radius: 4px; font-size: 0.7em; border: 1px solid var(--warning-color); text-transform: uppercase;}
+        .tag-gst { color: var(--accent-color); font-size: 0.8em; font-weight: bold; margin-left: 5px;}
+
+        .inv-footer { background: rgba(0, 200, 83, 0.05); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; }
+        .inv-total-label { font-weight: bold; color: var(--text-secondary); text-transform: uppercase; font-size: 0.9em;}
+        .inv-total-val { font-size: 1.3em; font-weight: bold; color: var(--success-color); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); background: var(--surface-color); border-radius: 12px; border: 1px solid #333;}
+        .empty-state .material-symbols-outlined { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+
+        /* Loader */
+        .loader { text-align: center; padding: 40px; color: var(--accent-color); font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+            <div class="brand-container">
+                <img src="icon.png" alt="Icon" class="logo-img">
+                <div class="brand-text">
+                    <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                    <span class="page-title">Daily Sales Log</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="desktop-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="search.html">Search</a>
+        <a href="companies.html">Companies</a>
+        <a href="add.html">+ Add Data</a>
+        <a href="makePayment.html">₹ Make Payment</a>
+    </nav>
+
+    <nav class="mobile-nav">
+        <a href="index.html"><span class="material-symbols-outlined">dashboard</span>Home</a>
+        <a href="search.html"><span class="material-symbols-outlined">search</span>Search</a>
+        <a href="add.html"><span class="material-symbols-outlined">add_circle</span>Add</a>
+        <a href="makePayment.html"><span class="material-symbols-outlined">payments</span>Pay</a>
+        <a href="companies.html"><span class="material-symbols-outlined">business</span>Companies</a>
+    </nav>
+
+    <div class="container">
+        
+        <div class="top-controls">
+            <div class="date-filter">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <input type="date" id="dateFilter">
+            </div>
+            
+            <div class="sales-summary">
+                <div class="summary-item">
+                    <h4>Invoices</h4>
+                    <p class="count" id="totalInvoices">0</p>
+                </div>
+                <div class="summary-item">
+                    <h4>Total Sales</h4>
+                    <p id="totalSales">₹0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="loader" id="loader">Fetching data...</div>
+
+        <div class="sales-list" id="salesList">
+            </div>
+
+    </div>
+
+    <script type="module">
+        // 1. Service Worker Logic
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
+
+        // 2. Firebase Imports
+        import { db } from 'config.js';
+        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const dateFilterInput = document.getElementById('dateFilter');
+        const salesListEl = document.getElementById('salesList');
+        const loaderEl = document.getElementById('loader');
+        
+        // Initialize Default Date to Today
+        dateFilterInput.valueAsDate = new Date();
+
+        // Listen for Date Changes
+        dateFilterInput.addEventListener('change', () => {
+            loadDailySales(dateFilterInput.value);
+        });
+
+        // Main Fetch Function
+        async function loadDailySales(dateString) {
+            if (!dateString) return;
+
+            salesListEl.innerHTML = '';
+            loaderEl.style.display = 'block';
+            
+            // UI Reset
+            document.getElementById('totalInvoices').innerText = '0';
+            document.getElementById('totalSales').innerText = '₹0';
+
+            // Establish Start and End bounds for the chosen day
+            const targetDate = new Date(dateString);
+            
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            try {
+                // Query Sellings Collection with Date Bounds & Safety Limit
+                const q = query(
+                    collection(db, "sellings"),
+                    where("date", ">=", startOfDay),
+                    where("date", "<=", endOfDay),
+                    orderBy("date", "desc"),
+                    limit(150) // Firestore Read Limit to protect bandwidth
+                );
+
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    loaderEl.style.display = 'none';
+                    salesListEl.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">receipt_long</span>
+                            <h3>No Sales Found</h3>
+                            <p>There are no recorded bills for this date.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let totalSalesSum = 0;
+                let invoiceCount = 0;
+                let htmlOutput = '';
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    invoiceCount++;
+                    totalSalesSum += (data.totals?.grand || 0);
+
+                    // Format Time safely
+                    let timeString = "Unknown Time";
+                    if (data.date && data.date.toDate) {
+                        const d = data.date.toDate();
+                        timeString = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+
+                    // Build Items List
+                    let itemsHtml = '';
+                    if (data.items && Array.isArray(data.items)) {
+                        data.items.forEach(item => {
+                            const nsTag = item.isNonStock ? '<span class="tag-ns">Non-Stock</span>' : '';
+                            const gstTag = item.gstPercent > 0 ? `<span class="tag-gst">+${item.gstPercent}% GST</span>` : '';
+                            const modelText = item.model ? `Model: ${item.model} • ` : '';
+                            
+                            itemsHtml += `
+                                <li class="item-row">
+                                    <div class="item-desc">
+                                        <div class="item-name">${item.name} <span style="font-weight:normal;">x${item.qty}</span> ${nsTag}</div>
+                                        <div class="item-sub">${modelText}₹${(item.price || 0).toLocaleString()}/ea ${gstTag}</div>
+                                    </div>
+                                    <div class="item-price">₹${(item.finalTotal || 0).toLocaleString()}</div>
+                                </li>
+                            `;
+                        });
+                    }
+
+                    // Build Card
+                    htmlOutput += `
+                        <div class="invoice-card">
+                            <div class="inv-header">
+                                <div class="inv-meta">
+                                    <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span></h3>
+                                </div>
+                                <div class="inv-time">${timeString}</div>
+                            </div>
+                            
+                            <div class="inv-body">
+                                <div class="customer-info">
+                                    <strong>${data.customer?.name || 'Unknown Customer'}</strong>
+                                    <p>${data.customer?.phone || 'No Phone'} • ${data.customer?.address || 'No Address'}</p>
+                                </div>
+                                
+                                <ul class="item-list">
+                                    ${itemsHtml}
+                                </ul>
+                            </div>
+
+                            <div class="inv-footer">
+                                <span class="inv-total-label">Grand Total</span>
+                                <span class="inv-total-val">₹${(data.totals?.grand || 0).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                loaderEl.style.display = 'none';
+                salesListEl.innerHTML = htmlOutput;
+                
+                // Update Top Stats
+                document.getElementById('totalInvoices').innerText = invoiceCount;
+                document.getElementById('totalSales').innerText = `₹${totalSalesSum.toLocaleString()}`;
+
+            } catch (err) {
+                console.error("Error fetching daily sales:", err);
+                loaderEl.style.display = 'none';
+                salesListEl.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error loading sales data. Please check connection and permissions.</div>';
+            }
+        }
+
+        // Trigger initial load for today
+        loadDailySales(dateFilterInput.value);
+
+    </script>
+</body>
+</html>
