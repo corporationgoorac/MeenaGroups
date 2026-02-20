@@ -177,7 +177,7 @@
             <h2>Inventory Directory</h2>
             <div class="search-bar-container">
                 <span class="material-symbols-outlined">search</span>
-                <input type="text" id="searchInput" placeholder="Search by product name..." autocomplete="off">
+                <input type="text" id="searchInput" placeholder="Search product, model, or company..." autocomplete="off">
             </div>
         </div>
 
@@ -257,6 +257,7 @@
         import { collection, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         let companiesMap = {};
+        let allProductsCache = null; // Caches data for lightning-fast multi-field searching
 
         // --- UI & History API Logic ---
         window.openModal = function(modalId) {
@@ -283,33 +284,49 @@
             }
         }
 
-        // --- Search & Render Products ---
+        // --- Search & Render Products (Multi-Field Search Update) ---
         async function searchProducts(searchTerm = "") {
             const resultsBox = document.getElementById('searchResults');
             resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Fetching inventory...</div>';
             
             try {
-                let q;
-                if (searchTerm.length > 0) {
-                    // Prefix search on product name
-                    q = query(collection(db, "products_sold"), where("name", ">=", searchTerm), where("name", "<=", searchTerm + '\uf8ff'), limit(20));
+                // Fetch up to 500 recent items ONCE and cache them. 
+                // This enables us to search across multiple fields instantly via Javascript.
+                if (!allProductsCache) {
+                    const qAll = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(500));
+                    const snapAll = await getDocs(qAll);
+                    allProductsCache = [];
+                    snapAll.forEach(doc => {
+                        allProductsCache.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+
+                let displayData = allProductsCache;
+                const term = searchTerm.toLowerCase();
+
+                if (term.length > 0) {
                     document.querySelector('.results-header h3').innerText = "Search Results";
+                    // Advanced Multi-Field Filter
+                    displayData = allProductsCache.filter(data => {
+                        const compName = (companiesMap[data.companyId] || 'Unknown Source').toLowerCase();
+                        const pName = (data.name || '').toLowerCase();
+                        const pModel = (data.model || '').toLowerCase();
+                        
+                        // Check if the term is found in Name, Model, OR Company
+                        return pName.includes(term) || pModel.includes(term) || compName.includes(term);
+                    });
                 } else {
-                    // Default: Last 20 purchases
-                    q = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(20));
                     document.querySelector('.results-header h3').innerText = "Recent Purchases";
+                    displayData = allProductsCache.slice(0, 20); // Only show 20 by default so page doesn't lag
                 }
                 
-                const snap = await getDocs(q);
-                
-                if (snap.empty) {
-                    resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No products found.</div>';
+                if (displayData.length === 0) {
+                    resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No matching products found.</div>';
                     return;
                 }
 
                 resultsBox.innerHTML = '';
-                snap.forEach(doc => {
-                    const data = doc.data();
+                displayData.forEach(data => {
                     const compName = companiesMap[data.companyId] || 'Unknown Source';
                     
                     // Format Date Safely
@@ -321,7 +338,7 @@
 
                     // Prepare complete data payload for the modal
                     const modalData = encodeURIComponent(JSON.stringify({
-                        id: doc.id,
+                        id: data.id,
                         name: data.name,
                         model: data.model || 'N/A',
                         qty: data.qty || 1,
@@ -350,8 +367,6 @@
                 });
             } catch (err) {
                 console.error("Search error:", err);
-                // Note: If you search and hit a complex index requirement in Firebase for the first time, 
-                // it might throw an error requiring an index link. Check console if blank.
                 resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding:20px;">Error executing search. Check console.</div>';
             }
         }
@@ -392,14 +407,11 @@
 
         // --- Input Event Listener for Live Search ---
         const searchInput = document.getElementById('searchInput');
-        let searchTimeout;
 
         searchInput.addEventListener('input', (e) => {
-            // Debounce the search so it doesn't query Firebase on every single keystroke instantly
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                searchProducts(e.target.value.trim());
-            }, 300); // Wait 300ms after user stops typing
+            // Because we are searching locally from memory, we don't need a timeout/debounce anymore!
+            // It searches instantly on every keystroke.
+            searchProducts(e.target.value.trim());
         });
 
         // Init Data Fetch
