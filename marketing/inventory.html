@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Management - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; overflow-x: hidden; }
+
+        /* Standard Header */
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; }
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.7em; color: var(--text-secondary); }
+
+        /* Custom Install Popup */
+        #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
+        .install-img { width: 40px; height: 40px; border-radius: 8px; }
+        .install-text { flex-grow: 1; }
+        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; }
+        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
+        .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
+        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
+
+        /* Firebase Error Toast Popup Styles */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s; max-width: 90%; text-align: center;}
+        .toast-msg.error { background: var(--meena-red); }
+        .toast-msg.success { background: var(--success-color); }
+        .toast-msg.show { display: flex; opacity: 1; }
+
+        /* Main Scroll Area */
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 90px; }
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+
+        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; margin-bottom: 20px; transition: border-color 0.3s; }
+        .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 86, 179, 0.3); }
+        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 28px; }
+        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 15px 10px; color: white; font-size: 1.05em; outline: none; }
+
+        /* Inventory List Grid */
+        .inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .inv-card:hover { border-color: var(--accent-color); background: #2a2a2a; }
+        .inv-info { display: flex; flex-direction: column; gap: 5px; }
+        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); }
+        .inv-model { font-size: 0.85em; color: var(--text-secondary); background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;}
+        .inv-price { color: var(--success-color); font-weight: bold; font-size: 1.05em; margin-top: 5px;}
+        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 40px;}
+
+        /* Floating Action Buttons */
+        .fab { position: fixed; bottom: 25px; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 1000; cursor: pointer; transition: transform 0.2s; }
+        .fab:active { transform: scale(0.92); }
+        .fab .material-symbols-outlined { font-size: 30px; color: white; }
+        
+        .fab-add { right: 20px; background-color: var(--accent-color); }
+        .fab-bill { left: 20px; background-color: var(--success-color); }
+
+        /* Slide-in Modal */
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal.active { right: 0; }
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.2em; }
+
+        .form-group { padding: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9em; }
+        input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1.05em; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--accent-color); }
+        
+        .row-inputs { display: flex; gap: 15px; }
+        .row-inputs > div { flex: 1; }
+
+        .btn-secondary { background: #333; color: white; border: 1px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1em; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-secondary:hover { background: #444; }
+
+        .btn-primary { width: calc(100% - 40px); margin: 20px; padding: 18px; border-radius: 8px; border: none; background: var(--success-color); color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .btn-primary:hover:not(:disabled) { background: #00a844; }
+        .btn-primary:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        /* Pending List */
+        .pending-container { margin: 0 20px; background: var(--surface-color); border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .pending-header { background: #1a1a1a; padding: 10px 15px; font-size: 0.85em; color: var(--text-secondary); text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #333; }
+        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #333; }
+        .pending-item:last-child { border-bottom: none; }
+        .p-del { color: var(--meena-red); cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
+
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">Powered by Goorac</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+        </div>
+    </header>
+
+    <div id="installPopup">
+        <img src="icon.png" alt="App Icon" class="install-img">
+        <div class="install-text">
+            <h4>Install Goorac App</h4>
+            <p>Add to homescreen for offline access</p>
+        </div>
+        <button id="installBtn" class="install-btn">Install</button>
+        <button id="closeBtn" class="close-btn">&times;</button>
+    </div>
+
+    <div class="main-scroll-area">
+        <div class="container">
+            <div class="search-bar-container">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" id="searchInventory" placeholder="Search inventory by name or model..." autocomplete="off">
+            </div>
+
+            <div class="inv-grid" id="inventoryGrid">
+                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading inventory data...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fab fab-bill" onclick="window.location.href='bill.html'" title="Create Bill">
+        <span class="material-symbols-outlined">receipt_long</span>
+    </div>
+    
+    <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
+        <span class="material-symbols-outlined">add</span>
+    </div>
+
+    <div class="modal" id="modalAddInventory">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Add to Inventory</h2>
+        </div>
+        
+        <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="iName" placeholder="e.g. Premium Display Stand">
+            
+            <label>Product ID / Model</label>
+            <input type="text" id="iModel" placeholder="e.g. PDS-100X">
+            
+            <div class="row-inputs">
+                <div>
+                    <label>Base Price (₹) *</label>
+                    <input type="number" id="iPrice" placeholder="0" min="0">
+                </div>
+                <div>
+                    <label>Quantity *</label>
+                    <input type="number" id="iQty" value="1" min="1">
+                </div>
+            </div>
+
+            <button type="button" class="btn-secondary" id="btnAddToList">
+                <span class="material-symbols-outlined">playlist_add</span>
+                Add to Pending List
+            </button>
+        </div>
+
+        <div class="pending-container">
+            <div class="pending-header">Items Ready to Save</div>
+            <div id="pendingList">
+                <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="btnSaveInventory" disabled>
+            <span class="material-symbols-outlined">save</span>
+            Save All to Database
+        </button>
+    </div>
+
+    <script type="module">
+        // 1. Service Worker Logic
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
+        let deferredPrompt; const installPopup = document.getElementById('installPopup');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
+
+        // 2. Firebase Imports
+        import { db } from './config.js';
+        import { collection, getDocs, query, orderBy, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Toast Helpers
+        window.showToast = function(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        };
+
+        // Modal Logic
+        window.openModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            history.pushState({ modal: modalId }, '', `#${modalId}`);
+        };
+        window.addEventListener('popstate', () => {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        });
+
+        // --- FETCH AND DISPLAY INVENTORY ---
+        let inventoryCache = [];
+
+        async function loadInventory() {
+            const grid = document.getElementById('inventoryGrid');
+            try {
+                const q = query(collection(db, "inventory"), orderBy("name"));
+                const snap = await getDocs(q);
+                
+                inventoryCache = [];
+                snap.forEach(doc => {
+                    inventoryCache.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderInventory(inventoryCache);
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
+                showToast("Failed to load inventory data.", "error");
+            }
+        }
+
+        function renderInventory(dataArray) {
+            const grid = document.getElementById('inventoryGrid');
+            if (dataArray.length === 0) {
+                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No products in inventory yet. Click + to add.</div>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            dataArray.forEach(item => {
+                grid.innerHTML += `
+                    <div class="inv-card">
+                        <div class="inv-info">
+                            <span class="inv-name">${item.name}</span>
+                            <span class="inv-model">${item.model || 'No Model ID'}</span>
+                            <span class="inv-price">₹${(item.price || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="inv-qty">
+                            <div style="font-size: 0.5em; text-transform: uppercase; color: var(--text-secondary);">QTY</div>
+                            ${item.qty || 0}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Search Filter
+        document.getElementById('searchInventory').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            const filtered = inventoryCache.filter(item => 
+                (item.name || '').toLowerCase().includes(term) || 
+                (item.model || '').toLowerCase().includes(term)
+            );
+            renderInventory(filtered);
+        });
+
+
+        // --- ADD TO INVENTORY MODAL LOGIC ---
+        let pendingCart = [];
+
+        document.getElementById('btnAddToList').addEventListener('click', () => {
+            const name = document.getElementById('iName').value.trim();
+            const model = document.getElementById('iModel').value.trim();
+            const price = parseFloat(document.getElementById('iPrice').value) || 0;
+            const qty = parseInt(document.getElementById('iQty').value) || 1;
+
+            if (!name || price <= 0 || qty < 1) {
+                showToast("Please enter a valid Name, Price, and Quantity.", "error");
+                return;
+            }
+
+            pendingCart.push({ name, model, price, qty });
+            
+            // Clear inputs
+            document.getElementById('iName').value = '';
+            document.getElementById('iModel').value = '';
+            document.getElementById('iPrice').value = '';
+            document.getElementById('iQty').value = '1';
+            document.getElementById('iName').focus();
+
+            renderPendingList();
+        });
+
+        window.removePendingItem = function(index) {
+            pendingCart.splice(index, 1);
+            renderPendingList();
+        };
+
+        function renderPendingList() {
+            const list = document.getElementById('pendingList');
+            const btnSave = document.getElementById('btnSaveInventory');
+            
+            if (pendingCart.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>';
+                btnSave.disabled = true;
+                btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All to Database`;
+                return;
+            }
+
+            list.innerHTML = '';
+            pendingCart.forEach((item, index) => {
+                list.innerHTML += `
+                    <div class="pending-item">
+                        <div>
+                            <div style="font-weight:bold; color:var(--marketing-white);">${item.name} <span style="font-weight:normal; color:var(--text-secondary);">x${item.qty}</span></div>
+                            <div style="font-size:0.8em; color:var(--text-secondary);">${item.model || 'No ID'} • ₹${item.price.toLocaleString()}</div>
+                        </div>
+                        <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
+                    </div>
+                `;
+            });
+            
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
+        }
+
+        // Final Save to Firestore
+        document.getElementById('btnSaveInventory').addEventListener('click', async () => {
+            if (pendingCart.length === 0) return;
+            
+            const btnSave = document.getElementById('btnSaveInventory');
+            btnSave.disabled = true;
+            btnSave.innerHTML = "Saving to Server...";
+
+            try {
+                const batch = writeBatch(db);
+
+                // Note: For a robust inventory, you might want to query if the model exists and update the qty.
+                // To keep it simple and safe for now (as requested), we will create individual document records.
+                pendingCart.forEach(item => {
+                    const newRef = doc(collection(db, "inventory"));
+                    batch.set(newRef, {
+                        ...item,
+                        createdAt: serverTimestamp()
+                    });
+                });
+
+                await batch.commit();
+
+                showToast("Inventory successfully updated!", "success");
+                
+                // Cleanup
+                pendingCart = [];
+                renderPendingList();
+                history.back(); // close modal
+                
+                // Refresh background grid
+                loadInventory();
+
+            } catch (err) {
+                console.error("Batch save failed", err);
+                showToast("Error saving data. Check console.", "error");
+                btnSave.disabled = false;
+                renderPendingList(); // reset button text
+            }
+        });
+
+        // Initialize Data on Load
+        loadInventory();
+    </script>
+</body>
+</html>
