@@ -246,9 +246,9 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports
+        // 2. Firebase Imports (Added 'where' and 'increment' for new validation and updating logic)
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
@@ -390,7 +390,7 @@
         // --- ADD TO INVENTORY MODAL LOGIC ---
         let pendingCart = [];
 
-        document.getElementById('btnAddToList').addEventListener('click', () => {
+        document.getElementById('btnAddToList').addEventListener('click', async () => {
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
             const price = parseFloat(document.getElementById('iPrice').value) || 0;
@@ -401,16 +401,64 @@
                 return;
             }
 
-            pendingCart.push({ name, model, price, qty });
-            
-            // Clear inputs
-            document.getElementById('iName').value = '';
-            document.getElementById('iModel').value = '';
-            document.getElementById('iPrice').value = '';
-            document.getElementById('iQty').value = '1';
-            document.getElementById('iName').focus();
+            // --- ADDED CHECK FOR UNIQUE MODEL AND EXISTING QUANTITY UPDATE ---
+            const btnAdd = document.getElementById('btnAddToList');
+            const originalText = btnAdd.innerHTML;
+            btnAdd.disabled = true;
+            btnAdd.innerHTML = "Checking...";
 
-            renderPendingList();
+            try {
+                let isUpdate = false;
+                let existingId = null;
+
+                if (model !== "") {
+                    // Check if model already exists
+                    const q = query(collection(db, "inventory"), where("model", "==", model), limit(1));
+                    const snap = await getDocs(q);
+                    
+                    if (!snap.empty) {
+                        const existingDoc = snap.docs[0];
+                        const existingData = existingDoc.data();
+                        
+                        // Ask user if they want to update the existing product instead of creating a duplicate
+                        const confirmUpdate = confirm(`Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`);
+                        
+                        if (confirmUpdate) {
+                            isUpdate = true;
+                            existingId = existingDoc.id;
+                        } else {
+                            btnAdd.disabled = false;
+                            btnAdd.innerHTML = originalText;
+                            return; // User canceled the addition
+                        }
+                    }
+                }
+
+                // Push to cart with update flags
+                pendingCart.push({ 
+                    name: isUpdate ? (name || "Existing Product") : name, 
+                    model, 
+                    price, 
+                    qty, 
+                    isUpdate, 
+                    existingId 
+                });
+                
+                // Clear inputs
+                document.getElementById('iName').value = '';
+                document.getElementById('iModel').value = '';
+                document.getElementById('iPrice').value = '';
+                document.getElementById('iQty').value = '1';
+                document.getElementById('iName').focus();
+
+                renderPendingList();
+            } catch (error) {
+                console.error("Error checking model:", error);
+                showToast("Error verifying product model.", "error");
+            } finally {
+                btnAdd.disabled = false;
+                btnAdd.innerHTML = originalText;
+            }
         });
 
         window.removePendingItem = function(index) {
@@ -431,10 +479,15 @@
 
             list.innerHTML = '';
             pendingCart.forEach((item, index) => {
+                // Visual badge to show if it's updating an existing item or creating a new one
+                const actionBadge = item.isUpdate 
+                    ? `<span style="background:var(--warning-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">UPDATE QTY</span>` 
+                    : `<span style="background:var(--success-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">NEW</span>`;
+
                 list.innerHTML += `
                     <div class="pending-item">
                         <div>
-                            <div style="font-weight:bold; color:var(--marketing-white);">${item.name} <span style="font-weight:normal; color:var(--text-secondary);">x${item.qty}</span></div>
+                            <div style="font-weight:bold; color:var(--marketing-white);">${item.name} <span style="font-weight:normal; color:var(--text-secondary);">+${item.qty}</span> ${actionBadge}</div>
                             <div style="font-size:0.8em; color:var(--text-secondary);">${item.model || 'No ID'} • ₹${item.price.toLocaleString()}</div>
                         </div>
                         <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
@@ -458,11 +511,22 @@
                 const batch = writeBatch(db);
 
                 pendingCart.forEach(item => {
-                    const newRef = doc(collection(db, "inventory"));
-                    batch.set(newRef, {
-                        ...item,
-                        createdAt: serverTimestamp()
-                    });
+                    // Decide whether to increment existing document or create a new one based on the checks done earlier
+                    if (item.isUpdate && item.existingId) {
+                        const existingRef = doc(db, "inventory", item.existingId);
+                        batch.update(existingRef, {
+                            qty: increment(item.qty)
+                        });
+                    } else {
+                        const newRef = doc(collection(db, "inventory"));
+                        batch.set(newRef, {
+                            name: item.name,
+                            model: item.model,
+                            price: item.price,
+                            qty: item.qty,
+                            createdAt: serverTimestamp()
+                        });
+                    }
                 });
 
                 await batch.commit();
