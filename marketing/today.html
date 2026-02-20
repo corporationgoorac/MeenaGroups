@@ -41,6 +41,9 @@
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+        
+        /* ADDED: Header Right for Search Icon */
+        .header-right { display: flex; align-items: center; }
 
         /* Main Container */
         .container { padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
@@ -105,6 +108,14 @@
         .toast-msg.error { background: var(--meena-red); }
         .toast-msg.success { background: var(--success-color); }
         .toast-msg.show { display: flex; opacity: 1; }
+
+        /* ADDED: Search Modal Styles */
+        .search-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 1000; display: none; flex-direction: column; }
+        .search-modal.active { display: flex; }
+        .search-header { background: var(--surface-color); padding: 12px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .search-header input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 1.1em; outline: none; }
+        .search-header input::placeholder { color: var(--text-secondary); }
+        .search-results-container { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
     </style>
 </head>
 <body>
@@ -118,9 +129,19 @@
         <span id="successToastText">Action Successful!</span>
     </div>
 
+    <div id="searchModal" class="search-modal">
+        <div class="search-header">
+            <span class="material-symbols-outlined" style="cursor:pointer;" onclick="closeModalManual()">arrow_back</span>
+            <input type="text" id="searchInput" placeholder="Search customer, invoice, etc..." oninput="handleSearch()">
+            <span class="material-symbols-outlined" style="cursor:pointer;" onclick="clearSearch()">close</span>
+        </div>
+        <div class="search-results-container" id="searchModalResults">
+            </div>
+    </div>
+
     <header>
         <div class="header-left">
-            <a href="index.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+            <a href="javascript:void(0)" onclick="window.history.back();" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
             <div class="brand-container">
                 <img src="icon.png" alt="Icon" class="logo-img">
                 <div class="brand-text">
@@ -128,6 +149,9 @@
                     <span class="page-title">Daily Sales Log</span>
                 </div>
             </div>
+        </div>
+        <div class="header-right">
+            <span class="material-symbols-outlined" style="cursor:pointer; font-size: 26px;" onclick="openSearchModal()">search</span>
         </div>
     </header>
 
@@ -346,6 +370,56 @@
 
         // Trigger initial load for today
         loadDailySales(dateFilterInput.value);
+
+        // ADDED: Search Modal Logic with Mobile Back Button Support
+        window.openSearchModal = function() {
+            const modal = document.getElementById('searchModal');
+            const mainList = document.getElementById('salesList');
+            const modalList = document.getElementById('searchModalResults');
+            
+            // Copy current loaded invoices into the modal
+            modalList.innerHTML = mainList.innerHTML; 
+            
+            modal.classList.add('active');
+            document.getElementById('searchInput').focus();
+            
+            // Push state for mobile back button support
+            history.pushState({ searchModalOpen: true }, "");
+        };
+
+        window.closeModalManual = function() {
+            // Triggering history.back() will inherently close it via popstate
+            history.back(); 
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('searchInput').value = '';
+            handleSearch();
+            document.getElementById('searchInput').focus();
+        };
+
+        window.handleSearch = function() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.getElementById('searchModalResults').getElementsByClassName('invoice-card');
+            
+            for (let i = 0; i < cards.length; i++) {
+                // The innerText contains customer name, invoice no, items, etc.
+                const textContent = cards[i].innerText.toLowerCase(); 
+                if (textContent.includes(query)) {
+                    cards[i].style.display = 'block';
+                } else {
+                    cards[i].style.display = 'none';
+                }
+            }
+        };
+
+        window.addEventListener('popstate', (e) => {
+            const modal = document.getElementById('searchModal');
+            if (modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                document.getElementById('searchInput').value = '';
+            }
+        });
 
     </script>
 </body>
