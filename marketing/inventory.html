@@ -1,750 +1,768 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventory Management - Meena Marketing</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#121212">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    
-    <style>
-        /* Shared Core Theme */
-        :root {
-            --bg-color: #121212;
-            --surface-color: #212121;
-            --text-color: #ffffff;
-            --text-secondary: #aaaaaa;
-            --meena-red: #ff3333;
-            --marketing-white: #ffffff;
-            --accent-color: #0056b3;
-            --success-color: #00c853;
-            --warning-color: #ff9800;
-            --nav-bg: #1a1a1a;
-            --input-bg: #2a2a2a;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Management - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --warning-color: #ff9800;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
 
-        /* Fixed side-scrolling issue with strict width control */
-        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
+        /* Fixed side-scrolling issue with strict width control */
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
 
-        /* Standard Header */
-        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; box-sizing: border-box;}
-        .brand-container { display: flex; align-items: center; gap: 12px; }
-        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
-        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-        .brand-title { font-size: 1.2em; font-weight: bold; }
-        .meena { color: var(--meena-red); }
-        .marketing { color: var(--marketing-white); }
-        .goorac { font-size: 0.7em; color: var(--text-secondary); }
+        /* Standard Header */
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; box-sizing: border-box;}
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.7em; color: var(--text-secondary); }
 
-        /* Custom Install Popup */
-        #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
-        .install-img { width: 40px; height: 40px; border-radius: 8px; }
-        .install-text { flex-grow: 1; }
-        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; }
-        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
-        .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
-        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
+        /* Custom Install Popup */
+        #installPopup { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid #444; }
+        .install-img { width: 40px; height: 40px; border-radius: 8px; }
+        .install-text { flex-grow: 1; }
+        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; }
+        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
+        .install-btn { background: var(--meena-red); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
+        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
 
-        /* Firebase Error Toast Popup Styles */
-        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s; max-width: 90%; text-align: center;}
-        .toast-msg.error { background: var(--meena-red); }
-        .toast-msg.success { background: var(--success-color); }
-        .toast-msg.show { display: flex; opacity: 1; }
+        /* Firebase Error Toast Popup Styles */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s; max-width: 90%; text-align: center;}
+        .toast-msg.error { background: var(--meena-red); }
+        .toast-msg.success { background: var(--success-color); }
+        .toast-msg.show { display: flex; opacity: 1; }
 
-        /* Main Scroll Area */
-        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
-        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        /* Main Scroll Area */
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; margin-bottom: 20px; transition: border-color 0.3s; width: 100%; box-sizing: border-box;}
-        .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 86, 179, 0.3); }
-        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; }
-        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 16px 10px; color: white; font-size: 1.05em; outline: none; }
+        .search-bar-container { display: flex; align-items: center; background: var(--input-bg); border: 2px solid #444; border-radius: 12px; padding: 0 15px; margin-bottom: 20px; transition: border-color 0.3s; width: 100%; box-sizing: border-box;}
+        .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 86, 179, 0.3); }
+        .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; }
+        .search-bar-container input { border: none; background: transparent; width: 100%; padding: 16px 10px; color: white; font-size: 1.05em; outline: none; }
 
-        /* Inventory List Grid (Fixed Side Scroll) */
-        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 100%; }
-        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
-        
-        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; position: relative; overflow: hidden; box-sizing: border-box; width: 100%;}
-        .inv-card:hover { border-color: var(--accent-color); background: #2a2a2a; }
-        .inv-card.out-of-stock { opacity: 0.6; border-color: var(--meena-red); }
-        
-        .inv-info { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0; }
-        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .inv-model { font-size: 0.85em; color: var(--text-secondary); background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;}
-        .inv-price { color: var(--success-color); font-weight: bold; font-size: 1.05em; margin-top: 5px;}
-        
-        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 45px; flex-shrink: 0; margin-left: 10px;}
-        .inv-qty.low { border-color: var(--warning-color); color: var(--warning-color); background: rgba(255, 152, 0, 0.1); }
-        .inv-qty.zero { border-color: var(--meena-red); color: var(--meena-red); background: rgba(255, 51, 51, 0.1); font-size: 0.9em; padding: 10px 8px; }
+        /* Inventory List Grid (Fixed Side Scroll) */
+        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 100%; }
+        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; position: relative; overflow: hidden; box-sizing: border-box; width: 100%;}
+        .inv-card:hover { border-color: var(--accent-color); background: #2a2a2a; }
+        .inv-card.out-of-stock { opacity: 0.6; border-color: var(--meena-red); }
+        
+        .inv-info { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0; }
+        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .inv-model { font-size: 0.85em; color: var(--text-secondary); background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;}
+        .inv-price { color: var(--success-color); font-weight: bold; font-size: 1.05em; margin-top: 5px;}
+        .inv-mrp { font-size: 0.8em; color: var(--text-secondary); text-decoration: line-through; margin-right: 6px; }
+        
+        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 45px; flex-shrink: 0; margin-left: 10px;}
+        .inv-qty.low { border-color: var(--warning-color); color: var(--warning-color); background: rgba(255, 152, 0, 0.1); }
+        .inv-qty.zero { border-color: var(--meena-red); color: var(--meena-red); background: rgba(255, 51, 51, 0.1); font-size: 0.9em; padding: 10px 8px; }
 
-        .oos-badge { position: absolute; top: 0; right: 0; background: var(--meena-red); color: white; font-size: 0.7em; padding: 3px 10px; border-bottom-left-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        .oos-badge { position: absolute; top: 0; right: 0; background: var(--meena-red); color: white; font-size: 0.7em; padding: 3px 10px; border-bottom-left-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
 
-        /* Floating Action Buttons */
-        .fab-container { position: fixed; bottom: 25px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; z-index: 1000; }
-        .fab { width: 56px; height: 56px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer; transition: transform 0.2s; pointer-events: auto; }
-        .fab:active { transform: scale(0.92); }
-        .fab .material-symbols-outlined { font-size: 28px; color: white; }
-        
-        .fab-add { background-color: var(--accent-color); }
-        .fab-bill { background-color: var(--success-color); }
-        .fab-warn { background-color: var(--warning-color); position: absolute; bottom: 70px; left: 20px; width: 45px; height: 45px; }
-        .fab-warn .material-symbols-outlined { font-size: 22px; }
-        
-        /* New Today FAB CSS */
-        .fab-today { background-color: #9c27b0; position: absolute; bottom: 70px; right: 5px; width: 45px; height: 45px; }
-        .fab-today .material-symbols-outlined { font-size: 22px; }
+        /* Floating Action Buttons */
+        .fab-container { position: fixed; bottom: 25px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; z-index: 1000; }
+        .fab { width: 56px; height: 56px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer; transition: transform 0.2s; pointer-events: auto; }
+        .fab:active { transform: scale(0.92); }
+        .fab .material-symbols-outlined { font-size: 28px; color: white; }
+        
+        .fab-add { background-color: var(--accent-color); }
+        .fab-bill { background-color: var(--success-color); }
+        .fab-warn { background-color: var(--warning-color); position: absolute; bottom: 70px; left: 20px; width: 45px; height: 45px; }
+        .fab-warn .material-symbols-outlined { font-size: 22px; }
+        
+        /* New Today FAB CSS */
+        .fab-today { background-color: #9c27b0; position: absolute; bottom: 70px; right: 5px; width: 45px; height: 45px; }
+        .fab-today .material-symbols-outlined { font-size: 22px; }
 
-        /* Slide-in Modal */
-        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
-        .modal.active { right: 0; }
-        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
-        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
-        .modal-header h2 { margin: 0; font-size: 1.2em; }
+        /* Slide-in Modal */
+        .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
+        .modal.active { right: 0; }
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.2em; }
 
-        .form-group { padding: 20px; }
-        label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9em; }
-        input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1.05em; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: 0.3s; }
-        input:focus { border-color: var(--accent-color); }
-        
-        .row-inputs { display: flex; gap: 15px; }
-        .row-inputs > div { flex: 1; }
+        .form-group { padding: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9em; }
+        input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1.05em; box-sizing: border-box; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--accent-color); }
+        
+        .row-inputs { display: flex; gap: 15px; }
+        .row-inputs > div { flex: 1; }
 
-        .btn-secondary { background: #333; color: white; border: 1px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1em; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .btn-secondary:hover { background: #444; }
+        .btn-secondary { background: #333; color: white; border: 1px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1em; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-secondary:hover { background: #444; }
 
-        .btn-primary { width: calc(100% - 40px); margin: 20px; padding: 18px; border-radius: 8px; border: none; background: var(--success-color); color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;}
-        .btn-primary:hover:not(:disabled) { background: #00a844; }
-        .btn-primary:disabled { background: #444; color: #888; cursor: not-allowed; }
+        .btn-primary { width: calc(100% - 40px); margin: 20px; padding: 18px; border-radius: 8px; border: none; background: var(--success-color); color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .btn-primary:hover:not(:disabled) { background: #00a844; }
+        .btn-primary:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        /* Pending List */
-        .pending-container { margin: 0 20px; background: var(--surface-color); border-radius: 8px; border: 1px solid #333; overflow: hidden; }
-        .pending-header { background: #1a1a1a; padding: 10px 15px; font-size: 0.85em; color: var(--text-secondary); text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #333; }
-        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #333; }
-        .pending-item:last-child { border-bottom: none; }
-        .p-del { color: var(--meena-red); cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 5px; }
+        /* Pending List */
+        .pending-container { margin: 0 20px; background: var(--surface-color); border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .pending-header { background: #1a1a1a; padding: 10px 15px; font-size: 0.85em; color: var(--text-secondary); text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #333; }
+        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #333; }
+        .pending-item:last-child { border-bottom: none; }
+        .p-del { color: var(--meena-red); cursor: pointer; background: none; border: none; display: flex; align-items: center; padding: 5px; }
 
-        /* --- ADDED TO FIX MOBILE SIDE-SCROLLING & TEXT OVERFLOW --- */
-        *, *::before, *::after { box-sizing: border-box; }
-        html, body { max-width: 100vw; width: 100%; overflow-x: hidden; }
-        .container { width: 100%; max-width: 100vw; overflow-x: hidden; }
-        .pending-item > div:first-child { min-width: 0; flex: 1; padding-right: 10px; }
-        .pending-item > div > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-        .pending-item > div > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        /* --- ADDED TO FIX MOBILE SIDE-SCROLLING & TEXT OVERFLOW --- */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { max-width: 100vw; width: 100%; overflow-x: hidden; }
+        .container { width: 100%; max-width: 100vw; overflow-x: hidden; }
+        .pending-item > div:first-child { min-width: 0; flex: 1; padding-right: 10px; }
+        .pending-item > div > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .pending-item > div > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
-        /* --- ADDED FOR EDIT & DELETE ACTIONS --- */
-        .card-actions { display: flex; gap: 10px; margin-top: 10px; }
-        .action-btn { background: #333; border: 1px solid #444; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .action-btn.edit:hover { background: var(--accent-color); border-color: var(--accent-color); }
-        .action-btn.delete { color: var(--meena-red); background: rgba(255, 51, 51, 0.1); border-color: rgba(255, 51, 51, 0.3); }
-        .action-btn.delete:hover { background: var(--meena-red); color: white; }
-        .action-btn .material-symbols-outlined { font-size: 18px; }
+        /* --- ADDED FOR EDIT & DELETE ACTIONS --- */
+        .card-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { background: #333; border: 1px solid #444; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .action-btn.edit:hover { background: var(--accent-color); border-color: var(--accent-color); }
+        .action-btn.delete { color: var(--meena-red); background: rgba(255, 51, 51, 0.1); border-color: rgba(255, 51, 51, 0.3); }
+        .action-btn.delete:hover { background: var(--meena-red); color: white; }
+        .action-btn .material-symbols-outlined { font-size: 18px; }
 
-    </style>
+    </style>
 </head>
 <body>
 
-    <div class="toast-msg error" id="errorToast">
-        <span class="material-symbols-outlined">error</span>
-        <span id="errorToastText">An error occurred.</span>
-    </div>
-    <div class="toast-msg success" id="successToast">
-        <span class="material-symbols-outlined">check_circle</span>
-        <span id="successToastText">Action Successful!</span>
-    </div>
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
 
-    <header>
-        <div class="brand-container">
-            <img src="icon.png" alt="Icon" class="logo-img">
-            <div class="brand-text">
-                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
-                <span class="goorac">Powered by Goorac</span>
-            </div>
-        </div>
-        <div class="header-actions">
-            <span class="material-symbols-outlined">qr_code_scanner</span>
-        </div>
-    </header>
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">Powered by Goorac</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+        </div>
+    </header>
 
-    <div id="installPopup">
-        <img src="icon.png" alt="App Icon" class="install-img">
-        <div class="install-text">
-            <h4>Install Goorac App</h4>
-            <p>Add to homescreen for offline access</p>
-        </div>
-        <button id="installBtn" class="install-btn">Install</button>
-        <button id="closeBtn" class="close-btn">&times;</button>
-    </div>
+    <div id="installPopup">
+        <img src="icon.png" alt="App Icon" class="install-img">
+        <div class="install-text">
+            <h4>Install Goorac App</h4>
+            <p>Add to homescreen for offline access</p>
+        </div>
+        <button id="installBtn" class="install-btn">Install</button>
+        <button id="closeBtn" class="close-btn">&times;</button>
+    </div>
 
-    <div class="main-scroll-area">
-        <div class="container">
-            <div class="search-bar-container">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
-            </div>
+    <div class="main-scroll-area">
+        <div class="container">
+            <div class="search-bar-container">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
+            </div>
 
-            <div class="inv-grid" id="inventoryGrid">
-                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading recent data...</div>
-            </div>
-        </div>
-    </div>
+            <div class="inv-grid" id="inventoryGrid">
+                <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Loading recent data...</div>
+            </div>
+        </div>
+    </div>
 
-    <div class="fab-container">
-        <div style="position: relative;">
-            <div class="fab fab-bill" onclick="window.location.href='../billing/bill.html'" title="Create Bill">
-                <span class="material-symbols-outlined">receipt_long</span>
-            </div>
-            <div class="fab fab-warn" onclick="filterLowStock()" id="btnLowStock" title="Low Stock Alerts">
-                <span class="material-symbols-outlined">warning</span>
-            </div>
-        </div>
-        
-        <div style="position: relative;">
-            <div class="fab fab-today" onclick="window.location.href='today.html'" title="Today's View">
-                <span class="material-symbols-outlined">calendar_today</span>
-            </div>
-            <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
-                <span class="material-symbols-outlined">add</span>
-            </div>
-        </div>
-    </div>
+    <div class="fab-container">
+        <div style="position: relative;">
+            <div class="fab fab-bill" onclick="window.location.href='../billing/bill.html'" title="Create Bill">
+                <span class="material-symbols-outlined">receipt_long</span>
+            </div>
+            <div class="fab fab-warn" onclick="filterLowStock()" id="btnLowStock" title="Low Stock Alerts">
+                <span class="material-symbols-outlined">warning</span>
+            </div>
+        </div>
+        
+        <div style="position: relative;">
+            <div class="fab fab-today" onclick="window.location.href='today.html'" title="Today's View">
+                <span class="material-symbols-outlined">calendar_today</span>
+            </div>
+            <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
+                <span class="material-symbols-outlined">add</span>
+            </div>
+        </div>
+    </div>
 
-    <div class="modal" id="modalAddInventory">
-        <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
-            <h2>Add to Inventory</h2>
-        </div>
-        
-        <div class="form-group">
-            <label>Product Name *</label>
-            <input type="text" id="iName" placeholder="e.g. Premium Display Stand">
-            
-            <label>Product ID / Model</label>
-            <input type="text" id="iModel" placeholder="e.g. PDS-100X">
-            
-            <div class="row-inputs">
+    <div class="modal" id="modalAddInventory">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Add to Inventory</h2>
+        </div>
+        
+        <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="iName" placeholder="e.g. Premium Display Stand">
+            
+            <label>Product ID / Model</label>
+            <input type="text" id="iModel" placeholder="e.g. PDS-100X">
+            
+            <div class="row-inputs">
                 <div>
-                    <label>Base Price (₹) *</label>
-                    <input type="number" id="iPrice" placeholder="0" min="0">
+                    <label>MRP (₹)</label>
+                    <input type="number" id="iMrp" placeholder="0" min="0">
                 </div>
+                <div>
+                    <label>Base Price (₹) *</label>
+                    <input type="number" id="iPrice" placeholder="0" min="0">
+                </div>
+                <div>
+                    <label>Quantity *</label>
+                    <input type="number" id="iQty" value="1" min="1">
+                </div>
+            </div>
+
+            <button type="button" class="btn-secondary" id="btnAddToList">
+                <span class="material-symbols-outlined">playlist_add</span>
+                Add to Pending List
+            </button>
+        </div>
+
+        <div class="pending-container">
+            <div class="pending-header">Items Ready to Save</div>
+            <div id="pendingList">
+                <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="btnSaveInventory" disabled>
+            <span class="material-symbols-outlined">save</span>
+            Save All to Database
+        </button>
+    </div>
+
+    <div class="modal" id="modalEditInventory">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Edit Inventory</h2>
+        </div>
+        
+        <div class="form-group">
+            <input type="hidden" id="editId">
+            
+            <label>Product Name *</label>
+            <input type="text" id="editName" placeholder="e.g. Premium Display Stand">
+            
+            <label>Product ID / Model</label>
+            <input type="text" id="editModel" placeholder="e.g. PDS-100X">
+            
+            <div class="row-inputs">
                 <div>
-                    <label>Quantity *</label>
-                    <input type="number" id="iQty" value="1" min="1">
+                    <label>MRP (₹)</label>
+                    <input type="number" id="editMrp" placeholder="0" min="0">
                 </div>
-            </div>
+                <div>
+                    <label>Base Price (₹) *</label>
+                    <input type="number" id="editPrice" placeholder="0" min="0">
+                </div>
+                <div>
+                    <label>Quantity *</label>
+                    <input type="number" id="editQty" value="0" min="0">
+                </div>
+            </div>
 
-            <button type="button" class="btn-secondary" id="btnAddToList">
-                <span class="material-symbols-outlined">playlist_add</span>
-                Add to Pending List
-            </button>
-        </div>
+            <button type="button" class="btn-primary" id="btnSaveEditItem" style="width: 100%; margin: 20px 0;">
+                <span class="material-symbols-outlined">save</span>
+                Update Product
+            </button>
+        </div>
+    </div>
 
-        <div class="pending-container">
-            <div class="pending-header">Items Ready to Save</div>
-            <div id="pendingList">
-                <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>
-            </div>
-        </div>
+    <script type="module">
+        // 1. Service Worker Logic
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
+        let deferredPrompt; const installPopup = document.getElementById('installPopup');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        <button type="button" class="btn-primary" id="btnSaveInventory" disabled>
-            <span class="material-symbols-outlined">save</span>
-            Save All to Database
-        </button>
-    </div>
+        // 2. Firebase Imports (Added 'where', 'increment', 'updateDoc', and 'deleteDoc' for new validation and updating logic)
+        import { db } from './config.js';
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    <div class="modal" id="modalEditInventory">
-        <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
-            <h2>Edit Inventory</h2>
-        </div>
-        
-        <div class="form-group">
-            <input type="hidden" id="editId">
-            
-            <label>Product Name *</label>
-            <input type="text" id="editName" placeholder="e.g. Premium Display Stand">
-            
-            <label>Product ID / Model</label>
-            <input type="text" id="editModel" placeholder="e.g. PDS-100X">
-            
-            <div class="row-inputs">
-                <div>
-                    <label>Base Price (₹) *</label>
-                    <input type="number" id="editPrice" placeholder="0" min="0">
-                </div>
-                <div>
-                    <label>Quantity *</label>
-                    <input type="number" id="editQty" value="0" min="0">
-                </div>
-            </div>
+        // Toast Helpers
+        window.showToast = function(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        };
 
-            <button type="button" class="btn-primary" id="btnSaveEditItem" style="width: 100%; margin: 20px 0;">
-                <span class="material-symbols-outlined">save</span>
-                Update Product
-            </button>
-        </div>
-    </div>
+        // Modal Logic
+        window.openModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            history.pushState({ modal: modalId }, '', `#${modalId}`);
+        };
+        window.addEventListener('popstate', () => {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        });
 
-    <script type="module">
-        // 1. Service Worker Logic
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
-        let deferredPrompt; const installPopup = document.getElementById('installPopup');
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
-        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
-        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
+        // --- NEW EDIT AND DELETE FUNCTIONS ---
+        window.editQty = async function(id, currentQty) {
+            const newQty = prompt("Enter new quantity:", currentQty);
+            if (newQty === null || newQty.trim() === "") return;
+            const parsedQty = parseInt(newQty);
+            
+            if (isNaN(parsedQty) || parsedQty < 0) {
+                showToast("Please enter a valid number.", "error");
+                return;
+            }
 
-        // 2. Firebase Imports (Added 'where', 'increment', 'updateDoc', and 'deleteDoc' for new validation and updating logic)
-        import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, { qty: parsedQty });
+                showToast("Quantity updated successfully!", "success");
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error updating quantity:", err);
+                showToast("Failed to update quantity.", "error");
+            }
+        };
 
-        // Toast Helpers
-        window.showToast = function(msg, type = "error") {
-            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
-            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
-            toast.style.display = 'flex';
-            setTimeout(() => toast.classList.add('show'), 10);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.style.display = 'none', 300);
-            }, 3000);
-        };
+        // --- NEW FULL EDIT FUNCTION ADDED HERE ---
+        window.editItemFull = async function(id) {
+            const item = inventoryCache.find(i => i.id === id);
+            if (!item) return;
 
-        // Modal Logic
-        window.openModal = function(modalId) {
-            document.getElementById(modalId).classList.add('active');
-            history.pushState({ modal: modalId }, '', `#${modalId}`);
-        };
-        window.addEventListener('popstate', () => {
-            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
-        });
+            /* --- PRESERVED ORIGINAL LINES (COMMENTED OUT TO AVOID REMOVING CODE) ---
+            const newName = prompt("Enter new product name:", item.name);
+            if (newName === null) return;
 
-        // --- NEW EDIT AND DELETE FUNCTIONS ---
-        window.editQty = async function(id, currentQty) {
-            const newQty = prompt("Enter new quantity:", currentQty);
-            if (newQty === null || newQty.trim() === "") return;
-            const parsedQty = parseInt(newQty);
-            
-            if (isNaN(parsedQty) || parsedQty < 0) {
-                showToast("Please enter a valid number.", "error");
-                return;
-            }
+            const newModel = prompt("Enter new model/ID:", item.model || "");
+            if (newModel === null) return;
 
-            try {
-                const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { qty: parsedQty });
-                showToast("Quantity updated successfully!", "success");
-                loadInventory(); // Refresh the list
-            } catch (err) {
-                console.error("Error updating quantity:", err);
-                showToast("Failed to update quantity.", "error");
-            }
-        };
+            const newPriceRaw = prompt("Enter new price (₹):", item.price || 0);
+            if (newPriceRaw === null) return;
+            const newPrice = parseFloat(newPriceRaw);
+            if (isNaN(newPrice) || newPrice < 0) {
+                showToast("Please enter a valid price.", "error");
+                return;
+            }
 
-        // --- NEW FULL EDIT FUNCTION ADDED HERE ---
-        window.editItemFull = async function(id) {
-            const item = inventoryCache.find(i => i.id === id);
-            if (!item) return;
+            const newQtyRaw = prompt("Enter new quantity:", item.qty || 0);
+            if (newQtyRaw === null) return;
+            const newQty = parseInt(newQtyRaw);
+            if (isNaN(newQty) || newQty < 0) {
+                showToast("Please enter a valid quantity.", "error");
+                return;
+            }
 
-            /* --- PRESERVED ORIGINAL LINES (COMMENTED OUT TO AVOID REMOVING CODE) ---
-            const newName = prompt("Enter new product name:", item.name);
-            if (newName === null) return;
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, { 
+                    name: newName.trim(),
+                    model: newModel.trim(),
+                    price: newPrice,
+                    qty: newQty
+                });
+                showToast("Product updated successfully!", "success");
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error updating product:", err);
+                showToast("Failed to update product.", "error");
+            }
+            */
 
-            const newModel = prompt("Enter new model/ID:", item.model || "");
-            if (newModel === null) return;
+            // --- NEW MODAL INTEGRATION ---
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = item.name || '';
+            document.getElementById('editModel').value = item.model || '';
+            document.getElementById('editPrice').value = item.price || 0;
+            document.getElementById('editQty').value = item.qty || 0;
+            document.getElementById('editMrp').value = item.mrp || 0;
 
-            const newPriceRaw = prompt("Enter new price (₹):", item.price || 0);
-            if (newPriceRaw === null) return;
-            const newPrice = parseFloat(newPriceRaw);
-            if (isNaN(newPrice) || newPrice < 0) {
-                showToast("Please enter a valid price.", "error");
-                return;
-            }
+            // Open the new modal (This automatically hooks into the native mobile back button via history.pushState)
+            openModal('modalEditInventory');
+        };
 
-            const newQtyRaw = prompt("Enter new quantity:", item.qty || 0);
-            if (newQtyRaw === null) return;
-            const newQty = parseInt(newQtyRaw);
-            if (isNaN(newQty) || newQty < 0) {
-                showToast("Please enter a valid quantity.", "error");
-                return;
-            }
+        // --- NEW FUNCTION TO HANDLE SAVING FROM THE EDIT MODAL ---
+        document.getElementById('btnSaveEditItem').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            const newName = document.getElementById('editName').value.trim();
+            const newModel = document.getElementById('editModel').value.trim();
+            const newPrice = parseFloat(document.getElementById('editPrice').value);
+            const newQty = parseInt(document.getElementById('editQty').value);
+            const newMrp = parseFloat(document.getElementById('editMrp').value) || 0;
 
-            try {
-                const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
-                    name: newName.trim(),
-                    model: newModel.trim(),
-                    price: newPrice,
-                    qty: newQty
-                });
-                showToast("Product updated successfully!", "success");
-                loadInventory(); // Refresh the list
-            } catch (err) {
-                console.error("Error updating product:", err);
-                showToast("Failed to update product.", "error");
-            }
-            */
+            if (!newName || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
+                showToast("Please enter valid name, price, and quantity.", "error");
+                return;
+            }
 
-            // --- NEW MODAL INTEGRATION ---
-            document.getElementById('editId').value = id;
-            document.getElementById('editName').value = item.name || '';
-            document.getElementById('editModel').value = item.model || '';
-            document.getElementById('editPrice').value = item.price || 0;
-            document.getElementById('editQty').value = item.qty || 0;
+            const btnSave = document.getElementById('btnSaveEditItem');
+            const originalText = btnSave.innerHTML;
+            btnSave.disabled = true;
+            btnSave.innerHTML = "Updating...";
 
-            // Open the new modal (This automatically hooks into the native mobile back button via history.pushState)
-            openModal('modalEditInventory');
-        };
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, { 
+                    name: newName,
+                    model: newModel,
+                    mrp: newMrp,
+                    price: newPrice,
+                    qty: newQty
+                });
+                showToast("Product updated successfully!", "success");
+                history.back(); // Closes the modal using native back mechanics
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error updating product:", err);
+                showToast("Failed to update product.", "error");
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerHTML = originalText;
+            }
+        });
 
-        // --- NEW FUNCTION TO HANDLE SAVING FROM THE EDIT MODAL ---
-        document.getElementById('btnSaveEditItem').addEventListener('click', async () => {
-            const id = document.getElementById('editId').value;
-            const newName = document.getElementById('editName').value.trim();
-            const newModel = document.getElementById('editModel').value.trim();
-            const newPrice = parseFloat(document.getElementById('editPrice').value);
-            const newQty = parseInt(document.getElementById('editQty').value);
+        window.deleteItem = async function(id, name) {
+            if (!confirm(`Are you sure you want to completely delete "${name}"?`)) return;
+            
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await deleteDoc(itemRef);
+                showToast("Item deleted successfully!", "success");
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error deleting item:", err);
+                showToast("Failed to delete item.", "error");
+            }
+        };
 
-            if (!newName || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
-                showToast("Please enter valid name, price, and quantity.", "error");
-                return;
-            }
+        // --- FETCH AND DISPLAY INVENTORY (Removed Limit 10 to allow searching all items) ---
+        let inventoryCache = [];
+        let showingLowStock = false;
 
-            const btnSave = document.getElementById('btnSaveEditItem');
-            const originalText = btnSave.innerHTML;
-            btnSave.disabled = true;
-            btnSave.innerHTML = "Updating...";
+        async function loadInventory() {
+            const grid = document.getElementById('inventoryGrid');
+            try {
+                // Modified: Removed limit(10) to load all items for full search functionality
+                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"));
+                const snap = await getDocs(q);
+                
+                inventoryCache = [];
+                snap.forEach(doc => {
+                    inventoryCache.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Show only top 20 items initially as requested
+                renderInventory(inventoryCache.slice(0, 20));
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
+                showToast("Failed to load inventory data.", "error");
+            }
+        }
 
-            try {
-                const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
-                    name: newName,
-                    model: newModel,
-                    price: newPrice,
-                    qty: newQty
-                });
-                showToast("Product updated successfully!", "success");
-                history.back(); // Closes the modal using native back mechanics
-                loadInventory(); // Refresh the list
-            } catch (err) {
-                console.error("Error updating product:", err);
-                showToast("Failed to update product.", "error");
-            } finally {
-                btnSave.disabled = false;
-                btnSave.innerHTML = originalText;
-            }
-        });
+        function renderInventory(dataArray) {
+            const grid = document.getElementById('inventoryGrid');
+            if (dataArray.length === 0) {
+                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No matching products found.</div>';
+                return;
+            }
 
-        window.deleteItem = async function(id, name) {
-            if (!confirm(`Are you sure you want to completely delete "${name}"?`)) return;
-            
-            try {
-                const itemRef = doc(db, "inventory", id);
-                await deleteDoc(itemRef);
-                showToast("Item deleted successfully!", "success");
-                loadInventory(); // Refresh the list
-            } catch (err) {
-                console.error("Error deleting item:", err);
-                showToast("Failed to delete item.", "error");
-            }
-        };
+            grid.innerHTML = '';
+            dataArray.forEach(item => {
+                const q = item.qty || 0;
+                let qtyClass = "";
+                let oosBadge = "";
+                let cardClass = "inv-card";
 
-        // --- FETCH AND DISPLAY INVENTORY (Removed Limit 10 to allow searching all items) ---
-        let inventoryCache = [];
-        let showingLowStock = false;
+                if (q === 0) {
+                    qtyClass = "zero";
+                    cardClass += " out-of-stock";
+                    oosBadge = `<div class="oos-badge">Out of Stock</div>`;
+                } else if (q < 3) {
+                    qtyClass = "low";
+                }
+                
+                // Escape single quotes for the inline onclick handlers
+                const safeName = (item.name || '').replace(/'/g, "\\'");
 
-        async function loadInventory() {
-            const grid = document.getElementById('inventoryGrid');
-            try {
-                // Modified: Removed limit(10) to load all items for full search functionality
-                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"));
-                const snap = await getDocs(q);
-                
-                inventoryCache = [];
-                snap.forEach(doc => {
-                    inventoryCache.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Show only top 20 items initially as requested
-                renderInventory(inventoryCache.slice(0, 20));
-            } catch (err) {
-                console.error(err);
-                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
-                showToast("Failed to load inventory data.", "error");
-            }
-        }
+                let mrpDisplay = item.mrp && item.mrp > 0 ? `<span class="inv-mrp">MRP: ₹${item.mrp.toLocaleString()}</span>` : '';
 
-        function renderInventory(dataArray) {
-            const grid = document.getElementById('inventoryGrid');
-            if (dataArray.length === 0) {
-                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No matching products found.</div>';
-                return;
-            }
+                grid.innerHTML += `
+                    <div class="${cardClass}">
+                        ${oosBadge}
+                        <div class="inv-info">
+                            <span class="inv-name">${item.name}</span>
+                            <span class="inv-model">${item.model || 'No Model ID'}</span>
+                            <span class="inv-price">${mrpDisplay} ₹${(item.price || 0).toLocaleString()}</span>
+                            <div class="card-actions">
+                                <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="inv-qty ${qtyClass}">
+                            <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
+                            ${q === 0 ? '0' : q}
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
-            grid.innerHTML = '';
-            dataArray.forEach(item => {
-                const q = item.qty || 0;
-                let qtyClass = "";
-                let oosBadge = "";
-                let cardClass = "inv-card";
+        // --- Low Stock Filter Logic ---
+        window.filterLowStock = async function() {
+            const btn = document.getElementById('btnLowStock');
+            const searchBox = document.getElementById('searchInventory');
+            
+            if (showingLowStock) {
+                // Reset to normal view, slice 0, 20 for initial view
+                btn.style.backgroundColor = "var(--warning-color)";
+                searchBox.value = '';
+                showingLowStock = false;
+                renderInventory(inventoryCache.slice(0, 20)); // Load from cache
+            } else {
+                // To do this accurately without querying the whole DB, we query Firestore directly for low stock
+                // Note: This requires an index in Firestore if you have many items.
+                try {
+                    btn.style.backgroundColor = "#fff";
+                    btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
+                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
+                    
+                    // Simple client-side filter if the data is small, but let's assume we want real data
+                    const qAll = query(collection(db, "inventory")); // Getting all to filter (can be heavy if 1000s of items)
+                    const snap = await getDocs(qAll);
+                    
+                    let lowStockItems = [];
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (d.qty < 3) lowStockItems.push({ id: doc.id, ...d });
+                    });
+                    
+                    showingLowStock = true;
+                    renderInventory(lowStockItems);
+                    
+                } catch(err) {
+                    console.error("Stock filter error", err);
+                    showToast("Error checking low stock.", "error");
+                    btn.style.backgroundColor = "var(--warning-color)";
+                }
+            }
+        };
 
-                if (q === 0) {
-                    qtyClass = "zero";
-                    cardClass += " out-of-stock";
-                    oosBadge = `<div class="oos-badge">Out of Stock</div>`;
-                } else if (q < 3) {
-                    qtyClass = "low";
-                }
-                
-                // Escape single quotes for the inline onclick handlers
-                const safeName = (item.name || '').replace(/'/g, "\\'");
+        // --- Search Filter ---
+        document.getElementById('searchInventory').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            
+            // If search is cleared, reset back to top 20 view
+            if(term === '') {
+                renderInventory(inventoryCache.slice(0, 20));
+                return;
+            }
 
-                grid.innerHTML += `
-                    <div class="${cardClass}">
-                        ${oosBadge}
-                        <div class="inv-info">
-                            <span class="inv-name">${item.name}</span>
-                            <span class="inv-model">${item.model || 'No Model ID'}</span>
-                            <span class="inv-price">₹${(item.price || 0).toLocaleString()}</span>
-                            <div class="card-actions">
-                                <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
-                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
-                            </div>
-                        </div>
-                        <div class="inv-qty ${qtyClass}">
-                            <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
-                            ${q === 0 ? '0' : q}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- Low Stock Filter Logic ---
-        window.filterLowStock = async function() {
-            const btn = document.getElementById('btnLowStock');
-            const searchBox = document.getElementById('searchInventory');
-            
-            if (showingLowStock) {
-                // Reset to normal view, slice 0, 20 for initial view
-                btn.style.backgroundColor = "var(--warning-color)";
-                searchBox.value = '';
-                showingLowStock = false;
-                renderInventory(inventoryCache.slice(0, 20)); // Load from cache
-            } else {
-                // To do this accurately without querying the whole DB, we query Firestore directly for low stock
-                // Note: This requires an index in Firestore if you have many items.
-                try {
-                    btn.style.backgroundColor = "#fff";
-                    btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
-                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
-                    
-                    // Simple client-side filter if the data is small, but let's assume we want real data
-                    const qAll = query(collection(db, "inventory")); // Getting all to filter (can be heavy if 1000s of items)
-                    const snap = await getDocs(qAll);
-                    
-                    let lowStockItems = [];
-                    snap.forEach(doc => {
-                        const d = doc.data();
-                        if (d.qty < 3) lowStockItems.push({ id: doc.id, ...d });
-                    });
-                    
-                    showingLowStock = true;
-                    renderInventory(lowStockItems);
-                    
-                } catch(err) {
-                    console.error("Stock filter error", err);
-                    showToast("Error checking low stock.", "error");
-                    btn.style.backgroundColor = "var(--warning-color)";
-                }
-            }
-        };
-
-        // --- Search Filter ---
-        document.getElementById('searchInventory').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase().trim();
-            
-            // If search is cleared, reset back to top 20 view
-            if(term === '') {
-                renderInventory(inventoryCache.slice(0, 20));
-                return;
-            }
-
-            // Note: because we removed limit(10), this will now search the full DB cache!
-            const filtered = inventoryCache.filter(item => 
-                (item.name || '').toLowerCase().includes(term) || 
-                (item.model || '').toLowerCase().includes(term)
-            );
-            // Render all matching search results
-            renderInventory(filtered);
-        });
+            // Note: because we removed limit(10), this will now search the full DB cache!
+            const filtered = inventoryCache.filter(item => 
+                (item.name || '').toLowerCase().includes(term) || 
+                (item.model || '').toLowerCase().includes(term)
+            );
+            // Render all matching search results
+            renderInventory(filtered);
+        });
 
 
-        // --- ADD TO INVENTORY MODAL LOGIC ---
-        let pendingCart = [];
+        // --- ADD TO INVENTORY MODAL LOGIC ---
+        let pendingCart = [];
 
-        document.getElementById('btnAddToList').addEventListener('click', async () => {
-            const name = document.getElementById('iName').value.trim();
-            const model = document.getElementById('iModel').value.trim();
-            const price = parseFloat(document.getElementById('iPrice').value) || 0;
-            const qty = parseInt(document.getElementById('iQty').value) || 1;
+        document.getElementById('btnAddToList').addEventListener('click', async () => {
+            const name = document.getElementById('iName').value.trim();
+            const model = document.getElementById('iModel').value.trim();
+            const price = parseFloat(document.getElementById('iPrice').value) || 0;
+            const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
+            const qty = parseInt(document.getElementById('iQty').value) || 1;
 
-            if (!name || price <= 0 || qty < 1) {
-                showToast("Please enter a valid Name, Price, and Quantity.", "error");
-                return;
-            }
+            if (!name || price <= 0 || qty < 1) {
+                showToast("Please enter a valid Name, Price, and Quantity.", "error");
+                return;
+            }
 
-            // --- ADDED CHECK FOR UNIQUE MODEL AND EXISTING QUANTITY UPDATE ---
-            const btnAdd = document.getElementById('btnAddToList');
-            const originalText = btnAdd.innerHTML;
-            btnAdd.disabled = true;
-            btnAdd.innerHTML = "Checking...";
+            // --- ADDED CHECK FOR UNIQUE MODEL AND EXISTING QUANTITY UPDATE ---
+            const btnAdd = document.getElementById('btnAddToList');
+            const originalText = btnAdd.innerHTML;
+            btnAdd.disabled = true;
+            btnAdd.innerHTML = "Checking...";
 
-            try {
-                let isUpdate = false;
-                let existingId = null;
+            try {
+                let isUpdate = false;
+                let existingId = null;
 
-                if (model !== "") {
-                    // Check if model already exists
-                    const q = query(collection(db, "inventory"), where("model", "==", model), limit(1));
-                    const snap = await getDocs(q);
-                    
-                    if (!snap.empty) {
-                        const existingDoc = snap.docs[0];
-                        const existingData = existingDoc.data();
-                        
-                        // Ask user if they want to update the existing product instead of creating a duplicate
-                        const confirmUpdate = confirm(`Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`);
-                        
-                        if (confirmUpdate) {
-                            isUpdate = true;
-                            existingId = existingDoc.id;
-                        } else {
-                            btnAdd.disabled = false;
-                            btnAdd.innerHTML = originalText;
-                            return; // User canceled the addition
-                        }
-                    }
-                }
+                if (model !== "") {
+                    // Check if model already exists
+                    const q = query(collection(db, "inventory"), where("model", "==", model), limit(1));
+                    const snap = await getDocs(q);
+                    
+                    if (!snap.empty) {
+                        const existingDoc = snap.docs[0];
+                        const existingData = existingDoc.data();
+                        
+                        // Ask user if they want to update the existing product instead of creating a duplicate
+                        const confirmUpdate = confirm(`Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`);
+                        
+                        if (confirmUpdate) {
+                            isUpdate = true;
+                            existingId = existingDoc.id;
+                        } else {
+                            btnAdd.disabled = false;
+                            btnAdd.innerHTML = originalText;
+                            return; // User canceled the addition
+                        }
+                    }
+                }
 
-                // Push to cart with update flags
-                pendingCart.push({ 
-                    name: isUpdate ? (name || "Existing Product") : name, 
-                    model, 
-                    price, 
-                    qty, 
-                    isUpdate, 
-                    existingId 
-                });
-                
-                // Clear inputs
-                document.getElementById('iName').value = '';
-                document.getElementById('iModel').value = '';
-                document.getElementById('iPrice').value = '';
-                document.getElementById('iQty').value = '1';
-                document.getElementById('iName').focus();
+                // Push to cart with update flags
+                pendingCart.push({ 
+                    name: isUpdate ? (name || "Existing Product") : name, 
+                    model, 
+                    mrp,
+                    price, 
+                    qty, 
+                    isUpdate, 
+                    existingId 
+                });
+                
+                // Clear inputs
+                document.getElementById('iName').value = '';
+                document.getElementById('iModel').value = '';
+                document.getElementById('iPrice').value = '';
+                document.getElementById('iMrp').value = '';
+                document.getElementById('iQty').value = '1';
+                document.getElementById('iName').focus();
 
-                renderPendingList();
-            } catch (error) {
-                console.error("Error checking model:", error);
-                showToast("Error verifying product model.", "error");
-            } finally {
-                btnAdd.disabled = false;
-                btnAdd.innerHTML = originalText;
-            }
-        });
+                renderPendingList();
+            } catch (error) {
+                console.error("Error checking model:", error);
+                showToast("Error verifying product model.", "error");
+            } finally {
+                btnAdd.disabled = false;
+                btnAdd.innerHTML = originalText;
+            }
+        });
 
-        window.removePendingItem = function(index) {
-            pendingCart.splice(index, 1);
-            renderPendingList();
-        };
+        window.removePendingItem = function(index) {
+            pendingCart.splice(index, 1);
+            renderPendingList();
+        };
 
-        function renderPendingList() {
-            const list = document.getElementById('pendingList');
-            const btnSave = document.getElementById('btnSaveInventory');
-            
-            if (pendingCart.length === 0) {
-                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>';
-                btnSave.disabled = true;
-                btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All to Database`;
-                return;
-            }
+        function renderPendingList() {
+            const list = document.getElementById('pendingList');
+            const btnSave = document.getElementById('btnSaveInventory');
+            
+            if (pendingCart.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">List is currently empty</div>';
+                btnSave.disabled = true;
+                btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All to Database`;
+                return;
+            }
 
-            list.innerHTML = '';
-            pendingCart.forEach((item, index) => {
-                // Visual badge to show if it's updating an existing item or creating a new one
-                const actionBadge = item.isUpdate 
-                    ? `<span style="background:var(--warning-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">UPDATE QTY</span>` 
-                    : `<span style="background:var(--success-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">NEW</span>`;
+            list.innerHTML = '';
+            pendingCart.forEach((item, index) => {
+                // Visual badge to show if it's updating an existing item or creating a new one
+                const actionBadge = item.isUpdate 
+                    ? `<span style="background:var(--warning-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">UPDATE QTY</span>` 
+                    : `<span style="background:var(--success-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">NEW</span>`;
 
-                list.innerHTML += `
-                    <div class="pending-item">
-                        <div>
-                            <div style="font-weight:bold; color:var(--marketing-white);">${item.name} <span style="font-weight:normal; color:var(--text-secondary);">+${item.qty}</span> ${actionBadge}</div>
-                            <div style="font-size:0.8em; color:var(--text-secondary);">${item.model || 'No ID'} • ₹${item.price.toLocaleString()}</div>
-                        </div>
-                        <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
-                    </div>
-                `;
-            });
-            
-            btnSave.disabled = false;
-            btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
-        }
+                list.innerHTML += `
+                    <div class="pending-item">
+                        <div>
+                            <div style="font-weight:bold; color:var(--marketing-white);">${item.name} <span style="font-weight:normal; color:var(--text-secondary);">+${item.qty}</span> ${actionBadge}</div>
+                            <div style="font-size:0.8em; color:var(--text-secondary);">${item.model || 'No ID'} • ₹${item.price.toLocaleString()}</div>
+                        </div>
+                        <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
+                    </div>
+                `;
+            });
+            
+            btnSave.disabled = false;
+            btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
+        }
 
-        // Final Save to Firestore
-        document.getElementById('btnSaveInventory').addEventListener('click', async () => {
-            if (pendingCart.length === 0) return;
-            
-            const btnSave = document.getElementById('btnSaveInventory');
-            btnSave.disabled = true;
-            btnSave.innerHTML = "Saving to Server...";
+        // Final Save to Firestore
+        document.getElementById('btnSaveInventory').addEventListener('click', async () => {
+            if (pendingCart.length === 0) return;
+            
+            const btnSave = document.getElementById('btnSaveInventory');
+            btnSave.disabled = true;
+            btnSave.innerHTML = "Saving to Server...";
 
-            try {
-                const batch = writeBatch(db);
+            try {
+                const batch = writeBatch(db);
 
-                pendingCart.forEach(item => {
-                    // Decide whether to increment existing document or create a new one based on the checks done earlier
-                    if (item.isUpdate && item.existingId) {
-                        const existingRef = doc(db, "inventory", item.existingId);
-                        batch.update(existingRef, {
-                            qty: increment(item.qty)
-                        });
-                    } else {
-                        const newRef = doc(collection(db, "inventory"));
-                        batch.set(newRef, {
-                            name: item.name,
-                            model: item.model,
-                            price: item.price,
-                            qty: item.qty,
-                            createdAt: serverTimestamp()
-                        });
-                    }
-                });
+                pendingCart.forEach(item => {
+                    // Decide whether to increment existing document or create a new one based on the checks done earlier
+                    if (item.isUpdate && item.existingId) {
+                        const existingRef = doc(db, "inventory", item.existingId);
+                        batch.update(existingRef, {
+                            qty: increment(item.qty)
+                        });
+                    } else {
+                        const newRef = doc(collection(db, "inventory"));
+                        batch.set(newRef, {
+                            name: item.name,
+                            model: item.model,
+                            mrp: item.mrp,
+                            price: item.price,
+                            qty: item.qty,
+                            createdAt: serverTimestamp()
+                        });
+                    }
+                });
 
-                await batch.commit();
+                await batch.commit();
 
-                showToast("Inventory successfully updated!", "success");
-                
-                // Cleanup
-                pendingCart = [];
-                renderPendingList();
-                history.back(); // close modal
-                
-                // Refresh background grid
-                loadInventory();
+                showToast("Inventory successfully updated!", "success");
+                
+                // Cleanup
+                pendingCart = [];
+                renderPendingList();
+                history.back(); // close modal
+                
+                // Refresh background grid
+                loadInventory();
 
-            } catch (err) {
-                console.error("Batch save failed", err);
-                showToast("Error saving data. Check console.", "error");
-                btnSave.disabled = false;
-                renderPendingList(); // reset button text
-            }
-        });
+            } catch (err) {
+                console.error("Batch save failed", err);
+                showToast("Error saving data. Check console.", "error");
+                btnSave.disabled = false;
+                renderPendingList(); // reset button text
+            }
+        });
 
-        // Initialize Data on Load
-        loadInventory();
-    </script>
+        // Initialize Data on Load
+        loadInventory();
+    </script>
 </body>
 </html>
