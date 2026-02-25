@@ -126,18 +126,19 @@
         #printArea { display: none; }
 
         @media print {
-            /* Force 1 page and remove browser headers/footers */
+            /* Force page size and remove browser headers/footers */
             @page { size: A4 portrait; margin: 0mm; }
             
-            /* Hide the entire App UI */
-            body * { visibility: hidden; }
-            body { background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
+            body > *:not(#printArea) { display: none !important; }
+            /* FIX: Ensure body is block (not flex) for pagination */
+            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
-            /* Show only the Print Area */
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
+            /* FIX: Remove position: absolute to allow multiple pages to flow naturally */
+            #printArea { display: block !important; position: relative; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
 
-            .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 296mm; }
+            /* FIX: Slightly reduced min-height to prevent 1px overflow causing extra blank pages */
+            .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 295mm; }
             .print-page:last-child { page-break-after: auto; }
 
             /* Top Band Header */
