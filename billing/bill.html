@@ -332,6 +332,10 @@
                         <input type="number" id="pQty" value="1" min="1">
                     </div>
                     <div>
+                        <label>Discount (₹)</label>
+                        <input type="number" id="pDiscount" value="0" min="0" placeholder="0">
+                    </div>
+                    <div>
                         <label>GST % (Optional)</label>
                         <select id="pGst">
                             <option value="0">No GST</option>
@@ -377,6 +381,7 @@
             <div class="totals-box">
                 <div class="t-row"><span>Subtotal:</span> <span id="uiSub">₹0</span></div>
                 <div class="t-row"><span>Total GST:</span> <span id="uiGst">₹0</span></div>
+                <div class="t-row" id="uiDiscountRow" style="display:none; color: var(--meena-red);"><span>Total Discount:</span> <span id="uiDiscount">-₹0</span></div>
                 <div class="t-row grand"><span>Grand Total:</span> <span id="uiGrand">₹0</span></div>
             </div>
 
@@ -471,6 +476,10 @@
                     <tr>
                         <td class="t-label">Total Tax (GST)</td>
                         <td class="t-val" id="prGstTotal">₹0.00</td>
+                    </tr>
+                    <tr id="prDiscountRow" style="display:none;">
+                        <td class="t-label" style="color: #d32f2f;">Discount</td>
+                        <td class="t-val" id="prDiscountTotal" style="color: #d32f2f;">-₹0.00</td>
                     </tr>
                     <tr class="t-grand-row">
                         <td class="t-label">TOTAL :</td>
@@ -602,6 +611,7 @@
                     document.getElementById('pModel').value = d.model || '';
                     document.getElementById('pPrice').value = d.price || '';
                     document.getElementById('pQty').value = 1;
+                    document.getElementById('pDiscount').value = '0'; // INJECTED: Reset Discount
                     document.getElementById('pNonStock').checked = false; // Reset to stock tracking
                     
                     searchInput.value = '';
@@ -620,13 +630,14 @@
 
         // --- CART LOGIC ---
         let cartItems = [];
-        let billTotals = { sub: 0, gst: 0, grand: 0 };
+        let billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; // INJECTED: Added discount to totals
 
         document.getElementById('btnAddCart').addEventListener('click', () => {
             const name = document.getElementById('pName').value.trim();
             const model = document.getElementById('pModel').value.trim();
             const price = parseFloat(document.getElementById('pPrice').value) || 0;
             const qty = parseInt(document.getElementById('pQty').value) || 1;
+            const discount = parseFloat(document.getElementById('pDiscount').value) || 0; // INJECTED: Read Discount
             const gstPercent = parseFloat(document.getElementById('pGst').value) || 0;
             const isNonStock = document.getElementById('pNonStock').checked;
             
@@ -663,8 +674,9 @@
                 existingItemIndex = cartItems.findIndex(item => item.name === name && item.isNonStock && item.price === price && item.gstPercent === gstPercent);
             }
 
-            // Calculate amounts (Price is considered INCLUSIVE of GST)
-            const finalTotal = price * qty;
+            // Calculate amounts (Price is considered INCLUSIVE of GST, but discount is reduced first)
+            const grossTotal = price * qty;
+            const finalTotal = Math.max(0, grossTotal - discount); // INJECTED: Apply Discount
             const baseTotal = finalTotal / (1 + (gstPercent / 100));
             const gstAmount = finalTotal - baseTotal;
 
@@ -672,14 +684,15 @@
                 // If the product is already in the cart, merge quantities (No Duplicates)
                 let item = cartItems[existingItemIndex];
                 item.qty += qty;
-                item.finalTotal = item.price * item.qty;
+                item.discount += discount; // INJECTED: Merge discount
+                item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); // INJECTED: Recalculate
                 item.baseTotal = item.finalTotal / (1 + (item.gstPercent / 100));
                 item.gstAmount = item.finalTotal - item.baseTotal;
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
                     invId: isNonStock ? null : invId,
-                    name, model, price, qty, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock
+                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock // INJECTED: Added discount variable
                 });
             }
 
@@ -690,6 +703,7 @@
             document.getElementById('pModel').value = '';
             document.getElementById('pPrice').value = '';
             document.getElementById('pQty').value = '1';
+            document.getElementById('pDiscount').value = '0'; // INJECTED: Reset discount input
             document.getElementById('pGst').value = '0';
             document.getElementById('pNonStock').checked = false;
 
@@ -708,12 +722,13 @@
             const list = document.getElementById('cartList');
             const btnSave = document.getElementById('btnSaveBill');
             
-            billTotals = { sub: 0, gst: 0, grand: 0 };
+            billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; // INJECTED: reset discount
 
             if (cartItems.length === 0) {
                 list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Bill is empty</div>';
                 document.getElementById('uiSub').innerText = '₹0';
                 document.getElementById('uiGst').innerText = '₹0';
+                document.getElementById('uiDiscountRow').style.display = 'none'; // INJECTED: Hide discount row
                 document.getElementById('uiGrand').innerText = '₹0';
                 btnSave.disabled = true;
                 
@@ -729,11 +744,14 @@
             cartItems.forEach((item, i) => {
                 billTotals.sub += item.baseTotal;
                 billTotals.gst += item.gstAmount;
+                billTotals.discount += (item.discount || 0); // INJECTED: add item discount
                 billTotals.grand += item.finalTotal;
 
+                // INJECTED: Added visual discount tag to the UI cart item
                 const tags = `
                     ${item.isNonStock ? '<span class="ns-tag">NON-STOCK</span>' : ''}
                     ${item.gstPercent > 0 ? `<span class="gst-tag">GST ${item.gstPercent}%</span>` : ''}
+                    ${(item.discount || 0) > 0 ? `<span class="ns-tag" style="background:rgba(255,51,51,0.2);color:var(--meena-red);">DISC ₹${item.discount}</span>` : ''}
                 `;
 
                 list.innerHTML += `
@@ -776,6 +794,16 @@
 
             document.getElementById('uiSub').innerText = `₹${billTotals.sub.toLocaleString()}`;
             document.getElementById('uiGst').innerText = `₹${billTotals.gst.toLocaleString()}`;
+            
+            // INJECTED: Show/Hide total discount row in UI based on usage
+            const uiDiscRow = document.getElementById('uiDiscountRow');
+            if (billTotals.discount > 0) {
+                uiDiscRow.style.display = 'flex';
+                document.getElementById('uiDiscount').innerText = `-₹${billTotals.discount.toLocaleString()}`;
+            } else {
+                uiDiscRow.style.display = 'none';
+            }
+
             document.getElementById('uiGrand').innerText = `₹${billTotals.grand.toLocaleString()}`;
             btnSave.disabled = false;
         }
@@ -902,9 +930,13 @@
                 
                 // Moved GST info into description so the table strictly has 5 columns like the image
                 const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
+                
+                // INJECTED: Added explicit Discount tag directly to the description string to keep the 5 columns intact
+                const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
+                
                 const desc = `
                     <strong style="font-size:13px; display:block; color:#000;">${item.name}</strong>
-                    <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}</span>
+                    <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
                 tbody.innerHTML += `
@@ -927,6 +959,16 @@
             document.getElementById('prSgstTotal').innerText = `₹${halfGst.toFixed(2)}`;
             
             document.getElementById('prGstTotal').innerText = `₹${billTotals.gst.toFixed(2)}`;
+
+            // INJECTED: Set Print Layout Discount Total
+            const prDiscRow = document.getElementById('prDiscountRow');
+            if (billTotals.discount > 0) {
+                prDiscRow.style.display = 'table-row';
+                document.getElementById('prDiscountTotal').innerText = `-₹${billTotals.discount.toFixed(2)}`;
+            } else {
+                prDiscRow.style.display = 'none';
+            }
+
             document.getElementById('prGrandTotal').innerText = `₹${billTotals.grand.toFixed(2)}`;
         }
 
