@@ -461,6 +461,100 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+
+    /* * ==========================================
+     * NEW: ENHANCED CARDS & MODAL STYLES ADDED
+     * ==========================================
+     */
+     
+    /* Upgrade suggestions to behave like a static card list */
+    #suggestions {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      position: relative !important;
+      width: 100% !important;
+      left: 0 !important;
+      margin-top: 15px !important;
+      max-height: calc(100vh - 160px) !important;
+      padding-bottom: 20px;
+    }
+    
+    /* Upgrade list items to look like professional modern cards */
+    .suggestion-item {
+      background: linear-gradient(145deg, #1e293b, #0f172a) !important;
+      border-radius: 16px !important;
+      margin-bottom: 15px !important;
+      padding: 20px !important;
+      border: 1px solid rgba(255,255,255,0.05) !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+      position: relative;
+    }
+    
+    .s-name { font-size: 1.2rem !important; margin-bottom: 2px; }
+    .s-id { font-size: 0.85rem !important; background: rgba(59, 130, 246, 0.15) !important; }
+    
+    .card-view-btn {
+      background: var(--primary-dim);
+      color: var(--primary);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      align-self: flex-end;
+      border: 1px solid rgba(16,185,129,0.3);
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%;
+      background: rgba(0,0,0,0.6); 
+      backdrop-filter: blur(4px);
+      z-index: 999; 
+      opacity: 0; 
+      pointer-events: none; 
+      transition: 0.3s;
+    }
+    .modal-overlay.active {
+      opacity: 1; 
+      pointer-events: auto;
+    }
+
+    /* Override `.customer-card` to act as a right-side sliding Modal */
+    .customer-card {
+      position: fixed !important;
+      top: 0 !important;
+      right: -100% !important; /* Start completely off-screen */
+      width: 100% !important;
+      max-width: 500px !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      z-index: 1000 !important;
+      margin: 0 !important;
+      transition: right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      overflow-y: auto !important;
+      display: flex;
+      flex-direction: column;
+      animation: none !important; /* Disable old slideUp */
+    }
+    .customer-card.active-modal {
+      right: 0 !important;
+      display: flex !important;
+    }
+
   </style>
 </head>
 <body>
@@ -483,11 +577,19 @@
     <div id="suggestions"></div>
   </div>
 
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+
   <main class="main-content">
     
     <div id="customerInfo" class="customer-card hidden">
       
       <div class="card-header">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="color: var(--accent); font-weight: bold; font-size: 0.85rem; letter-spacing: 1px;">CUSTOMER PROFILE</span>
+          <button onclick="closeModal()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;">✕</button>
+        </div>
+
         <h2 class="cust-name" id="custName">Customer Name</h2>
         <div class="cust-meta">
           <span id="custId">ID: --</span>
@@ -601,6 +703,17 @@
       if (e.key === "Enter") executeSearch();
     });
 
+    // NEW LINE: Added Debounce function to limit Firebase reads while typing.
+    let typingTimer;
+    searchBox.addEventListener("input", (e) => {
+      clearTimeout(typingTimer);
+      if (searchBox.value.trim().length >= 2) {
+        typingTimer = setTimeout(executeSearch, 600); // Wait 600ms after user stops typing to fetch
+      } else {
+        suggestionBox.style.display = "none";
+      }
+    });
+
     window.executeSearch = async () => {
       const term = searchBox.value.trim();
       if (term.length < 2) { 
@@ -634,10 +747,17 @@
           const c = docSnap.data();
           const div = document.createElement("div");
           div.className = "suggestion-item";
+          
+          // NEW LINE: Modified the inner structure to show like a professional modern card while keeping the original spans
           div.innerHTML = `
-            <span class="s-name">${c.name}</span> 
-            <span class="s-id">${c.id}</span>
+            <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+              <span class="s-name">${c.name}</span> 
+              <span class="s-id">ID: ${c.id}</span>
+              <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📞 Phone: ${c.phone || 'N/A'}</span>
+            </div>
+            <div class="card-view-btn">View Profile ➔</div>
           `;
+          
           div.onclick = () => loadCustomer(c);
           suggestionBox.appendChild(div);
         });
@@ -657,6 +777,10 @@
       searchBox.value = "";
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
+      
+      // NEW LINE: Trigger the right-side Modal Animation and History State
+      openModal();
+
       document.getElementById("postSaveActions").classList.add("hidden"); 
 
       const dropdown = document.getElementById("productDropdown");
@@ -672,6 +796,44 @@
       await updateProductDetails(0);
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
+
+    // NEW LINES: Functions to handle sliding modal and mobile back button functionality
+    window.openModal = () => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("hidden");
+      // Timeout needed to allow CSS display:flex to take over before triggering slide animation
+      setTimeout(() => {
+        card.classList.add("active-modal");
+        document.getElementById("modalOverlay").classList.add("active");
+      }, 10);
+      
+      // Push state into History for Mobile Back Button
+      history.pushState({ modalOpen: true }, "");
+    };
+
+    window.closeModal = () => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350); // Wait for CSS transition to finish
+
+      // If triggered by the X button instead of the native back button, go back manually
+      if (history.state && history.state.modalOpen) {
+        history.back();
+      }
+    };
+
+    // Listen for the native mobile back button
+    window.addEventListener('popstate', (e) => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350);
+    });
 
     // --- 3. CALCULATE STATS & PRE-FILL TARGET DUE ---
     async function updateProductDetails(index) {
