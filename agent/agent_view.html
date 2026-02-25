@@ -48,12 +48,21 @@
       margin: 20px; padding: 20px;
       background: linear-gradient(135deg, var(--card) 0%, #0f172a 100%);
       border: 1px solid var(--border); border-radius: 16px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; flex-direction: column; /* Changed to column to stack the new splits */
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
+    .sum-top-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
     .sum-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .sum-val { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-top: 5px; }
     .sum-icon { font-size: 2rem; opacity: 0.8; }
+
+    /* NEW STYLES: Cash and Online splits inside summary card */
+    .sum-splits {
+      display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); width: 100%;
+    }
+    .split-box { display: flex; flex-direction: column; }
+    .split-box.cash .s-val { color: var(--primary); font-weight: bold; font-size: 1.2rem; }
+    .split-box.online .s-val { color: var(--accent); font-weight: bold; font-size: 1.2rem; }
 
     /* --- ENTRIES LIST --- */
     .list-container { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
@@ -63,15 +72,32 @@
       overflow: hidden; position: relative; transition: transform 0.2s;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
+    
+    /* NEW STYLES: Non-DB styling */
+    .entry-card.non-db-card {
+      border: 2px dashed var(--warn);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+    }
+    .non-db-tag {
+      position: absolute; top: 0; right: 0; background: var(--warn); color: #000;
+      font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-bottom-left-radius: 10px;
+      letter-spacing: 0.5px; z-index: 2;
+    }
+
     .entry-card:active { transform: scale(0.98); }
     /* Pending Indicator Strip */
     .entry-card::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; background: var(--warn); }
 
-    .card-main { padding: 15px; }
+    .card-main { padding: 15px; position: relative; }
     
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .c-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .c-name { font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .c-id { font-size: 0.8rem; color: var(--accent); font-family: monospace; background: rgba(59,130,246,0.1); padding: 2px 6px; border-radius: 4px; }
+
+    /* NEW STYLES: Mode Badges */
+    .mode-badge { font-size: 0.65rem; padding: 3px 6px; border-radius: 6px; font-weight: bold; letter-spacing: 0.5px; }
+    .cash-badge { background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid var(--primary); }
+    .online-badge { background: rgba(59, 130, 246, 0.15); color: var(--accent); border: 1px solid var(--accent); }
 
     .card-mid { display: flex; justify-content: space-between; align-items: flex-end; }
     .c-prod { font-size: 0.9rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
@@ -166,11 +192,23 @@
   </header>
 
   <div class="summary-card">
-    <div>
-      <div class="sum-label">Ready to Submit</div>
-      <div class="sum-val" id="totalAmt">₹0</div>
+    <div class="sum-top-row">
+      <div>
+        <div class="sum-label">Ready to Submit (Total)</div>
+        <div class="sum-val" id="totalAmt">₹0</div>
+      </div>
+      <div class="sum-icon">💰</div>
     </div>
-    <div class="sum-icon">💰</div>
+    <div class="sum-splits">
+      <div class="split-box cash">
+        <span class="sum-label">CASH Total</span>
+        <span class="s-val" id="totalCashAmt">₹0</span>
+      </div>
+      <div class="split-box online">
+        <span class="sum-label">ONLINE Total</span>
+        <span class="s-val" id="totalOnlineAmt">₹0</span>
+      </div>
+    </div>
   </div>
 
   <div id="entriesList" class="list-container">
@@ -240,6 +278,10 @@
       const listDiv = document.getElementById("entriesList");
       const totalDiv = document.getElementById("totalAmt");
       
+      // NEW: Targets for splits
+      const totalCashDiv = document.getElementById("totalCashAmt");
+      const totalOnlineDiv = document.getElementById("totalOnlineAmt");
+      
       try {
         // FIXED: Query for 'draft' instead of 'pending'
         const q = query(collection(db, "temp_entries"), where("status", "==", "draft"));
@@ -247,13 +289,26 @@
         
         agentEntries = [];
         let total = 0;
+        
+        // NEW: tracking logic
+        let cashTotal = 0;
+        let onlineTotal = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
           d.docId = docSnap.id;
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
           agentEntries.push(d);
-          total += parseFloat(d.amount || 0);
+          
+          let amt = parseFloat(d.amount || 0);
+          total += amt;
+          
+          // NEW: Summing Cash vs Online
+          if (d.paymentMode && d.paymentMode.toLowerCase() === 'online') {
+            onlineTotal += amt;
+          } else {
+            cashTotal += amt;
+          }
         });
 
         // Sort Newest
@@ -261,6 +316,10 @@
 
         listDiv.innerHTML = "";
         totalDiv.innerText = `₹${total.toLocaleString()}`;
+        
+        // NEW: Populate the DOM split amounts
+        totalCashDiv.innerText = `₹${cashTotal.toLocaleString()}`;
+        totalOnlineDiv.innerText = `₹${onlineTotal.toLocaleString()}`;
 
         if (agentEntries.length === 0) {
           listDiv.innerHTML = `
@@ -275,11 +334,26 @@
         agentEntries.forEach(d => {
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           
+          // NEW: Tag rendering logic
+          const isNonDb = d.isNonDatabase === true;
+          const nonDbClass = isNonDb ? "non-db-card" : "";
+          const nonDbTag = isNonDb ? `<div class="non-db-tag">NON-DB ENTRY</div>` : "";
+          
+          // NEW: Mode badge logic
+          const isOnline = d.paymentMode && d.paymentMode.toLowerCase() === 'online';
+          const badgeClass = isOnline ? "online-badge" : "cash-badge";
+          const badgeText = isOnline ? "ONLINE" : "CASH";
+          const modeBadge = `<span class="mode-badge ${badgeClass}">${badgeText}</span>`;
+          
           const html = `
-            <div class="entry-card">
+            <div class="entry-card ${nonDbClass}">
+              ${nonDbTag}
               <div class="card-main">
                 <div class="card-top">
-                  <div class="c-name">${d.customerName}</div>
+                  <div class="c-name">
+                    ${d.customerName}
+                    ${modeBadge}
+                  </div>
                   <div class="c-id">${d.customerId}</div>
                 </div>
                 
