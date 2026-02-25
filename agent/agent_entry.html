@@ -726,8 +726,8 @@
             <input type="text" id="ndbName" class="input-field" placeholder="Enter Name">
           </div>
           <div>
-            <label>Customer ID (Optional)</label>
-            <input type="text" id="ndbId" class="input-field" placeholder="ID or Blank">
+            <label>Customer ID</label>
+            <input type="text" id="ndbId" class="input-field" placeholder="Enter ID">
           </div>
         </div>
         
@@ -1361,28 +1361,59 @@ ${center("to see your eCard")}`;
     window.saveNonDbEntry = async () => {
       const name = document.getElementById("ndbName").value.trim();
       const id = document.getElementById("ndbId").value.trim();
-      const due = parseInt(document.getElementById("ndbDue").value);
-      const amt = parseFloat(document.getElementById("ndbAmount").value);
+      const dueStr = document.getElementById("ndbDue").value;
+      const due = parseInt(dueStr);
+      const amtStr = document.getElementById("ndbAmount").value;
+      const amt = parseFloat(amtStr);
       const mode = document.getElementById("ndbPaymentMode").value;
       const date = document.getElementById("ndbDate").value;
 
+      // Validation Checks - ALL MANDATORY
       if(!name) return alert("❌ Enter Customer Name");
-      if(!amt || amt <= 0) return alert("❌ Enter valid Amount");
+      if(!id) return alert("❌ Enter Customer ID");
+      if(!dueStr || isNaN(due)) return alert("❌ Enter Due Number");
+      if(!amtStr || isNaN(amt) || amt <= 0) return alert("❌ Enter valid Amount");
+      if(!mode) return alert("❌ Select Payment Mode");
+      if(!date) return alert("❌ Select Date");
 
       const btn = document.getElementById("btnSaveNdb");
       btn.disabled = true;
       btn.innerHTML = "SAVING...";
 
       try {
+        // ID Checking logic (Case insensitive, space insensitive)
+        const variations = [
+            id, 
+            id.replace(/\s+/g, ''), 
+            id.replace(/\s+/g, '').toLowerCase(), 
+            id.replace(/\s+/g, '').toUpperCase()
+        ];
+        
+        let exists = false;
+        for (const variant of variations) {
+            const checkQ = query(collection(db, "customers"), where("id", "==", variant), limit(1));
+            const checkSnap = await getDocs(checkQ);
+            if (!checkSnap.empty) {
+                exists = true;
+                break;
+            }
+        }
+        
+        if (exists) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> SAVE MANUAL ENTRY`;
+            return alert("❌ already customer exist");
+        }
+
         const entryData = {
-          customerId: id || "NON-DB",
+          customerId: id, // Now strictly taking the provided ID
           customerName: name,
           customerPhone: "N/A",
           productName: "Manual Custom Entry",
           productIndex: -1,
           amount: parseFloat(amt.toFixed(2)),
           date: date,
-          dueNumber: due || 1,
+          dueNumber: due,
           status: "draft",
           timestamp: serverTimestamp(),
           agentEntry: true,
