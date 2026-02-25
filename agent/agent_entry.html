@@ -782,7 +782,7 @@
     
   </main>
 
-  <button id="fabAddNonDB" class="fab-btn" onclick="openNonDbModal()">+</button>
+  <button id="fabAddNonDB" class="fab-btn" onclick="openNonDbModal()" style="display: none;">+</button>
 
   <div id="toast" class="toast">Entry Saved Successfully!</div>
 
@@ -827,6 +827,10 @@
 
     window.executeSearch = async () => {
       const term = searchBox.value.trim();
+      
+      // NEW LINE: Hide the FAB again on a new search
+      document.getElementById("fabAddNonDB").style.display = "none";
+
       if (term.length < 2) { 
         alert("Please enter at least 2 characters."); 
         return; 
@@ -851,6 +855,10 @@
         
         if (snapshot.empty) {
           suggestionBox.innerHTML = '<div style="padding:15px; color:#ef4444;">No customer found.</div>';
+          
+          // NEW LINE: Show the FAB add icon because no customer was found
+          document.getElementById("fabAddNonDB").style.display = "flex";
+          
           return;
         }
 
@@ -1335,6 +1343,14 @@ ${center("to see your eCard")}`;
       const card = document.getElementById("nonDbModal");
       document.getElementById("ndbDate").value = new Date().toISOString().split("T")[0]; // Auto-set today
       document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
+      
+      // NEW LINES: Auto-fill the searched ID into the modal
+      const searchTerm = document.getElementById("searchBox").value.trim();
+      if (searchTerm) {
+        document.getElementById("ndbId").value = searchTerm;
+      } else {
+        document.getElementById("ndbId").value = "";
+      }
       
       card.classList.remove("hidden");
       setTimeout(() => {
