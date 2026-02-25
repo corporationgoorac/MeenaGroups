@@ -255,6 +255,39 @@
         </button>
     </div>
 
+    <div class="modal" id="modalEditInventory">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Edit Inventory</h2>
+        </div>
+        
+        <div class="form-group">
+            <input type="hidden" id="editId">
+            
+            <label>Product Name *</label>
+            <input type="text" id="editName" placeholder="e.g. Premium Display Stand">
+            
+            <label>Product ID / Model</label>
+            <input type="text" id="editModel" placeholder="e.g. PDS-100X">
+            
+            <div class="row-inputs">
+                <div>
+                    <label>Base Price (₹) *</label>
+                    <input type="number" id="editPrice" placeholder="0" min="0">
+                </div>
+                <div>
+                    <label>Quantity *</label>
+                    <input type="number" id="editQty" value="0" min="0">
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary" id="btnSaveEditItem" style="width: 100%; margin: 20px 0;">
+                <span class="material-symbols-outlined">save</span>
+                Update Product
+            </button>
+        </div>
+    </div>
+
     <script type="module">
         // 1. Service Worker Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
@@ -315,6 +348,7 @@
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
+            /* --- PRESERVED ORIGINAL LINES (COMMENTED OUT TO AVOID REMOVING CODE) ---
             const newName = prompt("Enter new product name:", item.name);
             if (newName === null) return;
 
@@ -351,7 +385,56 @@
                 console.error("Error updating product:", err);
                 showToast("Failed to update product.", "error");
             }
+            */
+
+            // --- NEW MODAL INTEGRATION ---
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = item.name || '';
+            document.getElementById('editModel').value = item.model || '';
+            document.getElementById('editPrice').value = item.price || 0;
+            document.getElementById('editQty').value = item.qty || 0;
+
+            // Open the new modal (This automatically hooks into the native mobile back button via history.pushState)
+            openModal('modalEditInventory');
         };
+
+        // --- NEW FUNCTION TO HANDLE SAVING FROM THE EDIT MODAL ---
+        document.getElementById('btnSaveEditItem').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            const newName = document.getElementById('editName').value.trim();
+            const newModel = document.getElementById('editModel').value.trim();
+            const newPrice = parseFloat(document.getElementById('editPrice').value);
+            const newQty = parseInt(document.getElementById('editQty').value);
+
+            if (!newName || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
+                showToast("Please enter valid name, price, and quantity.", "error");
+                return;
+            }
+
+            const btnSave = document.getElementById('btnSaveEditItem');
+            const originalText = btnSave.innerHTML;
+            btnSave.disabled = true;
+            btnSave.innerHTML = "Updating...";
+
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, { 
+                    name: newName,
+                    model: newModel,
+                    price: newPrice,
+                    qty: newQty
+                });
+                showToast("Product updated successfully!", "success");
+                history.back(); // Closes the modal using native back mechanics
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error updating product:", err);
+                showToast("Failed to update product.", "error");
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerHTML = originalText;
+            }
+        });
 
         window.deleteItem = async function(id, name) {
             if (!confirm(`Are you sure you want to completely delete "${name}"?`)) return;
