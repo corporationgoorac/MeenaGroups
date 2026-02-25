@@ -804,8 +804,19 @@
                 // INJECTED OVERRIDE: Fetch from the custom box based on real-time GST detection
                 const hasGst = cartItems.some(item => item.gstPercent > 0);
                 let customVal = document.getElementById('customInvNo').value.trim();
+                
+                let smartNextGst = null;
+                let smartNextNormal = null;
+
                 if(customVal) {
                     invNo = customVal;
+                    // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
+                    const numMatch = customVal.match(/(\d+)$/);
+                    if(numMatch) {
+                        const parsedNum = parseInt(numMatch[1], 10);
+                        if(hasGst) smartNextGst = parsedNum + 1;
+                        else smartNextNormal = parsedNum + 1;
+                    }
                 } else {
                     invNo = hasGst ? `GST-${nextGstNo.toString().padStart(4, '0')}` : `INV-${nextNormalNo.toString().padStart(4, '0')}`;
                 }
@@ -833,12 +844,17 @@
                     }
                 });
 
-                // INJECTED 3: Update System Invoice Counters
+                // INJECTED 3: Update System Invoice Counters (SMART UPDATE APPLIED)
                 const counterRef = doc(db, "settings", "invoiceCounters");
-                batch.set(counterRef, {
-                    nextGst: hasGst ? increment(1) : increment(0),
-                    nextNormal: hasGst ? increment(0) : increment(1)
-                }, { merge: true });
+                let counterUpdates = {};
+                if (hasGst) {
+                    counterUpdates.nextGst = smartNextGst !== null ? smartNextGst : increment(1);
+                    counterUpdates.nextNormal = increment(0);
+                } else {
+                    counterUpdates.nextGst = increment(0);
+                    counterUpdates.nextNormal = smartNextNormal !== null ? smartNextNormal : increment(1);
+                }
+                batch.set(counterRef, counterUpdates, { merge: true });
 
                 await batch.commit();
 
