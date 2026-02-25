@@ -811,12 +811,15 @@
     const suggestionBox = document.getElementById("suggestions");
 
     searchBox.addEventListener("keypress", (e) => {
+      if (e.key === " ") e.preventDefault(); // NEW LINE: Prevent spaces
       if (e.key === "Enter") executeSearch();
     });
 
     // NEW LINE: Added Debounce function to limit Firebase reads while typing.
     let typingTimer;
     searchBox.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\s+/g, ''); // NEW LINE: Also remove spaces on paste
+
       clearTimeout(typingTimer);
       if (searchBox.value.trim().length >= 2) {
         typingTimer = setTimeout(executeSearch, 600); // Wait 600ms after user stops typing to fetch
@@ -1471,6 +1474,22 @@ ${center("to see your eCard")}`;
 
     // Set Today's Date default on load
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
+
+    // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        const fab = document.getElementById("fabAddNonDB");
+        if (fab) {
+          // Adjust bottom position based on keyboard height
+          const offset = window.innerHeight - window.visualViewport.height;
+          if (offset > 50) {
+            fab.style.bottom = (offset + 30) + "px";
+          } else {
+            fab.style.bottom = "30px";
+          }
+        }
+      });
+    }
 
   </script>
 </body>
