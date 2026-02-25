@@ -70,6 +70,18 @@
       background: rgba(62, 166, 255, 0.1); padding: 5px 12px; border-radius: 20px;
     }
 
+    /* --- NEW CSS FOR CASH & ONLINE SPLIT --- */
+    .split-stats {
+      display: flex; width: 100%; justify-content: space-between; align-items: center;
+      margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .split-stat { display: flex; flex-direction: column; align-items: center; width: 45%; }
+    .split-label { font-size: 0.75rem; color: var(--text-sec); font-weight: 600; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
+    .split-val { font-size: 1.3rem; font-weight: 700; color: var(--text-main); font-family: monospace; }
+    .split-divider { width: 1px; height: 35px; background: rgba(255,255,255,0.1); }
+    .split-val.cash { color: #2ba640; } /* Green for cash */
+    .split-val.online { color: #3ea6ff; } /* Blue for online */
+
     /* --- QUICK ACTIONS GRID --- */
     .section-title { 
       font-size: 1rem; font-weight: 700; margin-bottom: 15px; 
@@ -166,7 +178,19 @@
       <span class="hero-label">Today's Collection</span>
       <div class="hero-amount" id="todayTotal">Loading...</div>
       <div class="hero-sub">Synced with Server</div>
-    </div>
+
+      <div class="split-stats">
+        <div class="split-stat">
+          <span class="split-label">Cash</span>
+          <span class="split-val cash" id="todayCash">₹0</span>
+        </div>
+        <div class="split-divider"></div>
+        <div class="split-stat">
+          <span class="split-label">Online</span>
+          <span class="split-val online" id="todayOnline">₹0</span>
+        </div>
+      </div>
+      </div>
 
     <div class="section-title">Quick Actions</div>
     <div class="grid-actions">
@@ -242,17 +266,32 @@
         );
 
         const snapshot = await getDocs(q);
+        
         let total = 0;
+        let cashTotal = 0;   // NEW VARIABLE
+        let onlineTotal = 0; // NEW VARIABLE
         
         snapshot.forEach(doc => {
           // Safety check to ensure valid number
           const amt = parseFloat(doc.data().amount || 0);
           if(!isNaN(amt)) {
              total += amt;
+
+             // NEW LOGIC TO SPLIT CASH AND ONLINE
+             const mode = doc.data().paymentMode || "Cash"; // Fallback to Cash if mode is missing
+             if(mode === "Online" || mode === "ONLINE / UPI") {
+                onlineTotal += amt;
+             } else {
+                cashTotal += amt;
+             }
           }
         });
 
         display.innerText = "₹" + total.toLocaleString();
+
+        // NEW LOGIC TO UPDATE DOM WITH SPLIT AMOUNTS
+        document.getElementById("todayCash").innerText = "₹" + cashTotal.toLocaleString();
+        document.getElementById("todayOnline").innerText = "₹" + onlineTotal.toLocaleString();
 
       } catch (e) {
         console.error("Stats Error:", e);
