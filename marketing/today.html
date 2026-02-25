@@ -119,6 +119,91 @@
         .search-header input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 1.1em; outline: none; }
         .search-header input::placeholder { color: var(--text-secondary); }
         .search-results-container { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
+
+        /* ---------------------------------------------------- */
+        /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
+        /* ---------------------------------------------------- */
+        #printArea { display: none; }
+
+        @media print {
+            /* Force 1 page and remove browser headers/footers */
+            @page { size: A4 portrait; margin: 0mm; }
+            
+            /* Hide the entire App UI */
+            body * { visibility: hidden; }
+            body { background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            
+            /* Show only the Print Area */
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
+
+            .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 296mm; }
+            .print-page:last-child { page-break-after: auto; }
+
+            /* Top Band Header */
+            .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
+            .print-header-left { width: 55%; }
+            .print-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 25px; }
+            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;} 
+            .print-brand p { margin: 0; font-size: 11px; font-weight: bold; color: #333; }
+            
+            .print-invoice-to { margin-top: 10px; }
+            .section-label { font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; color: #555; }
+            .print-invoice-to h3 { margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #000;}
+            .print-invoice-to p { margin: 3px 0; font-size: 11px; color: #222;}
+            .print-invoice-to p strong { display: inline-block; width: 65px; font-size: 10px; text-transform: uppercase; color: #000;}
+
+            .print-header-right { width: 40%; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+            .qr-box { border: 2px solid #000; background-color: #fff !important; padding: 5px; display: inline-block; margin-bottom: 15px; }
+            .qr-box span { font-size: 36px; color: #000; display: block; }
+            
+            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;} 
+            .invoice-no-text { font-size: 14px; font-weight: bold; margin: 5px 0 15px 0; color: #000;}
+            
+            .invoice-date-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+            .invoice-date-box span.material-symbols-outlined { font-size: 20px; color: #000;}
+            .invoice-date-box div { text-align: left; display: flex; flex-direction: column; }
+            .invoice-date-box div span { font-size: 8px; font-weight: bold; text-transform: uppercase; color: #333;}
+            .invoice-date-box div strong { font-size: 12px; font-weight: bold; color: #000;}
+
+            /* Table Layout */
+            .print-table-container { padding: 0 40px; flex-grow: 1; }
+            .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+            .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
+            .print-table th.text-right, .print-table td.text-right { text-align: right; }
+            .print-table th.text-center, .print-table td.text-center { text-align: center; }
+
+            /* Middle Section (Totals & Thanks) */
+            .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; }
+            
+            .print-left-footer-info { width: 45%; }
+            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} 
+            .thanks-box strong { display: block; font-size: 12px; margin-bottom: 4px; color: #000;}
+            .thanks-box p { margin: 0; font-size: 9px; color: #444; line-height: 1.4; }
+            
+            .payment-methods p { margin: 6px 0; font-size: 10px; font-weight: bold; color: #000;}
+            .payment-methods span { display: block; font-weight: normal; font-size: 10px; color: #444; margin-top: 2px;}
+
+            .print-totals-box { width: 40%; }
+            .totals-grid { width: 100%; border-collapse: collapse; }
+            .totals-grid td { padding: 8px 10px; font-size: 11px; border: none; font-weight: bold; color: #444;}
+            .totals-grid .t-label { text-align: right; }
+            .totals-grid .t-val { text-align: right; color: #000; }
+            .totals-grid .t-grand-row { background-color: #cccccc !important; border-top: 2px solid #000;}
+            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; } 
+
+            /* Signature Area */
+            .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; }
+            .sign-box { text-align: center; width: 200px; }
+            .sign-box div.sign-placeholder { border-bottom: 1px solid #000; height: 35px; margin-bottom: 5px; width: 100%; }
+            .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: #000;}
+            .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
+            
+            /* Absolute Footer */
+            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: auto; }
+            .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
+        }
     </style>
 </head>
 <body>
@@ -131,6 +216,8 @@
         <span class="material-symbols-outlined">check_circle</span>
         <span id="successToastText">Action Successful!</span>
     </div>
+
+    <div id="printArea"></div>
 
     <div id="searchModal" class="search-modal">
         <div class="search-header">
@@ -149,7 +236,7 @@
         </div>
         <div style="padding: 20px; display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto; width: 100%;">
             <div style="background: var(--surface-color); padding: 20px; border-radius: 12px; border: 1px solid #333;">
-                <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9em;">Select a date range for your accountant exports.</p>
+                <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9em;">Select a date range to download a consolidated PDF of all GST invoices for your accountant.</p>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <div>
                         <label style="display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">From Date</label>
@@ -159,13 +246,11 @@
                         <label style="display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">To Date</label>
                         <input type="date" id="gstToDate" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; box-sizing: border-box;">
                     </div>
-                    
                     <button id="btnDownloadGst" onclick="downloadGstPdf()" style="background: var(--accent-color); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; transition: 0.2s;">
-                        <span class="material-symbols-outlined">table_chart</span> Download GST Summary
+                        <span class="material-symbols-outlined">picture_as_pdf</span> Download Summary PDF
                     </button>
-
-                    <button id="btnDownloadAllBills" onclick="downloadFullBillsPdf()" style="background: var(--success-color); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;">
-                        <span class="material-symbols-outlined">receipt_long</span> Download All Full Bills
+                    <button id="btnPrintAllGst" onclick="printAllGstBills()" style="background: var(--success-color); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 5px; transition: 0.2s;">
+                        <span class="material-symbols-outlined">print</span> Print Full Bills (PDF)
                     </button>
                 </div>
             </div>
@@ -552,7 +637,7 @@
                 
                 if(rows.length === 0) {
                     showToast("No GST bills found in this date range.");
-                    btn.innerHTML = `<span class="material-symbols-outlined">table_chart</span> Download GST Summary`;
+                    btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download Summary PDF`;
                     btn.disabled = false;
                     return;
                 }
@@ -591,7 +676,7 @@
                     }
                 });
                 
-                docPdf.save(`GST_Report_${fromDateStr}_to_${toDateStr}.pdf`);
+                docPdf.save(`GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`);
                 showToast("PDF Exported Successfully!", "success");
                 
             } catch(e) {
@@ -600,26 +685,33 @@
             }
             
             // Reset Button State
-            btn.innerHTML = `<span class="material-symbols-outlined">table_chart</span> Download GST Summary`;
+            btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download Summary PDF`;
             btn.disabled = false;
         };
 
-        // NEW: Function to Download All Full Bills into one PDF
-        window.downloadFullBillsPdf = async function() {
-            const { jsPDF } = window.jspdf;
+        // ADDED LOGIC: Print FULL Bills via window.print()
+        window.printAllGstBills = async function() {
             const fromDateStr = document.getElementById('gstFromDate').value;
             const toDateStr = document.getElementById('gstToDate').value;
             
-            if(!fromDateStr || !toDateStr) { showToast("Select dates first."); return; }
+            if(!fromDateStr || !toDateStr) {
+                showToast("Please select both dates.");
+                return;
+            }
             
             const [fYear, fMonth, fDay] = fromDateStr.split('-');
             const startOfDay = new Date(fYear, fMonth - 1, fDay, 0, 0, 0, 0);
             const [tYear, tMonth, tDay] = toDateStr.split('-');
             const endOfDay = new Date(tYear, tMonth - 1, tDay, 23, 59, 59, 999);
             
-            const btn = document.getElementById('btnDownloadAllBills');
-            btn.innerHTML = `<span class="material-symbols-outlined">hourglass_empty</span> Printing Bills...`;
-            btn.disabled = true;
+            if(startOfDay > endOfDay) {
+                showToast("From Date cannot be after To Date.");
+                return;
+            }
+
+            const btnPrint = document.getElementById('btnPrintAllGst');
+            btnPrint.innerHTML = `<span class="material-symbols-outlined">hourglass_empty</span> Loading...`;
+            btnPrint.disabled = true;
 
             try {
                 const q = query(
@@ -630,96 +722,185 @@
                 );
                 
                 const snap = await getDocs(q);
-                const gstBills = [];
+                let fullPrintHtml = '';
+                let matchCount = 0;
+
                 snap.forEach(doc => {
-                    const d = doc.data();
-                    if(d.invoiceType === 'GST' || (d.totals && d.totals.gst > 0)) {
-                        gstBills.push(d);
+                    const data = doc.data();
+                    
+                    if(data.invoiceType === 'GST' || (data.totals && data.totals.gst > 0)) {
+                        matchCount++;
+                        
+                        let dateFmt = "N/A";
+                        if (data.date && data.date.toDate) {
+                            const d = data.date.toDate();
+                            dateFmt = `${d.getDate().toString().padStart(2,'0')}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}`;
+                        }
+
+                        let trItems = '';
+                        if(data.items) {
+                            data.items.forEach((item, index) => {
+                                const num = (index + 1).toString().padStart(2, '0');
+                                const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
+                                const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
+                                
+                                const desc = `
+                                    <strong style="font-size:13px; display:block; color:#000;">${item.name}</strong>
+                                    <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
+                                `;
+                                
+                                const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
+
+                                trItems += `
+                                    <tr>
+                                        <td>${num}.</td>
+                                        <td>${desc}</td>
+                                        <td class="text-right">₹${uPrice.toFixed(2)}</td>
+                                        <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
+                                        <td class="text-right" style="font-weight:bold; color:#000;">₹${(item.finalTotal || 0).toFixed(2)}</td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        const sub = (data.totals?.sub || 0);
+                        const gst = (data.totals?.gst || 0);
+                        const halfGst = gst / 2;
+                        const disc = (data.totals?.discount || 0);
+                        const grand = (data.totals?.grand || 0);
+                        const payMode = data.paymentMethod || data.paymentMode || 'Cash';
+
+                        const discRowHtml = disc > 0 ? `
+                            <tr>
+                                <td class="t-label" style="color: #d32f2f;">Discount</td>
+                                <td class="t-val" style="color: #d32f2f;">-₹${disc.toFixed(2)}</td>
+                            </tr>
+                        ` : '';
+
+                        fullPrintHtml += `
+                            <div class="print-page">
+                                <div class="print-top-band">
+                                    <div class="print-header-left">
+                                        <div class="print-brand">
+                                            <h2>Meena Marketing</h2>
+                                            <p>Dealers in Premium Quality Products</p>
+                                            <p style="font-weight: normal; margin-top: 4px; line-height: 1.3;">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
+                                            <p style="font-weight: normal; margin-top: 2px;"><strong>Ph:</strong> 9444589733</p>
+                                            <div style="margin-top: 8px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 4px 8px; border-radius: 4px; background-color: #f5f5f5; letter-spacing: 0.5px;">GSTIN: 33BUJPR3363M1Z5</span></div>
+                                        </div>
+                                        <div class="print-invoice-to">
+                                            <p class="section-label">INVOICE TO</p>
+                                            <h3>${data.customer?.name || 'Cash Customer'}</h3>
+                                            <p><strong>PHONE :</strong> <span>${data.customer?.phone || 'N/A'}</span></p>
+                                            <p><strong>ADDRESS :</strong> <span>${data.customer?.address || 'N/A'}</span></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="print-header-right">
+                                        <div class="qr-box"><span class="material-symbols-outlined">qr_code_2</span></div>
+                                        <h1 class="invoice-title-text">INVOICE</h1>
+                                        <p class="invoice-no-text">No. <span>${data.invoiceNo || 'INV-XXX'}</span></p>
+                                        
+                                        <div class="invoice-date-box">
+                                            <span class="material-symbols-outlined">calendar_month</span>
+                                            <div>
+                                                <span>Invoice Date</span>
+                                                <strong>${dateFmt}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="print-table-container">
+                                    <table class="print-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">No.</th>
+                                                <th style="width: 50%;">Descriptions</th>
+                                                <th style="width: 15%;" class="text-right">Unit Price</th>
+                                                <th style="width: 10%;" class="text-center">Unit</th>
+                                                <th style="width: 20%;" class="text-right">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${trItems}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="print-middle-section">
+                                    <div class="print-left-footer-info">
+                                        <div class="thanks-box">
+                                            <strong>Thank you for your business!</strong>
+                                            <p>We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
+                                        </div>
+                                        <div class="payment-methods">
+                                            <p>Payment Mode:<br><span>${payMode}</span></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="print-totals-box">
+                                        <table class="totals-grid">
+                                            <tr>
+                                                <td class="t-label">Sub Total</td>
+                                                <td class="t-val">₹${sub.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="t-label">CGST</td>
+                                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="t-label">SGST</td>
+                                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="t-label">Total Tax (GST)</td>
+                                                <td class="t-val">₹${gst.toFixed(2)}</td>
+                                            </tr>
+                                            ${discRowHtml}
+                                            <tr class="t-grand-row">
+                                                <td class="t-label">TOTAL :</td>
+                                                <td class="t-val">₹${grand.toFixed(2)}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="print-signature-area">
+                                    <div class="sign-box">
+                                        <div class="sign-placeholder"></div>
+                                        <h4>Authorized Signatory</h4>
+                                        <p>For Meena Marketing</p>
+                                    </div>
+                                </div>
+
+                                <div class="print-absolute-footer">
+                                    <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
+                                </div>
+                            </div>
+                        `;
                     }
                 });
 
-                if(gstBills.length === 0) {
-                    showToast("No GST bills found.");
-                    btn.innerHTML = `<span class="material-symbols-outlined">receipt_long</span> Download All Full Bills`;
-                    btn.disabled = false;
-                    return;
+                if(matchCount === 0) {
+                    showToast("No GST bills found in this date range.");
+                } else {
+                    document.getElementById('printArea').innerHTML = fullPrintHtml;
+                    window.print();
                 }
 
-                const docPdf = new jsPDF();
-                
-                gstBills.forEach((bill, index) => {
-                    if (index > 0) docPdf.addPage();
-                    
-                    // Bill Header
-                    docPdf.setFontSize(18);
-                    docPdf.setTextColor(211, 47, 47); // Meena Red
-                    docPdf.text("MEENA MARKETING", 105, 15, { align: 'center' });
-                    
-                    docPdf.setFontSize(10);
-                    docPdf.setTextColor(100);
-                    docPdf.text("Authorized Dealer & General Suppliers", 105, 20, { align: 'center' });
-                    
-                    docPdf.setDrawColor(200);
-                    docPdf.line(14, 25, 196, 25);
-                    
-                    // Invoice Details Row
-                    docPdf.setFontSize(11);
-                    docPdf.setTextColor(0);
-                    docPdf.setFont(undefined, 'bold');
-                    docPdf.text(`TAX INVOICE: ${bill.invoiceNo || 'N/A'}`, 14, 35);
-                    
-                    const d = bill.date?.toDate();
-                    const dateStr = d ? `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}` : 'N/A';
-                    docPdf.setFont(undefined, 'normal');
-                    docPdf.text(`Date: ${dateStr}`, 196, 35, { align: 'right' });
-                    
-                    // Customer Box
-                    docPdf.setFillColor(245, 245, 245);
-                    docPdf.rect(14, 40, 182, 20, 'F');
-                    docPdf.setFont(undefined, 'bold');
-                    docPdf.text("Billed To:", 18, 46);
-                    docPdf.setFont(undefined, 'normal');
-                    docPdf.text(`${bill.customer?.name || 'Cash Customer'}`, 18, 52);
-                    docPdf.text(`${bill.customer?.phone || ''} | ${bill.customer?.address || ''}`, 18, 57);
-
-                    // Items Table
-                    const itemRows = (bill.items || []).map(item => [
-                        item.name,
-                        item.qty,
-                        `Rs.${(item.price || 0).toFixed(2)}`,
-                        `${item.gstPercent || 0}%`,
-                        `Rs.${(item.finalTotal || 0).toFixed(2)}`
-                    ]);
-
-                    docPdf.autoTable({
-                        startY: 65,
-                        head: [['Item Description', 'Qty', 'Unit Price', 'GST%', 'Total Amount']],
-                        body: itemRows,
-                        theme: 'striped',
-                        headStyles: { fillColor: [60, 60, 60] }
-                    });
-
-                    // Summary Math
-                    const finalY = docPdf.lastAutoTable.finalY + 10;
-                    docPdf.setFont(undefined, 'bold');
-                    docPdf.text(`Sub-Total: Rs.${(bill.totals?.sub || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
-                    docPdf.text(`GST Total: Rs.${(bill.totals?.gst || 0).toFixed(2)}`, 196, finalY + 7, { align: 'right' });
-                    
-                    docPdf.setFontSize(14);
-                    docPdf.setTextColor(0, 150, 0); // Green
-                    docPdf.text(`Grand Total: Rs.${(bill.totals?.grand || 0).toFixed(2)}`, 196, finalY + 16, { align: 'right' });
-                });
-
-                docPdf.save(`All_GST_Bills_${fromDateStr}.pdf`);
-                showToast("All bills saved in one PDF", "success");
-            } catch (err) {
-                console.error(err);
-                showToast("Failed to print bills");
+            } catch(e) {
+                console.error("Print Error:", e);
+                showToast("Error generating print layout.");
             }
 
-            btn.innerHTML = `<span class="material-symbols-outlined">receipt_long</span> Download All Full Bills`;
-            btn.disabled = false;
+            btnPrint.innerHTML = `<span class="material-symbols-outlined">print</span> Print Full Bills (PDF)`;
+            btnPrint.disabled = false;
         };
+
+        window.addEventListener('afterprint', () => {
+            document.getElementById('printArea').innerHTML = ''; // Clean up after print dialog closes
+        });
 
         // Ensure popstate handles the closing of BOTH the search and GST modals
         window.addEventListener('popstate', (e) => {
