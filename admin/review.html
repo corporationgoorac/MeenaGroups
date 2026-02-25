@@ -97,7 +97,7 @@
     }
     .header-text p { color: var(--text-muted); margin-top: 8px; font-size: 1rem; }
     
-    .header-controls { display: flex; align-items: stretch; gap: 16px; flex-wrap: wrap; }
+    .header-controls { display: flex; align-items: stretch; gap: 16px; }
 
     .stats-card {
       background: var(--surface); 
@@ -107,7 +107,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-width: 120px;
+      min-width: 140px;
     }
     .stats-card span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 2px; }
     .stats-card strong { font-size: 1.4rem; color: var(--primary); font-weight: 800; }
@@ -153,19 +153,8 @@
       box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4);
     }
 
-    /* --- NON-DB CUSTOMER STYLES --- */
-    .non-db-card {
-      border: 2px dashed var(--warning) !important;
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(15, 23, 42, 1)) !important;
-    }
-    .badge-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-    .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.5px;}
-    .badge-cash { color: var(--primary); background: rgba(16,185,129,0.1); }
-    .badge-online { color: var(--secondary); background: rgba(56,189,248,0.1); }
-    .badge-nondb { color: var(--warning); background: rgba(245,158,11,0.1); }
-
     /* Columns Detail */
-    .col-info h4 { margin: 0; font-size: 1.25rem; color: #fff; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;}
+    .col-info h4 { margin: 0; font-size: 1.25rem; color: #fff; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
     .col-info p { margin: 6px 0 0; color: var(--text-muted); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; width: fit-content; }
     
     .col-meta { display: flex; flex-direction: column; gap: 10px; }
@@ -195,7 +184,7 @@
     }
 
     .col-amount { text-align: right; }
-    .amount-display { font-size: 1.85rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
+    .amount-display { font-size: 1.85rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
     .date-display { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 
     /* Actions */
@@ -212,22 +201,6 @@
     
     .btn-reject { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
     .btn-reject:hover { background: var(--danger); color: white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-
-    /* --- DROPDOWN MENU --- */
-    .dropdown { position: relative; display: inline-block; }
-    .dropdown-content {
-      display: none; position: absolute; right: 0; top: 50px; background-color: var(--card); 
-      min-width: 180px; box-shadow: 0px 10px 30px rgba(0,0,0,0.8); z-index: 200; 
-      border-radius: 12px; border: 1px solid var(--border); overflow: hidden;
-      animation: modalFade 0.2s ease;
-    }
-    .dropdown-content a {
-      color: white; padding: 14px 16px; text-decoration: none; display: flex; align-items: center; 
-      gap: 10px; font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .dropdown-content a:hover { background-color: rgba(255,255,255,0.05); color: var(--secondary); }
-    .dropdown-content a:last-child { border-bottom: none; }
-    .dropdown-content.show { display: block; }
 
     /* --- EDIT MODAL --- */
     .modal-overlay {
@@ -268,24 +241,33 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- PRINT LAYOUT CSS --- */
-    #printArea { display: none; }
+    /* NEW STYLES: Non-DB Card Styling */
+    .entry-item.non-db { border: 2px dashed var(--warning); }
+    .entry-item.non-db:hover { border-color: var(--warning); box-shadow: 0 10px 25px rgba(245, 158, 11, 0.15); }
+    .non-db-badge { background: var(--warning); color: #000; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle;}
+
+    /* NEW STYLES: Cash/Online Badges */
+    .mode-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid currentColor; vertical-align: middle;}
+    .mode-badge.cash { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+    .mode-badge.online { color: var(--secondary); background: rgba(56, 189, 248, 0.1); }
+
+    /* NEW STYLES: Print Menu & Printing */
+    .print-menu {
+      position: absolute; top: 50px; right: 0; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; width: 200px; display: none; flex-direction: column; z-index: 210; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+    .print-menu.show { display: flex; }
+    .print-menu button {
+      background: transparent; border: none; color: white; padding: 14px 15px; text-align: left;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s;
+    }
+    .print-menu button:hover { background: var(--primary); color: #000; }
+    
     @media print {
       body * { visibility: hidden; }
       #printArea, #printArea * { visibility: visible; }
-      #printArea { 
-        display: block; position: absolute; left: 0; top: 0; width: 100%; 
-        background: #fff; color: #000; padding: 20px; box-sizing: border-box;
-      }
-      .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-      .print-header h1 { font-size: 28px; margin: 0; font-weight: 800; color: #111; }
-      .print-header p { font-size: 14px; margin: 5px 0 0 0; color: #444; }
-      .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-      .print-table th, .print-table td { border: 1px solid #ccc; padding: 12px; text-align: left; font-size: 14px; }
-      .print-table th { background: #f8f9fa; font-weight: bold; color: #333; text-transform: uppercase; font-size: 12px; }
-      .print-table tr:nth-child(even) { background: #fcfcfc; }
-      .print-badge { padding: 3px 6px; font-size: 10px; border-radius: 4px; border: 1px solid #000; font-weight: bold; margin-left: 5px; }
-      .print-footer { margin-top: 40px; text-align: right; font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; }
     }
 
     /* Mobile Responsive Updates */
@@ -299,9 +281,9 @@
       .date-display { justify-content: flex-start; }
       .col-actions { width: 100%; gap: 10px; }
       .btn-icon { flex: 1; height: 52px; border-radius: 14px; }
-      .header-controls { width: 100%; flex-direction: column; }
-      .stats-card { text-align: center; }
-      .btn-approve-all { height: 56px; justify-content: center; }
+      .header-controls { width: 100%; flex-direction: row; flex-wrap: wrap; }
+      .stats-card { text-align: center; flex: 1; min-width: 45%; }
+      .btn-approve-all { height: 56px; justify-content: center; width: 100%; }
     }
   </style>
 </head>
@@ -313,22 +295,16 @@
         <div class="brand-dot"></div>
         <h2>MEENA GROUPS</h2>
       </div>
-      <div style="display:flex; align-items:center; gap: 15px;">
+      <div style="display:flex; align-items:center; gap:15px;">
         <div id="status-tag" style="font-size: 0.7rem; font-weight: 800; background: var(--primary-muted); color: var(--primary); padding: 4px 10px; border-radius: 20px;">SYSTEM ONLINE</div>
         
-        <div class="dropdown">
-          <button class="btn-icon" style="height:36px; width:36px; background:var(--surface); border:1px solid var(--border); color:white; font-size:1.2rem;" onclick="togglePrintMenu()">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+        <div style="position:relative;">
+          <button class="icon-btn" onclick="togglePrintMenu()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           </button>
-          <div id="printDropdown" class="dropdown-content">
-            <a href="#" onclick="printData('all')">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-              Print All Logs
-            </a>
-            <a href="#" onclick="printData('nondb')">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              Print Non-DB Only
-            </a>
+          <div class="print-menu" id="printMenu">
+            <button onclick="printDB()">Print DB Approvals</button>
+            <button onclick="printNonDB()">Print Non-DB Drafts</button>
           </div>
         </div>
       </div>
@@ -344,15 +320,15 @@
       <div class="header-controls">
         <div class="stats-card">
           <span>Cash Total</span>
-          <strong id="totalCashAmt" style="color: var(--primary);">₹0</strong>
+          <strong id="totalCashAmt" style="color:var(--success);">₹0</strong>
         </div>
         <div class="stats-card">
           <span>Online Total</span>
-          <strong id="totalOnlineAmt" style="color: var(--secondary);">₹0</strong>
+          <strong id="totalOnlineAmt" style="color:var(--secondary);">₹0</strong>
         </div>
         <div class="stats-card">
-          <span>Grand Total</span>
-          <strong id="totalPendingAmt" style="color: #fff;">₹0</strong>
+          <span>Pending Total</span>
+          <strong id="totalPendingAmt">₹0</strong>
         </div>
         <button class="btn-approve-all" onclick="approveAll()">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
@@ -396,7 +372,7 @@
     </div>
   </div>
 
-  <div id="printArea"></div>
+  <div id="printArea" style="display: none;"></div>
 
   <script type="module">
     import { db } from "./config.js";
@@ -420,8 +396,8 @@
         
         pendingEntries = [];
         let totalAmt = 0;
-        let cashAmt = 0;
-        let onlineAmt = 0;
+        let totalCash = 0;
+        let totalOnline = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
@@ -429,25 +405,21 @@
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
           pendingEntries.push(d);
           
-          let amt = parseFloat(d.amount || 0);
-          totalAmt += amt;
-          
-          // Separate cash vs online based on paymentMode or assumes cash as default
-          let mode = (d.paymentMode || "cash").toLowerCase();
-          if(mode === "online") {
-              onlineAmt += amt;
-          } else {
-              cashAmt += amt;
-          }
+          let amount = parseFloat(d.amount || 0);
+          totalAmt += amount;
+
+          // Split Calculation
+          let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
+          if (isOnline) totalOnline += amount;
+          else totalCash += amount;
         });
 
         // Sort Newest First
         pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
 
         totalDisplay.innerText = "₹" + totalAmt.toLocaleString('en-IN');
-        cashDisplay.innerText = "₹" + cashAmt.toLocaleString('en-IN');
-        onlineDisplay.innerText = "₹" + onlineAmt.toLocaleString('en-IN');
-        
+        cashDisplay.innerText = "₹" + totalCash.toLocaleString('en-IN');
+        onlineDisplay.innerText = "₹" + totalOnline.toLocaleString('en-IN');
         listDiv.innerHTML = "";
 
         if (pendingEntries.length === 0) {
@@ -464,61 +436,37 @@
         approveAllBtn.disabled = false;
 
         pendingEntries.forEach(d => {
-          // Identify Non-DB records
-          const isNonDB = d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP");
-          const mode = (d.paymentMode || "cash").toLowerCase();
-          
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
+          const isNonDB = d.isNonDatabase === true;
+          const isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
+          const modeBadge = isOnline ? `<span class="mode-badge online">ONLINE</span>` : `<span class="mode-badge cash">CASH</span>`;
 
           const card = document.createElement("div");
-          card.className = `entry-item ${isNonDB ? 'non-db-card' : ''}`;
+          card.className = isNonDB ? "entry-item non-db" : "entry-item";
           card.id = `card-${d.docId}`;
           
-          // Build Badges
-          let badgeHTML = '';
-          if(mode === 'online') {
-              badgeHTML += `<span class="badge badge-online">ONLINE</span>`;
-          } else {
-              badgeHTML += `<span class="badge badge-cash">CASH</span>`;
-          }
-          if(isNonDB) {
-              badgeHTML += `<span class="badge badge-nondb">NON-DB</span>`;
-          }
-          
-          // Build Actions (Hide Accept for Non-DB)
-          let actionButtons = `
-              <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-              </button>
-              <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-          `;
-          
-          if (!isNonDB) {
-              actionButtons += `
+          // Hide exact single approval button for non-DB (per requirement #3)
+          const acceptBtnHtml = isNonDB ? '' : `
               <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
               </button>`;
-          }
 
           card.innerHTML = `
             <div class="col-info">
-              <div class="badge-container">${badgeHTML}</div>
-              <h4>${d.customerName}</h4>
-              <p>${d.customerId || "No ID Linked"}</p>
+              <h4>${d.customerName} ${isNonDB ? '<span class="non-db-badge">NON-DB</span>' : ''}</h4>
+              <p>${d.customerId}</p>
             </div>
             
             <div class="col-meta">
               <span class="tag">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                ${d.productName || 'Unknown Product'}
+                ${d.productName}
               </span>
               <span class="due-tag">Due: ${dueDisplay}</span>
             </div>
 
             <div class="col-amount">
-              <div class="amount-display">₹${d.amount}</div>
+              <div class="amount-display">₹${d.amount} ${modeBadge}</div>
               <div class="date-display">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 ${d.date}
@@ -526,7 +474,13 @@
             </div>
 
             <div class="col-actions">
-              ${actionButtons}
+              <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </button>
+              <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+              ${acceptBtnHtml}
             </div>
           `;
           listDiv.appendChild(card);
@@ -620,6 +574,7 @@
             date: entry.date,
             amount: entry.amount,
             dueNumber: parseInt(finalDue),
+            paymentMode: entry.paymentMode || 'Cash', // Ensure mode is passed
             type: "Agent Collection",
             approvedAt: new Date().toISOString()
           };
@@ -660,10 +615,10 @@
       }
     };
 
-    // --- 5. BATCH APPROVE ALL (INSTANT & NON-DB WIPE) ---
+    // --- 5. BATCH APPROVE ALL (INSTANT) ---
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
-      if (!confirm(`Approve DB entries & Auto-delete non-DB entries?`)) return;
+      if (!confirm(`Approve DB entries to server & clear non-DB entries locally without logs?`)) return;
 
       const btn = document.querySelector(".btn-approve-all");
       const originalHtml = btn.innerHTML;
@@ -671,15 +626,12 @@
       btn.disabled = true;
 
       try {
-        const batch = writeBatch(db);
-        let totalBatchAmount = 0;
-        
-        // Isolate customer IDs that are valid (DB Customers)
-        const validEntries = pendingEntries.filter(e => !(e.isNonDB === true || !e.customerId || e.customerId === "NON-DB" || e.customerId.includes("TEMP")));
-        const nonDbEntries = pendingEntries.filter(e => (e.isNonDB === true || !e.customerId || e.customerId === "NON-DB" || e.customerId.includes("TEMP")));
+        // Split arrays into Database and Non-Database segments
+        const dbEntries = pendingEntries.filter(e => !e.isNonDatabase);
+        const nonDbEntries = pendingEntries.filter(e => e.isNonDatabase);
 
-        // Fetch valid customers to ensure data integrity
-        const customerIds = [...new Set(validEntries.map(e => e.customerId))];
+        // 1. Fetch all affected DB customers to ensure data integrity
+        const customerIds = [...new Set(dbEntries.map(e => e.customerId))];
         const customersSnapshot = await Promise.all(customerIds.map(id => getDoc(doc(db, "customers", id))));
         
         const customerMap = {};
@@ -687,11 +639,18 @@
           if (snap.exists()) customerMap[snap.id] = snap.data();
         });
 
-        // Process DB Entries
-        validEntries.forEach(entry => {
-          const customerData = customerMap[entry.customerId];
-          if (!customerData) return;
+        const batch = writeBatch(db);
+        let totalBatchAmount = 0;
 
+        // 2. Process each DB entry in memory
+        dbEntries.forEach(entry => {
+          const customerData = customerMap[entry.customerId];
+          if (!customerData) {
+            console.error(`Skipping entry ${entry.docId}, customer not found`);
+            return;
+          }
+
+          // Find Product
           let pIndex = entry.productIndex;
           if (!customerData.products[pIndex] || customerData.products[pIndex].name !== entry.productName) {
             pIndex = customerData.products.findIndex(p => p.name === entry.productName);
@@ -700,15 +659,19 @@
           if (pIndex > -1) {
             const product = customerData.products[pIndex];
             
+            // Calculate Due
             let finalDue = entry.dueNumber;
             if (!finalDue || finalDue <= 0) {
-               const max = (product.payments || []).length > 0 ? Math.max(...product.payments.map(p => p.dueNumber || 0)) : 0;
+               const max = (product.payments || []).length > 0 
+                 ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
+                 : 0;
                finalDue = max + 1;
             }
 
             const newPayment = {
               date: entry.date,
               amount: entry.amount,
+              paymentMode: entry.paymentMode || 'Cash', // Safely move mode
               dueNumber: parseInt(finalDue),
               type: "Agent Collection",
               approvedAt: new Date().toISOString()
@@ -726,31 +689,32 @@
           }
         });
 
-        // Stage DB Customer Updates
-        Object.keys(customerMap).forEach(custId => {
-          const custRef = doc(db, "customers", custId);
-          batch.update(custRef, { products: customerMap[custId].products });
-        });
-
-        // Stage Stats Update (ONLY for DB Entries)
-        if (totalBatchAmount > 0) {
-            const statsRef = doc(db, "metadata", "stats");
-            batch.update(statsRef, {
-              totalPaid: increment(totalBatchAmount),
-              totalBalance: increment(-totalBatchAmount)
-            });
-        }
-        
-        // Silently Delete Non-DB entries from server
+        // 2.1 Process NON-DB Entries (Strict Delete / Clear Only without merging)
         nonDbEntries.forEach(entry => {
             const tempRef = doc(db, "temp_entries", entry.docId);
             batch.delete(tempRef);
         });
 
-        // COMMIT EVERYTHING ONCE
+        // 3. Stage Customer Updates (DB Only)
+        Object.keys(customerMap).forEach(custId => {
+          const custRef = doc(db, "customers", custId);
+          batch.update(custRef, { products: customerMap[custId].products });
+        });
+
+        // 4. Stage Stats Update (DB Only calculations)
+        if(totalBatchAmount > 0) {
+          const statsRef = doc(db, "metadata", "stats");
+          batch.update(statsRef, {
+            totalPaid: increment(totalBatchAmount),
+            totalBalance: increment(-totalBatchAmount)
+          });
+        }
+
+        // 5. COMMIT EVERYTHING ONCE
         await batch.commit();
 
-        alert("✅ Synced! Real entries approved and Non-DB entries cleared.");
+        // UI Reset
+        alert("✅ Operation successful! DB Approved, Non-DB cleared.");
         btn.innerHTML = originalHtml;
         loadPending();
 
@@ -761,106 +725,110 @@
       }
     };
 
-    // --- 6. PRINT FUNCTIONALITY ---
-    window.togglePrintMenu = () => {
-        document.getElementById("printDropdown").classList.toggle("show");
-    }
-
-    // Close menu if clicked outside
-    window.onclick = function(event) {
-        if (!event.target.matches('.btn-icon') && !event.target.closest('.dropdown')) {
-            var dropdowns = document.getElementsByClassName("dropdown-content");
-            for (var i = 0; i < dropdowns.length; i++) {
-                if (dropdowns[i].classList.contains('show')) {
-                    dropdowns[i].classList.remove('show');
-                }
-            }
-        }
-    }
-
-    window.printData = (type) => {
-        document.getElementById("printDropdown").classList.remove("show");
-        
-        let toPrint = pendingEntries;
-        if (type === 'nondb') {
-            toPrint = pendingEntries.filter(d => d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP"));
-        }
-        
-        if (toPrint.length === 0) {
-            alert("No data available to print for this category.");
-            return;
-        }
-        
-        const dateString = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-        
-        let html = `
-            <div class="print-header">
-                <h1>MEENA GROUPS</h1>
-                <p><strong>${type === 'all' ? 'FULL DAILY COLLECTION REPORT' : 'NON-DATABASE COLLECTION REPORT'}</strong></p>
-                <p>Generated: ${dateString} | Total Records: ${toPrint.length}</p>
-            </div>
-            <table class="print-table">
-                <thead>
-                    <tr>
-                        <th>S.No</th>
-                        <th>Customer / Mode</th>
-                        <th>Customer ID</th>
-                        <th>Product Details</th>
-                        <th>Date</th>
-                        <th style="text-align:right">Amount (₹)</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        let grandTotal = 0;
-        let cTotal = 0;
-        let oTotal = 0;
-
-        toPrint.forEach((d, index) => {
-            const amt = parseFloat(d.amount || 0);
-            grandTotal += amt;
-            
-            const isNonDB = d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP");
-            const mode = (d.paymentMode || "cash").toUpperCase();
-            
-            if(mode === 'ONLINE') oTotal += amt;
-            else cTotal += amt;
-
-            html += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>
-                        <strong>${d.customerName}</strong>
-                        ${isNonDB ? '<span class="print-badge">NON-DB</span>' : ''}
-                        <br><small style="color:#555">${mode}</small>
-                    </td>
-                    <td style="font-family:monospace;">${d.customerId || 'N/A'}</td>
-                    <td>${d.productName || 'N/A'}</td>
-                    <td>${d.date}</td>
-                    <td style="text-align:right; font-weight:bold;">₹${amt.toLocaleString('en-IN')}</td>
-                </tr>
-            `;
-        });
-        
-        html += `
-                </tbody>
-            </table>
-            
-            <div class="print-footer">
-                <p style="margin:5px 0; font-size:14px; color:#555;">Cash Total: ₹${cTotal.toLocaleString('en-IN')}</p>
-                <p style="margin:5px 0; font-size:14px; color:#555;">Online Total: ₹${oTotal.toLocaleString('en-IN')}</p>
-                <p style="margin:10px 0 0 0; font-size:22px;">Grand Total: ₹${grandTotal.toLocaleString('en-IN')}</p>
-            </div>
-        `;
-        
-        document.getElementById('printArea').innerHTML = html;
-        window.print();
-    };
-
     function checkEmpty() {
       const remaining = document.querySelectorAll(".entry-item");
       if(remaining.length === 0) loadPending();
+    }
+
+    // --- 6. PRINT SYSTEM & POPUP MENU ---
+    window.togglePrintMenu = () => {
+      const menu = document.getElementById("printMenu");
+      menu.classList.toggle("show");
+    };
+
+    window.printDB = () => {
+      document.getElementById("printMenu").classList.remove("show");
+      generateProfessionalPrint(pendingEntries.filter(e => !e.isNonDatabase), "DATABASE APPROVALS QUEUE");
+    };
+
+    window.printNonDB = () => {
+      document.getElementById("printMenu").classList.remove("show");
+      generateProfessionalPrint(pendingEntries.filter(e => e.isNonDatabase), "NON-DATABASE DRAFTS QUEUE");
+    };
+
+    function generateProfessionalPrint(dataToPrint, title) {
+      if(dataToPrint.length === 0) return alert("No records available to print in this category.");
+      
+      const printArea = document.getElementById("printArea");
+      
+      // Calculate split for print doc
+      let totalAmount = 0, cAmount = 0, oAmount = 0;
+      dataToPrint.forEach(d => {
+        let amt = parseFloat(d.amount || 0);
+        totalAmount += amt;
+        if((d.paymentMode||'').toLowerCase().includes('online') || (d.paymentMode||'').toLowerCase().includes('upi')) oAmount += amt;
+        else cAmount += amt;
+      });
+
+      let html = `
+          <div style="font-family: Arial, sans-serif; padding: 40px; color: #000;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #0f172a; padding-bottom: 15px; margin-bottom: 30px;">
+                  <div>
+                      <h1 style="margin:0; font-size: 28px; color: #0f172a;">MEENA GROUPS</h1>
+                      <p style="margin:4px 0 0 0; color: #64748b; font-size:14px;">Review & Collection Reports</p>
+                  </div>
+                  <div style="text-align: right;">
+                      <h2 style="margin:0; color: #10b981; font-size: 18px;">${title}</h2>
+                      <p style="margin:4px 0 0 0; font-size: 12px; color:#475569;">Generated: ${new Date().toLocaleString()}</p>
+                  </div>
+              </div>
+              
+              <div style="display:flex; justify-content: space-between; background: #f8fafc; padding: 15px 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                  <div style="text-align:center;">
+                    <span style="display:block; font-size:11px; color:#64748b; text-transform:uppercase;">Total Entries</span>
+                    <strong style="font-size:18px;">${dataToPrint.length}</strong>
+                  </div>
+                  <div style="text-align:center;">
+                    <span style="display:block; font-size:11px; color:#64748b; text-transform:uppercase;">Cash Collection</span>
+                    <strong style="font-size:18px; color: #10b981;">Rs. ${cAmount.toLocaleString('en-IN')}</strong>
+                  </div>
+                  <div style="text-align:center;">
+                    <span style="display:block; font-size:11px; color:#64748b; text-transform:uppercase;">Online Collection</span>
+                    <strong style="font-size:18px; color: #38bdf8;">Rs. ${oAmount.toLocaleString('en-IN')}</strong>
+                  </div>
+                  <div style="text-align:center;">
+                    <span style="display:block; font-size:11px; color:#64748b; text-transform:uppercase;">Total Value</span>
+                    <strong style="font-size:18px; color: #0f172a;">Rs. ${totalAmount.toLocaleString('en-IN')}</strong>
+                  </div>
+              </div>
+
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead>
+                      <tr style="background: #0f172a; color: white;">
+                          <th style="padding: 12px 10px; text-align: left;">Customer Details</th>
+                          <th style="padding: 12px 10px; text-align: left;">Product Info</th>
+                          <th style="padding: 12px 10px; text-align: center;">Due #</th>
+                          <th style="padding: 12px 10px; text-align: center;">Mode</th>
+                          <th style="padding: 12px 10px; text-align: right;">Amount (Rs.)</th>
+                      </tr>
+                  </thead>
+                  <tbody>`;
+
+      dataToPrint.forEach((d, index) => {
+          let bg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+          let dueStr = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
+          let mode = (d.paymentMode || 'Cash').toUpperCase();
+          html += `
+              <tr style="background: ${bg}; border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 10px;">
+                      <strong style="display:block; font-size:14px;">${d.customerName}</strong>
+                      <span style="color:#64748b;">ID: ${d.customerId} | Date: ${d.date}</span>
+                  </td>
+                  <td style="padding: 12px 10px; color:#334155;">${d.productName}</td>
+                  <td style="padding: 12px 10px; text-align: center; font-weight:bold;">${dueStr}</td>
+                  <td style="padding: 12px 10px; text-align: center; color:${mode.includes('ONLINE')||mode.includes('UPI')?'#38bdf8':'#10b981'}; font-weight:bold;">${mode}</td>
+                  <td style="padding: 12px 10px; text-align: right; font-weight: bold; font-size:14px;">${d.amount}</td>
+              </tr>`;
+      });
+
+      html += `</tbody></table>
+              <div style="text-align: center; font-size: 10px; color: #94a3b8; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                  End of Report. MeenaGroups Administration System.
+              </div>
+          </div>`;
+
+      printArea.innerHTML = html;
+      window.print();
     }
 
     // Initialize
@@ -874,7 +842,8 @@
     window.approveEntry = approveEntry;
     window.approveAll = approveAll;
     window.togglePrintMenu = togglePrintMenu;
-    window.printData = printData;
+    window.printDB = printDB;
+    window.printNonDB = printNonDB;
   </script>
 </body>
 </html>
