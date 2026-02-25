@@ -65,22 +65,21 @@
     
     .hero-label { font-size: 0.9rem; color: var(--text-sec); margin-bottom: 5px; }
     .hero-amount { font-size: 2.8rem; font-weight: 700; color: var(--text-main); letter-spacing: -1px; }
+    
+    /* --- NEW CSS FOR SPLIT STATS --- */
+    .split-stats {
+      display: flex; width: 100%; justify-content: space-around;
+      margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .stat-col { text-align: center; }
+    .stat-title { font-size: 0.8rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-value-cash { font-size: 1.3rem; font-weight: 700; color: #2ba640; } /* Green for Cash */
+    .stat-value-online { font-size: 1.3rem; font-weight: 700; color: #3ea6ff; } /* Blue for Online */
+
     .hero-sub { 
-      margin-top: 10px; font-size: 0.8rem; color: var(--primary); 
+      margin-top: 15px; font-size: 0.8rem; color: var(--primary); 
       background: rgba(62, 166, 255, 0.1); padding: 5px 12px; border-radius: 20px;
     }
-
-    /* --- NEW CSS FOR CASH & ONLINE SPLIT --- */
-    .split-stats {
-      display: flex; width: 100%; justify-content: space-between; align-items: center;
-      margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
-    }
-    .split-stat { display: flex; flex-direction: column; align-items: center; width: 45%; }
-    .split-label { font-size: 0.75rem; color: var(--text-sec); font-weight: 600; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
-    .split-val { font-size: 1.3rem; font-weight: 700; color: var(--text-main); font-family: monospace; }
-    .split-divider { width: 1px; height: 35px; background: rgba(255,255,255,0.1); }
-    .split-val.cash { color: #2ba640; } /* Green for cash */
-    .split-val.online { color: #3ea6ff; } /* Blue for online */
 
     /* --- QUICK ACTIONS GRID --- */
     .section-title { 
@@ -177,20 +176,20 @@
     <div class="hero-card">
       <span class="hero-label">Today's Collection</span>
       <div class="hero-amount" id="todayTotal">Loading...</div>
-      <div class="hero-sub">Synced with Server</div>
-
+      
       <div class="split-stats">
-        <div class="split-stat">
-          <span class="split-label">Cash</span>
-          <span class="split-val cash" id="todayCash">₹0</span>
+        <div class="stat-col">
+          <div class="stat-title">Cash</div>
+          <div class="stat-value-cash" id="todayCash">₹0</div>
         </div>
-        <div class="split-divider"></div>
-        <div class="split-stat">
-          <span class="split-label">Online</span>
-          <span class="split-val online" id="todayOnline">₹0</span>
+        <div class="stat-col">
+          <div class="stat-title">Online</div>
+          <div class="stat-value-online" id="todayOnline">₹0</div>
         </div>
       </div>
-      </div>
+
+      <div class="hero-sub">Synced with Server</div>
+    </div>
 
     <div class="section-title">Quick Actions</div>
     <div class="grid-actions">
@@ -268,28 +267,30 @@
         const snapshot = await getDocs(q);
         
         let total = 0;
-        let cashTotal = 0;   // NEW VARIABLE
-        let onlineTotal = 0; // NEW VARIABLE
-        
+        let cashTotal = 0;   // NEW LINE: Variables to store separated totals
+        let onlineTotal = 0; // NEW LINE
+
         snapshot.forEach(doc => {
           // Safety check to ensure valid number
-          const amt = parseFloat(doc.data().amount || 0);
+          const data = doc.data(); // NEW LINE: extract data object
+          const amt = parseFloat(data.amount || 0);
+          const paymentMode = data.paymentMode || "Cash"; // NEW LINE: Extract mode, default to Cash
+
           if(!isNaN(amt)) {
              total += amt;
-
-             // NEW LOGIC TO SPLIT CASH AND ONLINE
-             const mode = doc.data().paymentMode || "Cash"; // Fallback to Cash if mode is missing
-             if(mode === "Online" || mode === "ONLINE / UPI") {
-                onlineTotal += amt;
+             
+             // NEW LINE: Increment the respective counters
+             if (paymentMode.toLowerCase() === "online") {
+                 onlineTotal += amt;
              } else {
-                cashTotal += amt;
+                 cashTotal += amt;
              }
           }
         });
 
         display.innerText = "₹" + total.toLocaleString();
-
-        // NEW LOGIC TO UPDATE DOM WITH SPLIT AMOUNTS
+        
+        // NEW LINE: Update the new DOM elements with formatted amounts
         document.getElementById("todayCash").innerText = "₹" + cashTotal.toLocaleString();
         document.getElementById("todayOnline").innerText = "₹" + onlineTotal.toLocaleString();
 
