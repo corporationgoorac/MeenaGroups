@@ -633,18 +633,18 @@
                 existingItemIndex = cartItems.findIndex(item => item.name === name && item.isNonStock && item.price === price && item.gstPercent === gstPercent);
             }
 
-            // Calculate amounts (Price is considered Exclusive of GST)
-            const baseTotal = price * qty;
-            const gstAmount = (baseTotal * gstPercent) / 100;
-            const finalTotal = baseTotal + gstAmount;
+            // Calculate amounts (Price is considered INCLUSIVE of GST)
+            const finalTotal = price * qty;
+            const baseTotal = finalTotal / (1 + (gstPercent / 100));
+            const gstAmount = finalTotal - baseTotal;
 
             if (existingItemIndex > -1) {
                 // If the product is already in the cart, merge quantities (No Duplicates)
                 let item = cartItems[existingItemIndex];
                 item.qty += qty;
-                item.baseTotal = item.price * item.qty;
-                item.gstAmount = (item.baseTotal * item.gstPercent) / 100;
-                item.finalTotal = item.baseTotal + item.gstAmount;
+                item.finalTotal = item.price * item.qty;
+                item.baseTotal = item.finalTotal / (1 + (item.gstPercent / 100));
+                item.gstAmount = item.finalTotal - item.baseTotal;
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
@@ -816,7 +816,7 @@
                     <tr>
                         <td>${num}.</td>
                         <td>${desc}</td>
-                        <td class="text-right">₹${item.price.toFixed(2)}</td>
+                        <td class="text-right">₹${(item.baseTotal / item.qty).toFixed(2)}</td>
                         <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
                         <td class="text-right" style="font-weight:bold; color:#000;">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
