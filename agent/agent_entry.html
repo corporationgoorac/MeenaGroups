@@ -531,9 +531,18 @@
           </div>
         </div>
         
-        <div style="margin-bottom:20px;">
-          <label>Date</label>
-          <input type="date" id="date" class="input-field">
+        <div class="input-row">
+          <div>
+            <label>Payment Mode</label>
+            <select id="paymentMode" class="custom-select" style="margin-bottom:0;">
+              <option value="Cash">CASH</option>
+              <option value="Online">ONLINE / UPI</option>
+            </select>
+          </div>
+          <div>
+            <label>Date</label>
+            <input type="date" id="date" class="input-field">
+          </div>
         </div>
 
         <button id="btnSave" class="btn-save" onclick="saveToTempCollection()">
@@ -713,6 +722,7 @@
       const amountInput = parseFloat(document.getElementById("amount").value);
       const targetDueInput = parseInt(document.getElementById("targetDue").value);
       const date = document.getElementById("date").value;
+      const paymentMode = document.getElementById("paymentMode").value; // Capture Payment Mode
 
       if (!amountInput || amountInput <= 0) return alert("❌ Enter valid amount");
       if (!targetDueInput || targetDueInput < 1) return alert("❌ Check Due Number");
@@ -747,18 +757,19 @@
            }
 
            const entryData = {
-              customerId: selectedCustomer.id,
-              customerName: selectedCustomer.name,
-              customerPhone: selectedCustomer.phone,
-              productName: p.name,
-              productIndex: selectedProductIndex, 
-              amount: parseFloat(finalAmt.toFixed(2)),
-              date: date,
-              dueNumber: currentDueNum, 
-              status: "draft", 
-              timestamp: serverTimestamp(), 
-              agentEntry: true,
-              splitInfo: numberOfDues > 1 ? `(${i+1}/${numberOfDues})` : ""
+             customerId: selectedCustomer.id,
+             customerName: selectedCustomer.name,
+             customerPhone: selectedCustomer.phone,
+             productName: p.name,
+             productIndex: selectedProductIndex, 
+             amount: parseFloat(finalAmt.toFixed(2)),
+             date: date,
+             dueNumber: currentDueNum, 
+             status: "draft", 
+             timestamp: serverTimestamp(), 
+             agentEntry: true,
+             paymentMode: paymentMode, // Save Mode to DB
+             splitInfo: numberOfDues > 1 ? `(${i+1}/${numberOfDues})` : ""
            };
 
            await addDoc(collection(db, "temp_entries"), entryData);
@@ -867,6 +878,10 @@
       let nameStr = data.customerName;
       if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
       ctx.fillText(`Name : ${nameStr}`, xLeft, y);
+      y += gap;
+      
+      // Display Payment Mode on Receipt for clarity
+      ctx.fillText(`Mode : ${data.paymentMode || 'Cash'}`, xLeft, y);
       y += gap + 5;
 
       // Divider
@@ -912,7 +927,7 @@
       ctx.textAlign = "center";
       ctx.font = "bold 16px Arial"; 
       ctx.fillText("Thank you!", width/2, y);
-      y += 20;
+      y += 20; 
       ctx.font = "bold 14px Arial";
       ctx.fillText("Visit meena.goorac.biz", width/2, y);
       y += 15;
@@ -957,6 +972,7 @@ ${spread("Date:", data.date)}
 ${spread("ID:", data.customerId)}
 ${spread("Due No:", "#" + data.dueNumber)}
 Name: ${data.customerName.substring(0, 24)}
+${spread("Mode:", data.paymentMode || 'Cash')}
 ${line}
 ${center("RECEIVED AMOUNT")}
 ${center("Rs. " + data.amount)}
