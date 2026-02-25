@@ -268,13 +268,6 @@
         <div class="section-box">
             <h2 class="section-title"><span class="material-symbols-outlined">person</span> Customer Details</h2>
             <div class="form-group">
-                <div class="input-row" style="margin-bottom: 5px;">
-                    <div>
-                        <label>Invoice Number (Editable) *</label>
-                        <input type="text" id="cInvoiceNo" placeholder="Loading Sequence...">
-                        <div id="invNoHint" style="font-size: 0.75em; color: var(--accent-color); margin-top: 6px;">Loading sequence...</div>
-                    </div>
-                </div>
                 <div class="input-row">
                     <div>
                         <label>Customer Name *</label>
@@ -366,6 +359,19 @@
             
             <div class="cart-container" id="cartList">
                 <div style="padding: 20px; text-align: center; color: var(--text-secondary);">Bill is empty</div>
+            </div>
+
+            <div id="invoiceNoContainer" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #444;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="margin: 0; color: var(--marketing-white); font-weight: bold; font-size: 0.9em;">Invoice Details</label>
+                    <span id="invTypeBadge" style="font-size: 0.75em; padding: 4px 8px; border-radius: 4px; font-weight: bold; letter-spacing: 1px;"></span>
+                </div>
+                <div class="input-row">
+                    <div>
+                        <label>Invoice Number</label>
+                        <input type="text" id="customInvNo" placeholder="Auto-generated based on bill type">
+                    </div>
+                </div>
             </div>
 
             <div class="totals-box">
@@ -514,63 +520,6 @@
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
 
-        // --- INVOICE SEQUENCE LOGIC FOR GST / NORMAL BATCHES ---
-        let nextNormalNo = 1;
-        let nextGstNo = 1;
-        window.lastInvoiceType = null;
-
-        function fetchLatestInvoiceNumbers() {
-            try {
-                // Listens for updates to ensure we always have the exact next number without overlaps
-                const q = query(collection(db, "sellings"));
-                onSnapshot(q, (snap) => {
-                    let maxNormal = 0;
-                    let maxGst = 0;
-                    snap.forEach(doc => {
-                        const data = doc.data();
-                        if (data.invoiceNo) {
-                            if (data.invoiceNo.startsWith("GST-")) {
-                                const num = parseInt(data.invoiceNo.replace("GST-", ""));
-                                if (!isNaN(num) && num > maxGst) maxGst = num;
-                            } else if (data.invoiceNo.startsWith("INV-")) {
-                                const num = parseInt(data.invoiceNo.replace("INV-", ""));
-                                if (!isNaN(num) && num > maxNormal) maxNormal = num;
-                            }
-                        }
-                    });
-                    nextNormalNo = maxNormal + 1;
-                    nextGstNo = maxGst + 1;
-                    updateInvoiceNumberUI();
-                }, (err) => {
-                    console.error("Error fetching invoice sequences:", err);
-                });
-            } catch (err) {
-                console.error("Error setting up invoice listener:", err);
-            }
-        }
-
-        function updateInvoiceNumberUI() {
-            const hasGst = billTotals.gst > 0;
-            const invInput = document.getElementById('cInvoiceNo');
-            const hint = document.getElementById('invNoHint');
-            
-            const currentType = hasGst ? "GST" : "NORMAL";
-            
-            // Auto update input if type changed or if input is empty/default
-            if (window.lastInvoiceType !== currentType || !invInput.value || invInput.value === "Loading Sequence...") {
-                invInput.value = hasGst ? `GST-${nextGstNo}` : `INV-${nextNormalNo}`;
-                window.lastInvoiceType = currentType;
-            }
-            hint.innerText = hasGst ? "GST Sequence Auto-Selected" : "Normal Sequence Auto-Selected";
-            if(hasGst) {
-                 hint.style.color = "var(--warning-color)";
-            } else {
-                 hint.style.color = "var(--success-color)";
-            }
-        }
-        
-        fetchLatestInvoiceNumbers(); // Init on start
-
         // --- CACHE INVENTORY FOR FAST LOCAL SEARCH AND REALTIME STOCK INTEGRITY ---
         let allInventoryCache = [];
         
@@ -593,6 +542,23 @@
         }
         
         fetchAllInventoryForSearch();
+
+        // --- INJECTED: LISTEN FOR LATEST INVOICE COUNTERS FOR GST/NORMAL ---
+        let nextGstNo = 1;
+        let nextNormalNo = 1;
+        function listenInvoiceCounters() {
+            try {
+                const counterRef = doc(db, "settings", "invoiceCounters");
+                onSnapshot(counterRef, (snap) => {
+                    if (snap.exists()) {
+                        nextGstNo = snap.data().nextGst || 1;
+                        nextNormalNo = snap.data().nextNormal || 1;
+                    }
+                    if(cartItems && cartItems.length > 0) renderCart(); // Re-trigger UI to show new numbers
+                });
+            } catch(e) { console.error("Counter listener error", e); }
+        }
+        listenInvoiceCounters();
 
         // --- INVENTORY SEARCH LOGIC ---
         const searchInput = document.getElementById('pSearch');
@@ -750,7 +716,12 @@
                 document.getElementById('uiGst').innerText = '₹0';
                 document.getElementById('uiGrand').innerText = '₹0';
                 btnSave.disabled = true;
-                updateInvoiceNumberUI();
+                
+                // INJECTED: Hide invoice box if empty
+                document.getElementById('invoiceNoContainer').style.display = 'none';
+                document.getElementById('customInvNo').value = '';
+                document.getElementById('customInvNo').dataset.type = '';
+                
                 return;
             }
 
@@ -777,11 +748,36 @@
                 `;
             });
 
+            // INJECTED: REALTIME GST DETECTION & INVOICE NUMBER ALLOCATION
+            const hasGst = cartItems.some(item => item.gstPercent > 0);
+            const invNoContainer = document.getElementById('invoiceNoContainer');
+            const customInvNo = document.getElementById('customInvNo');
+            const invTypeBadge = document.getElementById('invTypeBadge');
+
+            invNoContainer.style.display = 'block';
+            if (hasGst) {
+                invTypeBadge.innerText = 'GST BILL DETECTED';
+                invTypeBadge.style.color = 'var(--success-color)';
+                invTypeBadge.style.background = 'rgba(0, 200, 83, 0.2)';
+                // Auto-fill only if the user hasn't explicitly typed over this specific category
+                if (!customInvNo.dataset.type || customInvNo.dataset.type !== 'GST') {
+                    customInvNo.value = `GST-${nextGstNo.toString().padStart(4, '0')}`;
+                    customInvNo.dataset.type = 'GST';
+                }
+            } else {
+                invTypeBadge.innerText = 'NORMAL BILL';
+                invTypeBadge.style.color = 'var(--warning-color)';
+                invTypeBadge.style.background = 'rgba(255, 152, 0, 0.2)';
+                if (!customInvNo.dataset.type || customInvNo.dataset.type !== 'NORMAL') {
+                    customInvNo.value = `INV-${nextNormalNo.toString().padStart(4, '0')}`;
+                    customInvNo.dataset.type = 'NORMAL';
+                }
+            }
+
             document.getElementById('uiSub').innerText = `₹${billTotals.sub.toLocaleString()}`;
             document.getElementById('uiGst').innerText = `₹${billTotals.gst.toLocaleString()}`;
             document.getElementById('uiGrand').innerText = `₹${billTotals.grand.toLocaleString()}`;
             btnSave.disabled = false;
-            updateInvoiceNumberUI();
         }
 
         // --- SAVE BILL & DEDUCT INVENTORY ---
@@ -802,16 +798,23 @@
             try {
                 const batch = writeBatch(db);
 
-                // Read from our new editable, dynamic field. Fallback to Timestamp if wiped accidentally.
-                let invNo = document.getElementById('cInvoiceNo').value.trim();
-                if (!invNo) {
-                     invNo = (billTotals.gst > 0 ? "GST-" : "INV-") + Date.now().toString().slice(-6);
+                // Generate Custom Invoice ID based on Timestamp
+                let invNo = "INV-" + Date.now().toString().slice(-6);
+                
+                // INJECTED OVERRIDE: Fetch from the custom box based on real-time GST detection
+                const hasGst = cartItems.some(item => item.gstPercent > 0);
+                let customVal = document.getElementById('customInvNo').value.trim();
+                if(customVal) {
+                    invNo = customVal;
+                } else {
+                    invNo = hasGst ? `GST-${nextGstNo.toString().padStart(4, '0')}` : `INV-${nextNormalNo.toString().padStart(4, '0')}`;
                 }
 
                 // 1. Create Sellings Document (isNonStock is already attached inside items)
                 const sellRef = doc(collection(db, "sellings"));
                 batch.set(sellRef, {
                     invoiceNo: invNo,
+                    invoiceType: hasGst ? 'GST' : 'NORMAL', // INJECTED TYPE LOG
                     customer: { name: cName, phone: cPhone, address: cAddress },
                     paymentMode: cPaymentMode,
                     date: cDate ? new Date(cDate) : serverTimestamp(),
@@ -829,6 +832,13 @@
                         });
                     }
                 });
+
+                // INJECTED 3: Update System Invoice Counters
+                const counterRef = doc(db, "settings", "invoiceCounters");
+                batch.set(counterRef, {
+                    nextGst: hasGst ? increment(1) : increment(0),
+                    nextNormal: hasGst ? increment(0) : increment(1)
+                }, { merge: true });
 
                 await batch.commit();
 
@@ -917,9 +927,6 @@
                 document.getElementById('cPhone').value = '';
                 document.getElementById('cAddress').value = '';
                 document.getElementById('cPaymentMode').value = 'Cash';
-                
-                document.getElementById('cInvoiceNo').value = ''; // Reset sequence text to re-fetch
-                window.lastInvoiceType = null;
                 
                 // 2. Clear Cart & Re-render (This automatically resets totals & disables the Save button)
                 cartItems.splice(0, cartItems.length);
