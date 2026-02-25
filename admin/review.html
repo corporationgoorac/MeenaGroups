@@ -2,1069 +2,879 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MeenaGroups | Quantum Analytics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#000000">
-  <link rel="manifest" href="manifest.json">
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
+  <title>View Entries - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#020617">
+  
   <style>
-    /* * ==========================================
-     * 1. CORE THEME & VARIABLES
-     * ==========================================
-     */
-    :root {
-      --bg-root: #000000;
-      --bg-surface: #0f0f0f;
-      --bg-card: #141414;
-      --bg-input: #1f1f1f;
-      
-      --primary: #2979ff;       /* Electric Blue */
-      --success: #00e676;       /* Neon Green */
-      --danger: #ff1744;        /* Bright Red */
-      --warning: #ffb74d;       /* Orange */
-      
-      --text-main: #ffffff;
-      --text-sub: #a0a0a0;
-      --border: #262626;
-      
-      --glass: rgba(20, 20, 20, 0.85);
-      --blur: 12px;
-      
-      --ease: cubic-bezier(0.23, 1, 0.32, 1);
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+    :root { 
+      --bg: #020617; 
+      --surface: #0f172a;
+      --card: #1e293b; 
+      --primary: #10b981; 
+      --primary-muted: rgba(16, 185, 129, 0.15);
+      --secondary: #38bdf8; 
+      --danger: #ef4444; 
+      --warning: #f59e0b;
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
+      --input-bg: #020617;
+      --header-bg: rgba(15, 23, 42, 0.8);
+    }
+    
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    /* --- TOP NAVIGATION BAR --- */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+    }
+
+    .nav-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 15px var(--primary);
+    }
+
+    .brand h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px 80px; }
+
+    /* --- HEADER SECTION --- */
+    .header-section { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-end; 
+      margin-bottom: 40px; 
+      flex-wrap: wrap; 
+      gap: 24px;
+    }
     
-    body {
-      background: var(--bg-root);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      margin: 0; padding: 0;
-      height: 100vh;
-      display: flex; flex-direction: column;
+    .header-text h1 { 
+      margin: 0; 
+      font-size: 2.25rem; 
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #fff;
+    }
+    .header-text p { color: var(--text-muted); margin-top: 8px; font-size: 1rem; }
+    
+    .header-controls { display: flex; align-items: stretch; gap: 16px; flex-wrap: wrap; }
+
+    .stats-card {
+      background: var(--surface); 
+      border: 1px solid var(--border); 
+      padding: 10px 20px; 
+      border-radius: 14px; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 120px;
+    }
+    .stats-card span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 2px; }
+    .stats-card strong { font-size: 1.4rem; color: var(--primary); font-weight: 800; }
+
+    .btn-approve-all {
+      background: var(--primary); 
+      color: #064e3b; 
+      border: none; 
+      padding: 0 24px;
+      border-radius: 14px; 
+      font-weight: 700; 
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+    }
+    .btn-approve-all:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.4); }
+    .btn-approve-all:active { transform: translateY(0); }
+    .btn-approve-all:disabled { opacity: 0.2; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* --- REVIEW LIST --- */
+    .review-list { display: flex; flex-direction: column; gap: 16px; }
+
+    .entry-item {
+      background: var(--surface); 
+      border: 1px solid var(--border); 
+      border-radius: 20px;
+      padding: 24px; 
+      display: grid; 
+      grid-template-columns: 1.5fr 1fr 1fr auto;
+      align-items: center; 
+      gap: 24px; 
+      transition: all 0.3s ease;
+      position: relative;
       overflow: hidden;
     }
-
-    /* Scrollbar Polish */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-
-    /* * ==========================================
-     * 2. HEADER & NAVIGATION
-     * ==========================================
-     */
-    header {
-      background: var(--glass);
-      backdrop-filter: blur(var(--blur));
-      -webkit-backdrop-filter: blur(var(--blur));
-      border-bottom: 1px solid var(--border);
-      padding: 15px 20px;
-      display: flex; justify-content: space-between; align-items: center;
-      z-index: 50; flex-shrink: 0;
-      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    .entry-item:hover { 
+      border-color: #475569; 
+      background: var(--card);
+      transform: scale(1.01);
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4);
     }
 
-    .brand { display: flex; flex-direction: column; gap: 2px; }
-    .brand h1 { 
-      margin: 0; font-size: 1.1rem; font-weight: 800; 
-      letter-spacing: 0.5px; background: linear-gradient(to right, #fff, #aaa); 
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    /* --- NON-DB CUSTOMER STYLES --- */
+    .non-db-card {
+      border: 2px dashed var(--warning) !important;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(15, 23, 42, 1)) !important;
     }
-    .brand span { font-size: 0.65rem; color: var(--primary); letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+    .badge-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.5px;}
+    .badge-cash { color: var(--primary); background: rgba(16,185,129,0.1); }
+    .badge-online { color: var(--secondary); background: rgba(56,189,248,0.1); }
+    .badge-nondb { color: var(--warning); background: rgba(245,158,11,0.1); }
 
-    .nav-actions { display: flex; gap: 15px; position: relative; }
-    .icon-btn {
-      background: rgba(255,255,255,0.05); border: 1px solid transparent; 
-      width: 40px; height: 40px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-main); cursor: pointer; transition: 0.3s var(--ease);
-    }
-    .icon-btn svg { width: 22px; height: 22px; fill: currentColor; }
-    .icon-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); border-color: #333; }
-    .icon-btn:active { transform: scale(0.95); }
-
-    /* NEW: Print Menu Styles */
-    .print-menu {
-      position: absolute; top: 50px; right: 60px; background: #1a1a1a; border: 1px solid var(--border);
-      border-radius: 12px; width: 180px; display: none; flex-direction: column; z-index: 210; overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    }
-    .print-menu.show { display: flex; }
-    .print-menu button {
-      background: transparent; border: none; color: white; padding: 12px 15px; text-align: left;
-      font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--border);
-    }
-    .print-menu button:hover { background: var(--primary); color: #000; }
-
-    /* * ==========================================
-     * 3. SEARCH & CONTROLS
-     * ==========================================
-     */
-    .controls-bar {
-      padding: 15px 20px;
-      background: var(--bg-root);
-      display: flex; flex-direction: column; gap: 15px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Input Field */
-    .search-wrap { position: relative; width: 100%; }
-    .search-wrap svg {
-      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      width: 20px; fill: var(--text-sub); pointer-events: none;
-    }
-    .search-wrap input {
-      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
-      color: white; padding: 14px 15px 14px 48px; border-radius: 14px;
-      font-size: 1rem; transition: 0.3s;
-    }
-    .search-wrap input:focus { 
-      border-color: var(--primary); 
-      box-shadow: 0 0 0 4px rgba(41, 121, 255, 0.15); 
-      background: #252525;
-    }
-
-    /* Filter Chips */
-    .filter-row { 
-      display: flex; gap: 10px; overflow-x: auto; 
-      padding-bottom: 5px; -webkit-overflow-scrolling: touch;
-    }
-    .chip {
-      background: var(--bg-card); border: 1px solid var(--border);
-      color: var(--text-sub); padding: 8px 16px; border-radius: 50px;
-      font-size: 0.85rem; font-weight: 600; white-space: nowrap;
-      cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
-    }
-    .chip svg { width: 16px; height: 16px; fill: currentColor; }
-    .chip:active { transform: scale(0.95); background: #222; }
+    /* Columns Detail */
+    .col-info h4 { margin: 0; font-size: 1.25rem; color: #fff; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;}
+    .col-info p { margin: 6px 0 0; color: var(--text-muted); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; width: fit-content; }
     
-    .chip.primary { color: var(--primary); border-color: rgba(41,121,255,0.3); background: rgba(41,121,255,0.05); }
-    .chip.success { color: var(--success); border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.05); }
-    .chip.danger { color: var(--danger); border-color: rgba(255,23,68,0.3); background: rgba(255,23,68,0.05); }
-
-    /* * ==========================================
-     * 4. MAIN LIST (CARDS)
-     * ==========================================
-     */
-    .content-area {
-      flex: 1; overflow-y: auto; padding: 20px;
-      display: flex; flex-direction: column; gap: 12px;
-      background: radial-gradient(circle at 50% 10%, #111 0%, #000 70%);
+    .col-meta { display: flex; flex-direction: column; gap: 10px; }
+    .tag { 
+      background: #1e293b; 
+      color: #cbd5e1; 
+      padding: 6px 12px; 
+      border-radius: 8px; 
+      font-size: 0.75rem; 
+      font-weight: 600;
+      width: fit-content; 
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
     }
-
-    .card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 18px;
-      display: grid; grid-template-columns: 1fr auto; gap: 10px;
-      position: relative; transition: all 0.2s var(--ease);
-      cursor: pointer; overflow: hidden;
-    }
-    .card:active { transform: scale(0.98); background: #1c1c1c; }
     
-    /* Status Indicator Bar */
-    .card::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    .due-tag { 
+      color: var(--secondary); 
+      font-weight: 700; 
+      font-size: 0.8rem; 
+      background: rgba(56, 189, 248, 0.1); 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      width: fit-content;
+      border: 1px solid rgba(56, 189, 248, 0.2);
     }
-    .card.paid::before { background: var(--success); box-shadow: 2px 0 10px rgba(0,230,118,0.3); }
-    .card.due::before { background: var(--danger); box-shadow: 2px 0 10px rgba(255,23,68,0.3); }
 
-    /* NEW: Non-DB Card Styling */
-    .card.non-db { border: 2px dashed var(--warning); }
-    .card.non-db::before { background: var(--warning); box-shadow: 2px 0 10px rgba(255,183,77,0.3); }
-    .non-db-badge { background: var(--warning); color: #000; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+    .col-amount { text-align: right; }
+    .amount-display { font-size: 1.85rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
+    .date-display { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 
-    .c-details h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-    .c-details p { margin: 0; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px; }
-    .c-details .cid { font-family: monospace; background: #222; padding: 2px 6px; border-radius: 4px; }
-
-    .c-meta { text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; }
-    .badge {
-      padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;
+    /* Actions */
+    .col-actions { display: flex; gap: 12px; }
+    .btn-icon {
+      width: 46px; height: 46px; border-radius: 12px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.2s;
     }
-    .badge.due { background: rgba(255, 23, 68, 0.1); color: var(--danger); }
-    .badge.paid { background: rgba(0, 230, 118, 0.1); color: var(--success); }
+    .btn-edit { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .btn-edit:hover { background: var(--warning); color: #000; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
     
-    /* NEW: Badge splits */
-    .badge.mode { margin-top: 5px; border: 1px solid #333; font-size: 0.65rem; }
-    .badge.cash { color: var(--success); }
-    .badge.online { color: var(--primary); }
-
-    .c-date { font-size: 0.7rem; color: #666; margin-top: 6px; }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center; color: var(--text-sub); margin-top: 60px;
-      display: flex; flex-direction: column; align-items: center; gap: 15px;
-    }
-    .empty-icon { width: 64px; height: 64px; fill: #222; margin-bottom: 10px; }
-
-    /* * ==========================================
-     * 5. DRAWER (DETAILS)
-     * ==========================================
-     */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
-      transition: opacity 0.3s; z-index: 99;
-    }
-    .overlay.active { opacity: 1; pointer-events: auto; }
-
-    .drawer {
-      position: fixed; inset: 0; left: auto; width: 100%; max-width: 500px;
-      background: #000; border-left: 1px solid var(--border);
-      transform: translateX(100%); transition: transform 0.4s var(--ease);
-      display: flex; flex-direction: column; z-index: 100;
-      box-shadow: -10px 0 40px rgba(0,0,0,0.8);
-    }
-    .drawer.active { transform: translateX(0); }
-
-    /* Drawer Header */
-    .d-head { 
-      padding: 20px 25px; background: #0a0a0a; border-bottom: 1px solid var(--border);
-    }
-    .dh-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-    .dh-title h2 { margin: 0; font-size: 1.8rem; font-weight: 800; background: linear-gradient(to bottom right, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-    .dh-title span { color: var(--primary); font-family: monospace; font-size: 0.9rem; }
+    .btn-accept { background: var(--primary-muted); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .btn-accept:hover { background: var(--primary); color: #000; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
     
-    .btn-close { 
-      background: #222; border: none; width: 32px; height: 32px; border-radius: 50%; 
-      color: #fff; cursor: pointer; display: grid; place-items: center; font-size: 1.2rem;
-    }
+    .btn-reject { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-reject:hover { background: var(--danger); color: white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 
-    /* Info Grid */
-    .d-grid { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+    /* --- DROPDOWN MENU --- */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-content {
+      display: none; position: absolute; right: 0; top: 50px; background-color: var(--card); 
+      min-width: 180px; box-shadow: 0px 10px 30px rgba(0,0,0,0.8); z-index: 200; 
+      border-radius: 12px; border: 1px solid var(--border); overflow: hidden;
+      animation: modalFade 0.2s ease;
     }
-    .info-box { background: #111; padding: 12px; border-radius: 10px; border: 1px solid #222; }
-    .info-box label { display: block; font-size: 0.65rem; text-transform: uppercase; color: #666; margin-bottom: 4px; }
-    .info-box div { font-size: 0.9rem; font-weight: 600; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dropdown-content a {
+      color: white; padding: 14px 16px; text-decoration: none; display: flex; align-items: center; 
+      gap: 10px; font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .dropdown-content a:hover { background-color: rgba(255,255,255,0.05); color: var(--secondary); }
+    .dropdown-content a:last-child { border-bottom: none; }
+    .dropdown-content.show { display: block; }
 
-    /* Action Buttons */
-    .d-actions { display: flex; gap: 10px; }
-    .act-btn {
-      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: #151515; color: white; text-decoration: none; font-size: 0.9rem; font-weight: 600;
-      display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;
+    /* --- EDIT MODAL --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+      animation: modalFade 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .act-btn:active { transform: scale(0.97); }
-    .act-btn.call { border-color: rgba(0,230,118,0.3); color: var(--success); }
-    .act-btn.map { border-color: rgba(41,121,255,0.3); color: var(--primary); }
+    @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
 
-    /* Drawer Body */
-    .d-body { flex: 1; overflow-y: auto; padding: 20px; background: #050505; }
-    
-    .prod-item { 
-      background: #121212; border: 1px solid #222; border-radius: 12px; 
-      margin-bottom: 12px; overflow: hidden;
-    }
-    .pi-header { 
-      padding: 15px; display: flex; align-items: center; gap: 12px; 
-      cursor: pointer; background: rgba(255,255,255,0.02);
-    }
-    .pi-header:active { background: #222; }
-    
-    /* Custom Checkbox */
-    .chk-wrap { position: relative; width: 24px; height: 24px; }
-    .custom-chk { 
-      width: 100%; height: 100%; appearance: none; border: 2px solid #444; 
-      border-radius: 6px; background: transparent; transition: 0.2s; cursor: pointer;
-    }
-    .custom-chk:checked { background: var(--primary); border-color: var(--primary); }
-    .custom-chk:checked::after {
-      content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      color: #000; font-size: 16px; font-weight: bold; pointer-events: none;
-    }
-
-    .pi-info { flex: 1; }
-    .pi-title { font-weight: 700; font-size: 0.95rem; }
-    .pi-sub { font-size: 0.75rem; color: #888; font-family: monospace; margin-top: 2px; }
-    
-    .pi-stat { 
-      font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; 
-      background: #000; border: 1px solid #333; 
-    }
-    .pi-stat.red { color: var(--danger); border-color: var(--danger); }
-    .pi-stat.green { color: var(--success); border-color: var(--success); }
-
-    /* Ledger Expansion */
-    .pi-ledger { 
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-      background: #000; border-top: 1px solid #222; 
-    }
-    .pi-ledger.open { max-height: 500px; overflow-y: auto; }
-    
-    .led-row { 
-      display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 10px 15px;
-      font-size: 0.8rem; border-bottom: 1px solid #1a1a1a; color: #ccc;
-    }
-    .led-head { color: #666; font-size: 0.7rem; font-weight: 700; background: #080808; text-transform: uppercase; letter-spacing: 0.5px;}
-
-    /* Footer Buttons */
-    .d-foot { 
-      padding: 15px 20px; background: #0a0a0a; border-top: 1px solid var(--border);
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
-      padding-bottom: max(15px, env(safe-area-inset-bottom));
-    }
-    .btn-main {
-      border: none; border-radius: 12px; padding: 10px; font-weight: 700; font-size: 0.85rem;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
-      text-align: center;
-    }
-    .btn-main.primary { background: var(--primary); color: #000; box-shadow: 0 4px 15px rgba(41,121,255,0.25); }
-    .btn-main.secondary { background: transparent; border: 1px solid #444; color: #aaa; }
-    .btn-main.secondary:hover { color: #fff; border-color: #fff; }
-    .btn-main.success { background: var(--success); color: #000; box-shadow: 0 4px 15px rgba(0,230,118,0.25); }
-
-    /* * ==========================================
-     * 6. ANALYTICS POPUP
-     * ==========================================
-     */
     .modal {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
-      width: 90%; max-width: 600px; background: #111; border: 1px solid var(--border);
-      border-radius: 20px; opacity: 0; pointer-events: none; transition: 0.3s var(--ease);
-      z-index: 200; box-shadow: 0 20px 60px rgba(0,0,0,0.9); overflow: hidden;
+      background: var(--surface); padding: 32px; border-radius: 24px; width: 90%; max-width: 420px;
+      border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      transform: translateY(0); transition: 0.3s;
     }
-    .modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+    .modal h3 { margin-top: 0; color: #fff; font-size: 1.5rem; margin-bottom: 24px; font-weight: 800; }
     
-    .m-head { padding: 15px 20px; background: #161616; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;}
-    .m-head h3 { margin: 0; font-size: 1rem; color: #fff; letter-spacing: 1px; }
-    
-    .m-body { padding: 25px; }
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .stat-card { background: #1a1a1a; padding: 20px; border-radius: 14px; text-align: center; border: 1px solid #333; }
-    .stat-card h4 { margin: 0; font-size: 0.7rem; text-transform: uppercase; color: #888; letter-spacing: 1px; }
-    .stat-card .val { font-size: 1.6rem; font-weight: 800; color: #fff; margin-top: 5px; font-family: monospace; }
-
-    /* NEW: Analytics Details */
-    .stat-splits { display: flex; justify-content: space-around; margin-top: 10px; border-top: 1px solid #222; padding-top: 10px; }
-    .split { display: flex; flex-direction: column; gap: 2px; }
-    .split span:first-child { font-size: 0.6rem; color: #666; }
-    .split span:last-child { font-size: 0.9rem; font-weight: bold; color: #fff; }
-    
-    .chart-box { height: 250px; background: #080808; border-radius: 14px; padding: 15px; border: 1px solid #222; }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .d-foot { grid-template-columns: 1fr 1fr 1fr; }
-      .stat-grid { grid-template-columns: 1fr; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-group input { 
+      width: 100%; padding: 14px 18px; background: var(--input-bg); border: 1px solid var(--border); 
+      color: white; border-radius: 12px; box-sizing: border-box; font-size: 1rem; transition: 0.2s;
+      font-family: inherit;
     }
+    .form-group input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1); }
+    
+    .modal-actions { display: flex; gap: 12px; margin-top: 32px; }
+    .btn-modal { flex: 1; padding: 16px; border-radius: 14px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
+    .btn-cancel { background: #334155; color: white; }
+    .btn-cancel:hover { background: #475569; }
+    .btn-save { background: var(--secondary); color: #020617; }
+    .btn-save:hover { transform: scale(1.02); filter: brightness(1.1); }
 
-    /* * ==========================================
-     * 7. PRINT LAYOUT (VIRTUAL)
-     * ==========================================
-     */
+    /* Loading Spinner */
+    .loading-spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(16, 185, 129, 0.1); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* --- PRINT LAYOUT CSS --- */
+    #printArea { display: none; }
     @media print {
       body * { visibility: hidden; }
       #printArea, #printArea * { visibility: visible; }
-      #printArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; }
-      .print-card { page-break-inside: avoid; border-bottom: 2px solid #eee; padding: 20px 0; }
+      #printArea { 
+        display: block; position: absolute; left: 0; top: 0; width: 100%; 
+        background: #fff; color: #000; padding: 20px; box-sizing: border-box;
+      }
+      .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+      .print-header h1 { font-size: 28px; margin: 0; font-weight: 800; color: #111; }
+      .print-header p { font-size: 14px; margin: 5px 0 0 0; color: #444; }
+      .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      .print-table th, .print-table td { border: 1px solid #ccc; padding: 12px; text-align: left; font-size: 14px; }
+      .print-table th { background: #f8f9fa; font-weight: bold; color: #333; text-transform: uppercase; font-size: 12px; }
+      .print-table tr:nth-child(even) { background: #fcfcfc; }
+      .print-badge { padding: 3px 6px; font-size: 10px; border-radius: 4px; border: 1px solid #000; font-weight: bold; margin-left: 5px; }
+      .print-footer { margin-top: 40px; text-align: right; font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
+    }
+
+    /* Mobile Responsive Updates */
+    @media (max-width: 850px) {
+      .container { padding: 20px 15px 100px; }
+      .header-section { margin-bottom: 30px; }
+      .header-text h1 { font-size: 1.75rem; }
+      .entry-item { grid-template-columns: 1fr; gap: 20px; padding: 20px; }
+      .col-amount { text-align: left; display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--border); padding-top: 20px; margin-top: -5px; }
+      .amount-display { font-size: 1.6rem; }
+      .date-display { justify-content: flex-start; }
+      .col-actions { width: 100%; gap: 10px; }
+      .btn-icon { flex: 1; height: 52px; border-radius: 14px; }
+      .header-controls { width: 100%; flex-direction: column; }
+      .stats-card { text-align: center; }
+      .btn-approve-all { height: 56px; justify-content: center; }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">
-      <h1>Reports & Analytics</h1>
-      <span>MEENA GROUPS</span>
-    </div>
-    <div class="nav-actions">
-      <div class="icon-btn" onclick="togglePrintMenu()" title="Print Controls">
-        <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+  <nav class="top-nav">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <h2>MEENA GROUPS</h2>
       </div>
-      <div class="print-menu" id="printMenu">
-        <button onclick="printAll()">Print All (DB)</button>
-        <button onclick="printNonDB()">Print Non-DB Records</button>
-      </div>
-
-      <div class="icon-btn" onclick="openAnalytics()" title="Analytics">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-      </div>
-      <a href="index.html" class="icon-btn" title="Home">
-        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      </a>
-    </div>
-  </header>
-
-  <div class="controls-bar">
-    <div class="search-wrap">
-      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input id="searchInput" type="text" placeholder="Search Name, ID, or Phone..." onkeyup="filterLocalData()">
-    </div>
-    
-    <div class="filter-row">
-      <button class="chip primary" onclick="searchCloud()">
-        <svg viewBox="0 0 24 24"><path d="M19.36 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96z"/></svg>
-        Find in Cloud
-      </button>
-      <button class="chip success" onclick="loadRecent(15)">
-        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-        Load Recent
-      </button>
-      <button class="chip danger" onclick="loadAll()">
-        <svg viewBox="0 0 24 24"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
-        Load All DB
-      </button>
-    </div>
-  </div>
-
-  <div id="resultContainer" class="content-area">
-    <div class="empty-state">
-      <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-      <p>System Ready.<br>Search or Load Data to begin.</p>
-    </div>
-  </div>
-
-  <div class="overlay" id="overlay" onclick="closeAll()"></div>
-
-  <div class="drawer" id="customerDrawer">
-    <div class="d-head">
-      <div class="dh-top">
-        <div class="dh-title">
-          <h2 id="drawName">Customer Name</h2>
-          <span id="drawId">ID: #000000</span>
-        </div>
-        <button class="btn-close" onclick="closeAll()">×</button>
-      </div>
-
-      <div class="d-grid">
-        <div class="info-box">
-          <label>Mobile</label>
-          <div id="drawPhone">--</div>
-        </div>
-        <div class="info-box">
-          <label>Location</label>
-          <div id="drawPlace">--</div>
-        </div>
-        <div class="info-box">
-          <label>Since</label>
-          <div id="drawJoin">--</div>
-        </div>
-        <div class="info-box">
-          <label>Orders</label>
-          <div id="drawCount">0</div>
-        </div>
-      </div>
-
-      <div class="d-actions">
-        <a id="btnCall" href="#" class="act-btn call">
-          <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
-          CALL
-        </a>
-        <a id="btnMap" href="#" target="_blank" class="act-btn map">
-          <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          MAP
-        </a>
-      </div>
-    </div>
-
-    <div class="d-body" id="productContainer">
-      </div>
-
-    <div class="d-foot">
-      <button id="btnApproveServer" class="btn-main success" onclick="submitDraftToCloud()">
-        <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        Approve All
-      </button>
-      <button class="btn-main primary" onclick="downloadSelected()">
-        <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        Dwnld Sel.
-      </button>
-      <button class="btn-main secondary" onclick="downloadAllPDF()">
-        Dwnld All
-      </button>
-    </div>
-  </div>
-
-  <div class="modal" id="analyticsPopup">
-    <div class="m-head">
-      <h3>BUSINESS PULSE</h3>
-      <button class="btn-close" onclick="closeAll()" style="width:24px;height:24px;font-size:1rem;">×</button>
-    </div>
-    <div class="m-body">
-      <div class="stat-grid">
-        <div class="stat-card" style="border-color: rgba(0,230,118,0.3)">
-          <h4 style="color: var(--success)">Collected</h4>
-          <div class="val" id="anaPaid">₹0</div>
-          <div class="stat-splits">
-            <div class="split"><span>CASH</span><span id="anaCash">₹0</span></div>
-            <div class="split"><span>ONLINE</span><span id="anaOnline">₹0</span></div>
+      <div style="display:flex; align-items:center; gap: 15px;">
+        <div id="status-tag" style="font-size: 0.7rem; font-weight: 800; background: var(--primary-muted); color: var(--primary); padding: 4px 10px; border-radius: 20px;">SYSTEM ONLINE</div>
+        
+        <div class="dropdown">
+          <button class="btn-icon" style="height:36px; width:36px; background:var(--surface); border:1px solid var(--border); color:white; font-size:1.2rem;" onclick="togglePrintMenu()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+          </button>
+          <div id="printDropdown" class="dropdown-content">
+            <a href="#" onclick="printData('all')">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              Print All Logs
+            </a>
+            <a href="#" onclick="printData('nondb')">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              Print Non-DB Only
+            </a>
           </div>
         </div>
-        <div class="stat-card" style="border-color: rgba(255,23,68,0.3)">
-          <h4 style="color: var(--danger)">Outstanding</h4>
-          <div class="val" id="anaDue">₹0</div>
-        </div>
       </div>
-      <div class="chart-box">
-        <canvas id="financeChart"></canvas>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="header-section">
+      <div class="header-text">
+        <h1>View Entries</h1>
+        <p>Review and verify agent collections before syncing.</p>
+      </div>
+      <div class="header-controls">
+        <div class="stats-card">
+          <span>Cash Total</span>
+          <strong id="totalCashAmt" style="color: var(--primary);">₹0</strong>
+        </div>
+        <div class="stats-card">
+          <span>Online Total</span>
+          <strong id="totalOnlineAmt" style="color: var(--secondary);">₹0</strong>
+        </div>
+        <div class="stats-card">
+          <span>Grand Total</span>
+          <strong id="totalPendingAmt" style="color: #fff;">₹0</strong>
+        </div>
+        <button class="btn-approve-all" onclick="approveAll()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+          Approve All
+        </button>
+      </div>
+    </div>
+
+    <div id="reviewList" class="review-list">
+      <div style="text-align:center; padding: 100px 20px; color:var(--text-muted);">
+        <div class="loading-spinner"></div>
+        <p>Fetching pending entries...</p>
       </div>
     </div>
   </div>
 
-  <div id="printArea" style="display: none;"></div>
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Edit Collection</h3>
+      <input type="hidden" id="editDocId">
+      
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="editAmount" placeholder="0.00">
+      </div>
+      
+      <div class="form-group">
+        <label>Due Number</label>
+        <input type="number" id="editDueNumber" placeholder="Auto">
+      </div>
+
+      <div class="form-group">
+        <label>Collection Date</label>
+        <input type="date" id="editDate">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-modal btn-save" onclick="saveEdit()">Update Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="printArea"></div>
 
   <script type="module">
     import { db } from "./config.js";
-    import { collection, query, where, getDocs, orderBy, limit, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { 
+      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc, writeBatch, getDoc 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    let loadedData = [];
-    let currentCustomer = null;
-    let chartInstance = null;
+    let pendingEntries = [];
 
-    // ------------------------------------------
-    // 1. DATA FETCHING (ENHANCED SEARCH)
-    // ------------------------------------------
+    // --- 1. LOAD DATA ---
+    async function loadPending() {
+      const listDiv = document.getElementById("reviewList");
+      const totalDisplay = document.getElementById("totalPendingAmt");
+      const cashDisplay = document.getElementById("totalCashAmt");
+      const onlineDisplay = document.getElementById("totalOnlineAmt");
+      const approveAllBtn = document.querySelector(".btn-approve-all");
 
-    window.loadRecent = async (n) => {
-      uiLoading();
       try {
-        const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(n));
-        const snap = await getDocs(q);
-        processData(snap);
-      } catch (e) { alert("Error loading: " + e.message); }
-    };
-
-    window.loadAll = async () => {
-      if(!confirm("⚠️ Load ALL records? This may take data.")) return;
-      uiLoading();
-      try {
-        const snap = await getDocs(collection(db, "customers"));
-        processData(snap);
-      } catch (e) { alert(e.message); }
-    };
-
-    // FIXED: Search now looks for Name, ID, or Phone matches
-    window.searchCloud = async () => {
-      const v = document.getElementById("searchInput").value.trim();
-      if(!v) return alert("Please enter Name, ID, or Phone");
-      
-      uiLoading();
-      const colRef = collection(db, "customers");
-      
-      try {
-        // Parallel Queries for better coverage
-        const promises = [
-          // 1. ID Match (Prefix)
-          getDocs(query(colRef, where("id", ">=", v), where("id", "<=", v + '\uf8ff'), limit(5))),
-          // 2. Name Match (Simple Case Sensitive Prefix)
-          getDocs(query(colRef, where("name", ">=", v), where("name", "<=", v + '\uf8ff'), limit(5))),
-          // 3. Phone Match (Exact)
-          getDocs(query(colRef, where("phone", "==", v)))
-        ];
-
-        const snapshots = await Promise.all(promises);
+        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
+        const snapshot = await getDocs(q);
         
-        // Merge results using Map to prevent duplicates
-        const resultMap = new Map();
-        snapshots.forEach(snap => {
-          snap.forEach(doc => resultMap.set(doc.id, doc.data()));
+        pendingEntries = [];
+        let totalAmt = 0;
+        let cashAmt = 0;
+        let onlineAmt = 0;
+
+        snapshot.forEach(docSnap => {
+          const d = docSnap.data();
+          d.docId = docSnap.id;
+          d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
+          pendingEntries.push(d);
+          
+          let amt = parseFloat(d.amount || 0);
+          totalAmt += amt;
+          
+          // Separate cash vs online based on paymentMode or assumes cash as default
+          let mode = (d.paymentMode || "cash").toLowerCase();
+          if(mode === "online") {
+              onlineAmt += amt;
+          } else {
+              cashAmt += amt;
+          }
         });
+
+        // Sort Newest First
+        pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
+
+        totalDisplay.innerText = "₹" + totalAmt.toLocaleString('en-IN');
+        cashDisplay.innerText = "₹" + cashAmt.toLocaleString('en-IN');
+        onlineDisplay.innerText = "₹" + onlineAmt.toLocaleString('en-IN');
         
-        const results = Array.from(resultMap.values());
-        
-        if (results.length === 0) {
-          document.getElementById("resultContainer").innerHTML = `
-            <div class="empty-state">
-              <p>No matches found for "${v}" in Cloud.</p>
-              <button class="chip primary" onclick="loadAll()">Try Load All</button>
+        listDiv.innerHTML = "";
+
+        if (pendingEntries.length === 0) {
+          listDiv.innerHTML = `
+            <div style="text-align:center; padding:100px 20px; color:#64748b; background:var(--surface); border-radius:24px; border:1px dashed var(--border);">
+              <div style="font-size: 4rem; margin-bottom:20px; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.2));">✨</div>
+              <h2 style="margin:0; color:#fff; font-weight:800;">All Caught Up!</h2>
+              <p style="max-width:300px; margin: 10px auto;">No collections are waiting for approval. Great job!</p>
             </div>`;
-        } else {
-          loadedData = results; // Store globally
-          renderList(loadedData);
-          calcStats();
+          approveAllBtn.disabled = true;
+          return;
         }
-      } catch (e) { alert(e.message); }
-    };
 
-    // NEW: Local Filter (Instant Search)
-    window.filterLocalData = () => {
-      const term = document.getElementById("searchInput").value.toLowerCase();
-      if(loadedData.length === 0) return;
-      
-      const filtered = loadedData.filter(c => {
-        return (c.name && c.name.toLowerCase().includes(term)) ||
-               (c.id && c.id.toLowerCase().includes(term)) ||
-               (c.phone && c.phone.includes(term)) ||
-               (c.place && c.place.toLowerCase().includes(term));
-      });
-      
-      renderList(filtered);
-    };
+        approveAllBtn.disabled = false;
 
-    function uiLoading() {
-      document.getElementById("resultContainer").innerHTML = `<div style="text-align:center;padding:50px;color:#666;">Syncing...</div>`;
-    }
+        pendingEntries.forEach(d => {
+          // Identify Non-DB records
+          const isNonDB = d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP");
+          const mode = (d.paymentMode || "cash").toLowerCase();
+          
+          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
 
-    // Handles both Snapshot or Array
-    function processData(snap) {
-      loadedData = [];
-      snap.forEach(d => loadedData.push(d.data()));
-      
-      if(loadedData.length === 0) {
-        document.getElementById("resultContainer").innerHTML = `<div class="empty-state"><p>No Records Found.</p></div>`;
-      } else {
-        renderList(loadedData);
-      }
-      calcStats();
-    }
+          const card = document.createElement("div");
+          card.className = `entry-item ${isNonDB ? 'non-db-card' : ''}`;
+          card.id = `card-${d.docId}`;
+          
+          // Build Badges
+          let badgeHTML = '';
+          if(mode === 'online') {
+              badgeHTML += `<span class="badge badge-online">ONLINE</span>`;
+          } else {
+              badgeHTML += `<span class="badge badge-cash">CASH</span>`;
+          }
+          if(isNonDB) {
+              badgeHTML += `<span class="badge badge-nondb">NON-DB</span>`;
+          }
+          
+          // Build Actions (Hide Accept for Non-DB)
+          let actionButtons = `
+              <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </button>
+              <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+          `;
+          
+          if (!isNonDB) {
+              actionButtons += `
+              <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+              </button>`;
+          }
 
-    // ------------------------------------------
-    // 2. RENDERING
-    // ------------------------------------------
-
-    function renderList(data) {
-      const div = document.getElementById("resultContainer");
-      div.innerHTML = "";
-
-      if(data.length === 0) {
-        div.innerHTML = `<div style="text-align:center;padding:20px;color:#555;">No matching results.</div>`;
-        return;
-      }
-
-      data.forEach(c => {
-        let totalVal = 0, totalPaid = 0;
-        let cashSum = 0, onlineSum = 0;
-        
-        if(c.products) c.products.forEach(p => { 
-            totalVal += (p.total||0); 
-            totalPaid += (p.paid||0); 
-            
-            (p.payments || []).forEach(pay => {
-                let amt = parseFloat(pay.amount || 0);
-                let mode = (pay.paymentMode || pay.type || '').toLowerCase();
-                if(mode.includes('online') || mode.includes('upi')) {
-                    onlineSum += amt;
-                } else {
-                    cashSum += amt;
-                }
-            });
-        });
-        
-        const bal = totalVal - totalPaid;
-        const status = bal > 1 ? 'due' : 'paid';
-        const isNonDB = c.isNonDatabase === true;
-
-        const card = document.createElement("div");
-        card.className = `card ${status} ${isNonDB ? 'non-db' : ''}`;
-        card.onclick = () => openDrawer(c);
-        
-        card.innerHTML = `
-          <div class="c-details">
-            <h3 style="display:flex; align-items:center; flex-wrap:wrap; gap:5px;">
-                ${c.name}
-                ${isNonDB ? '<span class="non-db-badge">NON-DB</span>' : ''}
-            </h3>
-            <p>
-              <span class="cid">${c.id}</span>
-              <span>${c.place || ''}</span>
-            </p>
-            <div class="c-date">Joined: ${c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-'}</div>
-          </div>
-          <div class="c-meta">
-            <span class="badge ${bal > 1 ? 'due' : 'paid'}">
-              ${bal > 1 ? '₹' + bal.toLocaleString() : 'CLEARED'}
-            </span>
-            <div style="display:flex; gap:4px; margin-top:5px;">
-               <span class="badge mode cash">C: ₹${cashSum}</span>
-               <span class="badge mode online">O: ₹${onlineSum}</span>
+          card.innerHTML = `
+            <div class="col-info">
+              <div class="badge-container">${badgeHTML}</div>
+              <h4>${d.customerName}</h4>
+              <p>${d.customerId || "No ID Linked"}</p>
             </div>
-          </div>
-        `;
-        div.appendChild(card);
-      });
+            
+            <div class="col-meta">
+              <span class="tag">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                ${d.productName || 'Unknown Product'}
+              </span>
+              <span class="due-tag">Due: ${dueDisplay}</span>
+            </div>
+
+            <div class="col-amount">
+              <div class="amount-display">₹${d.amount}</div>
+              <div class="date-display">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                ${d.date}
+              </div>
+            </div>
+
+            <div class="col-actions">
+              ${actionButtons}
+            </div>
+          `;
+          listDiv.appendChild(card);
+        });
+
+      } catch (e) {
+        console.error(e);
+        listDiv.innerHTML = `<div style="text-align:center; color:#ef4444; background:rgba(239,68,68,0.1); padding:20px; border-radius:12px;">Error: ${e.message}</div>`;
+      }
     }
 
-    // ------------------------------------------
-    // 3. DRAWER & INTERACTIONS
-    // ------------------------------------------
+    // --- 2. EDIT MODAL LOGIC ---
+    window.openEdit = (docId) => {
+      const entry = pendingEntries.find(e => e.docId === docId);
+      if (!entry) return;
 
-    window.submitDraftToCloud = async () => {
-        if(!confirm("Submit all Database updates to Server?\n(Non-DB records will be securely cleared without leaving logs)")) return;
-        
+      document.getElementById("editDocId").value = docId;
+      document.getElementById("editAmount").value = entry.amount;
+      document.getElementById("editDate").value = entry.date;
+      document.getElementById("editDueNumber").value = entry.dueNumber || 0;
+
+      document.getElementById("editModal").style.display = "flex";
+    };
+
+    window.closeModal = () => {
+      document.getElementById("editModal").style.display = "none";
+    };
+
+    window.saveEdit = async () => {
+      const docId = document.getElementById("editDocId").value;
+      const newAmt = parseFloat(document.getElementById("editAmount").value);
+      const newDate = document.getElementById("editDate").value;
+      const newDue = parseInt(document.getElementById("editDueNumber").value);
+
+      if(!newAmt || !newDate) return alert("Invalid inputs");
+
+      const btn = document.querySelector(".btn-save");
+      btn.innerText = "Saving...";
+
+      try {
+        const ref = doc(db, "temp_entries", docId);
+        await updateDoc(ref, {
+          amount: newAmt,
+          date: newDate,
+          dueNumber: newDue
+        });
+        closeModal();
+        loadPending();
+        btn.innerText = "Update Entry";
+      } catch (e) {
+        alert("Error updating: " + e.message);
+        btn.innerText = "Update Entry";
+      }
+    };
+
+    // --- 3. SINGLE APPROVE (TRANSACTION) ---
+    window.approveEntry = async (docId) => {
+      const entry = pendingEntries.find(e => e.docId === docId);
+      if (!entry) return;
+
+      const card = document.getElementById(`card-${docId}`);
+      card.style.opacity = "0.5"; card.style.pointerEvents = "none";
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const custRef = doc(db, "customers", entry.customerId);
+          const statsRef = doc(db, "metadata", "stats");
+          const tempRef = doc(db, "temp_entries", docId);
+
+          const custDoc = await transaction.get(custRef);
+          if (!custDoc.exists()) throw `Customer ${entry.customerId} not found!`;
+
+          const data = custDoc.data();
+          let pIndex = entry.productIndex;
+          if (!data.products[pIndex] || data.products[pIndex].name !== entry.productName) {
+            pIndex = data.products.findIndex(p => p.name === entry.productName);
+          }
+          if (pIndex === -1) throw "Product mismatch - cannot merge.";
+
+          const product = data.products[pIndex];
+          let finalDue = entry.dueNumber; 
+          
+          if (!finalDue || finalDue <= 0) {
+             const max = (product.payments || []).length > 0 
+               ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
+               : 0;
+             finalDue = max + 1;
+          }
+
+          const newPayment = {
+            date: entry.date,
+            amount: entry.amount,
+            dueNumber: parseInt(finalDue),
+            type: "Agent Collection",
+            approvedAt: new Date().toISOString()
+          };
+
+          if (!product.payments) product.payments = [];
+          product.payments.push(newPayment);
+          product.paid += entry.amount;
+
+          transaction.update(custRef, { products: data.products });
+          transaction.update(statsRef, {
+            totalPaid: increment(entry.amount),
+            totalBalance: increment(-entry.amount)
+          });
+          transaction.delete(tempRef);
+        });
+
+        card.style.transform = "scale(0.9) translateX(50px)";
+        card.style.opacity = "0";
+        setTimeout(() => { card.remove(); checkEmpty(); }, 300);
+
+      } catch (e) {
+        alert("Approval Failed: " + e);
+        card.style.opacity = "1"; card.style.pointerEvents = "auto";
+      }
+    };
+
+    // --- 4. REJECT LOGIC ---
+    window.rejectEntry = async (docId) => {
+      if(!confirm("Permanently delete this entry?")) return;
+      try {
+        await deleteDoc(doc(db, "temp_entries", docId));
+        const card = document.getElementById(`card-${docId}`);
+        card.style.opacity = "0";
+        card.style.transform = "scale(0.8)";
+        setTimeout(() => { card.remove(); checkEmpty(); }, 250);
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    };
+
+    // --- 5. BATCH APPROVE ALL (INSTANT & NON-DB WIPE) ---
+    window.approveAll = async () => {
+      if (pendingEntries.length === 0) return;
+      if (!confirm(`Approve DB entries & Auto-delete non-DB entries?`)) return;
+
+      const btn = document.querySelector(".btn-approve-all");
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = `<span class="loading-spinner" style="width:16px; height:16px; margin:0; border-width:2px;"></span> Processing Batch...`;
+      btn.disabled = true;
+
+      try {
         const batch = writeBatch(db);
-        let count = 0;
+        let totalBatchAmount = 0;
+        
+        // Isolate customer IDs that are valid (DB Customers)
+        const validEntries = pendingEntries.filter(e => !(e.isNonDB === true || !e.customerId || e.customerId === "NON-DB" || e.customerId.includes("TEMP")));
+        const nonDbEntries = pendingEntries.filter(e => (e.isNonDB === true || !e.customerId || e.customerId === "NON-DB" || e.customerId.includes("TEMP")));
 
-        loadedData.forEach(c => {
-            if(!c.isNonDatabase && c.id) {
-                const ref = doc(db, "customers", c.id);
-                batch.update(ref, { products: c.products });
-                count++;
-            }
+        // Fetch valid customers to ensure data integrity
+        const customerIds = [...new Set(validEntries.map(e => e.customerId))];
+        const customersSnapshot = await Promise.all(customerIds.map(id => getDoc(doc(db, "customers", id))));
+        
+        const customerMap = {};
+        customersSnapshot.forEach(snap => {
+          if (snap.exists()) customerMap[snap.id] = snap.data();
         });
 
-        try {
-            if(count > 0) await batch.commit();
-            alert("✅ Server Sync Successful.\nNon-DB records cleared safely.");
+        // Process DB Entries
+        validEntries.forEach(entry => {
+          const customerData = customerMap[entry.customerId];
+          if (!customerData) return;
+
+          let pIndex = entry.productIndex;
+          if (!customerData.products[pIndex] || customerData.products[pIndex].name !== entry.productName) {
+            pIndex = customerData.products.findIndex(p => p.name === entry.productName);
+          }
+
+          if (pIndex > -1) {
+            const product = customerData.products[pIndex];
             
-            // Delete non-db from local state entirely so no logs exist
-            loadedData = loadedData.filter(c => !c.isNonDatabase);
-            renderList(loadedData);
-            closeAll();
-        } catch (e) {
-            alert("Error Syncing: " + e.message);
-        }
-    };
+            let finalDue = entry.dueNumber;
+            if (!finalDue || finalDue <= 0) {
+               const max = (product.payments || []).length > 0 ? Math.max(...product.payments.map(p => p.dueNumber || 0)) : 0;
+               finalDue = max + 1;
+            }
 
-    window.openDrawer = (c) => {
-      currentCustomer = c;
-      window.history.pushState({ drawer: true }, "");
+            const newPayment = {
+              date: entry.date,
+              amount: entry.amount,
+              dueNumber: parseInt(finalDue),
+              type: "Agent Collection",
+              approvedAt: new Date().toISOString()
+            };
 
-      // Populate Header
-      document.getElementById("drawName").innerText = c.name;
-      document.getElementById("drawId").innerText = "ID: " + c.id;
-      document.getElementById("drawPhone").innerText = c.phone || '-';
-      document.getElementById("drawPlace").innerText = c.place || '-';
-      document.getElementById("drawJoin").innerText = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
-      document.getElementById("drawCount").innerText = (c.products || []).length;
-      
-      document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
+            if (!product.payments) product.payments = [];
+            product.payments.push(newPayment);
+            product.paid += entry.amount;
+            
+            totalBatchAmount += entry.amount;
 
-      // Dynamically hide Approve option for non-DB isolated view, but keep as Global option otherwise
-      document.getElementById('btnApproveServer').style.display = c.isNonDatabase ? 'none' : 'flex';
-
-      // Populate Products
-      const container = document.getElementById("productContainer");
-      container.innerHTML = "";
-      
-      if(!c.products || c.products.length === 0) {
-        container.innerHTML = "<div style='text-align:center;color:#666;padding:20px;'>No Products</div>";
-        return;
-      }
-
-      c.products.forEach((p, idx) => {
-        const bal = (p.total||0) - (p.paid||0);
-        
-        // Ledger Logic
-        const sorted = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
-        let running = 0;
-        let rows = "";
-        
-        sorted.forEach(pay => {
-          running += parseFloat(pay.amount);
-          const curBal = p.total - running;
-          rows += `
-            <div class="led-row">
-              <span style="color:#666">#${pay.dueNumber||'-'}</span>
-              <span>${pay.date}</span>
-              <span style="color:var(--success)">₹${pay.amount}</span>
-              <span style="text-align:right">₹${curBal}</span>
-            </div>`;
+            // Mark temp entry for deletion
+            const tempRef = doc(db, "temp_entries", entry.docId);
+            batch.delete(tempRef);
+          }
         });
 
-        if(!rows) rows = `<div style="padding:15px;color:#555;text-align:center;font-size:0.8rem">No payments yet.</div>`;
+        // Stage DB Customer Updates
+        Object.keys(customerMap).forEach(custId => {
+          const custRef = doc(db, "customers", custId);
+          batch.update(custRef, { products: customerMap[custId].products });
+        });
 
-        const item = document.createElement("div");
-        item.className = "prod-item";
+        // Stage Stats Update (ONLY for DB Entries)
+        if (totalBatchAmount > 0) {
+            const statsRef = doc(db, "metadata", "stats");
+            batch.update(statsRef, {
+              totalPaid: increment(totalBatchAmount),
+              totalBalance: increment(-totalBatchAmount)
+            });
+        }
         
-        // Disable check box for non db
-        const chkHtml = c.isNonDatabase ? '' : `
-            <div class="chk-wrap" onclick="event.stopPropagation()">
-              <input type="checkbox" class="custom-chk product-checkbox" data-idx="${idx}">
-            </div>`;
+        // Silently Delete Non-DB entries from server
+        nonDbEntries.forEach(entry => {
+            const tempRef = doc(db, "temp_entries", entry.docId);
+            batch.delete(tempRef);
+        });
 
-        item.innerHTML = `
-          <div class="pi-header" onclick="toggleLedger(this)">
-            ${chkHtml}
-            <div class="pi-info">
-              <div class="pi-title">${p.name}</div>
-              <div class="pi-sub">Val: ₹${(p.total||0).toLocaleString()}</div>
-            </div>
-            <div class="pi-stat ${bal > 1 ? 'red' : 'green'}">
-              ${bal > 1 ? '₹'+bal : 'PAID'}
-            </div>
-          </div>
-          <div class="pi-ledger">
-             <div class="led-row led-head">
-               <span>#</span><span>Date</span><span>Amt</span><span style="text-align:right">Bal</span>
-             </div>
-             ${rows}
-          </div>
-        `;
-        container.appendChild(item);
-      });
+        // COMMIT EVERYTHING ONCE
+        await batch.commit();
 
-      document.getElementById("overlay").classList.add("active");
-      document.getElementById("customerDrawer").classList.add("active");
+        alert("✅ Synced! Real entries approved and Non-DB entries cleared.");
+        btn.innerHTML = originalHtml;
+        loadPending();
+
+      } catch (e) {
+        alert("Batch Approval Error: " + e.message);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      }
     };
 
-    window.toggleLedger = (el) => {
-      const ledger = el.nextElementSibling;
-      ledger.classList.toggle("open");
-    };
-
-    window.closeAll = () => {
-      document.getElementById("overlay").classList.remove("active");
-      document.getElementById("customerDrawer").classList.remove("active");
-      document.getElementById("analyticsPopup").classList.remove("active");
-      document.getElementById("printMenu").classList.remove("show");
-      if(history.state) history.back();
-    };
-
-    window.onpopstate = () => {
-      document.getElementById("overlay").classList.remove("active");
-      document.getElementById("customerDrawer").classList.remove("active");
-      document.getElementById("analyticsPopup").classList.remove("active");
-    };
-
-    // ------------------------------------------
-    // 4. PDF GENERATION & PRINT CONTROL
-    // ------------------------------------------
-
+    // --- 6. PRINT FUNCTIONALITY ---
     window.togglePrintMenu = () => {
-        document.getElementById("printMenu").classList.toggle("show");
-    };
+        document.getElementById("printDropdown").classList.toggle("show");
+    }
 
-    window.printAll = () => {
-        document.getElementById("printMenu").classList.remove("show");
-        generateProfessionalPrint(loadedData.filter(c => !c.isNonDatabase), "DATABASE CUSTOMERS REPORT");
-    };
+    // Close menu if clicked outside
+    window.onclick = function(event) {
+        if (!event.target.matches('.btn-icon') && !event.target.closest('.dropdown')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    }
 
-    window.printNonDB = () => {
-        document.getElementById("printMenu").classList.remove("show");
-        generateProfessionalPrint(loadedData.filter(c => c.isNonDatabase), "NON-DATABASE (DRAFT) REPORT");
-    };
-
-    function generateProfessionalPrint(data, title) {
-        if(data.length === 0) return alert("No records to print.");
-        const printArea = document.getElementById("printArea");
+    window.printData = (type) => {
+        document.getElementById("printDropdown").classList.remove("show");
+        
+        let toPrint = pendingEntries;
+        if (type === 'nondb') {
+            toPrint = pendingEntries.filter(d => d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP"));
+        }
+        
+        if (toPrint.length === 0) {
+            alert("No data available to print for this category.");
+            return;
+        }
+        
+        const dateString = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
         
         let html = `
-            <div style="font-family: sans-serif; padding: 40px; color: #000;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                    <div>
-                        <h1 style="margin:0; font-size: 28px;">MEENA GROUPS</h1>
-                        <p style="margin:0; color: #555;">Quantum Analytics & Financial Reporting</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <h2 style="margin:0; color: #2979ff;">${title}</h2>
-                        <p style="margin:0;">Date: ${new Date().toLocaleString()}</p>
-                    </div>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-                    <thead>
-                        <tr style="background: #f0f0f0;">
-                            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Customer Details</th>
-                            <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Total Value</th>
-                            <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Paid (Cash/Online)</th>
-                            <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+            <div class="print-header">
+                <h1>MEENA GROUPS</h1>
+                <p><strong>${type === 'all' ? 'FULL DAILY COLLECTION REPORT' : 'NON-DATABASE COLLECTION REPORT'}</strong></p>
+                <p>Generated: ${dateString} | Total Records: ${toPrint.length}</p>
+            </div>
+            <table class="print-table">
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Customer / Mode</th>
+                        <th>Customer ID</th>
+                        <th>Product Details</th>
+                        <th>Date</th>
+                        <th style="text-align:right">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        let grandTotal = 0;
+        let cTotal = 0;
+        let oTotal = 0;
 
-        data.forEach(c => {
-            let tV = 0, tP = 0, cash = 0, online = 0;
-            if(c.products) {
-                c.products.forEach(p => { 
-                    tV += (p.total||0); 
-                    tP += (p.paid||0); 
-                    (p.payments || []).forEach(pay => {
-                        let m = (pay.paymentMode || pay.type || '').toLowerCase();
-                        if(m.includes('online') || m.includes('upi')) online += parseFloat(pay.amount||0);
-                        else cash += parseFloat(pay.amount||0);
-                    });
-                });
-            }
+        toPrint.forEach((d, index) => {
+            const amt = parseFloat(d.amount || 0);
+            grandTotal += amt;
+            
+            const isNonDB = d.isNonDB === true || !d.customerId || d.customerId === "NON-DB" || d.customerId.includes("TEMP");
+            const mode = (d.paymentMode || "cash").toUpperCase();
+            
+            if(mode === 'ONLINE') oTotal += amt;
+            else cTotal += amt;
+
             html += `
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 10px;">
-                        <strong>${c.name}</strong><br>
-                        <small>ID: ${c.id} | ${c.place || ''}</small>
+                    <td>${index + 1}</td>
+                    <td>
+                        <strong>${d.customerName}</strong>
+                        ${isNonDB ? '<span class="print-badge">NON-DB</span>' : ''}
+                        <br><small style="color:#555">${mode}</small>
                     </td>
-                    <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">₹${tV}</td>
-                    <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">
-                        ₹${tP} <br>
-                        <small style="color:green">C: ₹${cash}</small> | <small style="color:blue">O: ₹${online}</small>
-                    </td>
-                    <td style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">₹${tV - tP}</td>
-                </tr>`;
+                    <td style="font-family:monospace;">${d.customerId || 'N/A'}</td>
+                    <td>${d.productName || 'N/A'}</td>
+                    <td>${d.date}</td>
+                    <td style="text-align:right; font-weight:bold;">₹${amt.toLocaleString('en-IN')}</td>
+                </tr>
+            `;
         });
-
-        html += `</tbody></table>
-                <div style="text-align: center; font-size: 10px; color: #999; margin-top: 50px;">
-                    This is a computer-generated summary report from MeenaGroups Analytics.
-                </div>
-            </div>`;
-
-        printArea.innerHTML = html;
+        
+        html += `
+                </tbody>
+            </table>
+            
+            <div class="print-footer">
+                <p style="margin:5px 0; font-size:14px; color:#555;">Cash Total: ₹${cTotal.toLocaleString('en-IN')}</p>
+                <p style="margin:5px 0; font-size:14px; color:#555;">Online Total: ₹${oTotal.toLocaleString('en-IN')}</p>
+                <p style="margin:10px 0 0 0; font-size:22px;">Grand Total: ₹${grandTotal.toLocaleString('en-IN')}</p>
+            </div>
+        `;
+        
+        document.getElementById('printArea').innerHTML = html;
         window.print();
+    };
+
+    function checkEmpty() {
+      const remaining = document.querySelectorAll(".entry-item");
+      if(remaining.length === 0) loadPending();
     }
 
-    window.downloadAllPDF = () => {
-      if(!currentCustomer) return;
-      generatePDF(currentCustomer, currentCustomer.products);
-    };
-
-    window.downloadSelected = () => {
-      if(!currentCustomer) return;
-      const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-      if(checkboxes.length === 0) return alert("Select at least one product.");
-      
-      const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
-      const selectedProducts = currentCustomer.products.filter((_, i) => selectedIndices.includes(i));
-      generatePDF(currentCustomer, selectedProducts);
-    };
-
-    window.generatePDF = (c, products) => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      // Modern Header
-      doc.setFillColor(15, 15, 15);
-      doc.rect(0, 0, 210, 40, 'F');
-      
-      doc.setTextColor(41, 121, 255); // Brand Blue
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text("MeenaGroups", 14, 22);
-      
-      doc.setTextColor(200, 200, 200);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("ACCOUNT STATEMENT", 14, 30);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 30);
-
-      // Customer Info
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(c.name.toUpperCase(), 14, 55);
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-      doc.text(`ID: ${c.id}`, 14, 62);
-      doc.text(`Mobile: ${c.phone || '-'}`, 60, 62);
-      doc.text(`City: ${c.place || '-'}`, 120, 62);
-
-      let yPos = 75;
-
-      products.forEach(p => {
-        // Product Title Bar
-        doc.setFillColor(240, 240, 240);
-        doc.rect(14, yPos, 182, 10, 'F');
-        
-        doc.setTextColor(0,0,0);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text(p.name, 16, yPos + 7);
-        doc.text(`Value: Rs.${p.total}`, 160, yPos + 7);
-        
-        yPos += 12;
-
-        // Table Data
-        const rows = [];
-        let running = 0;
-        const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
-
-        if(payments.length === 0) {
-           rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]);
-        } else {
-           payments.forEach(pay => {
-             running += parseFloat(pay.amount);
-             rows.push([ 
-               `#${pay.dueNumber||'-'}`, 
-               pay.date, 
-               pay.type||'Cash', 
-               `Rs.${pay.amount}`, 
-               `Rs.${p.total - running}` 
-             ]);
-           });
-        }
-
-        doc.autoTable({
-          startY: yPos,
-          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']],
-          body: rows,
-          theme: 'grid',
-          headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-          styles: { fontSize: 9, cellPadding: 3 },
-          columnStyles: { 
-            3: { fontStyle: 'bold', textColor: [0, 150, 0] },
-            4: { fontStyle: 'bold' }
-          },
-          margin: { left: 14, right: 14 }
-        });
-
-        yPos = doc.lastAutoTable.finalY + 15;
-      });
-
-      // Footer
-      const h = doc.internal.pageSize.height;
-      doc.setDrawColor(200);
-      doc.line(14, h - 20, 196, h - 20);
-      doc.setFontSize(8);
-      doc.setTextColor(100);
-      doc.text("Thank you for your business.", 14, h - 12);
-      doc.textWithLink("meena.goorac.biz", 170, h - 12, { url: "http://meena.goorac.biz" });
-
-      doc.save(`Statement_${c.id}.pdf`);
-    };
-
-    // ------------------------------------------
-    // 5. ANALYTICS
-    // ------------------------------------------
-
-    window.openAnalytics = () => {
-      window.history.pushState({ modal: true }, "");
-      calcStats();
-      document.getElementById("overlay").classList.add("active");
-      document.getElementById("analyticsPopup").classList.add("active");
-    };
-
-    function calcStats() {
-      let paid = 0, total = 0, cash = 0, online = 0;
-      loadedData.forEach(c => {
-        if(c.products) c.products.forEach(p => { 
-            total += (p.total||0); 
-            (p.payments || []).forEach(pay => {
-                const amt = parseFloat(pay.amount || 0);
-                paid += amt;
-                let mode = (pay.paymentMode || pay.type || 'Cash').toLowerCase();
-                if(mode.includes('online') || mode.includes('upi')) online += amt;
-                else cash += amt;
-            });
-        });
-      });
-      const due = total - paid;
-      
-      document.getElementById("anaPaid").innerText = "₹" + paid.toLocaleString();
-      document.getElementById("anaDue").innerText = "₹" + due.toLocaleString();
-      document.getElementById("anaCash").innerText = "₹" + cash.toLocaleString();
-      document.getElementById("anaOnline").innerText = "₹" + online.toLocaleString();
-
-      const ctx = document.getElementById("financeChart").getContext("2d");
-      if(chartInstance) chartInstance.destroy();
-      
-      chartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Cash', 'Online', 'Pending'],
-          datasets: [{ 
-            data: [cash, online, due], 
-            backgroundColor: ['#00e676', '#2979ff', '#ff1744'],
-            borderWidth: 0,
-            hoverOffset: 4
-          }]
-        },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false,
-          plugins: { 
-            legend: { position: 'bottom', labels: { color: '#fff', font: {size: 10} } } 
-          }
-        }
-      });
-    }
-
-    // Init
-    loadRecent(15);
+    // Initialize
+    loadPending();
+    
+    // Exports
+    window.openEdit = openEdit;
+    window.closeModal = closeModal;
+    window.saveEdit = saveEdit;
+    window.rejectEntry = rejectEntry;
+    window.approveEntry = approveEntry;
+    window.approveAll = approveAll;
+    window.togglePrintMenu = togglePrintMenu;
+    window.printData = printData;
   </script>
 </body>
 </html>
