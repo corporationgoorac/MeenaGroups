@@ -149,7 +149,7 @@
         </div>
         <div style="padding: 20px; display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto; width: 100%;">
             <div style="background: var(--surface-color); padding: 20px; border-radius: 12px; border: 1px solid #333;">
-                <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9em;">Select a date range to download a consolidated PDF of all GST invoices for your accountant.</p>
+                <p style="margin-top: 0; color: var(--text-secondary); font-size: 0.9em;">Select a date range for your accountant exports.</p>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <div>
                         <label style="display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">From Date</label>
@@ -159,8 +159,13 @@
                         <label style="display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;">To Date</label>
                         <input type="date" id="gstToDate" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; box-sizing: border-box;">
                     </div>
+                    
                     <button id="btnDownloadGst" onclick="downloadGstPdf()" style="background: var(--accent-color); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; transition: 0.2s;">
-                        <span class="material-symbols-outlined">picture_as_pdf</span> Download PDF
+                        <span class="material-symbols-outlined">table_chart</span> Download GST Summary
+                    </button>
+
+                    <button id="btnDownloadAllBills" onclick="downloadFullBillsPdf()" style="background: var(--success-color); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;">
+                        <span class="material-symbols-outlined">receipt_long</span> Download All Full Bills
                     </button>
                 </div>
             </div>
@@ -547,7 +552,7 @@
                 
                 if(rows.length === 0) {
                     showToast("No GST bills found in this date range.");
-                    btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download PDF`;
+                    btn.innerHTML = `<span class="material-symbols-outlined">table_chart</span> Download GST Summary`;
                     btn.disabled = false;
                     return;
                 }
@@ -595,7 +600,124 @@
             }
             
             // Reset Button State
-            btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download PDF`;
+            btn.innerHTML = `<span class="material-symbols-outlined">table_chart</span> Download GST Summary`;
+            btn.disabled = false;
+        };
+
+        // NEW: Function to Download All Full Bills into one PDF
+        window.downloadFullBillsPdf = async function() {
+            const { jsPDF } = window.jspdf;
+            const fromDateStr = document.getElementById('gstFromDate').value;
+            const toDateStr = document.getElementById('gstToDate').value;
+            
+            if(!fromDateStr || !toDateStr) { showToast("Select dates first."); return; }
+            
+            const [fYear, fMonth, fDay] = fromDateStr.split('-');
+            const startOfDay = new Date(fYear, fMonth - 1, fDay, 0, 0, 0, 0);
+            const [tYear, tMonth, tDay] = toDateStr.split('-');
+            const endOfDay = new Date(tYear, tMonth - 1, tDay, 23, 59, 59, 999);
+            
+            const btn = document.getElementById('btnDownloadAllBills');
+            btn.innerHTML = `<span class="material-symbols-outlined">hourglass_empty</span> Printing Bills...`;
+            btn.disabled = true;
+
+            try {
+                const q = query(
+                    collection(db, "sellings"),
+                    where("date", ">=", startOfDay),
+                    where("date", "<=", endOfDay),
+                    orderBy("date", "asc")
+                );
+                
+                const snap = await getDocs(q);
+                const gstBills = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.invoiceType === 'GST' || (d.totals && d.totals.gst > 0)) {
+                        gstBills.push(d);
+                    }
+                });
+
+                if(gstBills.length === 0) {
+                    showToast("No GST bills found.");
+                    btn.innerHTML = `<span class="material-symbols-outlined">receipt_long</span> Download All Full Bills`;
+                    btn.disabled = false;
+                    return;
+                }
+
+                const docPdf = new jsPDF();
+                
+                gstBills.forEach((bill, index) => {
+                    if (index > 0) docPdf.addPage();
+                    
+                    // Bill Header
+                    docPdf.setFontSize(18);
+                    docPdf.setTextColor(211, 47, 47); // Meena Red
+                    docPdf.text("MEENA MARKETING", 105, 15, { align: 'center' });
+                    
+                    docPdf.setFontSize(10);
+                    docPdf.setTextColor(100);
+                    docPdf.text("Authorized Dealer & General Suppliers", 105, 20, { align: 'center' });
+                    
+                    docPdf.setDrawColor(200);
+                    docPdf.line(14, 25, 196, 25);
+                    
+                    // Invoice Details Row
+                    docPdf.setFontSize(11);
+                    docPdf.setTextColor(0);
+                    docPdf.setFont(undefined, 'bold');
+                    docPdf.text(`TAX INVOICE: ${bill.invoiceNo || 'N/A'}`, 14, 35);
+                    
+                    const d = bill.date?.toDate();
+                    const dateStr = d ? `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}` : 'N/A';
+                    docPdf.setFont(undefined, 'normal');
+                    docPdf.text(`Date: ${dateStr}`, 196, 35, { align: 'right' });
+                    
+                    // Customer Box
+                    docPdf.setFillColor(245, 245, 245);
+                    docPdf.rect(14, 40, 182, 20, 'F');
+                    docPdf.setFont(undefined, 'bold');
+                    docPdf.text("Billed To:", 18, 46);
+                    docPdf.setFont(undefined, 'normal');
+                    docPdf.text(`${bill.customer?.name || 'Cash Customer'}`, 18, 52);
+                    docPdf.text(`${bill.customer?.phone || ''} | ${bill.customer?.address || ''}`, 18, 57);
+
+                    // Items Table
+                    const itemRows = (bill.items || []).map(item => [
+                        item.name,
+                        item.qty,
+                        `Rs.${(item.price || 0).toFixed(2)}`,
+                        `${item.gstPercent || 0}%`,
+                        `Rs.${(item.finalTotal || 0).toFixed(2)}`
+                    ]);
+
+                    docPdf.autoTable({
+                        startY: 65,
+                        head: [['Item Description', 'Qty', 'Unit Price', 'GST%', 'Total Amount']],
+                        body: itemRows,
+                        theme: 'striped',
+                        headStyles: { fillColor: [60, 60, 60] }
+                    });
+
+                    // Summary Math
+                    const finalY = docPdf.lastAutoTable.finalY + 10;
+                    docPdf.setFont(undefined, 'bold');
+                    docPdf.text(`Sub-Total: Rs.${(bill.totals?.sub || 0).toFixed(2)}`, 196, finalY, { align: 'right' });
+                    docPdf.text(`GST Total: Rs.${(bill.totals?.gst || 0).toFixed(2)}`, 196, finalY + 7, { align: 'right' });
+                    
+                    docPdf.setFontSize(14);
+                    docPdf.setTextColor(0, 150, 0); // Green
+                    docPdf.text(`Grand Total: Rs.${(bill.totals?.grand || 0).toFixed(2)}`, 196, finalY + 16, { align: 'right' });
+                });
+
+                docPdf.save(`All_GST_Bills_${fromDateStr}.pdf`);
+                showToast("All bills saved in one PDF", "success");
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to print bills");
+            }
+
+            btn.innerHTML = `<span class="material-symbols-outlined">receipt_long</span> Download All Full Bills`;
             btn.disabled = false;
         };
 
