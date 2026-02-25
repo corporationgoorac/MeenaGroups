@@ -447,7 +447,7 @@
       opacity: 0; 
       pointer-events: none; 
       transition: 0.3s; 
-      z-index: 200;
+      z-index: 2000; /* Increased z-index to show above modals */
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -492,6 +492,14 @@
       gap: 12px !important;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
       position: relative;
+      transition: all 0.3s ease !important; /* Added for neater UI */
+    }
+
+    /* NEAT UI HOVER FIX */
+    .suggestion-item:hover {
+      transform: translateY(-3px);
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.4) !important;
     }
     
     .s-name { font-size: 1.2rem !important; margin-bottom: 2px; }
@@ -553,6 +561,33 @@
     .customer-card.active-modal {
       right: 0 !important;
       display: flex !important;
+    }
+
+    /* * ==========================================
+     * NEW: FLOATING ACTION BUTTON (FAB) FOR NON-DB ENTRY
+     * ==========================================
+     */
+    .fab-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 25px;
+      background: var(--warn); /* Distinguishing color for non-db */
+      color: #000;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      box-shadow: 0 10px 25px rgba(245, 158, 11, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+      z-index: 100;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .fab-btn:active {
+      transform: scale(0.9);
     }
 
   </style>
@@ -671,7 +706,83 @@
 
       </div>
     </div>
+    
+    <div id="nonDbModal" class="customer-card hidden">
+      <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="color: var(--warn); font-weight: bold; font-size: 0.85rem; letter-spacing: 1px;">NON-DATABASE ENTRY</span>
+          <button onclick="closeNonDbModal()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;">✕</button>
+        </div>
+        <h2 class="cust-name">Manual Collection</h2>
+        <div class="cust-meta">
+          <span>Out of System Custom Entry</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="input-row">
+          <div>
+            <label>Customer Name</label>
+            <input type="text" id="ndbName" class="input-field" placeholder="Enter Name">
+          </div>
+          <div>
+            <label>Customer ID (Optional)</label>
+            <input type="text" id="ndbId" class="input-field" placeholder="ID or Blank">
+          </div>
+        </div>
+        
+        <div class="input-row">
+          <div>
+            <label>Due Number</label>
+            <input type="number" id="ndbDue" class="input-field" placeholder="1">
+          </div>
+          <div>
+            <label>Amount (₹)</label>
+            <input type="number" id="ndbAmount" class="input-field" placeholder="0">
+          </div>
+        </div>
+        
+        <div class="input-row">
+          <div>
+            <label>Payment Mode</label>
+            <select id="ndbPaymentMode" class="custom-select" style="margin-bottom:0;">
+              <option value="Cash">CASH</option>
+              <option value="Online">ONLINE / UPI</option>
+            </select>
+          </div>
+          <div>
+            <label>Date</label>
+            <input type="date" id="ndbDate" class="input-field">
+          </div>
+        </div>
+
+        <button id="btnSaveNdb" class="btn-save" style="background: var(--warn);" onclick="saveNonDbEntry()">
+          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          SAVE MANUAL ENTRY
+        </button>
+
+        <div id="ndbPostSaveActions" class="action-row hidden">
+          <button class="btn-action btn-copy" onclick="copyReceiptText()">
+             <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+             <span>Copy Txt</span>
+          </button>
+          
+          <button class="btn-action btn-print" onclick="printReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg>
+            <span>Print</span>
+          </button>
+
+          <button class="btn-action btn-download" onclick="downloadLastReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span>Download</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
   </main>
+
+  <button id="fabAddNonDB" class="fab-btn" onclick="openNonDbModal()">+</button>
 
   <div id="toast" class="toast">Entry Saved Successfully!</div>
 
@@ -833,6 +944,22 @@
       setTimeout(() => {
         card.classList.add("hidden");
       }, 350);
+
+      // --- ADDED SUPPORT FOR NON-DB MODAL CLOSING ---
+      const ndbCard = document.getElementById("nonDbModal");
+      if(ndbCard && ndbCard.classList.contains("active-modal")) {
+          ndbCard.classList.remove("active-modal");
+          setTimeout(() => {
+              ndbCard.classList.add("hidden");
+          }, 350);
+      }
+    });
+
+    // --- ADDED SUPPORT FOR OVERLAY CLICK TO CLOSE NON-DB MODAL ---
+    document.getElementById("modalOverlay").addEventListener("click", () => {
+       if(document.getElementById("nonDbModal").classList.contains("active-modal")) {
+           closeNonDbModal();
+       }
     });
 
     // --- 3. CALCULATE STATS & PRE-FILL TARGET DUE ---
@@ -1203,7 +1330,99 @@ ${center("to see your eCard")}`;
       printWindow.document.close();
     };
 
-    // Set Today's Date
+    // --- NEW: NON-DATABASE ENTRY LOGIC ---
+    window.openNonDbModal = () => {
+      const card = document.getElementById("nonDbModal");
+      document.getElementById("ndbDate").value = new Date().toISOString().split("T")[0]; // Auto-set today
+      document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
+      
+      card.classList.remove("hidden");
+      setTimeout(() => {
+        card.classList.add("active-modal");
+        document.getElementById("modalOverlay").classList.add("active");
+      }, 10);
+      
+      history.pushState({ nonDbModalOpen: true }, "");
+    };
+
+    window.closeNonDbModal = () => {
+      const card = document.getElementById("nonDbModal");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350);
+
+      if (history.state && history.state.nonDbModalOpen) {
+        history.back();
+      }
+    };
+
+    window.saveNonDbEntry = async () => {
+      const name = document.getElementById("ndbName").value.trim();
+      const id = document.getElementById("ndbId").value.trim();
+      const due = parseInt(document.getElementById("ndbDue").value);
+      const amt = parseFloat(document.getElementById("ndbAmount").value);
+      const mode = document.getElementById("ndbPaymentMode").value;
+      const date = document.getElementById("ndbDate").value;
+
+      if(!name) return alert("❌ Enter Customer Name");
+      if(!amt || amt <= 0) return alert("❌ Enter valid Amount");
+
+      const btn = document.getElementById("btnSaveNdb");
+      btn.disabled = true;
+      btn.innerHTML = "SAVING...";
+
+      try {
+        const entryData = {
+          customerId: id || "NON-DB",
+          customerName: name,
+          customerPhone: "N/A",
+          productName: "Manual Custom Entry",
+          productIndex: -1,
+          amount: parseFloat(amt.toFixed(2)),
+          date: date,
+          dueNumber: due || 1,
+          status: "draft",
+          timestamp: serverTimestamp(),
+          agentEntry: true,
+          paymentMode: mode,
+          isNonDatabase: true  // <--- THE SPECIFIC MARKING ADDED HERE
+        };
+
+        await addDoc(collection(db, "temp_entries"), entryData);
+        
+        showToast("Non-Database Entry Saved!");
+        speakAmount(amt);
+
+        // Prep data for exactly the same receipt mechanism
+        lastReceiptData = entryData;
+        lastTotalPaid = amt; 
+        lastBalance = "N/A"; // Balance is arbitrary for non-system logs
+
+        btn.innerHTML = "✅ SAVED";
+        
+        // Show actions for printing/copying
+        document.getElementById("ndbPostSaveActions").classList.remove("hidden");
+        
+        // Clear fields for next entry
+        document.getElementById("ndbName").value = "";
+        document.getElementById("ndbId").value = "";
+        document.getElementById("ndbAmount").value = "";
+        
+      } catch(e) {
+        alert("Error saving: " + e.message);
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            SAVE MANUAL ENTRY`;
+        }, 2000);
+      }
+    };
+
+    // Set Today's Date default on load
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
   </script>
