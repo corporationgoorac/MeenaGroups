@@ -135,6 +135,14 @@
         .pending-item > div > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
         .pending-item > div > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
+        /* --- ADDED FOR EDIT & DELETE ACTIONS --- */
+        .card-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { background: #333; border: 1px solid #444; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .action-btn.edit:hover { background: var(--accent-color); border-color: var(--accent-color); }
+        .action-btn.delete { color: var(--meena-red); background: rgba(255, 51, 51, 0.1); border-color: rgba(255, 51, 51, 0.3); }
+        .action-btn.delete:hover { background: var(--meena-red); color: white; }
+        .action-btn .material-symbols-outlined { font-size: 18px; }
+
     </style>
 </head>
 <body>
@@ -255,9 +263,9 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports (Added 'where' and 'increment' for new validation and updating logic)
+        // 2. Firebase Imports (Added 'where', 'increment', 'updateDoc', and 'deleteDoc' for new validation and updating logic)
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
@@ -280,15 +288,51 @@
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
         });
 
-        // --- FETCH AND DISPLAY INVENTORY (With Limit 10) ---
+        // --- NEW EDIT AND DELETE FUNCTIONS ---
+        window.editQty = async function(id, currentQty) {
+            const newQty = prompt("Enter new quantity:", currentQty);
+            if (newQty === null || newQty.trim() === "") return;
+            const parsedQty = parseInt(newQty);
+            
+            if (isNaN(parsedQty) || parsedQty < 0) {
+                showToast("Please enter a valid number.", "error");
+                return;
+            }
+
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, { qty: parsedQty });
+                showToast("Quantity updated successfully!", "success");
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error updating quantity:", err);
+                showToast("Failed to update quantity.", "error");
+            }
+        };
+
+        window.deleteItem = async function(id, name) {
+            if (!confirm(`Are you sure you want to completely delete "${name}"?`)) return;
+            
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await deleteDoc(itemRef);
+                showToast("Item deleted successfully!", "success");
+                loadInventory(); // Refresh the list
+            } catch (err) {
+                console.error("Error deleting item:", err);
+                showToast("Failed to delete item.", "error");
+            }
+        };
+
+        // --- FETCH AND DISPLAY INVENTORY (Removed Limit 10 to allow searching all items) ---
         let inventoryCache = [];
         let showingLowStock = false;
 
         async function loadInventory() {
             const grid = document.getElementById('inventoryGrid');
             try {
-                // Modified to limit to 10 recent items to save reads on load
-                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                // Modified: Removed limit(10) to load all items for full search functionality
+                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
                 
                 inventoryCache = [];
@@ -325,6 +369,9 @@
                 } else if (q < 3) {
                     qtyClass = "low";
                 }
+                
+                // Escape single quotes for the inline onclick handlers
+                const safeName = (item.name || '').replace(/'/g, "\\'");
 
                 grid.innerHTML += `
                     <div class="${cardClass}">
@@ -333,6 +380,10 @@
                             <span class="inv-name">${item.name}</span>
                             <span class="inv-model">${item.model || 'No Model ID'}</span>
                             <span class="inv-price">₹${(item.price || 0).toLocaleString()}</span>
+                            <div class="card-actions">
+                                <button class="action-btn edit" onclick="editQty('${item.id}', ${q})" title="Edit Qty"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                            </div>
                         </div>
                         <div class="inv-qty ${qtyClass}">
                             <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
@@ -386,8 +437,7 @@
         // --- Search Filter ---
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase().trim();
-            // Note: because the cache only holds 10 items now, local search is limited. 
-            // For a production app, this should trigger a Firestore query if term length > 2.
+            // Note: because we removed limit(10), this will now search the full DB cache!
             const filtered = inventoryCache.filter(item => 
                 (item.name || '').toLowerCase().includes(term) || 
                 (item.model || '').toLowerCase().includes(term)
