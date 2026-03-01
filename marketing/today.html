@@ -817,19 +817,37 @@
                         const invStr = String(data.invoiceNo || '');
                         const numMatch = invStr.match(/\d+/g);
                         const currentNum = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : -1;
-                        
-                        // Only include if the numeric part is >= the user entered target
-                        if (currentNum >= targetInvNum) {
-                            matchedInvoices.push({ data, num: currentNum });
-                        }
+                        matchedInvoices.push({ data, num: currentNum });
                     }
                 });
 
                 // STRICT SORTING BY INVOICE NUMBER TO ENSURE CONTINUOUS SEQUENCE
                 matchedInvoices.sort((a, b) => a.num - b.num);
 
-                // Now loop through sorted invoices sequentially
-                matchedInvoices.forEach(item => {
+                let finalContinuousInvoices = [];
+                let lastNum = null;
+
+                for (let i = 0; i < matchedInvoices.length; i++) {
+                    let item = matchedInvoices[i];
+                    let currentNum = item.num;
+
+                    if (currentNum >= targetInvNum) {
+                        if (lastNum === null) {
+                            finalContinuousInvoices.push(item);
+                            lastNum = currentNum;
+                        } else {
+                            // If the cycle breaks (a jump of more than 100), stop collecting
+                            if (currentNum - lastNum > 100) {
+                                break;
+                            }
+                            finalContinuousInvoices.push(item);
+                            lastNum = currentNum;
+                        }
+                    }
+                }
+
+                // Now loop through sorted and continuous invoices sequentially
+                finalContinuousInvoices.forEach(item => {
                     const data = item.data;
                     matchCount++;
                     
