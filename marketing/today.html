@@ -715,7 +715,7 @@
                 return;
             }
 
-            const targetInvNum = parseInt(startInvInput);
+            const targetInvNum = parseInt(startInvInput, 10);
             
             const [fYear, fMonth, fDay] = fromDateStr.split('-');
             const startOfDay = new Date(fYear, fMonth - 1, fDay, 0, 0, 0, 0);
@@ -802,10 +802,10 @@
                     
                     if(data.invoiceType === 'GST' || (data.totals && data.totals.gst > 0)) {
                         
-                        // Extract number from invoice (e.g., "GST-12" becomes 12)
-                        const invStr = data.invoiceNo || '';
-                        const numMatch = invStr.match(/\d+/);
-                        const currentNum = numMatch ? parseInt(numMatch[0], 10) : -1;
+                        // Extract number from invoice robustly (handles strings, numbers, and formats like GST/2024/12)
+                        const invStr = String(data.invoiceNo || '');
+                        const numMatch = invStr.match(/\d+/g);
+                        const currentNum = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : -1;
                         
                         // Only include if the numeric part is >= the user entered target
                         if (currentNum >= targetInvNum) {
