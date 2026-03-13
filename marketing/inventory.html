@@ -348,7 +348,7 @@
                 loadInventory(); // Refresh the list
             } catch (err) {
                 console.error("Error updating quantity:", err);
-                showToast("Failed to update quantity.", "error");
+                showToast(err.message || "Failed to update quantity.", "error");
             }
         };
 
@@ -441,7 +441,7 @@
                 loadInventory(); // Refresh the list
             } catch (err) {
                 console.error("Error updating product:", err);
-                showToast("Failed to update product.", "error");
+                showToast(err.message || "Failed to update product.", "error");
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerHTML = originalText;
@@ -458,7 +458,7 @@
                 loadInventory(); // Refresh the list
             } catch (err) {
                 console.error("Error deleting item:", err);
-                showToast("Failed to delete item.", "error");
+                showToast(err.message || "Failed to delete item.", "error");
             }
         };
 
@@ -483,7 +483,7 @@
             } catch (err) {
                 console.error(err);
                 grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
-                showToast("Failed to load inventory data.", "error");
+                showToast(err.message || "Failed to load inventory data.", "error");
             }
         }
 
@@ -494,7 +494,8 @@
                 return;
             }
 
-            grid.innerHTML = '';
+            // --- PERFORMANCE FIX: Use a buffer instead of grid.innerHTML += in a loop ---
+            let htmlBuffer = '';
             dataArray.forEach(item => {
                 const q = item.qty || 0;
                 let qtyClass = "";
@@ -512,7 +513,7 @@
                 // Escape single quotes for the inline onclick handlers
                 const safeName = (item.name || '').replace(/'/g, "\\'");
 
-                grid.innerHTML += `
+                htmlBuffer += `
                     <div class="${cardClass}">
                         ${oosBadge}
                         <div class="inv-info">
@@ -531,6 +532,7 @@
                     </div>
                 `;
             });
+            grid.innerHTML = htmlBuffer; // Apply to DOM once at the end
         }
 
         // --- Low Stock Filter Logic ---
@@ -567,29 +569,33 @@
                     
                 } catch(err) {
                     console.error("Stock filter error", err);
-                    showToast("Error checking low stock.", "error");
+                    showToast(err.message || "Error checking low stock.", "error");
                     btn.style.backgroundColor = "var(--warning-color)";
                 }
             }
         };
 
-        // --- Search Filter ---
+        // --- Search Filter (WITH DEBOUNCE FIX FOR LAG) ---
+        let searchTimeout;
         document.getElementById('searchInventory').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase().trim();
-            
-            // If search is cleared, reset back to top 20 view
-            if(term === '') {
-                renderInventory(inventoryCache.slice(0, 20));
-                return;
-            }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const term = e.target.value.toLowerCase().trim();
+                
+                // If search is cleared, reset back to top 20 view
+                if(term === '') {
+                    renderInventory(inventoryCache.slice(0, 20));
+                    return;
+                }
 
-            // Note: because we removed limit(10), this will now search the full DB cache!
-            const filtered = inventoryCache.filter(item => 
-                (item.name || '').toLowerCase().includes(term) || 
-                (item.model || '').toLowerCase().includes(term)
-            );
-            // Render all matching search results
-            renderInventory(filtered);
+                // Note: because we removed limit(10), this will now search the full DB cache!
+                const filtered = inventoryCache.filter(item => 
+                    (item.name || '').toLowerCase().includes(term) || 
+                    (item.model || '').toLowerCase().includes(term)
+                );
+                // Render all matching search results
+                renderInventory(filtered);
+            }, 150); // Waits 150ms to stop lagging while typing/backspacing
         });
 
 
@@ -663,7 +669,7 @@
                 renderPendingList();
             } catch (error) {
                 console.error("Error checking model:", error);
-                showToast("Error verifying product model.", "error");
+                showToast(error.message || "Error verifying product model.", "error");
             } finally {
                 btnAdd.disabled = false;
                 btnAdd.innerHTML = originalText;
@@ -753,7 +759,7 @@
 
             } catch (err) {
                 console.error("Batch save failed", err);
-                showToast("Error saving data. Check console.", "error");
+                showToast(err.message || "Error saving data. Check console.", "error");
                 btnSave.disabled = false;
                 renderPendingList(); // reset button text
             }
