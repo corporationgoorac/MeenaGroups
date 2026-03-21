@@ -305,9 +305,16 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports (Added 'where', 'increment', 'updateDoc', and 'deleteDoc' for new validation and updating logic)
+        // 2. Firebase Imports 
         import { db } from './config.js';
         import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS ---
+        function generateKeywords(name, model) {
+            const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            return [...new Set(wordsArray)];
+        }
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
@@ -330,7 +337,7 @@
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
         });
 
-        // --- NEW EDIT AND DELETE FUNCTIONS ---
+        // --- EDIT AND DELETE FUNCTIONS ---
         window.editQty = async function(id, currentQty) {
             const newQty = prompt("Enter new quantity:", currentQty);
             if (newQty === null || newQty.trim() === "") return;
@@ -352,51 +359,10 @@
             }
         };
 
-        // --- NEW FULL EDIT FUNCTION ADDED HERE ---
         window.editItemFull = async function(id) {
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
-            /* --- PRESERVED ORIGINAL LINES (COMMENTED OUT TO AVOID REMOVING CODE) ---
-            const newName = prompt("Enter new product name:", item.name);
-            if (newName === null) return;
-
-            const newModel = prompt("Enter new model/ID:", item.model || "");
-            if (newModel === null) return;
-
-            const newPriceRaw = prompt("Enter new price (₹):", item.price || 0);
-            if (newPriceRaw === null) return;
-            const newPrice = parseFloat(newPriceRaw);
-            if (isNaN(newPrice) || newPrice < 0) {
-                showToast("Please enter a valid price.", "error");
-                return;
-            }
-
-            const newQtyRaw = prompt("Enter new quantity:", item.qty || 0);
-            if (newQtyRaw === null) return;
-            const newQty = parseInt(newQtyRaw);
-            if (isNaN(newQty) || newQty < 0) {
-                showToast("Please enter a valid quantity.", "error");
-                return;
-            }
-
-            try {
-                const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
-                    name: newName.trim(),
-                    model: newModel.trim(),
-                    price: newPrice,
-                    qty: newQty
-                });
-                showToast("Product updated successfully!", "success");
-                loadInventory(); // Refresh the list
-            } catch (err) {
-                console.error("Error updating product:", err);
-                showToast("Failed to update product.", "error");
-            }
-            */
-
-            // --- NEW MODAL INTEGRATION ---
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
@@ -404,11 +370,9 @@
             document.getElementById('editPrice').value = item.price || 0;
             document.getElementById('editQty').value = item.qty || 0;
 
-            // Open the new modal (This automatically hooks into the native mobile back button via history.pushState)
             openModal('modalEditInventory');
         };
 
-        // --- NEW FUNCTION TO HANDLE SAVING FROM THE EDIT MODAL ---
         document.getElementById('btnSaveEditItem').addEventListener('click', async () => {
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
@@ -434,11 +398,12 @@
                     model: newModel,
                     mrp: newMrp,
                     price: newPrice,
-                    qty: newQty
+                    qty: newQty,
+                    searchKeywords: generateKeywords(newName, newModel) // <-- ADDED KEYWORD GENERATION
                 });
                 showToast("Product updated successfully!", "success");
-                history.back(); // Closes the modal using native back mechanics
-                loadInventory(); // Refresh the list
+                history.back(); 
+                loadInventory(); 
             } catch (err) {
                 console.error("Error updating product:", err);
                 showToast(err.message || "Failed to update product.", "error");
@@ -455,22 +420,22 @@
                 const itemRef = doc(db, "inventory", id);
                 await deleteDoc(itemRef);
                 showToast("Item deleted successfully!", "success");
-                loadInventory(); // Refresh the list
+                loadInventory(); 
             } catch (err) {
                 console.error("Error deleting item:", err);
                 showToast(err.message || "Failed to delete item.", "error");
             }
         };
 
-        // --- FETCH AND DISPLAY INVENTORY (Removed Limit 10 to allow searching all items) ---
+        // --- FETCH AND DISPLAY INVENTORY (CAPPED AT 20 TO PREVENT 10K READS) ---
         let inventoryCache = [];
         let showingLowStock = false;
 
         async function loadInventory() {
             const grid = document.getElementById('inventoryGrid');
             try {
-                // Modified: Removed limit(10) to load all items for full search functionality
-                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"));
+                // MODIFIED: Added limit(20) back in so we don't fetch all 10,000 at once
+                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(20));
                 const snap = await getDocs(q);
                 
                 inventoryCache = [];
@@ -478,8 +443,7 @@
                     inventoryCache.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Show only top 20 items initially as requested
-                renderInventory(inventoryCache.slice(0, 20));
+                renderInventory(inventoryCache);
             } catch (err) {
                 console.error(err);
                 grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
@@ -494,7 +458,6 @@
                 return;
             }
 
-            // --- PERFORMANCE FIX: Use a buffer instead of grid.innerHTML += in a loop ---
             let htmlBuffer = '';
             dataArray.forEach(item => {
                 const q = item.qty || 0;
@@ -510,7 +473,6 @@
                     qtyClass = "low";
                 }
                 
-                // Escape single quotes for the inline onclick handlers
                 const safeName = (item.name || '').replace(/'/g, "\\'");
 
                 htmlBuffer += `
@@ -532,7 +494,7 @@
                     </div>
                 `;
             });
-            grid.innerHTML = htmlBuffer; // Apply to DOM once at the end
+            grid.innerHTML = htmlBuffer; 
         }
 
         // --- Low Stock Filter Logic ---
@@ -541,30 +503,28 @@
             const searchBox = document.getElementById('searchInventory');
             
             if (showingLowStock) {
-                // Reset to normal view, slice 0, 20 for initial view
                 btn.style.backgroundColor = "var(--warning-color)";
                 searchBox.value = '';
                 showingLowStock = false;
-                renderInventory(inventoryCache.slice(0, 20)); // Load from cache
+                loadInventory(); 
             } else {
-                // To do this accurately without querying the whole DB, we query Firestore directly for low stock
-                // Note: This requires an index in Firestore if you have many items.
                 try {
                     btn.style.backgroundColor = "#fff";
                     btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
                     document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
                     
-                    // Simple client-side filter if the data is small, but let's assume we want real data
-                    const qAll = query(collection(db, "inventory")); // Getting all to filter (can be heavy if 1000s of items)
+                    // Added limit(50) here to protect against fetching 10,000 items if you have thousands out of stock
+                    const qAll = query(collection(db, "inventory"), where("qty", "<", 3), limit(50)); 
                     const snap = await getDocs(qAll);
                     
                     let lowStockItems = [];
                     snap.forEach(doc => {
-                        const d = doc.data();
-                        if (d.qty < 3) lowStockItems.push({ id: doc.id, ...d });
+                        lowStockItems.push({ id: doc.id, ...doc.data() });
                     });
                     
                     showingLowStock = true;
+                    // Keep cache synced so we can still edit low stock items
+                    inventoryCache = lowStockItems; 
                     renderInventory(lowStockItems);
                     
                 } catch(err) {
@@ -575,27 +535,44 @@
             }
         };
 
-        // --- Search Filter (WITH DEBOUNCE FIX FOR LAG) ---
+        // --- NEW SERVER-SIDE SEARCH FILTER ---
         let searchTimeout;
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
+            searchTimeout = setTimeout(async () => {
                 const term = e.target.value.toLowerCase().trim();
                 
-                // If search is cleared, reset back to top 20 view
                 if(term === '') {
-                    renderInventory(inventoryCache.slice(0, 20));
+                    loadInventory(); 
                     return;
                 }
 
-                // Note: because we removed limit(10), this will now search the full DB cache!
-                const filtered = inventoryCache.filter(item => 
-                    (item.name || '').toLowerCase().includes(term) || 
-                    (item.model || '').toLowerCase().includes(term)
-                );
-                // Render all matching search results
-                renderInventory(filtered);
-            }, 150); // Waits 150ms to stop lagging while typing/backspacing
+                const searchWord = term.split(/[\s\-_]+/)[0];
+                if (!searchWord) return;
+
+                try {
+                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Searching database...</div>';
+
+                    // Direct Firestore query against the keyword arrays, limited to 20
+                    const q = query(
+                        collection(db, "inventory"), 
+                        where("searchKeywords", "array-contains", searchWord),
+                        limit(20)
+                    );
+                    
+                    const snap = await getDocs(q);
+                    const searchResults = [];
+                    snap.forEach(doc => searchResults.push({ id: doc.id, ...doc.data() }));
+                    
+                    // Update the cache so clicking edit/delete still maps correctly to the IDs
+                    inventoryCache = searchResults;
+                    renderInventory(searchResults);
+
+                } catch (err) {
+                    console.error("Search error:", err);
+                    showToast("Search failed.", "error");
+                }
+            }, 400); // 400ms debounce
         });
 
 
@@ -614,7 +591,6 @@
                 return;
             }
 
-            // --- ADDED CHECK FOR UNIQUE MODEL AND EXISTING QUANTITY UPDATE ---
             const btnAdd = document.getElementById('btnAddToList');
             const originalText = btnAdd.innerHTML;
             btnAdd.disabled = true;
@@ -625,7 +601,6 @@
                 let existingId = null;
 
                 if (model !== "") {
-                    // Check if model already exists
                     const q = query(collection(db, "inventory"), where("model", "==", model), limit(1));
                     const snap = await getDocs(q);
                     
@@ -633,7 +608,6 @@
                         const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
-                        // Ask user if they want to update the existing product instead of creating a duplicate
                         const confirmUpdate = confirm(`Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`);
                         
                         if (confirmUpdate) {
@@ -642,12 +616,11 @@
                         } else {
                             btnAdd.disabled = false;
                             btnAdd.innerHTML = originalText;
-                            return; // User canceled the addition
+                            return; 
                         }
                     }
                 }
 
-                // Push to cart with update flags
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
                     model, 
@@ -658,7 +631,6 @@
                     existingId 
                 });
                 
-                // Clear inputs
                 document.getElementById('iName').value = '';
                 document.getElementById('iModel').value = '';
                 document.getElementById('iMrp').value = '';
@@ -694,7 +666,6 @@
 
             list.innerHTML = '';
             pendingCart.forEach((item, index) => {
-                // Visual badge to show if it's updating an existing item or creating a new one
                 const actionBadge = item.isUpdate 
                     ? `<span style="background:var(--warning-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">UPDATE QTY</span>` 
                     : `<span style="background:var(--success-color); color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:8px;">NEW</span>`;
@@ -726,7 +697,6 @@
                 const batch = writeBatch(db);
 
                 pendingCart.forEach(item => {
-                    // Decide whether to increment existing document or create a new one based on the checks done earlier
                     if (item.isUpdate && item.existingId) {
                         const existingRef = doc(db, "inventory", item.existingId);
                         batch.update(existingRef, {
@@ -740,6 +710,7 @@
                             mrp: item.mrp,
                             price: item.price,
                             qty: item.qty,
+                            searchKeywords: generateKeywords(item.name, item.model), // <-- ADDED KEYWORD GENERATION
                             createdAt: serverTimestamp()
                         });
                     }
@@ -749,19 +720,17 @@
 
                 showToast("Inventory successfully updated!", "success");
                 
-                // Cleanup
                 pendingCart = [];
                 renderPendingList();
-                history.back(); // close modal
+                history.back(); 
                 
-                // Refresh background grid
                 loadInventory();
 
             } catch (err) {
                 console.error("Batch save failed", err);
                 showToast(err.message || "Error saving data. Check console.", "error");
                 btnSave.disabled = false;
-                renderPendingList(); // reset button text
+                renderPendingList(); 
             }
         });
 
