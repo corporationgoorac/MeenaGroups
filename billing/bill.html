@@ -504,16 +504,16 @@
 
 
     <script type="module">
-        // 1. Service Worker & Install Logic (Points to billing folder manifest and sw)
+        // 1. Service Worker & Install Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // 2. Firebase Imports (Points to root config correctly now) Added onSnapshot for realtime updates
+        // 2. Firebase Imports (Added 'where' for server-side search)
         import { db } from '../marketing/config.js';
-        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
@@ -528,30 +528,6 @@
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
-
-        // --- CACHE INVENTORY FOR FAST LOCAL SEARCH AND REALTIME STOCK INTEGRITY ---
-        let allInventoryCache = [];
-        
-        function fetchAllInventoryForSearch() {
-            try {
-                // Now using onSnapshot to pull live data into local memory. 
-                // This means the stock is ALWAYS 100% accurate in realtime, preventing duplicates or mismatch errors.
-                 const q = query(collection(db, "inventory"));
-
-                onSnapshot(q, (snap) => {
-                    allInventoryCache = [];
-                    snap.forEach(doc => {
-                        allInventoryCache.push({ id: doc.id, ...doc.data() });
-                    });
-                }, (err) => {
-                    console.error("Error setting up realtime inventory cache:", err);
-                });
-            } catch (err) {
-                console.error("Error launching inventory listener:", err);
-            }
-        }
-        
-        fetchAllInventoryForSearch();
 
         // --- INJECTED: LISTEN FOR LATEST INVOICE COUNTERS FOR GST/NORMAL ---
         let nextGstNo = 1;
@@ -570,56 +546,78 @@
         }
         listenInvoiceCounters();
 
-        // --- INVENTORY SEARCH LOGIC ---
+        // --- NEW SERVER-SIDE INVENTORY SEARCH LOGIC ---
         const searchInput = document.getElementById('pSearch');
         const suggestionsBox = document.getElementById('pSuggestions');
+        let searchTimeout;
 
         searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
             const val = e.target.value.trim().toLowerCase();
-            suggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
-            if(val.length < 2) return;
             
-            // Local JS Filter (Fast and Case-Insensitive)
-            const filteredData = allInventoryCache.filter(item => {
-                const n = (item.name || '').toLowerCase();
-                const m = (item.model || '').toLowerCase();
-                return n.includes(val) || m.includes(val);
-            }).slice(0, 8); // Only show top 8 results
-
-            suggestionsBox.innerHTML = '';
-            if(filteredData.length === 0) {
-                suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No items found. Check "Non-Stock" to add manually.</div>';
+            if(val.length < 2) {
+                suggestionsBox.style.display = 'none';
                 return;
             }
 
-            filteredData.forEach(d => {
-                const stockClass = d.qty <= 0 ? 'zero' : '';
-                const stockText = d.qty <= 0 ? 'Out of Stock' : `${d.qty} in stock`;
-                
-                const div = document.createElement('div'); 
-                div.className = 'suggestion-item';
-                div.innerHTML = `
-                    <div>
-                        <div class="s-name">${d.name}</div>
-                        <div style="font-size:0.8em; color:var(--text-secondary);">${d.model || 'No ID'} • Price: ₹${d.price}</div>
-                    </div>
-                    <div class="s-stock ${stockClass}">${stockText}</div>
-                `;
-                div.onclick = () => {
-                    document.getElementById('pInvId').value = d.id;
-                    document.getElementById('pCurrentStock').value = d.qty || 0;
-                    document.getElementById('pName').value = d.name;
-                    document.getElementById('pModel').value = d.model || '';
-                    document.getElementById('pPrice').value = d.price || '';
-                    document.getElementById('pQty').value = 1;
-                    document.getElementById('pDiscount').value = '0'; // INJECTED: Reset Discount
-                    document.getElementById('pNonStock').checked = false; // Reset to stock tracking
+            searchTimeout = setTimeout(async () => {
+                suggestionsBox.style.display = 'block';
+                suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">Searching...</div>';
+
+                const searchWord = val.split(/[\s\-_]+/)[0];
+                if (!searchWord) return;
+
+                try {
+                    // Ask Firestore directly using the exact same keyword prefix array we generated earlier
+                    const q = query(
+                        collection(db, "inventory"), 
+                        where("searchKeywords", "array-contains", searchWord),
+                        limit(8) // Only show top 8 results for the dropdown
+                    );
                     
-                    searchInput.value = '';
-                    suggestionsBox.style.display = 'none';
-                };
-                suggestionsBox.appendChild(div);
-            });
+                    const snap = await getDocs(q);
+                    const filteredData = [];
+                    snap.forEach(doc => filteredData.push({ id: doc.id, ...doc.data() }));
+
+                    suggestionsBox.innerHTML = '';
+                    if(filteredData.length === 0) {
+                        suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No items found. Check "Non-Stock" to add manually.</div>';
+                        return;
+                    }
+
+                    filteredData.forEach(d => {
+                        const stockClass = d.qty <= 0 ? 'zero' : '';
+                        const stockText = d.qty <= 0 ? 'Out of Stock' : `${d.qty} in stock`;
+                        
+                        const div = document.createElement('div'); 
+                        div.className = 'suggestion-item';
+                        div.innerHTML = `
+                            <div>
+                                <div class="s-name">${d.name}</div>
+                                <div style="font-size:0.8em; color:var(--text-secondary);">${d.model || 'No ID'} • Price: ₹${d.price}</div>
+                            </div>
+                            <div class="s-stock ${stockClass}">${stockText}</div>
+                        `;
+                        div.onclick = () => {
+                            document.getElementById('pInvId').value = d.id;
+                            document.getElementById('pCurrentStock').value = d.qty || 0;
+                            document.getElementById('pName').value = d.name;
+                            document.getElementById('pModel').value = d.model || '';
+                            document.getElementById('pPrice').value = d.price || '';
+                            document.getElementById('pQty').value = 1;
+                            document.getElementById('pDiscount').value = '0'; 
+                            document.getElementById('pNonStock').checked = false; 
+                            
+                            searchInput.value = '';
+                            suggestionsBox.style.display = 'none';
+                        };
+                        suggestionsBox.appendChild(div);
+                    });
+                } catch (error) {
+                    console.error("Search error:", error);
+                    suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--meena-red);">Error searching database.</div>';
+                }
+            }, 400); // Wait 400ms before hitting Firebase to save read costs
         });
 
         // Hide suggestions on outside click
@@ -631,14 +629,14 @@
 
         // --- CART LOGIC ---
         let cartItems = [];
-        let billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; // INJECTED: Added discount to totals
+        let billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; 
 
         document.getElementById('btnAddCart').addEventListener('click', () => {
             const name = document.getElementById('pName').value.trim();
             const model = document.getElementById('pModel').value.trim();
             const price = parseFloat(document.getElementById('pPrice').value) || 0;
             const qty = parseInt(document.getElementById('pQty').value) || 1;
-            const discount = parseFloat(document.getElementById('pDiscount').value) || 0; // INJECTED: Read Discount
+            const discount = parseFloat(document.getElementById('pDiscount').value) || 0; 
             const gstPercent = parseFloat(document.getElementById('pGst').value) || 0;
             const isNonStock = document.getElementById('pNonStock').checked;
             
@@ -650,6 +648,7 @@
             }
 
             // --- REALTIME DUPLICATE & STOCK VALIDATION LOGIC ---
+            // Using the stock count captured securely at the exact moment of search
             let realtimeStock = currentStock; 
             let existingItemIndex = -1;
 
@@ -658,17 +657,13 @@
                     showToast("Please select a product from the search dropdown, or mark as 'Non-Stock'."); return;
                 }
                 
-                // Fetch absolute latest realtime stock from the live onSnapshot cache
-                const liveItem = allInventoryCache.find(i => i.id === invId);
-                if (liveItem) realtimeStock = liveItem.qty || 0;
-                
                 // Check if this exact item is already in the cart so we don't duplicate rows
                 existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent);
                 let existingCartQty = existingItemIndex > -1 ? cartItems[existingItemIndex].qty : 0;
                 
                 // Validate against the realtime DB stock limit
                 if ((qty + existingCartQty) > realtimeStock) {
-                    showToast(`Not enough stock! Only ${realtimeStock} available in live inventory.`); return;
+                    showToast(`Not enough stock! Only ${realtimeStock} available in inventory.`); return;
                 }
             } else {
                 // Check if non-stock item matches an existing row to merge quantities
@@ -677,7 +672,7 @@
 
             // Calculate amounts (Price is considered INCLUSIVE of GST, but discount is reduced first)
             const grossTotal = price * qty;
-            const finalTotal = Math.max(0, grossTotal - discount); // INJECTED: Apply Discount
+            const finalTotal = Math.max(0, grossTotal - discount); 
             const baseTotal = finalTotal / (1 + (gstPercent / 100));
             const gstAmount = finalTotal - baseTotal;
 
@@ -685,15 +680,15 @@
                 // If the product is already in the cart, merge quantities (No Duplicates)
                 let item = cartItems[existingItemIndex];
                 item.qty += qty;
-                item.discount += discount; // INJECTED: Merge discount
-                item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); // INJECTED: Recalculate
+                item.discount += discount; 
+                item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); 
                 item.baseTotal = item.finalTotal / (1 + (item.gstPercent / 100));
                 item.gstAmount = item.finalTotal - item.baseTotal;
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
                     invId: isNonStock ? null : invId,
-                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock // INJECTED: Added discount variable
+                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock 
                 });
             }
 
@@ -704,7 +699,7 @@
             document.getElementById('pModel').value = '';
             document.getElementById('pPrice').value = '';
             document.getElementById('pQty').value = '1';
-            document.getElementById('pDiscount').value = '0'; // INJECTED: Reset discount input
+            document.getElementById('pDiscount').value = '0'; 
             document.getElementById('pGst').value = '0';
             document.getElementById('pNonStock').checked = false;
 
@@ -723,17 +718,16 @@
             const list = document.getElementById('cartList');
             const btnSave = document.getElementById('btnSaveBill');
             
-            billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; // INJECTED: reset discount
+            billTotals = { sub: 0, gst: 0, discount: 0, grand: 0 }; 
 
             if (cartItems.length === 0) {
                 list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Bill is empty</div>';
                 document.getElementById('uiSub').innerText = '₹0';
                 document.getElementById('uiGst').innerText = '₹0';
-                document.getElementById('uiDiscountRow').style.display = 'none'; // INJECTED: Hide discount row
+                document.getElementById('uiDiscountRow').style.display = 'none'; 
                 document.getElementById('uiGrand').innerText = '₹0';
                 btnSave.disabled = true;
                 
-                // INJECTED: Hide invoice box if empty
                 document.getElementById('invoiceNoContainer').style.display = 'none';
                 document.getElementById('customInvNo').value = '';
                 document.getElementById('customInvNo').dataset.type = '';
@@ -745,10 +739,9 @@
             cartItems.forEach((item, i) => {
                 billTotals.sub += item.baseTotal;
                 billTotals.gst += item.gstAmount;
-                billTotals.discount += (item.discount || 0); // INJECTED: add item discount
+                billTotals.discount += (item.discount || 0); 
                 billTotals.grand += item.finalTotal;
 
-                // INJECTED: Added visual discount tag to the UI cart item
                 const tags = `
                     ${item.isNonStock ? '<span class="ns-tag">NON-STOCK</span>' : ''}
                     ${item.gstPercent > 0 ? `<span class="gst-tag">GST ${item.gstPercent}%</span>` : ''}
@@ -767,7 +760,7 @@
                 `;
             });
 
-            // INJECTED: REALTIME GST DETECTION & INVOICE NUMBER ALLOCATION
+            // REALTIME GST DETECTION & INVOICE NUMBER ALLOCATION
             const hasGst = cartItems.some(item => item.gstPercent > 0);
             const invNoContainer = document.getElementById('invoiceNoContainer');
             const customInvNo = document.getElementById('customInvNo');
@@ -796,7 +789,6 @@
             document.getElementById('uiSub').innerText = `₹${billTotals.sub.toLocaleString()}`;
             document.getElementById('uiGst').innerText = `₹${billTotals.gst.toLocaleString()}`;
             
-            // INJECTED: Show/Hide total discount row in UI based on usage
             const uiDiscRow = document.getElementById('uiDiscountRow');
             if (billTotals.discount > 0) {
                 uiDiscRow.style.display = 'flex';
@@ -830,7 +822,7 @@
                 // Generate Custom Invoice ID based on Timestamp
                 let invNo = "INV-" + Date.now().toString().slice(-6);
                 
-                // INJECTED OVERRIDE: Fetch from the custom box based on real-time GST detection
+                // Fetch from the custom box based on real-time GST detection
                 const hasGst = cartItems.some(item => item.gstPercent > 0);
                 let customVal = document.getElementById('customInvNo').value.trim();
                 
@@ -854,7 +846,7 @@
                 const sellRef = doc(collection(db, "sellings"));
                 batch.set(sellRef, {
                     invoiceNo: invNo,
-                    invoiceType: hasGst ? 'GST' : 'NORMAL', // INJECTED TYPE LOG
+                    invoiceType: hasGst ? 'GST' : 'NORMAL', // TYPE LOG
                     customer: { name: cName, phone: cPhone, address: cAddress },
                     paymentMode: cPaymentMode,
                     date: cDate ? new Date(cDate) : serverTimestamp(),
@@ -873,7 +865,7 @@
                     }
                 });
 
-                // INJECTED 3: Update System Invoice Counters (SMART UPDATE APPLIED)
+                // 3: Update System Invoice Counters (SMART UPDATE APPLIED)
                 const counterRef = doc(db, "settings", "invoiceCounters");
                 let counterUpdates = {};
                 if (hasGst) {
@@ -932,7 +924,6 @@
                 // Moved GST info into description so the table strictly has 5 columns like the image
                 const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
                 
-                // INJECTED: Added explicit Discount tag directly to the description string to keep the 5 columns intact
                 const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
                 
                 const desc = `
@@ -961,7 +952,6 @@
             
             document.getElementById('prGstTotal').innerText = `₹${billTotals.gst.toFixed(2)}`;
 
-            // INJECTED: Set Print Layout Discount Total
             const prDiscRow = document.getElementById('prDiscountRow');
             if (billTotals.discount > 0) {
                 prDiscRow.style.display = 'table-row';
