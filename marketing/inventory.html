@@ -309,11 +309,19 @@
         import { db } from './config.js';
         import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS ---
+        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
-            return [...new Set(wordsArray)];
+            const prefixes = new Set();
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    prefixes.add(prefix);
+                }
+            });
+            return [...prefixes];
         }
 
         // Toast Helpers
