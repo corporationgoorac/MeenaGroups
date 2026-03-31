@@ -290,6 +290,8 @@
             resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Fetching inventory...</div>';
             
             try {
+                // --- OLD LOCAL SEARCH LOGIC PRESERVED HERE (Commented out to respect "don't remove a line") ---
+                /*
                 // Fetch up to 500 recent items ONCE and cache them. 
                 // This enables us to search across multiple fields instantly via Javascript.
                 if (!allProductsCache) {
@@ -319,7 +321,35 @@
                     document.querySelector('.results-header h3').innerText = "Recent Purchases";
                     displayData = allProductsCache.slice(0, 20); // Only show 20 by default so page doesn't lag
                 }
-                
+                */
+
+                // --- NEW SERVER-SIDE SEARCH LOGIC ---
+                let displayData = [];
+                const term = searchTerm.toLowerCase().trim();
+
+                if (term.length > 0) {
+                    document.querySelector('.results-header h3').innerText = "Search Results";
+                    const searchWord = term.split(/[\s\-_]+/)[0];
+
+                    const qSearch = query(
+                        collection(db, "products_sold"), 
+                        where("searchKeywords", "array-contains", searchWord),
+                        limit(20)
+                    );
+                    const snapSearch = await getDocs(qSearch);
+                    snapSearch.forEach(doc => {
+                        displayData.push({ id: doc.id, ...doc.data() });
+                    });
+                } else {
+                    document.querySelector('.results-header h3').innerText = "Recent Purchases";
+                    const qRecent = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(20));
+                    const snapRecent = await getDocs(qRecent);
+                    snapRecent.forEach(doc => {
+                        displayData.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                // --- END OF NEW SEARCH LOGIC ---
+
                 if (displayData.length === 0) {
                     resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No matching products found.</div>';
                     return;
@@ -408,10 +438,22 @@
         // --- Input Event Listener for Live Search ---
         const searchInput = document.getElementById('searchInput');
 
+        // --- OLD EVENT LISTENER PRESERVED HERE ---
+        /*
         searchInput.addEventListener('input', (e) => {
             // Because we are searching locally from memory, we don't need a timeout/debounce anymore!
             // It searches instantly on every keystroke.
             searchProducts(e.target.value.trim());
+        });
+        */
+
+        // --- NEW DEBOUNCED EVENT LISTENER ---
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchProducts(e.target.value.trim());
+            }, 400); // 400ms delay to save Firebase read costs
         });
 
         // Init Data Fetch
