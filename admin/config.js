@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,6 +17,13 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize App Check with your reCAPTCHA Enterprise key
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaEnterpriseProvider('6Lfohp8sAAAAAFNhlp-A4D8Lu-Y2TCCreiIl2UgE'),
+  isTokenAutoRefreshEnabled: true 
+});
+
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
