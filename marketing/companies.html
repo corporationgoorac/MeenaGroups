@@ -327,6 +327,7 @@
             return `${d.getDate().toString().padStart(2, '0')} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
         }
 
+        /* === PRESERVED ORIGINAL CODE (DO NOT REMOVE) ===
         // --- 1. Load All Companies for Search ---
         async function fetchAllCompanies() {
             const grid = document.getElementById('companiesGrid');
@@ -381,6 +382,150 @@
             );
             renderCompanies(filtered);
         });
+        ================================================== */
+
+        // --- NEW SERVER-SIDE PAGINATED IMPLEMENTATION ---
+        let lastVisibleCompany = null;
+        let isFetchingCompanies = false;
+        let currentSearchTerm = "";
+        let hasMoreCompanies = true;
+
+        async function loadCompanies(isLoadMore = false) {
+            if (isFetchingCompanies || (!hasMoreCompanies && isLoadMore)) return;
+            isFetchingCompanies = true;
+
+            const grid = document.getElementById('companiesGrid');
+            
+            if (!isLoadMore) {
+                grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; grid-column: 1 / -1;">Loading companies...</div>';
+                lastVisibleCompany = null;
+                hasMoreCompanies = true;
+                allCompaniesCache = []; // Reset local cache for clean UI state
+            } else {
+                // Add a small temporary loading indicator at the bottom for Infinite Scroll
+                const loader = document.createElement('div');
+                loader.id = 'inf-loader';
+                loader.style.cssText = 'text-align:center; color:var(--accent-color); width:100%; padding:20px; grid-column: 1 / -1; font-weight: bold;';
+                loader.innerText = 'Loading more companies...';
+                grid.appendChild(loader);
+            }
+
+            try {
+                let q;
+                const limitCount = 20;
+
+                if (currentSearchTerm) {
+                    // SERVER-SIDE SEARCH: Using the array-contains strategy we built
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    if (isLoadMore && lastVisibleCompany) {
+                        q = query(
+                            collection(db, "companies"), 
+                            where("searchKeywords", "array-contains", searchWord), 
+                            startAfter(lastVisibleCompany), 
+                            limit(limitCount)
+                        );
+                    } else {
+                        q = query(
+                            collection(db, "companies"), 
+                            where("searchKeywords", "array-contains", searchWord), 
+                            limit(limitCount)
+                        );
+                    }
+                } else {
+                    // DEFAULT VIEW: Sorted by name alphabetically
+                    if (isLoadMore && lastVisibleCompany) {
+                        q = query(
+                            collection(db, "companies"), 
+                            orderBy("name"), 
+                            startAfter(lastVisibleCompany), 
+                            limit(limitCount)
+                        );
+                    } else {
+                        q = query(
+                            collection(db, "companies"), 
+                            orderBy("name"), 
+                            limit(limitCount)
+                        );
+                    }
+                }
+
+                const snap = await getDocs(q);
+                
+                if (!isLoadMore) {
+                    grid.innerHTML = '';
+                } else {
+                    const loader = document.getElementById('inf-loader');
+                    if (loader) loader.remove();
+                }
+
+                if (snap.empty) {
+                    hasMoreCompanies = false;
+                    if (!isLoadMore) {
+                        grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:20px; grid-column: 1 / -1;">No matching companies found.</div>';
+                    }
+                    isFetchingCompanies = false;
+                    return;
+                }
+
+                lastVisibleCompany = snap.docs[snap.docs.length - 1];
+                
+                if (snap.docs.length < limitCount) {
+                    hasMoreCompanies = false; // We reached the end of the database
+                }
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    allCompaniesCache.push({ id: doc.id, ...data });
+                    
+                    const initial = data.name ? data.name.charAt(0).toUpperCase() : '?';
+                    const compData = encodeURIComponent(JSON.stringify({ id: doc.id, ...data }));
+                    
+                    grid.innerHTML += `
+                        <div class="company-card" onclick="openCompanyProfile('${compData}')">
+                            <div class="avatar-circle">${initial}</div>
+                            <div class="c-info">
+                                <div class="c-name">${data.name}</div>
+                                <div class="c-id">ID: ${data.companyId || 'N/A'} • ${data.location || 'No Location'}</div>
+                                <div class="c-bal">₹${(data.balance || 0).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+            } catch (error) {
+                console.error("Error loading companies:", error);
+                const loader = document.getElementById('inf-loader');
+                if (loader) loader.remove();
+                
+                if (!isLoadMore) {
+                    grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; grid-column: 1 / -1;">Failed to load companies.</div>';
+                }
+                showErrorToast(error.message || "Failed to load companies.");
+            }
+            
+            isFetchingCompanies = false;
+        }
+
+        // DEBOUNCED SERVER-SIDE SEARCH LISTENER
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearchTerm = e.target.value.toLowerCase().trim();
+                loadCompanies(false); // Pass false to reset the list and load from top
+            }, 400); // 400ms delay to protect Firebase billing
+        });
+
+        // INFINITE SCROLL LISTENER
+        document.querySelector('.main-scroll-area').addEventListener('scroll', function(e) {
+            const { scrollTop, scrollHeight, clientHeight } = e.target;
+            // If user scrolls within 50px of the bottom, load more!
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                loadCompanies(true);
+            }
+        });
+        // --- END OF NEW IMPLEMENTATION ---
+
 
         // --- 2. Open Company Profile Modal ---
         window.openCompanyProfile = async function(encodedData) {
@@ -585,7 +730,8 @@
         };
 
         // Init
-        fetchAllCompanies();
+        // fetchAllCompanies(); /* OLD INIT */
+        loadCompanies();        /* NEW INIT */
     </script>
 </body>
 </html>
