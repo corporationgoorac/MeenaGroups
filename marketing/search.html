@@ -292,6 +292,8 @@
         
         // --- NEW IMPORTS ADDED FOR EDIT & DELETE (Preserving original line above) ---
         import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // --- NEW IMPORTS ADDED FOR METADATA UPDATE ---
+        import { getDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW HELPER FOR SEARCH KEYWORDS ---
         function generateKeywords(text1, text2) {
@@ -510,7 +512,7 @@
             openModal('modalProductDetails');
         };
 
-        // --- NEW: EDIT & DELETE FUNCTIONS ---
+        // --- NEW: EDIT & DELETE FUNCTIONS WITH METADATA UPDATE ---
         window.openEditProductModal = function(encodedData) {
             const data = JSON.parse(decodeURIComponent(encodedData));
             document.getElementById('epId').value = data.id;
@@ -537,11 +539,63 @@
             btn.disabled = true;
 
             try {
+                /* ORIGINAL PRESERVED CODE (COMMENTED OUT) */
+                /*
                 const itemRef = doc(db, "products_sold", id);
                 await updateDoc(itemRef, {
                     name, model, qty, price, sellingPrice, total,
                     searchKeywords: generateKeywords(name, model)
                 });
+                alert("Purchase record updated successfully!");
+                history.back(); // close modal natively
+                searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
+                */
+
+                // --- NEW OPTIMIZED EDIT WITH METADATA UPDATE ---
+                const itemRef = doc(db, "products_sold", id);
+                const docSnap = await getDoc(itemRef);
+                
+                if (docSnap.exists()) {
+                    const oldData = docSnap.data();
+                    const oldTotal = oldData.total || 0;
+                    const diff = total - oldTotal;
+                    const compId = oldData.companyId;
+
+                    const batch = writeBatch(db);
+
+                    // 1. Update the record
+                    batch.update(itemRef, {
+                        name, model, qty, price, sellingPrice, total,
+                        searchKeywords: generateKeywords(name, model)
+                    });
+
+                    // 2. Update Dashboard Metadata if price changed
+                    if (diff !== 0) {
+                        const metaRef = doc(db, "metadata", "dashboard");
+                        batch.set(metaRef, {
+                            totalBalance: increment(diff),
+                            totalBilled: increment(diff)
+                        }, { merge: true });
+
+                        // 3. Keep Company Balance in sync
+                        if (compId) {
+                            const compRef = doc(db, "companies", compId);
+                            batch.update(compRef, {
+                                balance: increment(diff),
+                                totalBilled: increment(diff)
+                            });
+                        }
+                    }
+
+                    await batch.commit();
+                } else {
+                    // Fallback
+                    await updateDoc(itemRef, {
+                        name, model, qty, price, sellingPrice, total,
+                        searchKeywords: generateKeywords(name, model)
+                    });
+                }
+
                 alert("Purchase record updated successfully!");
                 history.back(); // close modal natively
                 searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
@@ -557,9 +611,53 @@
         window.deleteProductRecord = async function(id) {
             if(!confirm("Are you absolutely sure you want to delete this purchase record?")) return;
             try {
+                /* ORIGINAL PRESERVED CODE (COMMENTED OUT) */
+                /*
                 await deleteDoc(doc(db, "products_sold", id));
                 alert("Record deleted successfully!");
                 searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
+                */
+
+                // --- NEW OPTIMIZED DELETE WITH METADATA UPDATE ---
+                const docRef = doc(db, "products_sold", id);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const amountToDeduct = data.total || 0;
+                    const compId = data.companyId;
+
+                    const batch = writeBatch(db);
+                    
+                    // 1. Delete the purchase record
+                    batch.delete(docRef);
+
+                    // 2. Update Dashboard Metadata
+                    const metaRef = doc(db, "metadata", "dashboard");
+                    batch.set(metaRef, {
+                        totalProducts: increment(-1),
+                        totalBalance: increment(-amountToDeduct),
+                        totalBilled: increment(-amountToDeduct)
+                    }, { merge: true });
+
+                    // 3. Keep Company Balance in sync
+                    if (compId) {
+                        const compRef = doc(db, "companies", compId);
+                        batch.update(compRef, {
+                            balance: increment(-amountToDeduct),
+                            totalBilled: increment(-amountToDeduct)
+                        });
+                    }
+
+                    await batch.commit();
+                } else {
+                    // Fallback
+                    await deleteDoc(docRef);
+                }
+
+                alert("Record deleted and dashboard updated successfully!");
+                searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
+
             } catch(e) {
                 console.error(e);
                 alert("Error deleting record.");
