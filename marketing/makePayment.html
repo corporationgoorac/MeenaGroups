@@ -108,13 +108,19 @@
         .btn-pay:disabled { background: #444; color: #888; cursor: not-allowed; }
 
         /* Professional Success Toast Animation */
-        .toast-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: none; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
+        .toast-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 3000; display: none; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
         .toast-overlay.show { display: flex; opacity: 1; }
-        .check-circle { width: 80px; height: 80px; border-radius: 50%; background: var(--success-color); display: flex; justify-content: center; align-items: center; margin-bottom: 20px; transform: scale(0); animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .check-circle .material-symbols-outlined { font-size: 50px; color: white; font-weight: bold; }
-        .toast-text { color: white; font-size: 1.5em; font-weight: bold; transform: translateY(20px); opacity: 0; animation: slideUpText 0.5s ease forwards 0.3s; }
+        .check-circle { width: 120px; height: 120px; border-radius: 50%; background: var(--success-color); display: flex; justify-content: center; align-items: center; margin-bottom: 30px; transform: scale(0); animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; box-shadow: 0 0 40px rgba(0, 200, 83, 0.4); }
+        .check-circle .material-symbols-outlined { font-size: 80px; color: white; font-weight: bold; }
+        .toast-text { color: white; font-size: 2em; font-weight: 800; transform: translateY(20px); opacity: 0; animation: slideUpText 0.5s ease forwards 0.3s; text-align: center;}
+        
+        /* NEW: Google Pay Style Additions */
+        .toast-amount { color: var(--success-color); font-size: 3.5em; font-weight: 900; margin: 20px 0; transform: translateY(20px); opacity: 0; animation: slideUpText 0.6s ease forwards 0.4s; font-family: sans-serif; text-shadow: 0 0 20px rgba(0, 200, 83, 0.2);}
+        .toast-company { color: var(--text-secondary); font-size: 1.2em; margin-bottom: 40px; transform: translateY(20px); opacity: 0; animation: slideUpText 0.7s ease forwards 0.5s; }
+        .toast-footer { position: absolute; bottom: 40px; color: #555; font-size: 0.85em; display: flex; align-items: center; gap: 8px; transform: translateY(20px); opacity: 0; animation: slideUpText 0.8s ease forwards 0.6s; }
+        .toast-footer .material-symbols-outlined { font-size: 16px; color: var(--accent-color); }
 
-        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes popIn { 0% { transform: scale(0); } 70% { transform: scale(1.1); } 100% { transform: scale(1); } }
         @keyframes slideUpText { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
     </style>
@@ -162,9 +168,16 @@
 
     <div class="toast-overlay" id="successToast">
         <div class="check-circle">
-            <span class="material-symbols-outlined">check</span>
+            <span class="material-symbols-outlined">done</span>
         </div>
-        <div class="toast-text">Payment Successful!</div>
+        <div class="toast-text">Payment Successful</div>
+        <div class="toast-amount" id="gpayAmount">₹0</div>
+        <div class="toast-company" id="gpayCompany">To Company Name</div>
+        
+        <div class="toast-footer">
+            <span class="material-symbols-outlined">security</span>
+            Registered securely on Goorac Servers
+        </div>
     </div>
 
     <div class="container">
@@ -295,6 +308,7 @@
         const searchInput = document.getElementById('searchInput');
         const resultsBox = document.getElementById('searchResults');
 
+        /* === PRESERVED ORIGINAL SEARCH LOGIC (DO NOT REMOVE) ===
         searchInput.addEventListener('input', async (e) => {
             const val = e.target.value.trim();
             if(val.length < 2) { resultsBox.innerHTML = ''; return; }
@@ -326,6 +340,59 @@
                 });
             } catch (err) { console.error("Search error", err); }
         });
+        ======================================================== */
+
+        // --- NEW OPTIMIZED SERVER-SIDE KEYWORD SEARCH ---
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const val = e.target.value.toLowerCase().trim();
+                
+                if(val.length === 0) { 
+                    resultsBox.innerHTML = ''; 
+                    return; 
+                }
+
+                const searchWord = val.split(/[\s\-_]+/)[0];
+                if (!searchWord) return;
+
+                resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding: 20px;">Searching database...</div>';
+
+                try {
+                    const qSearch = query(
+                        collection(db, "companies"), 
+                        where("searchKeywords", "array-contains", searchWord),
+                        limit(6)
+                    );
+                    const snapSearch = await getDocs(qSearch);
+                    
+                    resultsBox.innerHTML = '';
+                    if(snapSearch.empty) {
+                        resultsBox.innerHTML = '<div style="color:var(--text-secondary); padding: 10px; text-align:center;">No matching companies found.</div>';
+                        return;
+                    }
+
+                    snapSearch.forEach(doc => {
+                        const data = doc.data();
+                        const compData = encodeURIComponent(JSON.stringify({id: doc.id, name: data.name, balance: data.balance || 0}));
+                        
+                        resultsBox.innerHTML += `
+                            <div class="company-card" onclick="openPaymentModal('${compData}')">
+                                <h3>${data.name}</h3>
+                                <p><span>ID: ${data.companyId || 'N/A'}</span></p>
+                                <p><span>Pending: <span class="bal">₹${(data.balance || 0).toLocaleString()}</span></span></p>
+                                <p><span>Total Paid: <span class="paid">₹${(data.totalPaid || 0).toLocaleString()}</span></span></p>
+                            </div>
+                        `;
+                    });
+                } catch (err) { 
+                    console.error("Search error", err); 
+                    resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding: 20px;">Search Failed</div>';
+                }
+            }, 400); // 400ms debounce
+        });
+
 
         // --- Modal Setup & Real-time Math ---
         let currentModalBalance = 0;
@@ -408,11 +475,22 @@
                 // Commit transaction
                 await batch.commit();
 
-                // Show Success Toast Animation
+                // --- NEW GOOGLE PAY STYLE SUCCESS FEEDBACK ---
+                // Setup the UI text
+                document.getElementById('gpayAmount').innerText = `₹${amount.toLocaleString()}`;
+                document.getElementById('gpayCompany').innerText = `To ${compName}`;
+                
+                // Trigger Vibration if supported by the device
+                if (navigator.vibrate) {
+                    // Long, satisfying success vibration pattern
+                    navigator.vibrate([100, 50, 100, 50, 400]); 
+                }
+
+                // Show the full-screen overlay
                 const toast = document.getElementById('successToast');
                 toast.classList.add('show');
                 
-                // Wait for animation, then close modal and refresh UI
+                // Wait 3.5 seconds for the user to enjoy the animation, then cleanup
                 setTimeout(() => {
                     toast.classList.remove('show');
                     history.back(); // Close modal
@@ -420,7 +498,7 @@
                     searchInput.value = ''; // Clear search
                     resultsBox.innerHTML = ''; // Clear search results
                     loadRecentPayments(); // Refresh recent list
-                }, 2000);
+                }, 3500);
 
             } catch (err) {
                 console.error("Payment failed", err);
