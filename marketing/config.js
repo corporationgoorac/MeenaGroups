@@ -3,6 +3,7 @@
 // Import the core Firebase App and Firestore database modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
 
 // Your Meena Marketing Firebase configuration
 const firebaseConfig = {
@@ -17,6 +18,12 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize App Check with your reCAPTCHA Enterprise key
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaEnterpriseProvider('6Lfohp8sAAAAAFNhlp-A4D8Lu-Y2TCCreiIl2UgE'),
+  isTokenAutoRefreshEnabled: true
+});
 
 // Initialize Firestore to handle your company and balance data
 const db = getFirestore(app);
