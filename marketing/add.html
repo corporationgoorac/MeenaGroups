@@ -259,6 +259,22 @@
         import { db } from './config.js';
         import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search) ---
+        // I injected this directly above your logic to ensure everything functions perfectly
+        function generateKeywords(text1, text2) {
+            const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const prefixes = new Set();
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    prefixes.add(prefix);
+                }
+            });
+            return [...prefixes];
+        }
+
         // --- MODAL & HISTORY API LOGIC ---
         window.openModal = function(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -353,19 +369,24 @@
             const oldBalance = parseFloat(document.getElementById('editOldBalance').value) || 0;
             const newBalance = parseFloat(document.getElementById('eBalance').value) || 0;
             const diff = newBalance - oldBalance; // Calculate difference to fix metadata
+            
+            // Fetch names for keyword generation
+            const updatedName = document.getElementById('eName').value.trim();
+            const updatedId = document.getElementById('eId').value.trim();
 
             try {
                 const batch = writeBatch(db);
                 
-                // 1. Update Company Doc
+                // 1. Update Company Doc (Now includes searchKeywords update)
                 const compRef = doc(db, "companies", id);
                 batch.update(compRef, {
-                    name: document.getElementById('eName').value.trim(),
-                    companyId: document.getElementById('eId').value.trim(),
+                    name: updatedName,
+                    companyId: updatedId,
                     location: document.getElementById('eLocation').value.trim(),
                     mobile: document.getElementById('eMobile').value.trim(),
                     balance: newBalance,
-                    totalBilled: increment(diff) // Assume balance change is a billing adjustment
+                    totalBilled: increment(diff), // Assume balance change is a billing adjustment
+                    searchKeywords: generateKeywords(updatedName, updatedId) // <-- INJECTED HERE
                 });
 
                 // 2. Adjust Metadata if balance changed
@@ -418,7 +439,7 @@
             }
         };
 
-        // --- ADD COMPANY LOGIC (Unchanged functionality) ---
+        // --- ADD COMPANY LOGIC (Unchanged functionality, just added keyword save) ---
         document.getElementById('formAddCompany').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSaveCompany');
@@ -437,9 +458,11 @@
 
                 const batch = writeBatch(db);
                 const newCompRef = doc(collection(db, "companies"));
+                // Added searchKeywords here
                 batch.set(newCompRef, {
                     name, companyId: cid, location, mobile, balance,
-                    totalBilled: balance, totalPaid: 0, createdAt: serverTimestamp()
+                    totalBilled: balance, totalPaid: 0, createdAt: serverTimestamp(),
+                    searchKeywords: generateKeywords(name, cid) // <-- INJECTED HERE
                 });
 
                 const metaRef = doc(db, "metadata", "dashboard");
@@ -583,8 +606,13 @@
                 
                 // Process each cart item safely
                 for (const item of cart) {
-                    // 2. Save full detail to products_sold (Always unique)
-                    batch.set(doc(collection(db, "products_sold")), { ...item, companyId: compId, date: serverTimestamp() }); 
+                    // 2. Save full detail to products_sold (Always unique) - Added searchKeywords
+                    batch.set(doc(collection(db, "products_sold")), { 
+                        ...item, 
+                        companyId: compId, 
+                        date: serverTimestamp(),
+                        searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                    }); 
                     
                     // 3. Save copy to global inventory ONLY IF skipInventory is false
                     if (!item.skipInventory) {
@@ -600,19 +628,23 @@
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
                             const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
+                            // Added searchKeywords update to catch name/model corrections
                             batch.update(existingInvRef, { 
                                 qty: increment(item.qty),
-                                price: item.sellingPrice // Optionally update selling price to newest entry
+                                price: item.sellingPrice, // Optionally update selling price to newest entry
+                                searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
                             });
                         } else {
                             // Completely new product for inventory! Create it
                             const inventoryRef = doc(collection(db, "inventory"));
+                            // Added searchKeywords here too
                             batch.set(inventoryRef, {
                                 name: item.name,
                                 model: item.model,
                                 qty: item.qty,
                                 price: item.sellingPrice,
-                                createdAt: serverTimestamp()
+                                createdAt: serverTimestamp(),
+                                searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
                             });
                         }
                     }
