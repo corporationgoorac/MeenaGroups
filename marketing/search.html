@@ -118,6 +118,14 @@
         .total-box .label { font-size: 1.1em; color: var(--text-secondary); }
         .total-box .val { font-size: 1.6em; font-weight: bold; color: var(--meena-red); }
 
+        /* --- NEW STYLES FOR EDIT/DELETE BUTTONS --- */
+        .card-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { background: #333; border: 1px solid #444; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; position: relative; z-index: 2;}
+        .action-btn.edit:hover { background: var(--accent-color); border-color: var(--accent-color); }
+        .action-btn.delete { color: var(--meena-red); background: rgba(255, 51, 51, 0.1); border-color: rgba(255, 51, 51, 0.3); }
+        .action-btn.delete:hover { background: var(--meena-red); color: white; }
+        .action-btn .material-symbols-outlined { font-size: 18px; }
+
     </style>
 </head>
 <body>
@@ -244,6 +252,32 @@
         </div>
     </div>
 
+    <div class="modal" id="modalEditProduct">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Edit Purchase Record</h2>
+        </div>
+        <div class="details-container">
+            <input type="hidden" id="epId">
+            <label style="display:block; margin-bottom:5px; color:var(--text-secondary); font-size:0.9em;">Product Name</label>
+            <input type="text" id="epName" style="width:100%; padding:15px; border-radius:8px; border:1px solid #444; background:var(--input-bg); color:white; margin-bottom:15px; box-sizing:border-box;">
+            
+            <label style="display:block; margin-bottom:5px; color:var(--text-secondary); font-size:0.9em;">Model / ID</label>
+            <input type="text" id="epModel" style="width:100%; padding:15px; border-radius:8px; border:1px solid #444; background:var(--input-bg); color:white; margin-bottom:15px; box-sizing:border-box;">
+            
+            <label style="display:block; margin-bottom:5px; color:var(--text-secondary); font-size:0.9em;">Quantity</label>
+            <input type="number" id="epQty" style="width:100%; padding:15px; border-radius:8px; border:1px solid #444; background:var(--input-bg); color:white; margin-bottom:15px; box-sizing:border-box;">
+            
+            <label style="display:block; margin-bottom:5px; color:var(--text-secondary); font-size:0.9em;">Buying Price (₹)</label>
+            <input type="number" id="epPrice" style="width:100%; padding:15px; border-radius:8px; border:1px solid #444; background:var(--input-bg); color:white; margin-bottom:15px; box-sizing:border-box;">
+            
+            <label style="display:block; margin-bottom:5px; color:var(--text-secondary); font-size:0.9em;">Selling Price (₹)</label>
+            <input type="number" id="epSellingPrice" style="width:100%; padding:15px; border-radius:8px; border:1px solid #444; background:var(--input-bg); color:white; margin-bottom:25px; box-sizing:border-box;">
+            
+            <button type="button" class="action-btn edit" id="btnSaveEditProduct" style="width:100%; padding:15px; font-size:1.1em; background:var(--accent-color); border:none; justify-content:center; font-weight:bold;">Save Changes</button>
+        </div>
+    </div>
+
     <script type="module">
         // 1. Service Worker & Install Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW Error', err)); }); }
@@ -255,6 +289,24 @@
         // 2. Firebase Imports & Setup
         import { db } from './config.js';
         import { collection, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
+        // --- NEW IMPORTS ADDED FOR EDIT & DELETE (Preserving original line above) ---
+        import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- NEW HELPER FOR SEARCH KEYWORDS ---
+        function generateKeywords(text1, text2) {
+            const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const prefixes = new Set();
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    prefixes.add(prefix);
+                }
+            });
+            return [...prefixes];
+        }
 
         let companiesMap = {};
         let allProductsCache = null; // Caches data for lightning-fast multi-field searching
@@ -379,6 +431,7 @@
                         date: dateStr
                     }));
 
+                    /* --- ORIGINAL RENDER PRESERVED HERE ---
                     resultsBox.innerHTML += `
                         <div class="product-card" onclick="openProductModal('${modalData}')">
                             <div class="product-info">
@@ -386,6 +439,28 @@
                                 <div class="p-company">
                                     <span class="material-symbols-outlined">storefront</span>
                                     ${compName}
+                                </div>
+                            </div>
+                            <div class="p-price-container">
+                                <div class="p-tag">Buy Price</div>
+                                <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `;
+                    --------------------------------------- */
+
+                    // --- NEW RENDER WITH EDIT & DELETE BUTTONS ---
+                    resultsBox.innerHTML += `
+                        <div class="product-card" onclick="openProductModal('${modalData}')">
+                            <div class="product-info">
+                                <div class="p-name">${data.name}</div>
+                                <div class="p-company">
+                                    <span class="material-symbols-outlined">storefront</span>
+                                    ${compName}
+                                </div>
+                                <div class="card-actions">
+                                    <button class="action-btn edit" onclick="event.stopPropagation(); openEditProductModal('${modalData}')" title="Edit"><span class="material-symbols-outlined">edit</span></button>
+                                    <button class="action-btn delete" onclick="event.stopPropagation(); deleteProductRecord('${data.id}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
                                 </div>
                             </div>
                             <div class="p-price-container">
@@ -433,6 +508,62 @@
             }
             
             openModal('modalProductDetails');
+        };
+
+        // --- NEW: EDIT & DELETE FUNCTIONS ---
+        window.openEditProductModal = function(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            document.getElementById('epId').value = data.id;
+            document.getElementById('epName').value = data.name;
+            document.getElementById('epModel').value = data.model;
+            document.getElementById('epQty').value = data.qty;
+            document.getElementById('epPrice').value = data.price;
+            document.getElementById('epSellingPrice').value = data.sellingPrice;
+            
+            openModal('modalEditProduct');
+        };
+
+        document.getElementById('btnSaveEditProduct').addEventListener('click', async () => {
+            const id = document.getElementById('epId').value;
+            const name = document.getElementById('epName').value.trim();
+            const model = document.getElementById('epModel').value.trim();
+            const qty = parseInt(document.getElementById('epQty').value) || 0;
+            const price = parseFloat(document.getElementById('epPrice').value) || 0;
+            const sellingPrice = parseFloat(document.getElementById('epSellingPrice').value) || 0;
+            const total = qty * price;
+
+            const btn = document.getElementById('btnSaveEditProduct');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            try {
+                const itemRef = doc(db, "products_sold", id);
+                await updateDoc(itemRef, {
+                    name, model, qty, price, sellingPrice, total,
+                    searchKeywords: generateKeywords(name, model)
+                });
+                alert("Purchase record updated successfully!");
+                history.back(); // close modal natively
+                searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
+            } catch(e) {
+                console.error(e);
+                alert("Error updating record.");
+            } finally {
+                btn.innerText = "Save Changes";
+                btn.disabled = false;
+            }
+        });
+
+        window.deleteProductRecord = async function(id) {
+            if(!confirm("Are you absolutely sure you want to delete this purchase record?")) return;
+            try {
+                await deleteDoc(doc(db, "products_sold", id));
+                alert("Record deleted successfully!");
+                searchProducts(document.getElementById('searchInput').value.trim()); // Refresh list
+            } catch(e) {
+                console.error(e);
+                alert("Error deleting record.");
+            }
         };
 
         // --- Input Event Listener for Live Search ---
