@@ -235,8 +235,8 @@
             <input type="number" id="pSellingPrice" placeholder="0">
             
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                <input type="checkbox" id="pSkipInventory" style="width: auto; margin: 0; box-shadow: none;">
-                <label for="pSkipInventory" style="margin: 0; cursor: pointer; color: #ff9800; font-weight: bold;">Don't add to inventory (Non-Stock)</label>
+                <input type="checkbox" id="pAddToInventory" style="width: auto; margin: 0; box-shadow: none;">
+                <label for="pAddToInventory" style="margin: 0; cursor: pointer; color: var(--success-color); font-weight: bold;">Add to Inventory (Stock)</label>
             </div>
 
             <button type="button" class="btn-secondary" id="btnAddToList">Add to List</button>
@@ -554,22 +554,43 @@
         });
 
 
+        // --- ADDED KEYBOARD SAVE FEATURE (Press Enter to Add) ---
+        const prodInputs = ['pName', 'pModel', 'pQty', 'pPrice', 'pSellingPrice'];
+        prodInputs.forEach(id => {
+            document.getElementById(id).addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('btnAddToList').click();
+                }
+            });
+        });
+
+
         document.getElementById('btnAddToList').addEventListener('click', () => {
             const pName = document.getElementById('pName').value.trim();
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
             const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
             const pSellingPrice = parseFloat(document.getElementById('pSellingPrice').value) || 0;
-            const pSkipInventory = document.getElementById('pSkipInventory').checked; // Read the checkbox
+            
+            /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
+            /* const pSkipInventory = document.getElementById('pSkipInventory').checked; // Read the checkbox */
+            const pAddToInventory = document.getElementById('pAddToInventory').checked; // NEW INVERTED LOGIC
             
             if (!pName || pPrice <= 0) { alert("Valid Product Name and Price required."); return; }
             
-            // Push skipInventory status into the cart item
-            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, skipInventory: pSkipInventory });
+            /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
+            /* cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, skipInventory: pSkipInventory }); */
+            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
             
             document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pSellingPrice').value = '';
-            document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding
+            
+            /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
+            /* document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding */
+            document.getElementById('pAddToInventory').checked = false; // Ensure it resets to default OFF state
             
             renderCart();
+            // Automatically focus back to Product Name after adding via enter key or button click
+            document.getElementById('pName').focus();
         });
 
         function renderCart() {
@@ -579,7 +600,11 @@
                 list.innerHTML = '';
                 cart.forEach(item => { 
                     currentPurchaseTotal += item.total; 
-                    const skipTag = item.skipInventory ? ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>' : '';
+                    
+                    /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
+                    /* const skipTag = item.skipInventory ? ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>' : ''; */
+                    const skipTag = item.addToInventory ? ' <span style="color:var(--success-color); font-size: 0.8em;">(Added to Stock)</span>' : ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>';
+                    
                     list.innerHTML += `<div class="product-item"><div><strong>${item.name}</strong>${skipTag} <small>x${item.qty}</small></div><div>₹${item.total.toLocaleString()}</div></div>`; 
                 });
                 document.getElementById('btnSaveProducts').disabled = false;
@@ -614,8 +639,9 @@
                         searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
                     }); 
                     
-                    // 3. Save copy to global inventory ONLY IF skipInventory is false
-                    if (!item.skipInventory) {
+                    /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
+                    /* if (!item.skipInventory) { */
+                    if (item.addToInventory) {
                         let invQ;
                         if (item.model) {
                             invQ = query(collection(db, "inventory"), where("model", "==", item.model), limit(1));
