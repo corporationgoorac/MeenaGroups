@@ -488,7 +488,7 @@
       </div>
       <div style="margin-bottom: 16px;">
         <label style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; display: block;">Total Value (₹)</label>
-        <input type="number" id="editProdTotal" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 8px;">
+        <input type="number" id="editProdTotal" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 8px;" oninput="renderEditPayments()">
       </div>
       
       <div style="margin-top: 24px; margin-bottom: 8px; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between;">
@@ -816,11 +816,14 @@
         const row = document.createElement("div");
         row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px;";
         row.innerHTML = `
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#${pay.dueNumber || '-'} - ₹${pay.amount}</span>
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#${pay.dueNumber || '-'}</span>
+              <input type="number" value="${pay.amount}" onchange="updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+            </div>
             <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date} | ${pay.type || 'Cash'}</span>
           </div>
-          <button onclick="deleteTempPayment(${pIdx})" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <button onclick="deleteTempPayment(${pIdx})" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
             <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           </button>
         `;
@@ -834,8 +837,11 @@
       document.getElementById("editCalcTotal").innerText = `Paid: ₹${totalPaid} | Bal: ₹${totalValue - totalPaid}`;
     };
 
-    // Recalculate if total changes manually
-    document.getElementById('editProdTotal').addEventListener('input', renderEditPayments);
+    window.updateTempPaymentAmount = (pIdx, newValue) => {
+        const val = parseFloat(newValue) || 0;
+        tempPayments[pIdx].amount = val;
+        renderEditPayments();
+    };
 
     window.deleteTempPayment = (pIdx) => {
       if(confirm("Remove this payment record?")) {
