@@ -476,14 +476,44 @@
     </div>
   </div>
 
+  <div class="modal" id="editProductModal" style="z-index: 250;">
+    <div class="m-head">
+      <h3>Edit Product</h3>
+      <button class="btn-close" onclick="closeEditModal()" style="width:30px;height:30px;font-size:1.2rem; border-radius:8px;">×</button>
+    </div>
+    <div class="m-body" style="max-height: 70vh; overflow-y: auto;">
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; display: block;">Product Name</label>
+        <input type="text" id="editProdName" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 8px;">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; display: block;">Total Value (₹)</label>
+        <input type="number" id="editProdTotal" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 8px;">
+      </div>
+      
+      <div style="margin-top: 24px; margin-bottom: 8px; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between;">
+        <span>Payments / Dues</span>
+        <span id="editCalcTotal" style="color: var(--primary);">Paid: ₹0 | Bal: ₹0</span>
+      </div>
+      <div id="editPaymentsList" style="display: flex; flex-direction: column; gap: 8px;">
+        </div>
+
+      <button onclick="saveProductEdits()" style="width: 100%; padding: 14px; margin-top: 24px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;">Save Changes</button>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from "./config.js";
-    import { collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { collection, query, where, getDocs, orderBy, limit, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let loadedData = [];
     let currentCustomer = null;
     let chartInstance = null;
     let searchTimeout = null;
+    
+    // Edit Product Tracking Variables
+    let currentEditProductIndex = -1;
+    let tempPayments = [];
 
     // ------------------------------------------
     // 1. DATA FETCHING (ENHANCED SEARCH)
@@ -686,7 +716,12 @@
                 <input type="checkbox" class="custom-chk product-checkbox" data-idx="${idx}">
               </div>
               <div class="pi-info">
-                <div class="pi-title">${p.name}</div>
+                <div class="pi-title" style="display:flex; justify-content:space-between; align-items:center;">
+                  ${p.name}
+                  <button onclick="openEditProduct(${idx}, event)" style="background:transparent; border:none; color:var(--primary); cursor:pointer; padding:4px;">
+                    <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  </button>
+                </div>
                 <div class="pi-sub">Total Value: ₹${(p.total||0).toLocaleString()}</div>
               </div>
               <div class="pi-stat ${bal > 1 ? 'red' : 'green'}">
@@ -726,6 +761,10 @@
     };
 
     window.closeAll = () => {
+      if (document.getElementById("editProductModal").classList.contains("active")) {
+         closeEditModal();
+         return;
+      }
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
       document.getElementById("analyticsPopup").classList.remove("active");
@@ -733,9 +772,124 @@
     };
 
     window.onpopstate = () => {
+      if (document.getElementById("editProductModal").classList.contains("active")) {
+         document.getElementById("editProductModal").classList.remove("active");
+         return;
+      }
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
       document.getElementById("analyticsPopup").classList.remove("active");
+    };
+
+    // ------------------------------------------
+    // 3.5 EDIT PRODUCT FUNCTIONALITY
+    // ------------------------------------------
+
+    window.openEditProduct = (idx, event) => {
+      event.stopPropagation();
+      currentEditProductIndex = idx;
+      const p = currentCustomer.products[idx];
+      
+      document.getElementById('editProdName').value = p.name || '';
+      document.getElementById('editProdTotal').value = p.total || 0;
+      
+      // Deep copy payments to avoid modifying original until save
+      tempPayments = JSON.parse(JSON.stringify(p.payments || []));
+      
+      renderEditPayments();
+      
+      window.history.pushState({ editModal: true }, "");
+      document.getElementById("overlay").classList.add("active");
+      document.getElementById("editProductModal").classList.add("active");
+    };
+
+    window.renderEditPayments = () => {
+      const container = document.getElementById("editPaymentsList");
+      container.innerHTML = "";
+      
+      let totalValue = parseFloat(document.getElementById('editProdTotal').value) || 0;
+      let totalPaid = 0;
+
+      tempPayments.forEach((pay, pIdx) => {
+        totalPaid += parseFloat(pay.amount || 0);
+        
+        const row = document.createElement("div");
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px;";
+        row.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#${pay.dueNumber || '-'} - ₹${pay.amount}</span>
+            <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date} | ${pay.type || 'Cash'}</span>
+          </div>
+          <button onclick="deleteTempPayment(${pIdx})" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button>
+        `;
+        container.appendChild(row);
+      });
+
+      if (tempPayments.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 12px; color: var(--text-sub); font-size: 0.85rem;">No payments found.</div>`;
+      }
+
+      document.getElementById("editCalcTotal").innerText = `Paid: ₹${totalPaid} | Bal: ₹${totalValue - totalPaid}`;
+    };
+
+    // Recalculate if total changes manually
+    document.getElementById('editProdTotal').addEventListener('input', renderEditPayments);
+
+    window.deleteTempPayment = (pIdx) => {
+      if(confirm("Remove this payment record?")) {
+        tempPayments.splice(pIdx, 1);
+        renderEditPayments();
+      }
+    };
+
+    window.saveProductEdits = async () => {
+      const newName = document.getElementById('editProdName').value.trim();
+      const newTotal = parseFloat(document.getElementById('editProdTotal').value) || 0;
+      
+      if (!newName || newTotal <= 0) {
+        return alert("Please enter valid Product Name and Total Value.");
+      }
+
+      let newPaid = 0;
+      tempPayments.forEach(p => { newPaid += parseFloat(p.amount || 0); });
+
+      // Update local object
+      currentCustomer.products[currentEditProductIndex].name = newName;
+      currentCustomer.products[currentEditProductIndex].total = newTotal;
+      currentCustomer.products[currentEditProductIndex].paid = newPaid;
+      currentCustomer.products[currentEditProductIndex].payments = tempPayments;
+
+      const btn = document.querySelector("#editProductModal button[onclick='saveProductEdits()']");
+      const oldText = btn.innerText;
+      btn.innerText = "Saving...";
+      btn.disabled = true;
+
+      try {
+        const cusRef = doc(db, "customers", currentCustomer.id);
+        await updateDoc(cusRef, { products: currentCustomer.products });
+        
+        // Refresh local data list safely
+        const indexInLoaded = loadedData.findIndex(c => c.id === currentCustomer.id);
+        if(indexInLoaded > -1) loadedData[indexInLoaded] = currentCustomer;
+        
+        renderList(loadedData);
+        calcStats();
+        
+        closeEditModal();
+        openDrawer(currentCustomer); // re-render drawer
+      } catch (e) {
+        alert("Error saving: " + e.message);
+      } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+      }
+    };
+
+    window.closeEditModal = () => {
+      document.getElementById("editProductModal").classList.remove("active");
+      if(history.state && history.state.editModal) history.back();
     };
 
     // ------------------------------------------
@@ -1016,4 +1170,3 @@
   </script>
 </body>
 </html>
-
