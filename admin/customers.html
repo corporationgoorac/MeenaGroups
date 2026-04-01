@@ -179,6 +179,7 @@
     }
     input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,230,118,0.1); }
     input[readonly] { opacity: 0.6; cursor: not-allowed; background: #111; }
+    input:disabled { opacity: 0.6; cursor: not-allowed; background: #111; }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -188,7 +189,9 @@
       font-weight: 800; border: none; border-radius: 12px; font-size: 1rem;
       margin-top: 15px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
       box-shadow: 0 0 15px rgba(0,230,118,0.3);
+      transition: 0.2s;
     }
+    .btn-submit:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
     .btn-submit.blue { background: var(--secondary); color: white; box-shadow: 0 0 15px rgba(41,121,255,0.3); }
 
     /* Toast Notification */
@@ -330,8 +333,10 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Customer ID (Locked)</label>
-          <input id="editId" readonly>
+          <label>Customer ID</label>
+          <input type="hidden" id="originalEditId">
+          <input id="editId" oninput="this.value = this.value.toUpperCase()">
+          <div id="editIdStatus" style="font-size: 0.85rem; margin-top: 8px; font-weight: bold;"></div>
         </div>
         <div class="form-group">
           <label>Full Name</label>
@@ -606,34 +611,123 @@
       finally { btn.innerText = "Add to Profile"; btn.disabled = false; }
     });
 
-    // --- 7. EDIT LOGIC ---
+    // --- 7. EDIT LOGIC WITH REALTIME ID CHECK ---
     window.editCustomer = async (id) => {
       try {
         const snap = await getDoc(doc(db, "customers", id));
         if(!snap.exists()) return;
         const d = snap.data();
         
+        document.getElementById("originalEditId").value = d.id;
         document.getElementById("editId").value = d.id;
         document.getElementById("editName").value = d.name;
         document.getElementById("editPhone").value = d.phone || "";
         document.getElementById("editPlace").value = d.place || "";
+
+        // Reset status texts and buttons on load
+        document.getElementById("editIdStatus").innerHTML = "";
+        document.getElementById("btnUpdateCustomer").disabled = false;
         
         openModal('modal-edit-customer');
       } catch(e) { console.error(e); }
     };
 
+    let editIdCheckTimeout = null;
+    document.getElementById("editId").addEventListener("input", (e) => {
+      const newId = e.target.value.trim().toUpperCase();
+      const originalId = document.getElementById("originalEditId").value;
+      const statusDiv = document.getElementById("editIdStatus");
+      const saveBtn = document.getElementById("btnUpdateCustomer");
+      
+      if(newId === "") {
+         statusDiv.innerHTML = "❌ ID cannot be empty";
+         statusDiv.style.color = "var(--danger)";
+         saveBtn.disabled = true;
+         return;
+      }
+      if(newId === originalId) {
+         statusDiv.innerHTML = "✅ Original ID";
+         statusDiv.style.color = "var(--primary)";
+         saveBtn.disabled = false;
+         return;
+      }
+      
+      statusDiv.innerHTML = "Checking availability...";
+      statusDiv.style.color = "var(--text-muted)";
+      saveBtn.disabled = true;
+      
+      clearTimeout(editIdCheckTimeout);
+      editIdCheckTimeout = setTimeout(async () => {
+         try {
+            const snap = await getDoc(doc(db, "customers", newId));
+            if(snap.exists()) {
+               statusDiv.innerHTML = "❌ Not available";
+               statusDiv.style.color = "var(--danger)";
+               saveBtn.disabled = true;
+            } else {
+               statusDiv.innerHTML = "✅ Available";
+               statusDiv.style.color = "var(--primary)";
+               saveBtn.disabled = false;
+            }
+         } catch(err) {
+            console.error(err);
+         }
+      }, 500);
+    });
+
     document.getElementById("btnUpdateCustomer").addEventListener("click", async () => {
-      const id = document.getElementById("editId").value;
+      const oldId = document.getElementById("originalEditId").value;
+      const newId = document.getElementById("editId").value.trim().toUpperCase();
+      const newName = document.getElementById("editName").value.trim();
+      const newPhone = document.getElementById("editPhone").value.trim();
+      const newPlace = document.getElementById("editPlace").value.trim();
+      
+      if(!newId || !newName) return alert("ID and Name are required");
+
+      const btn = document.getElementById("btnUpdateCustomer");
+      btn.innerText = "Saving...";
+      btn.disabled = true;
+
       try {
-        await updateDoc(doc(db, "customers", id), {
-          name: document.getElementById("editName").value.trim(),
-          phone: document.getElementById("editPhone").value.trim(),
-          place: document.getElementById("editPlace").value.trim()
-        });
+        if (oldId === newId) {
+          // Normal update if ID hasn't changed
+          await updateDoc(doc(db, "customers", oldId), {
+            name: newName,
+            phone: newPhone,
+            place: newPlace
+          });
+        } else {
+          // If ID changes, we must safely duplicate the old data into a new document and delete the old one.
+          await runTransaction(db, async (transaction) => {
+            const oldDocRef = doc(db, "customers", oldId);
+            const newDocRef = doc(db, "customers", newId);
+            
+            const newCheck = await transaction.get(newDocRef);
+            if (newCheck.exists()) throw "New ID is already taken!";
+            
+            const oldSnap = await transaction.get(oldDocRef);
+            if (!oldSnap.exists()) throw "Original record missing!";
+            
+            const data = oldSnap.data();
+            data.id = newId; // Update inside document 
+            data.name = newName;
+            data.phone = newPhone;
+            data.place = newPlace;
+            
+            transaction.set(newDocRef, data);
+            transaction.delete(oldDocRef);
+          });
+        }
+
         showToast("Profile Updated");
         closeModal();
         loadCustomers(true);
-      } catch(e) { alert(e); }
+      } catch(e) { 
+        alert(e); 
+      } finally {
+        btn.innerText = "Save Changes";
+        btn.disabled = false;
+      }
     });
 
     // --- 8. DELETE LOGIC ---
@@ -658,4 +752,3 @@
   </script>
 </body>
 </html>
-
