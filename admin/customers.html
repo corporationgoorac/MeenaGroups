@@ -247,6 +247,7 @@
         <div class="form-group">
           <label>Customer ID</label>
           <input id="newId" placeholder="e.g. A20" oninput="this.value = this.value.toUpperCase()">
+          <div id="newIdStatus" style="font-size: 0.85rem; margin-top: 8px; font-weight: bold;"></div>
         </div>
         <div class="form-group grid-2">
           <div>
@@ -528,7 +529,43 @@
       }, 600);
     });
 
-    // --- 5. ADD CUSTOMER LOGIC ---
+    // --- 5. ADD CUSTOMER LOGIC WITH REALTIME ID CHECK ---
+    let newIdCheckTimeout = null;
+    document.getElementById("newId").addEventListener("input", (e) => {
+      const newId = e.target.value.trim().toUpperCase();
+      const statusDiv = document.getElementById("newIdStatus");
+      const saveBtn = document.getElementById("btnSaveCustomer");
+      
+      if(newId === "") {
+         statusDiv.innerHTML = "❌ ID cannot be empty";
+         statusDiv.style.color = "var(--danger)";
+         saveBtn.disabled = true;
+         return;
+      }
+      
+      statusDiv.innerHTML = "Checking availability...";
+      statusDiv.style.color = "var(--text-muted)";
+      saveBtn.disabled = true;
+      
+      clearTimeout(newIdCheckTimeout);
+      newIdCheckTimeout = setTimeout(async () => {
+         try {
+            const snap = await getDoc(doc(db, "customers", newId));
+            if(snap.exists()) {
+               statusDiv.innerHTML = "❌ Not available";
+               statusDiv.style.color = "var(--danger)";
+               saveBtn.disabled = true;
+            } else {
+               statusDiv.innerHTML = "✅ Available";
+               statusDiv.style.color = "var(--primary)";
+               saveBtn.disabled = false;
+            }
+         } catch(err) {
+            console.error(err);
+         }
+      }, 500);
+    });
+
     document.getElementById("btnSaveCustomer").addEventListener("click", async () => {
       const idInput = document.getElementById("newId");
       const id = idInput.value.trim().toUpperCase(); 
@@ -565,6 +602,7 @@
 
         showToast("Customer Created!");
         ["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid", "newDueNum"].forEach(i => document.getElementById(i).value = "");
+        document.getElementById("newIdStatus").innerHTML = ""; // Clear status text on success
         closeModal(); 
         loadCustomers(true); 
 
