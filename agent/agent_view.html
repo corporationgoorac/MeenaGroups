@@ -44,6 +44,13 @@
     }
     header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
     .status-pill { font-size: 0.75rem; color: var(--warn); background: rgba(245, 158, 11, 0.15); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+    
+    /* NEW STYLE: Header Agent Name */
+    .header-agent-name {
+      font-size: 0.85rem; font-weight: 700; color: var(--accent);
+      background: rgba(59, 130, 246, 0.15); padding: 4px 12px; border-radius: 20px;
+      border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 5px;
+    }
 
     /* --- STATS SUMMARY --- */
     .summary-card {
@@ -185,7 +192,8 @@
     }
     .modal-overlay.open .modal-box { transform: translateY(0); }
 
-    .modal-title { margin: 0 0 20px 0; font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .modal-title { margin: 0 0 15px 0; font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .modal-message { font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 25px; }
     
     .input-group { margin-bottom: 15px; }
     .input-group label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 6px; }
@@ -196,9 +204,10 @@
     .modal-input:focus { border-color: var(--accent); }
 
     .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
-    .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; }
+    .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
     .m-cancel { background: #334155; color: white; }
     .m-save { background: var(--primary); color: #000; }
+    .m-btn:active { transform: scale(0.95); }
 
     /* --- BOTTOM NAV (FIXED & UPDATED) --- */
     .bottom-nav {
@@ -234,7 +243,13 @@
 
   <header>
     <h1>View Drafts</h1>
-    <div class="status-pill">Draft Mode</div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="status-pill">Draft Mode</div>
+      <div id="headerAgentName" class="header-agent-name">
+        <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Agent
+      </div>
+    </div>
   </header>
 
   <div class="summary-card">
@@ -290,8 +305,20 @@
       </div>
       
       <div class="modal-footer">
-        <button class="m-btn m-cancel" onclick="closeModal()">Cancel</button>
+        <button class="m-btn m-cancel" onclick="closeEditModal()">Cancel</button>
         <button class="m-btn m-save" onclick="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="customDialogOverlay">
+    <div class="modal-box">
+      <h3 class="modal-title" id="customDialogTitle">Alert</h3>
+      <p class="modal-message" id="customDialogMessage">Message goes here.</p>
+      
+      <div class="modal-footer">
+        <button class="m-btn m-cancel" id="customDialogCancel" style="display: none;" onclick="closeCustomDialog()">Cancel</button>
+        <button class="m-btn m-save" id="customDialogConfirm">OK</button>
       </div>
     </div>
   </div>
@@ -323,42 +350,120 @@
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
     let agentEntries = [];
-    let currentUserUid = null; // Store user ID
+    let currentUserUid = null; 
 
-    // --- 0. AUTHENTICATION CHECK ---
+    // --- 0. AUTHENTICATION CHECK & HEADER UPDATE ---
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUserUid = user.uid;
-        loadAgentEntries(user.uid); // Pass UID to fetch personal logs
+        
+        // Extract first name and display in header
+        const firstName = user.displayName ? user.displayName.split(' ')[0] : 'Agent';
+        document.getElementById('headerAgentName').innerHTML = `
+          <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          ${firstName}
+        `;
+
+        loadAgentEntries(user.uid); 
       } else {
-        window.location.href = "login.html"; // Secure redirect
+        window.location.href = "login.html"; 
       }
     });
 
-    // --- 1. LOAD ENTRIES (Now strictly scoped to logged in user) ---
+    // --- CUSTOM DIALOG LOGIC & MOBILE BACK BUTTON SUPPORT ---
+    let activeConfirmCallback = null;
+
+    window.openCustomDialog = (title, message, isConfirm, callback = null) => {
+      if (navigator.vibrate) navigator.vibrate(40); // Light haptic feedback
+      
+      document.getElementById('customDialogTitle').innerText = title;
+      document.getElementById('customDialogMessage').innerText = message;
+      
+      const cancelBtn = document.getElementById('customDialogCancel');
+      const confirmBtn = document.getElementById('customDialogConfirm');
+      
+      if (isConfirm) {
+        cancelBtn.style.display = 'block';
+        confirmBtn.innerText = 'Yes, Proceed';
+        
+        if(title.includes('Discard')) {
+           confirmBtn.style.background = 'var(--danger)';
+           confirmBtn.style.color = '#fff';
+        } else {
+           confirmBtn.style.background = 'var(--primary)';
+           confirmBtn.style.color = '#000';
+        }
+      } else {
+        cancelBtn.style.display = 'none';
+        confirmBtn.innerText = 'OK';
+        confirmBtn.style.background = 'var(--accent)';
+        confirmBtn.style.color = '#fff';
+      }
+      
+      activeConfirmCallback = callback;
+      
+      const overlay = document.getElementById('customDialogOverlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.classList.add('open'), 10);
+      
+      history.pushState({ modalOpen: 'customDialog' }, "");
+    };
+
+    window.closeCustomDialog = () => {
+      const overlay = document.getElementById('customDialogOverlay');
+      overlay.classList.remove('open');
+      setTimeout(() => overlay.style.display = 'none', 300);
+      
+      if (history.state && history.state.modalOpen === 'customDialog') {
+        history.back(); // Clear state silently if closed by button
+      }
+    };
+
+    document.getElementById('customDialogConfirm').onclick = () => {
+      closeCustomDialog();
+      if (activeConfirmCallback) activeConfirmCallback();
+    };
+
+    window.showCustomAlert = (title, message) => openCustomDialog(title, message, false);
+    window.showCustomConfirm = (title, message, callback) => openCustomDialog(title, message, true, callback);
+
+    // History API Listener for mobile back button
+    window.addEventListener('popstate', (e) => {
+      const editModal = document.getElementById("editModal");
+      if (editModal.classList.contains("open")) {
+        editModal.classList.remove("open");
+        setTimeout(() => editModal.style.display = "none", 300);
+      }
+      
+      const customDialog = document.getElementById("customDialogOverlay");
+      if (customDialog.classList.contains("open")) {
+        customDialog.classList.remove("open");
+        setTimeout(() => customDialog.style.display = "none", 300);
+      }
+    });
+
+
+    // --- 1. LOAD ENTRIES ---
     async function loadAgentEntries(uid) {
-      if(!uid) return; // Safeguard
+      if(!uid) return; 
 
       const listDiv = document.getElementById("entriesList");
       const totalDiv = document.getElementById("totalAmt");
       
-      // Targets for splits
       const totalCashDiv = document.getElementById("totalCashAmt");
       const totalOnlineDiv = document.getElementById("totalOnlineAmt");
       
       try {
-        // OPTIMIZED QUERY: Filter by draft AND current staff member
         const q = query(
           collection(db, "temp_entries"), 
           where("status", "==", "draft"),
-          where("staffUid", "==", uid) // SECURITY AND COST OPTIMIZATION
+          where("staffUid", "==", uid) 
         );
         
         const snapshot = await getDocs(q);
         
         agentEntries = [];
         let total = 0;
-        
         let cashTotal = 0;
         let onlineTotal = 0;
 
@@ -378,12 +483,10 @@
           }
         });
 
-        // Sort Newest
         agentEntries.sort((a,b) => b.jsDate - a.jsDate);
 
         listDiv.innerHTML = "";
         totalDiv.innerText = `₹${total.toLocaleString()}`;
-        
         totalCashDiv.innerText = `₹${cashTotal.toLocaleString()}`;
         totalOnlineDiv.innerText = `₹${onlineTotal.toLocaleString()}`;
 
@@ -409,7 +512,6 @@
           const badgeText = isOnline ? "ONLINE" : "CASH";
           const modeBadge = `<span class="mode-badge ${badgeClass}">${badgeText}</span>`;
           
-          // TINY AGENT BADGE
           const agentBadge = `<span class="agent-tiny-badge">👤 ${d.staffName || 'Agent'}</span>`;
           
           const html = `
@@ -467,6 +569,8 @@
       const entry = agentEntries.find(e => e.docId === docId);
       if (!entry) return;
 
+      if (navigator.vibrate) navigator.vibrate(40);
+
       document.getElementById("editDocId").value = docId;
       document.getElementById("editAmount").value = entry.amount;
       document.getElementById("editDate").value = entry.date;
@@ -475,12 +579,18 @@
       const modal = document.getElementById("editModal");
       modal.style.display = "flex";
       setTimeout(() => modal.classList.add("open"), 10);
+      
+      history.pushState({ modalOpen: 'editModal' }, "");
     };
 
-    window.closeModal = () => {
+    window.closeEditModal = () => {
       const modal = document.getElementById("editModal");
       modal.classList.remove("open");
       setTimeout(() => modal.style.display = "none", 300);
+      
+      if (history.state && history.state.modalOpen === 'editModal') {
+        history.back(); 
+      }
     };
 
     window.saveEdit = async () => {
@@ -489,7 +599,7 @@
       const newDate = document.getElementById("editDate").value;
       const newDue = parseInt(document.getElementById("editDueNumber").value);
 
-      if (!newAmt || !newDate) return alert("Fill all fields");
+      if (!newAmt || !newDate) return showCustomAlert("Required", "Please fill all required fields.");
 
       const btn = document.querySelector(".m-save");
       btn.innerText = "Saving...";
@@ -498,14 +608,14 @@
       try {
         const updateData = { amount: newAmt, date: newDate };
         if(newDue > 0) updateData.dueNumber = newDue;
-        else updateData.dueNumber = 0; // Clear if empty
+        else updateData.dueNumber = 0; 
 
         await updateDoc(doc(db, "temp_entries", docId), updateData);
         
-        closeModal();
+        closeEditModal();
         loadAgentEntries(currentUserUid);
       } catch (e) {
-        alert("Error: " + e.message);
+        showCustomAlert("Error", e.message);
       } finally {
         btn.innerText = "Save Changes";
         btn.disabled = false;
@@ -514,68 +624,66 @@
 
     // --- 3. DELETE (DISCARD) ---
     window.deleteEntry = async (docId) => {
-      if(!confirm("Discard this draft entry?")) return;
-      try {
-        await deleteDoc(doc(db, "temp_entries", docId));
-        loadAgentEntries(currentUserUid);
-      } catch (e) { alert("Error: " + e.message); }
+      showCustomConfirm("Discard Draft", "Are you sure you want to discard this draft entry? This action cannot be undone.", async () => {
+        try {
+          if(navigator.vibrate) navigator.vibrate([60, 50, 60]); // Warning buzz
+          await deleteDoc(doc(db, "temp_entries", docId));
+          loadAgentEntries(currentUserUid);
+        } catch (e) { showCustomAlert("Error", e.message); }
+      });
     };
 
     // --- 4. SUBMIT (BATCH UPDATE WITH GPAY SUCCESS) ---
     window.notifyAdmin = async () => {
-      if(agentEntries.length === 0) return alert("Nothing to submit.");
-      if(!confirm(`Submit ${agentEntries.length} entries to Admin?`)) return;
+      if(agentEntries.length === 0) return showCustomAlert("Empty", "You don't have any drafts to submit right now.");
+      
+      showCustomConfirm("Submit to Admin", `Are you ready to submit ${agentEntries.length} entries to the Admin? You won't be able to edit them after submission.`, async () => {
+        
+        const btn = document.querySelector(".fab-submit");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "<span>⏳ Sending...</span>";
+        btn.disabled = true;
 
-      const btn = document.querySelector(".fab-submit");
-      const originalText = btn.innerHTML;
-      btn.innerHTML = "<span>⏳ Sending...</span>";
-      btn.disabled = true;
+        try {
+          const batch = writeBatch(db);
+          let totalSubmittedAmt = 0;
 
-      try {
-        const batch = writeBatch(db);
-        let totalSubmittedAmt = 0;
+          // Add every draft to the batch & calculate total
+          agentEntries.forEach(entry => {
+            totalSubmittedAmt += parseFloat(entry.amount || 0);
+            const ref = doc(db, "temp_entries", entry.docId);
+            batch.update(ref, { status: "pending" });
+          });
 
-        // Add every draft to the batch & calculate total
-        agentEntries.forEach(entry => {
-          totalSubmittedAmt += parseFloat(entry.amount || 0);
-          const ref = doc(db, "temp_entries", entry.docId);
-          batch.update(ref, { status: "pending" });
-        });
+          // ONE single network request - Highly optimized
+          await batch.commit();
 
-        // ONE single network request - Highly optimized
-        await batch.commit();
+          // Trigger GPAY Style Success Animation
+          const overlay = document.getElementById("successOverlay");
+          document.getElementById("successAmt").innerText = `₹${totalSubmittedAmt.toLocaleString()}`;
+          overlay.classList.add("show");
 
-        // Trigger GPAY Style Success Animation
-        const overlay = document.getElementById("successOverlay");
-        document.getElementById("successAmt").innerText = `₹${totalSubmittedAmt.toLocaleString()}`;
-        overlay.classList.add("show");
+          // Trigger Long Vibration for satisfying physical feedback
+          if (navigator.vibrate) {
+              navigator.vibrate([400, 100, 400]); // Buzz-pause-Buzz
+          }
 
-        // Trigger Long Vibration for satisfying physical feedback
-        if (navigator.vibrate) {
-            navigator.vibrate([400, 100, 400]); // Buzz-pause-Buzz
+          // Hide overlay and reset button after 3.5 seconds
+          setTimeout(() => {
+              overlay.classList.remove("show");
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+              loadAgentEntries(currentUserUid); // List will now be empty automatically
+          }, 3500);
+
+        } catch (e) {
+          showCustomAlert("Error", "Submission failed: " + e.message);
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
-
-        // Hide overlay and reset button after 3.5 seconds
-        setTimeout(() => {
-            overlay.classList.remove("show");
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            loadAgentEntries(currentUserUid); // List will now be empty automatically
-        }, 3500);
-
-      } catch (e) {
-        alert("Error submitting: " + e.message);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
+      });
     };
 
-    // Exports
-    window.openEdit = openEdit;
-    window.closeModal = closeModal;
-    window.saveEdit = saveEdit;
-    window.deleteEntry = deleteEntry;
-    window.notifyAdmin = notifyAdmin;
   </script>
 </body>
 </html>
