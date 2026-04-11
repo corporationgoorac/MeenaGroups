@@ -12,13 +12,14 @@
     /* --- YOUTUBE DARK MATERIAL THEME --- */
     :root { 
       --bg: #0f0f0f; 
-      --surface: #272727; 
-      --surface-light: #3f3f3f;
+      --surface: #1a1a1a; 
+      --surface-light: #2a2a2a;
       --primary: #ff4e45; /* Brand Red */
       --text-main: #f1f1f1; 
       --text-sec: #aaaaaa;
-      --border: #3f3f3f; 
+      --border: rgba(255,255,255,0.08); 
       --accent: #3ea6ff; /* YouTube Blue */
+      --glass: rgba(255, 255, 255, 0.03);
     }
     
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -26,99 +27,132 @@
     body { 
       background: var(--bg); 
       color: var(--text-main); 
-      font-family: Roboto, 'Segoe UI', sans-serif; 
+      font-family: 'Roboto', 'Segoe UI', sans-serif; 
       margin: 0; padding: 0; 
-      padding-bottom: 80px; 
+      padding-bottom: 80px;
+      overflow-x: hidden;
     }
 
     /* --- APP BAR --- */
     header { 
-      background: rgba(15, 15, 15, 0.98);
-      padding: 15px 20px; 
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 18px 20px; 
       display: flex; justify-content: space-between; align-items: center;
       position: sticky; top: 0; z-index: 100;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--border);
     }
     
-    .brand { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .brand { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; }
     .brand span:first-child { color: #fff; }
     .brand span:last-child { color: var(--primary); }
 
     /* --- SETTINGS CONTENT --- */
-    .settings-container { padding: 20px; max-width: 500px; margin: 0 auto; }
+    .settings-container { 
+      padding: 20px; 
+      max-width: 500px; 
+      margin: 0 auto;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     .profile-hero {
-      background: var(--surface);
-      border-radius: 20px;
-      padding: 30px 20px;
+      background: linear-gradient(145deg, #222, #111);
+      border-radius: 24px;
+      padding: 40px 20px;
       text-align: center;
       margin-bottom: 25px;
       border: 1px solid var(--border);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative element */
+    .profile-hero::after {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(255,78,69,0.05) 0%, transparent 70%);
+      pointer-events: none;
     }
 
     .user-avatar {
-      width: 90px; height: 90px;
+      width: 100px; height: 100px;
       border-radius: 50%;
-      border: 3px solid var(--primary);
+      border: 4px solid var(--primary);
       margin-bottom: 15px;
       object-fit: cover;
+      background: var(--surface-light);
+      transition: transform 0.3s ease;
+      /* Prevent broken image icon */
+      font-size: 0;
     }
 
-    .user-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
-    .user-email { color: var(--text-sec); font-size: 0.9rem; }
+    .user-name { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
+    .user-email { color: var(--text-sec); font-size: 0.85rem; font-weight: 500; }
 
     /* --- FORM SECTION --- */
     .settings-group {
       background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
+      border-radius: 20px;
+      padding: 25px;
       margin-bottom: 20px;
       border: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
 
     .group-title {
-      font-size: 0.8rem; color: var(--text-sec);
-      text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 15px; display: block;
+      font-size: 0.75rem; color: var(--primary);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 20px; display: block; font-weight: 700;
     }
 
-    label { display: block; color: var(--text-sec); font-size: 0.85rem; margin-bottom: 8px; }
+    label { display: block; color: var(--text-sec); font-size: 0.8rem; margin-bottom: 10px; font-weight: 600; }
 
     .input-field {
       width: 100%;
-      background: var(--bg);
+      background: rgba(0,0,0,0.2);
       border: 1px solid var(--border);
       color: #fff;
-      padding: 14px;
-      border-radius: 10px;
+      padding: 16px;
+      border-radius: 12px;
       font-size: 1rem;
       margin-bottom: 20px;
+      transition: all 0.2s ease;
     }
 
-    .input-field:focus { border-color: var(--accent); }
+    .input-field:focus { 
+      border-color: var(--accent); 
+      background: rgba(62, 166, 255, 0.05);
+      box-shadow: 0 0 0 4px rgba(62, 166, 255, 0.1);
+    }
 
     .btn-save {
       width: 100%;
       background: var(--accent);
       color: #000;
       border: none;
-      padding: 15px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 1rem;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
       cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: transform 0.1s;
     }
+
+    .btn-save:active { transform: scale(0.98); }
 
     .btn-logout {
       width: 100%;
-      background: transparent;
+      background: rgba(255, 78, 69, 0.1);
       color: var(--primary);
-      border: 1px solid var(--primary);
-      padding: 14px;
-      border-radius: 10px;
+      border: 1px solid rgba(255, 78, 69, 0.2);
+      padding: 15px;
+      border-radius: 12px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       cursor: pointer;
       margin-top: 10px;
     }
@@ -126,62 +160,86 @@
     /* --- BOTTOM NAV --- */
     .bottom-nav { 
       position: fixed; bottom: 0; left: 0; width: 100%;
-      background: var(--bg); border-top: 1px solid var(--border);
+      background: rgba(15, 15, 15, 0.95); 
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
       display: flex; justify-content: space-around; 
-      padding: 8px 0; z-index: 1000;
-      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      padding: 10px 0; z-index: 1000;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
     }
     
     .nav-item { 
       display: flex; flex-direction: column; align-items: center; 
-      text-decoration: none; color: var(--text-sec); font-size: 0.7rem; gap: 4px;
-      padding: 5px; width: 25%;
+      text-decoration: none; color: var(--text-sec); font-size: 0.7rem; gap: 5px;
+      padding: 5px; width: 25%; transition: color 0.2s;
     }
     .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
     .nav-item.active { color: #fff; }
+    .nav-item.active svg { fill: #fff; }
 
     .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #2ba640; color: #fff; padding: 10px 20px;
-      border-radius: 20px; font-size: 0.9rem; font-weight: 600;
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: #2ba640; color: #fff; padding: 12px 24px;
+      border-radius: 50px; font-size: 0.9rem; font-weight: 700;
       display: none; z-index: 2000;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      animation: slideUp 0.3s ease-out;
     }
+
+    @keyframes slideUp { from { bottom: 80px; opacity: 0; } to { bottom: 100px; opacity: 1; } }
   </style>
 </head>
 <body>
+
+  <script>
+    const cachedUser = JSON.parse(localStorage.getItem('goorac_staff_user') || '{}');
+    window.addEventListener('DOMContentLoaded', () => {
+      if (cachedUser.name) {
+        document.getElementById('displayName').innerText = cachedUser.name;
+        document.getElementById('displayEmail').innerText = cachedUser.email;
+        document.getElementById('nameInput').value = cachedUser.name;
+        const pic = document.getElementById('displayPic');
+        pic.src = cachedUser.photo || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
+      }
+    });
+  </script>
 
   <header>
     <div class="brand">
       <span>Meena</span><span>Groups</span>
     </div>
-    <div style="font-size: 0.9rem; font-weight: 600;">Settings</div>
+    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-sec); text-transform: uppercase; letter-spacing: 1px;">Profile</div>
   </header>
 
   <div class="settings-container">
     
     <div class="profile-hero">
-      <img src="" id="displayPic" class="user-avatar" alt="Profile">
-      <div class="user-name" id="displayName">Loading...</div>
+      <img src="https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png" id="displayPic" class="user-avatar" alt="Profile" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png'">
+      <div class="user-name" id="displayName">Loading profile...</div>
       <div class="user-email" id="displayEmail">---</div>
     </div>
 
     <div class="settings-group">
-      <span class="group-title">Account Details</span>
+      <span class="group-title">Personal Information</span>
       
-      <label>Staff Display Name</label>
-      <input type="text" id="nameInput" class="input-field" placeholder="Enter name">
+      <label>Full Staff Name</label>
+      <input type="text" id="nameInput" class="input-field" placeholder="Verification name">
       
-      <button class="btn-save" id="btnUpdate">Update Profile</button>
+      <button class="btn-save" id="btnUpdate">Save Changes</button>
     </div>
 
     <div class="settings-group">
-      <span class="group-title">Session</span>
-      <button class="btn-logout" id="btnLogout">Logout from Device</button>
+      <span class="group-title">Session Management</span>
+      <button class="btn-logout" id="btnLogout">Sign Out</button>
+    </div>
+
+    <div style="text-align: center; color: #444; font-size: 0.7rem; font-weight: 800; margin-top: 10px; letter-spacing: 1px;">
+      v2.1.0 • POWERED BY GOORAC SYSTEMS
     </div>
 
   </div>
 
-  <div id="toast" class="toast">Profile Updated!</div>
+  <div id="toast" class="toast">Successfully Updated</div>
 
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
@@ -190,15 +248,15 @@
     </a>
     <a href="agent_entry.html" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-      <span>Entry</span>
+      <span>Collect</span>
     </a>
     <a href="agent_view.html" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-      <span>History</span>
+      <span>Logs</span>
     </a>
     <a href="settings.html" class="nav-item active">
       <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7-4.42 1.79-1.43c.16-.13.21-.36.1-.55l-1.71-2.96c-.1-.19-.33-.25-.52-.18l-2.11.85c-.44-.34-.92-.62-1.44-.83l-.32-2.24c-.03-.2-.2-.34-.4-.34h-3.42c-.2 0-.37.14-.4.34l-.32 2.24c-.52.21-1 .49-1.44.83l-2.11-.85c-.19-.07-.42-.01-.52.18L4.11 9.1c-.11.19-.06.42.1.55L6 11.08c-.06.3-.08.62-.08.92 0 .3.02.62.08.92l-1.79 1.43c-.16.13-.21.36-.1.55l1.71 2.96c.1.19.33.25.52.18l2.11-.85c.44.34.92.62 1.44.83l.32 2.24c.03.2.2.34.4.34h3.42c.2 0 .37.14.4.34l.32-2.24c.52-.21 1-.49 1.44-.83l2.11.85c.19.07.42.01.52-.18l1.71-2.96c.1-.19.06-.42-.1-.55L18 12.92c.06-.3.08-.62.08-.92 0-.3-.02-.62-.08-.92z"/></svg>
-      <span>Settings</span>
+      <span>Profile</span>
     </a>
   </nav>
 
@@ -209,15 +267,29 @@
     const nameInput = document.getElementById('nameInput');
     const updateBtn = document.getElementById('btnUpdate');
     const logoutBtn = document.getElementById('btnLogout');
+    const displayPic = document.getElementById('displayPic');
 
-    // Load User Data
+    // --- ENHANCED AUTH LISTENER WITH CACHING ---
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        document.getElementById('displayPic').src = user.photoURL || 'https://via.placeholder.com/90';
-        document.getElementById('displayName').innerText = user.displayName || 'Staff Member';
+        const photo = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
+        const name = user.displayName || 'Staff Member';
+        
+        displayPic.src = photo;
+        document.getElementById('displayName').innerText = name;
         document.getElementById('displayEmail').innerText = user.email;
-        nameInput.value = user.displayName || "";
+        nameInput.value = name;
+
+        // Save to LocalStorage for instant next-load
+        localStorage.setItem('goorac_staff_user', JSON.stringify({
+          name: name,
+          email: user.email,
+          photo: photo
+        }));
+
       } else {
+        // Clear cache on logout
+        localStorage.removeItem('goorac_staff_user');
         window.location.href = "login.html";
       }
     });
@@ -228,28 +300,35 @@
       if (!newName) return alert("Enter a name");
 
       updateBtn.disabled = true;
-      updateBtn.innerText = "Saving...";
+      const originalText = updateBtn.innerText;
+      updateBtn.innerText = "Syncing...";
 
       try {
         await updateProfile(auth.currentUser, { displayName: newName });
         document.getElementById('displayName').innerText = newName;
         
+        // Update local cache immediately
+        const cached = JSON.parse(localStorage.getItem('goorac_staff_user') || '{}');
+        cached.name = newName;
+        localStorage.setItem('goorac_staff_user', JSON.stringify(cached));
+
         // Success Toast
         const toast = document.getElementById('toast');
         toast.style.display = 'block';
         setTimeout(() => toast.style.display = 'none', 3000);
 
       } catch (e) {
-        alert("Error: " + e.message);
+        alert("Sync Error: " + e.message);
       } finally {
         updateBtn.disabled = false;
-        updateBtn.innerText = "Update Profile";
+        updateBtn.innerText = originalText;
       }
     });
 
     // Logout logic
     logoutBtn.addEventListener('click', async () => {
-      if(confirm("Are you sure you want to logout?")) {
+      if(confirm("Sign out from this device?")) {
+        localStorage.removeItem('goorac_staff_user');
         await signOut(auth);
         window.location.href = "login.html";
       }
