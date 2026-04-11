@@ -419,6 +419,73 @@
       transform: scale(1.01);
       box-shadow: 0 15px 40px rgba(0, 230, 118, 0.2);
     }
+
+    /* * ==========================================
+     * 9. NEW REDESIGN & MODAL CSS 
+     * ==========================================
+     */
+    .header-profile-pic {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--card);
+    }
+    .header-profile-pic:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+      transform: scale(1.05);
+    }
+
+    /* Profile Modal Overlay */
+    .profile-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center; z-index: 3000;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .profile-modal-overlay.active { opacity: 1; }
+    
+    .profile-modal {
+      background: var(--surface); padding: 30px; border-radius: 24px;
+      border: 1px solid var(--border); width: 90%; max-width: 320px;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      transform: translateY(20px) scale(0.95); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+      position: relative; overflow: hidden;
+    }
+    .profile-modal-overlay.active .profile-modal { transform: translateY(0) scale(1); }
+
+    /* Modal Glow */
+    .profile-modal::before {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+      background: linear-gradient(90deg, var(--danger), var(--primary));
+    }
+
+    .pm-brand { font-size: 1.4rem; font-weight: 800; color: #fff; margin: 0; letter-spacing: -0.5px; }
+    .pm-powered { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 20px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .pm-pic {
+      width: 90px; height: 90px; border-radius: 50%;
+      border: 3px solid var(--primary); object-fit: cover;
+      box-shadow: 0 0 20px rgba(0,230,118,0.2); margin-bottom: 15px;
+      background: var(--card);
+    }
+
+    .pm-name { color: #fff; margin: 0 0 25px 0; font-size: 1.1rem; font-weight: 700; }
+
+    .pm-actions { display: flex; gap: 12px; width: 100%; }
+    .btn-pm {
+      flex: 1; padding: 14px; border-radius: 14px; border: none;
+      font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+    }
+    .btn-pm-cancel { background: var(--card); color: #fff; border: 1px solid var(--border); }
+    .btn-pm-cancel:hover { background: #222; }
+    .btn-pm-logout { background: rgba(255, 23, 68, 0.1); color: var(--danger); border: 1px solid rgba(255, 23, 68, 0.3); }
+    .btn-pm-logout:hover { background: var(--danger); color: #fff; box-shadow: 0 8px 20px rgba(255, 23, 68, 0.4); transform: translateY(-2px); }
   </style>
 </head>
 <body>
@@ -447,6 +514,8 @@
       <button class="header-sync-btn" onclick="manualSync()" title="Sync from Cloud">
         <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
       </button>
+
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="headerProfilePic" class="header-profile-pic" alt="Profile" title="My Account">
     </div>
   </header>
 
@@ -565,9 +634,96 @@
     </a>
   </nav>
 
+  <div class="profile-modal-overlay" id="profileModalOverlay">
+    <div class="profile-modal">
+      <h2 class="pm-brand">Meena Groups</h2>
+      <p class="pm-powered">powered by Goorac</p>
+      
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="modalProfilePic" class="pm-pic" alt="User Pic">
+      <h3 class="pm-name" id="modalUserName">Loading...</h3>
+      
+      <div class="pm-actions">
+        <button id="btnCancelProfile" class="btn-pm btn-pm-cancel">Cancel</button>
+        <button id="btnLogout" class="btn-pm btn-pm-logout">Logout</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from "./config.js";
+    import { auth } from "./config.js";
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    // --- 0ms LOAD: LOCAL STORAGE PROFILE PIC INSTANT RENDER ---
+    const cachedPic = localStorage.getItem('userProfilePic');
+    const headerProfilePic = document.getElementById('headerProfilePic');
+    const modalProfilePic = document.getElementById('modalProfilePic');
+    
+    if(cachedPic) {
+      headerProfilePic.src = cachedPic;
+      modalProfilePic.src = cachedPic;
+    }
+
+    // --- NEW: AUTH CHECK & PROFILE DATA SYNC ---
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html"; // Kickout logic
+      } else {
+        // Sync Data to UI & Storage
+        const pic = user.photoURL || 'https://via.placeholder.com/150';
+        const name = user.displayName || user.email || 'Admin User';
+        
+        localStorage.setItem('userProfilePic', pic);
+        headerProfilePic.src = pic;
+        modalProfilePic.src = pic;
+        document.getElementById('modalUserName').innerText = name;
+      }
+    });
+
+    // --- NEW: PROFILE MODAL WITH MOBILE BACK BUTTON LOGIC ---
+    const profileModal = document.getElementById('profileModalOverlay');
+    const btnCancelProfile = document.getElementById('btnCancelProfile');
+    const btnLogout = document.getElementById('btnLogout');
+
+    headerProfilePic.addEventListener('click', () => {
+      profileModal.style.display = 'flex';
+      setTimeout(() => profileModal.classList.add('active'), 10);
+      history.pushState({ profileModalOpen: true }, ""); // Adds to mobile history
+    });
+
+    function closeProfileModal() {
+      profileModal.classList.remove('active');
+      setTimeout(() => profileModal.style.display = 'none', 300);
+    }
+
+    btnCancelProfile.addEventListener('click', () => {
+      if (history.state && history.state.profileModalOpen) {
+        history.back(); // Triggers popstate below
+      } else {
+        closeProfileModal();
+      }
+    });
+
+    window.addEventListener('popstate', (e) => {
+      if (profileModal.classList.contains('active')) {
+        closeProfileModal();
+      }
+    });
+
+    btnLogout.addEventListener('click', async () => {
+      try {
+        btnLogout.innerText = "Signing Out...";
+        btnLogout.disabled = true;
+        await signOut(auth);
+        localStorage.removeItem('userProfilePic');
+      } catch (e) {
+        alert("Logout failed: " + e.message);
+        btnLogout.innerText = "Logout";
+        btnLogout.disabled = false;
+      }
+    });
+
 
     // --- CHART INSTANCES (Global to allow updates) ---
     let charts = {};
