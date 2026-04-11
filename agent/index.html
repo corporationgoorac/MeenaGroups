@@ -73,6 +73,7 @@
       display: flex; flex-direction: column; align-items: center;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       margin-bottom: 25px;
+      position: relative; overflow: hidden;
     }
     
     .hero-label { font-size: 0.9rem; color: var(--text-sec); margin-bottom: 5px; }
@@ -201,7 +202,8 @@
     /* Fullscreen Delay Overlay */
     .action-loading-overlay {
       position: fixed; top:0; left:0; width:100%; height:100%;
-      background: #000; z-index: 4000; display: none;
+      background: radial-gradient(circle, #272727 0%, #0f0f0f 100%);
+      z-index: 4000; display: none;
       flex-direction: column; align-items: center; justify-content: center;
       text-align: center; padding: 20px;
     }
@@ -270,6 +272,27 @@
     }
     @keyframes pulseIn { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 
+    /* MONEY COIN ANIMATION */
+    .money-loader {
+      position: absolute; width: 100%; height: 100%;
+      top: 0; left: 0; pointer-events: none; display: flex;
+      justify-content: center; align-items: center;
+    }
+    .coin {
+      width: 15px; height: 15px; background: #ffd700; border-radius: 50%;
+      position: absolute; opacity: 0; border: 1px solid #b8860b;
+      box-shadow: 0 0 5px rgba(255,215,0,0.5);
+    }
+    .c1 { animation: floatCoin 2s infinite ease-in; left: 30%; }
+    .c2 { animation: floatCoin 2s infinite ease-in 0.5s; left: 50%; }
+    .c3 { animation: floatCoin 2s infinite ease-in 1s; left: 70%; }
+
+    @keyframes floatCoin {
+      0% { transform: translateY(50px) rotateY(0deg); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-50px) rotateY(360deg); opacity: 0; }
+    }
+
   </style>
 </head>
 <body>
@@ -304,6 +327,11 @@
   <div class="dashboard-container">
     
     <div class="hero-card">
+      <div id="moneyAnim" class="money-loader">
+          <div class="coin c1"></div>
+          <div class="coin c2"></div>
+          <div class="coin c3"></div>
+      </div>
       <span class="hero-label">Unsubmitted Drafts Collection</span>
       <div class="hero-amount shimmer shimmer-large" id="todayTotal"></div>
       
@@ -430,6 +458,7 @@
       const display = document.getElementById("todayTotal");
       const cashDisp = document.getElementById("todayCash");
       const onlineDisp = document.getElementById("todayOnline");
+      const moneyAnim = document.getElementById("moneyAnim");
       
       try {
         // UPDATED: Now showing ALL drafts collection, removing the date filter
@@ -467,6 +496,7 @@
         display.classList.remove('shimmer', 'shimmer-large');
         cashDisp.classList.remove('shimmer', 'shimmer-small');
         onlineDisp.classList.remove('shimmer', 'shimmer-small');
+        moneyAnim.style.display = 'none'; // Hide coins after load
 
         display.innerText = "₹" + total.toLocaleString();
         cashDisp.innerText = "₹" + cashTotal.toLocaleString();
