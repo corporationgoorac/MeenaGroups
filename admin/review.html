@@ -2,14 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Customer Report - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>View Entries - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#020617">
   <meta name="robots" content="noindex, nofollow">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <link rel="manifest" href="manifest.json">
-  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
@@ -128,10 +125,11 @@
     .stat-split { display: flex; flex-direction: column; }
     .stat-divider { width: 1px; min-height: 35px; background: var(--border); }
 
+    /* UPGRADED PROFESSIONAL APPROVE ALL BUTTON */
     .btn-approve-all {
-      background: var(--primary); 
-      color: #064e3b; 
-      border: none; 
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+      color: #ffffff; 
+      border: 1px solid rgba(16, 185, 129, 0.4); 
       padding: 0 20px;
       border-radius: 14px; 
       font-weight: 800; 
@@ -141,11 +139,12 @@
       justify-content: center;
       gap: 8px;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
       flex: 1;
       min-width: 140px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
-    .btn-approve-all:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.4); }
+    .btn-approve-all:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.5); }
     .btn-approve-all:active { transform: translateY(0); }
     .btn-approve-all:disabled { opacity: 0.2; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -479,13 +478,13 @@
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let pendingEntries = [];
-    let currentAgentFilter = 'ALL';
+    let currentAgentFilter = 'ALL'; // NEW: Variable to hold current filter state
 
     // --- CUSTOM DIALOG LOGIC & MOBILE BACK BUTTON SUPPORT ---
     let activeConfirmCallback = null;
 
     window.openCustomDialog = (title, message, isConfirm, callback = null) => {
-      if (navigator.vibrate) navigator.vibrate(40);
+      if (navigator.vibrate) navigator.vibrate(40); // Light haptic feedback
       
       document.getElementById('customDialogTitle').innerText = title;
       document.getElementById('customDialogMessage').innerText = message;
@@ -526,7 +525,7 @@
       setTimeout(() => overlay.style.display = 'none', 300);
       
       if (history.state && history.state.modalOpen === 'customDialog') {
-        history.back(); 
+        history.back(); // Clear state silently if closed by button
       }
     };
 
@@ -572,32 +571,23 @@
         const snapshot = await getDocs(q);
         
         pendingEntries = [];
-        let totalAmt = 0;
-        let totalCash = 0;
-        let totalOnline = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
           d.docId = docSnap.id;
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
           pendingEntries.push(d);
-          
-          let amount = parseFloat(d.amount || 0);
-          totalAmt += amount;
-
-          let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
-          if (isOnline) totalOnline += amount;
-          else totalCash += amount;
         });
 
+        // Sort Newest First
         pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
 
-        totalDisplay.innerText = "₹" + totalAmt.toLocaleString('en-IN');
-        cashDisplay.innerText = "₹" + totalCash.toLocaleString('en-IN');
-        onlineDisplay.innerText = "₹" + totalOnline.toLocaleString('en-IN');
         listDiv.innerHTML = "";
 
         if (pendingEntries.length === 0) {
+          totalDisplay.innerText = "₹0";
+          cashDisplay.innerText = "₹0";
+          onlineDisplay.innerText = "₹0";
           listDiv.innerHTML = `
             <div style="text-align:center; padding:100px 20px; color:#64748b; background:var(--surface); border-radius:24px; border:1px dashed var(--border);">
               <div style="font-size: 4rem; margin-bottom:20px; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.2));">✨</div>
@@ -610,19 +600,21 @@
 
         approveAllBtn.disabled = false;
 
-        renderAgentFilterList(); // update background filter modal
+        // Populate the modal list behind the scenes
+        renderAgentFilterList();
 
         let allHtml = "";
 
+        // RENDER ALL CARDS INITIALLY BUT HIDE THE ONES THAT DON'T MATCH FILTER
         pendingEntries.forEach(d => {
-          if (currentAgentFilter !== 'ALL' && (d.staffName || 'Unknown Agent') !== currentAgentFilter) return;
+          let isFilteredOut = (currentAgentFilter !== 'ALL' && (d.staffName || 'Unknown Agent') !== currentAgentFilter);
+          let displayStyle = isFilteredOut ? 'display: none;' : 'display: flex;';
 
-          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
+          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
           const isNonDB = d.isNonDatabase === true;
           const isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
-          
           const modeBadge = isOnline ? `<span class="mode-badge online">ONLINE</span>` : `<span class="mode-badge cash">CASH</span>`;
-          const agentBadge = `<span class="agent-tiny-badge">👤 ${d.staffName || 'Unknown Agent'}</span>`;
+
           const nonDbClass = isNonDB ? "non-db" : "";
           const nonDbTag = isNonDB ? `<span class="non-db-badge">NON-DB</span>` : "";
 
@@ -632,7 +624,7 @@
               </button>`;
 
           allHtml += `
-            <div class="entry-item ${nonDbClass}" id="card-${d.docId}">
+            <div class="entry-item ${nonDbClass}" id="card-${d.docId}" style="${displayStyle}">
               <div class="col-main">
                 <div class="c-head">
                   <h4 class="c-name">${d.customerName} ${nonDbTag}</h4>
@@ -650,7 +642,7 @@
               <div class="col-amount">
                 <div class="amount-display">₹${d.amount} ${modeBadge}</div>
                 <div class="date-display">
-                  ${agentBadge}
+                  <span class="agent-tiny-badge">👤 ${d.staffName || 'Unknown Agent'}</span>
                   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   ${d.date}
                 </div>
@@ -670,6 +662,9 @@
         });
 
         listDiv.innerHTML = allHtml;
+        
+        // NEW: Recalculate totals immediately to ensure correct display on load/refresh
+        applyAgentFilter(currentAgentFilter);
 
       } catch (e) {
         console.error(e);
@@ -677,7 +672,7 @@
       }
     }
 
-    // --- AGENT FILTER LIST MODAL ---
+    // --- NEW: RENDER AGENT FILTER LIST MODAL ---
     function renderAgentFilterList() {
       const list = document.getElementById("agentFilterList");
       const agentCounts = { 'ALL': pendingEntries.length };
@@ -697,6 +692,7 @@
       list.innerHTML = html;
     }
 
+    // --- NEW: APPLY FILTER (INSTANT DOM MANIPULATION) ---
     window.applyAgentFilter = (name) => {
       currentAgentFilter = name;
       closeAgentFilter();
@@ -705,11 +701,10 @@
       
       pendingEntries.forEach(d => {
         const card = document.getElementById(`card-${d.docId}`);
-        if (!card) return; 
         const nameMatch = (d.staffName || 'Unknown Agent') === name;
         
         if (name === 'ALL' || nameMatch) {
-          card.style.display = "flex"; 
+          if (card) card.style.display = "flex"; 
           visibleCount++;
           
           let amount = parseFloat(d.amount || 0);
@@ -717,14 +712,16 @@
           let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
           if (isOnline) fOnline += amount; else fCash += amount;
         } else {
-          card.style.display = "none"; 
+          if (card) card.style.display = "none"; 
         }
       });
       
+      // Update DOM Totals
       document.getElementById("totalPendingAmt").innerText = "₹" + fTotal.toLocaleString('en-IN');
       document.getElementById("totalCashAmt").innerText = "₹" + fCash.toLocaleString('en-IN');
       document.getElementById("totalOnlineAmt").innerText = "₹" + fOnline.toLocaleString('en-IN');
       
+      // Handle empty state gracefully without destroying existing cards
       const listDiv = document.getElementById("reviewList");
       let emptyMsg = document.getElementById("emptyFilterMsg");
       if (visibleCount === 0) {
@@ -735,9 +732,10 @@
         if(emptyMsg) emptyMsg.remove();
       }
       
-      renderAgentFilterList(); 
+      renderAgentFilterList(); // update selected state in modal
     };
 
+    // --- NEW: OPEN/CLOSE AGENT FILTER MODAL ---
     window.openAgentFilter = () => {
       if (navigator.vibrate) navigator.vibrate(40);
       const sheet = document.getElementById("agentFilterSheet");
@@ -846,16 +844,16 @@
              finalDue = max + 1;
           }
 
-          // INJECT LOGIN/AUDIT DATA
+          // NEW: Injected staff details for audit
           const newPayment = {
             date: entry.date,
             amount: entry.amount,
-            paymentMode: entry.paymentMode || 'Cash', 
+            paymentMode: entry.paymentMode || 'Cash', // Safely move mode
             dueNumber: parseInt(finalDue),
             type: "Agent Collection",
             approvedAt: new Date().toISOString(),
-            staffName: entry.staffName || 'Unknown Agent',
-            staffUid: entry.staffUid || 'unknown'
+            staffName: entry.staffName || 'Unknown Agent', 
+            staffUid: entry.staffUid || 'unknown'     
           };
 
           if (!product.payments) product.payments = [];
@@ -892,7 +890,7 @@
     window.rejectEntry = async (docId) => {
       showCustomConfirm("Reject Entry", "Permanently delete this entry?", async () => {
         try {
-          if (navigator.vibrate) navigator.vibrate([60, 50, 60]);
+          if (navigator.vibrate) navigator.vibrate([60, 50, 60]); // Warning buzz
           await deleteDoc(doc(db, "temp_entries", docId));
           
           // Safe cleanup state
@@ -913,7 +911,7 @@
       });
     };
 
-    // --- 5. BATCH APPROVE ALL ---
+    // --- 5. BATCH APPROVE ALL (INSTANT & SECURE DELETION FOR NON-DB) ---
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
       
@@ -936,9 +934,11 @@
               return;
           }
 
+          // Split arrays into Database and Non-Database segments
           const dbEntries = activeEntries.filter(e => !e.isNonDatabase);
           const nonDbEntries = activeEntries.filter(e => e.isNonDatabase);
 
+          // 1. Fetch all affected DB customers to ensure data integrity
           const customerIds = [...new Set(dbEntries.map(e => e.customerId))];
           const customersSnapshot = await Promise.all(customerIds.map(id => getDoc(doc(db, "customers", id))));
           
@@ -950,10 +950,15 @@
           const batch = writeBatch(db);
           let totalBatchAmount = 0;
 
+          // 2. Process each DB entry in memory
           dbEntries.forEach(entry => {
             const customerData = customerMap[entry.customerId];
-            if (!customerData) return;
+            if (!customerData) {
+              console.error(`Skipping entry ${entry.docId}, customer not found`);
+              return;
+            }
 
+            // Find Product
             let pIndex = entry.productIndex;
             if (!customerData.products[pIndex] || customerData.products[pIndex].name !== entry.productName) {
               pIndex = customerData.products.findIndex(p => p.name === entry.productName);
@@ -962,6 +967,7 @@
             if (pIndex > -1) {
               const product = customerData.products[pIndex];
               
+              // Calculate Due
               let finalDue = entry.dueNumber;
               if (!finalDue || finalDue <= 0) {
                  const max = (product.payments || []).length > 0 
@@ -970,16 +976,16 @@
                  finalDue = max + 1;
               }
 
-              // INJECT LOGIN/AUDIT DATA
+              // NEW: Injected staff details for audit
               const newPayment = {
                 date: entry.date,
                 amount: entry.amount,
-                paymentMode: entry.paymentMode || 'Cash', 
+                paymentMode: entry.paymentMode || 'Cash', // Safely move mode
                 dueNumber: parseInt(finalDue),
                 type: "Agent Collection",
                 approvedAt: new Date().toISOString(),
-                staffName: entry.staffName || 'Unknown Agent',
-                staffUid: entry.staffUid || 'unknown'
+                staffName: entry.staffName || 'Unknown Agent', 
+                staffUid: entry.staffUid || 'unknown'     
               };
 
               if (!product.payments) product.payments = [];
@@ -988,21 +994,25 @@
               
               totalBatchAmount += entry.amount;
 
+              // Mark temp entry for deletion
               const tempRef = doc(db, "temp_entries", entry.docId);
               batch.delete(tempRef);
             }
           });
 
+          // 2.1 Process NON-DB Entries (Strict Delete / Clear Only without merging)
           nonDbEntries.forEach(entry => {
               const tempRef = doc(db, "temp_entries", entry.docId);
-              batch.delete(tempRef); 
+              batch.delete(tempRef); // Safely delete from DB leaving no logs
           });
 
+          // 3. Stage Customer Updates (DB Only)
           Object.keys(customerMap).forEach(custId => {
             const custRef = doc(db, "customers", custId);
             batch.update(custRef, { products: customerMap[custId].products });
           });
 
+          // 4. Stage Stats Update (DB Only calculations)
           if(totalBatchAmount > 0) {
             const statsRef = doc(db, "metadata", "stats");
             batch.update(statsRef, {
@@ -1011,8 +1021,10 @@
             });
           }
 
+          // 5. COMMIT EVERYTHING ONCE
           await batch.commit();
 
+          // UI Reset
           showCustomAlert("Success", "Operation successful! DB Approved, Non-DB cleared entirely.");
           btn.innerHTML = originalHtml;
           loadPending();
@@ -1058,6 +1070,7 @@
       
       const printArea = document.getElementById("printArea");
       
+      // Calculate split for print doc
       let totalAmount = 0, cAmount = 0, oAmount = 0;
       dataToPrint.forEach(d => {
         let amt = parseFloat(d.amount || 0);
@@ -1137,6 +1150,7 @@
 
       printArea.innerHTML = html;
       
+      // Delay printing slightly to allow DOM to update, then trigger print
       setTimeout(() => {
         window.print();
       }, 250);
