@@ -101,6 +101,13 @@
     .cash-badge { background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid var(--primary); }
     .online-badge { background: rgba(59, 130, 246, 0.15); color: var(--accent); border: 1px solid var(--accent); }
 
+    /* NEW STYLE: Tiny Agent Badge */
+    .agent-tiny-badge {
+      font-size: 0.65rem; background: rgba(255,255,255,0.1); color: #cbd5e1;
+      padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
+      font-weight: 600; letter-spacing: 0.5px;
+    }
+
     .card-mid { display: flex; justify-content: space-between; align-items: flex-end; }
     .c-prod { font-size: 0.9rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
     .c-amt { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
@@ -136,6 +143,32 @@
     }
     .fab-submit:active { transform: scale(0.95); }
 
+    /* --- GPAY SUCCESS OVERLAY --- */
+    .success-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #020617; z-index: 9999; display: none; flex-direction: column;
+      align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;
+    }
+    .success-overlay.show { display: flex; opacity: 1; }
+    
+    .success-icon {
+      width: 90px; height: 90px; background: #10b981; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 25px;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      transform: scale(0);
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    }
+    .success-icon svg { width: 45px; height: 45px; fill: white; }
+    
+    .success-amt { 
+      font-size: 3.5rem; font-weight: 900; color: #fff; margin-bottom: 10px; 
+      opacity: 0; animation: slideUpFade 0.5s 0.3s forwards; letter-spacing: -1px;
+    }
+    .success-msg { 
+      font-size: 1.2rem; color: #10b981; font-weight: 700; 
+      opacity: 0; animation: slideUpFade 0.5s 0.4s forwards; text-transform: uppercase; letter-spacing: 1px;
+    }
+
     /* --- MODAL --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -167,7 +200,7 @@
     .m-cancel { background: #334155; color: white; }
     .m-save { background: var(--primary); color: #000; }
 
-    /* --- BOTTOM NAV --- */
+    /* --- BOTTOM NAV (FIXED & UPDATED) --- */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; width: 100%;
       background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
@@ -178,15 +211,26 @@
     .nav-item {
       text-decoration: none; color: var(--text-muted); font-size: 0.7rem;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
-      padding: 5px; width: 33%;
+      padding: 5px; width: 25%; /* Fixed width for 4 items */
     }
     .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
     .nav-item.active { color: var(--accent); }
     .nav-item.active svg { fill: var(--accent); filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
 
+    @keyframes popIn { to { transform: scale(1); } }
+    @keyframes slideUpFade { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
   </style>
 </head>
 <body>
+
+  <div id="successOverlay" class="success-overlay">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+    </div>
+    <div class="success-amt" id="successAmt">₹0</div>
+    <div class="success-msg">Submitted Successfully</div>
+  </div>
 
   <header>
     <h1>View Drafts</h1>
@@ -259,40 +303,62 @@
     </a>
     <a href="agent_entry.html" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-      <span>Collect</span>
+      <span>Entry</span>
     </a>
     <a href="agent_view.html" class="nav-item active">
       <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-      <span>Logs</span>
+      <span>History</span>
+    </a>
+    <a href="agent_customer_report.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M11.5 9C10.12 9 9 10.12 9 11.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S12.88 9 11.5 9zM20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-3.21 14.21l-2.91-2.91c-.69.44-1.51.7-2.39.7C9.01 16 7 13.99 7 11.5S9.01 7 11.5 7 16 9.01 16 11.5c0 .88-.26 1.69-.7 2.39l2.91 2.9-1.42 1.42z"/></svg>
+      <span>Report</span>
     </a>
   </nav>
 
   <script type="module">
-    import { db } from "./config.js";
+    import { db, auth } from "./config.js";
     import { 
       collection, query, where, getDocs, deleteDoc, doc, updateDoc, writeBatch 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
     let agentEntries = [];
+    let currentUserUid = null; // Store user ID
 
-    // --- 1. LOAD ENTRIES (Now loads DRAFTS instead of pending) ---
-    async function loadAgentEntries() {
+    // --- 0. AUTHENTICATION CHECK ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserUid = user.uid;
+        loadAgentEntries(user.uid); // Pass UID to fetch personal logs
+      } else {
+        window.location.href = "login.html"; // Secure redirect
+      }
+    });
+
+    // --- 1. LOAD ENTRIES (Now strictly scoped to logged in user) ---
+    async function loadAgentEntries(uid) {
+      if(!uid) return; // Safeguard
+
       const listDiv = document.getElementById("entriesList");
       const totalDiv = document.getElementById("totalAmt");
       
-      // NEW: Targets for splits
+      // Targets for splits
       const totalCashDiv = document.getElementById("totalCashAmt");
       const totalOnlineDiv = document.getElementById("totalOnlineAmt");
       
       try {
-        // FIXED: Query for 'draft' instead of 'pending'
-        const q = query(collection(db, "temp_entries"), where("status", "==", "draft"));
+        // OPTIMIZED QUERY: Filter by draft AND current staff member
+        const q = query(
+          collection(db, "temp_entries"), 
+          where("status", "==", "draft"),
+          where("staffUid", "==", uid) // SECURITY AND COST OPTIMIZATION
+        );
+        
         const snapshot = await getDocs(q);
         
         agentEntries = [];
         let total = 0;
         
-        // NEW: tracking logic
         let cashTotal = 0;
         let onlineTotal = 0;
 
@@ -305,7 +371,6 @@
           let amt = parseFloat(d.amount || 0);
           total += amt;
           
-          // NEW: Summing Cash vs Online
           if (d.paymentMode && d.paymentMode.toLowerCase() === 'online') {
             onlineTotal += amt;
           } else {
@@ -319,7 +384,6 @@
         listDiv.innerHTML = "";
         totalDiv.innerText = `₹${total.toLocaleString()}`;
         
-        // NEW: Populate the DOM split amounts
         totalCashDiv.innerText = `₹${cashTotal.toLocaleString()}`;
         totalOnlineDiv.innerText = `₹${onlineTotal.toLocaleString()}`;
 
@@ -328,7 +392,7 @@
             <div style="text-align:center; padding:50px; opacity:0.6;">
               <svg style="width:50px;height:50px;fill:#64748b;margin-bottom:10px" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
               <p>No draft entries found.</p>
-              <p style="font-size:0.8rem">Collections will appear here.</p>
+              <p style="font-size:0.8rem">Your collections will appear here.</p>
             </div>`;
           return;
         }
@@ -336,16 +400,17 @@
         agentEntries.forEach(d => {
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           
-          // NEW: Tag rendering logic
           const isNonDb = d.isNonDatabase === true;
           const nonDbClass = isNonDb ? "non-db-card" : "";
           const nonDbTag = isNonDb ? `<div class="non-db-tag">NON-DB ENTRY</div>` : "";
           
-          // NEW: Mode badge logic
           const isOnline = d.paymentMode && d.paymentMode.toLowerCase() === 'online';
           const badgeClass = isOnline ? "online-badge" : "cash-badge";
           const badgeText = isOnline ? "ONLINE" : "CASH";
           const modeBadge = `<span class="mode-badge ${badgeClass}">${badgeText}</span>`;
+          
+          // TINY AGENT BADGE
+          const agentBadge = `<span class="agent-tiny-badge">👤 ${d.staffName || 'Agent'}</span>`;
           
           const html = `
             <div class="entry-card ${nonDbClass}">
@@ -369,7 +434,10 @@
 
                 <div class="card-meta">
                   <span class="due-badge">Due: ${dueDisplay}</span>
-                  <span>${d.date}</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    ${agentBadge}
+                    <span>${d.date}</span>
+                  </div>
                 </div>
               </div>
 
@@ -435,7 +503,7 @@
         await updateDoc(doc(db, "temp_entries", docId), updateData);
         
         closeModal();
-        loadAgentEntries();
+        loadAgentEntries(currentUserUid);
       } catch (e) {
         alert("Error: " + e.message);
       } finally {
@@ -449,11 +517,11 @@
       if(!confirm("Discard this draft entry?")) return;
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
-        loadAgentEntries();
+        loadAgentEntries(currentUserUid);
       } catch (e) { alert("Error: " + e.message); }
     };
 
-    // --- 4. SUBMIT (BATCH UPDATE) ---
+    // --- 4. SUBMIT (BATCH UPDATE WITH GPAY SUCCESS) ---
     window.notifyAdmin = async () => {
       if(agentEntries.length === 0) return alert("Nothing to submit.");
       if(!confirm(`Submit ${agentEntries.length} entries to Admin?`)) return;
@@ -465,18 +533,35 @@
 
       try {
         const batch = writeBatch(db);
+        let totalSubmittedAmt = 0;
 
-        // Add every draft to the batch
+        // Add every draft to the batch & calculate total
         agentEntries.forEach(entry => {
+          totalSubmittedAmt += parseFloat(entry.amount || 0);
           const ref = doc(db, "temp_entries", entry.docId);
           batch.update(ref, { status: "pending" });
         });
 
-        // ONE single network request
+        // ONE single network request - Highly optimized
         await batch.commit();
 
-        alert("✅ Sent Successfully! Admin can now see these.");
-        loadAgentEntries(); // List will now be empty as they are no longer drafts
+        // Trigger GPAY Style Success Animation
+        const overlay = document.getElementById("successOverlay");
+        document.getElementById("successAmt").innerText = `₹${totalSubmittedAmt.toLocaleString()}`;
+        overlay.classList.add("show");
+
+        // Trigger Long Vibration for satisfying physical feedback
+        if (navigator.vibrate) {
+            navigator.vibrate([400, 100, 400]); // Buzz-pause-Buzz
+        }
+
+        // Hide overlay and reset button after 3.5 seconds
+        setTimeout(() => {
+            overlay.classList.remove("show");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            loadAgentEntries(currentUserUid); // List will now be empty automatically
+        }, 3500);
 
       } catch (e) {
         alert("Error submitting: " + e.message);
@@ -485,9 +570,6 @@
       }
     };
 
-    // Init
-    loadAgentEntries();
-    
     // Exports
     window.openEdit = openEdit;
     window.closeModal = closeModal;
@@ -497,4 +579,3 @@
   </script>
 </body>
 </html>
-
