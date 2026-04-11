@@ -206,7 +206,7 @@
       text-align: center; padding: 20px;
     }
     .action-loading-overlay.active { display: flex; }
-    .loading-text { font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 20px; }
+    .loading-text { font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 20px; line-height: 1.4; }
     
     .spinner {
       width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1);
@@ -214,6 +214,62 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* * ==========================================
+     * 10. NEW: ADVANCED SHIMMER & PROGRESS UI
+     * ==========================================
+     */
+    .shimmer {
+      background: linear-gradient(90deg, #333 25%, #444 50%, #333 75%);
+      background-size: 200% 100%;
+      animation: shimmerEffect 1.5s infinite linear;
+      border-radius: 12px;
+      color: transparent !important;
+      pointer-events: none;
+      min-width: 120px;
+    }
+
+    @keyframes shimmerEffect {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .shimmer-small { height: 24px; min-width: 60px; display: inline-block; vertical-align: middle; }
+    .shimmer-large { height: 48px; min-width: 180px; margin: 10px 0; }
+
+    /* Powerful Progress Bar */
+    .powerful-progress-container {
+      width: 70%;
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      margin-top: 40px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .powerful-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #ffffff);
+      box-shadow: 0 0 15px var(--primary);
+      transition: width 4s linear; /* Explicit 4s match */
+    }
+
+    /* Connection Pulse Icon */
+    .connection-pulse {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(62, 166, 255, 0.1);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 30px; position: relative;
+    }
+    .connection-pulse::after {
+      content: ''; position: absolute; width: 100%; height: 100%;
+      border-radius: 50%; border: 2px solid var(--primary);
+      animation: pulseIn 1.5s infinite;
+    }
+    @keyframes pulseIn { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+
   </style>
 </head>
 <body>
@@ -249,16 +305,16 @@
     
     <div class="hero-card">
       <span class="hero-label">Unsubmitted Drafts Collection</span>
-      <div class="hero-amount" id="todayTotal">Loading...</div>
+      <div class="hero-amount shimmer shimmer-large" id="todayTotal"></div>
       
       <div class="split-stats">
         <div class="stat-col">
           <div class="stat-title">Cash</div>
-          <div class="stat-value-cash" id="todayCash">₹0</div>
+          <div class="stat-value-cash shimmer shimmer-small" id="todayCash"></div>
         </div>
         <div class="stat-col">
           <div class="stat-title">Online</div>
-          <div class="stat-value-online" id="todayOnline">₹0</div>
+          <div class="stat-value-online shimmer shimmer-small" id="todayOnline"></div>
         </div>
       </div>
 
@@ -338,8 +394,14 @@
   </div>
 
   <div class="action-loading-overlay" id="loadingOverlay">
-    <div class="spinner"></div>
+    <div class="connection-pulse">
+        <svg id="actionIcon" width="40" height="40" fill="var(--primary)" viewBox="0 0 24 24"></svg>
+    </div>
     <div class="loading-text" id="loadingText">Processing...</div>
+    
+    <div class="powerful-progress-container">
+        <div class="powerful-progress-bar" id="pBar"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -366,6 +428,8 @@
     // --- FETCH ALL DRAFTS FOR LOGGED IN STAFF (IGNORES DATE) ---
     async function loadTodayStats(uid) {
       const display = document.getElementById("todayTotal");
+      const cashDisp = document.getElementById("todayCash");
+      const onlineDisp = document.getElementById("todayOnline");
       
       try {
         // UPDATED: Now showing ALL drafts collection, removing the date filter
@@ -399,11 +463,14 @@
           }
         });
 
+        // REMOVE SHIMMERS AND SHOW DATA
+        display.classList.remove('shimmer', 'shimmer-large');
+        cashDisp.classList.remove('shimmer', 'shimmer-small');
+        onlineDisp.classList.remove('shimmer', 'shimmer-small');
+
         display.innerText = "₹" + total.toLocaleString();
-        
-        // NEW LINE: Update the new DOM elements with formatted amounts
-        document.getElementById("todayCash").innerText = "₹" + cashTotal.toLocaleString();
-        document.getElementById("todayOnline").innerText = "₹" + onlineTotal.toLocaleString();
+        cashDisp.innerText = "₹" + cashTotal.toLocaleString();
+        onlineDisp.innerText = "₹" + onlineTotal.toLocaleString();
 
       } catch (e) {
         console.error("Stats Error:", e);
@@ -412,12 +479,17 @@
       }
     }
 
-    // --- NEW: SUPPORT MODAL & DELAY LOGIC ---
+    // --- NEW: SUPPORT MODAL & POWERFUL DELAY LOGIC ---
     const supportOverlay = document.getElementById('supportOverlay');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingText = document.getElementById('loadingText');
     const supportBtn = document.getElementById('supportBtn');
+    const pBar = document.getElementById('pBar');
+    const actionIcon = document.getElementById('actionIcon');
     
+    const PHONE_SVG = '<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/>';
+    const WA_SVG = '<path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.539 2.016 2.126-.54c1.029.563 2.025.873 3.162.873h.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.769-5.766zm3.426 8.313c-.145.411-.833.748-1.159.794-.325.046-.733.076-1.159-.076-.27-.099-.617-.233-1.06-.42-1.884-.794-3.11-2.703-3.203-2.826-.094-.123-.765-.966-.765-1.841 0-.875.456-1.302.619-1.474.162-.171.353-.214.47-.214.118 0 .235 0 .338.005.112.005.254-.042.398.283.144.325.487 1.181.529 1.265.042.085.071.184.015.3-.056.115-.085.187-.17.283-.085.097-.177.214-.254.283-.085.085-.177.177-.076.354.102.177.452.748.966 1.211.662.595 1.226.78 1.403.87.177.085.283.071.382-.042.102-.115.438-.512.556-.685.118-.171.235-.145.398-.085.162.059 1.026.484 1.203.573.177.085.294.129.338.204.045.071.045.414-.1.825z"/>';
+
     // BACK BUTTON SUPPORT
     supportBtn.onclick = (e) => {
       e.preventDefault();
@@ -438,28 +510,36 @@
       if (supportOverlay.classList.contains('active')) closeSupport();
     };
 
-    // CALL ACTION
+    // CALL ACTION (4 SECONDS)
     document.getElementById('btnCallAction').onclick = () => {
       supportOverlay.classList.remove('active');
       loadingOverlay.classList.add('active');
-      loadingText.innerText = "Calling Goorac Corporation\nsupport desk...";
+      actionIcon.innerHTML = PHONE_SVG;
+      loadingText.innerHTML = "Establishing secure connection with<br><b>Goorac Support Desk...</b>";
       
+      pBar.style.width = '100%'; // Start 4s transition
+
       setTimeout(() => {
         loadingOverlay.classList.remove('active');
+        pBar.style.width = '0%'; // Reset for next time
         window.location.href = "tel:9443042733";
-      }, 3000);
+      }, 4000);
     };
 
-    // WHATSAPP ACTION
+    // WHATSAPP ACTION (4 SECONDS)
     document.getElementById('btnWhatsAppAction').onclick = () => {
       supportOverlay.classList.remove('active');
       loadingOverlay.classList.add('active');
-      loadingText.innerText = "Opening WhatsApp chat with\nGoorac Corporation...";
+      actionIcon.innerHTML = WA_SVG;
+      loadingText.innerHTML = "Redirecting to encrypted chat with<br><b>Goorac Corporation...</b>";
       
+      pBar.style.width = '100%'; // Start 4s transition
+
       setTimeout(() => {
         loadingOverlay.classList.remove('active');
+        pBar.style.width = '0%'; // Reset for next time
         window.location.href = "https://wa.me/919443042733";
-      }, 3000);
+      }, 4000);
     };
 
     // --- PWA INSTALLATION LOGIC ---
