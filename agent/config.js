@@ -3,6 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
+// ADDED FOR LOGIN:
+import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -27,5 +29,9 @@ const appCheck = initializeAppCheck(app, {
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
+// INITIALIZE AUTH FOR STAFF LOGIN:
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
 // Export database and app for use in your HTML files
-export { app, db, analytics };
+export { app, db, analytics, auth, provider };
