@@ -9,8 +9,6 @@
  
   <meta name="robots" content="noindex, nofollow">
 
-  
-  
   <style>
     /* --- YOUTUBE DARK MATERIAL THEME --- */
     :root { 
@@ -49,12 +47,21 @@
       border-radius: 50%; display: flex; align-items: center; justify-content: center; 
       font-weight: bold; color: #000; font-size: 1.2rem;
     }
-    .app-name { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .app-name { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; }
     .agent-badge { 
       font-size: 0.7rem; background: var(--surface-light); 
       color: var(--text-sec); padding: 4px 8px; border-radius: 4px; 
       font-weight: 500; text-transform: uppercase;
     }
+
+    /* --- NEW HEADER PROFILE PIC --- */
+    .profile-pic-header {
+      width: 34px; height: 34px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--primary);
+      font-size: 0; background: var(--surface-light);
+      cursor: pointer; transition: transform 0.2s;
+    }
+    .profile-pic-header:active { transform: scale(0.9); }
 
     /* --- ANALYTICS CARD (Hero) --- */
     .dashboard-container { padding: 20px; }
@@ -163,12 +170,26 @@
 </head>
 <body>
 
+  <script>
+    const cachedPic = localStorage.getItem('goorac_user_pic');
+    window.addEventListener('DOMContentLoaded', () => {
+      if (cachedPic) {
+        document.getElementById('headerProfilePic').src = cachedPic;
+      }
+    });
+  </script>
+
   <header>
     <div class="brand">
-      <div class="logo-circle">M</div>
-      <span class="app-name">Meena Groups</span>
+      <span class="app-name"><span style="color: #ffffff;">Meena</span> <span style="color: #ff4e45;">Groups</span></span>
     </div>
-    <span class="agent-badge">Agent Mode</span>
+    
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span class="agent-badge">Agent Mode</span>
+      <a href="settings.html" style="display: flex; align-items: center;">
+        <img src="https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png" id="headerProfilePic" class="profile-pic-header" alt="Profile" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png'">
+      </a>
+    </div>
   </header>
 
   <div id="installPrompt">
@@ -252,21 +273,43 @@
   </nav>
 
   <script type="module">
-    import { db } from "./config.js";
+    import { db, auth } from "./config.js";
     import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-    // --- FETCH TODAY'S TOTAL (DRAFTS ONLY) ---
-    async function loadTodayStats() {
+    // --- AUTHENTICATION LISTENER ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Ensure photo is updated/cached dynamically
+        const currentPic = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
+        document.getElementById('headerProfilePic').src = currentPic;
+        localStorage.setItem('goorac_user_pic', currentPic);
+        
+        // Pass the user's UID to load ONLY their stats
+        loadTodayStats(user.uid);
+      } else {
+        // Kick them out if not logged in
+        window.location.href = "login.html";
+      }
+    });
+
+    // --- FETCH TODAY'S TOTAL FOR LOGGED IN STAFF (DRAFTS ONLY) ---
+    async function loadTodayStats(uid) {
       const display = document.getElementById("todayTotal");
       
       try {
-        const todayStr = new Date().toISOString().split('T')[0];
+        // Timezone bug fixed: Ensure local timezone date instead of UTC shift
+        const today = new Date();
+        const todayStr = today.getFullYear() + '-' + 
+                         String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(today.getDate()).padStart(2, '0');
 
-        // Correctly filtering for "draft" status as requested
+        // Correctly filtering for "draft" status AND matching the staff UID
         const q = query(
           collection(db, "temp_entries"),
           where("date", "==", todayStr),
-          where("status", "==", "draft") 
+          where("status", "==", "draft"),
+          where("staffUid", "==", uid) // <--- SECURE FILTER ADDED HERE
         );
 
         const snapshot = await getDocs(q);
@@ -306,8 +349,6 @@
       }
     }
 
-    loadTodayStats();
-
     // --- PWA INSTALLATION LOGIC ---
     let deferredPrompt;
     const installBtn = document.getElementById('btnInstall');
@@ -341,4 +382,3 @@
   </script>
 </body>
 </html>
-
