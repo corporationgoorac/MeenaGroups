@@ -360,77 +360,10 @@
       const loader = document.getElementById("loadingState");
       
       try {
-        // --- OPTIMIZED QUERY: Only fetch active drafts and pending items! ---
+        // --- ONLY SEE TEMP ENTRY AS REQUESTED ---
         const q = query(collection(db, "temp_entries"), where("status", "in", ["draft", "pending"])); 
         const snapshot = await getDocs(q);
         const map = {};
-
-        // --- OPTIMIZED ADMIN FETCH: Costs practically zero reads ---
-        const fetchSafely = async (colName) => {
-          try { 
-            return await getDocs(collection(db, colName)); 
-          } catch(e) { 
-            console.warn(`⚠️ Blocked from reading '${colName}':`, e.message); 
-            return { forEach: () => {} }; 
-          }
-        };
-
-        // Scan purely administrative collections to find users even with 0 entries
-        const [usersSnap, staffSnap, agentsSnap] = await Promise.all([
-          fetchSafely("users"), 
-          fetchSafely("staff"),
-          fetchSafely("agents")
-          // fetchSafely("customers") // ⚠️ COMMENTED OUT TO PREVENT THOUSANDS OF READS & HIGH BILLING
-        ]);
-        const customersSnap = []; // Kept so the rest of your original code doesn't break!
-        
-        const processBaseUser = (uSnap) => {
-          const uData = uSnap.data();
-          const uUid = uData.uid || uSnap.id;
-          // Aggressively find any recognizable name field
-          const agentName = uData.name || uData.displayName || uData.firstName || uData.username || 'Agent';
-          
-          if (!map[uUid]) {
-            map[uUid] = {
-              uid: uUid,
-              name: agentName,
-              count: 0,
-              amount: 0,
-              docs: [],       
-              draftDocs: []   
-            };
-          }
-        };
-
-        usersSnap.forEach(processBaseUser);
-        staffSnap.forEach(processBaseUser);
-        agentsSnap.forEach(processBaseUser);
-
-        // DISABLED customer historical check to save massive billing costs.
-        if (customersSnap && customersSnap.forEach) {
-          customersSnap.forEach(cSnap => {
-            const cData = cSnap.data();
-            if (cData.products && Array.isArray(cData.products)) {
-              cData.products.forEach(p => {
-                if (p.payments && Array.isArray(p.payments)) {
-                  p.payments.forEach(pay => {
-                    if (pay.staffUid && !map[pay.staffUid]) {
-                      map[pay.staffUid] = {
-                        uid: pay.staffUid,
-                        name: pay.staffName || 'Historical Agent',
-                        count: 0,
-                        amount: 0,
-                        docs: [],
-                        draftDocs: []
-                      };
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-        // --- END BASE USER FETCH ---
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
