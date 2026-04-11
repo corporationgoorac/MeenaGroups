@@ -360,11 +360,38 @@
       const loader = document.getElementById("loadingState");
       
       try {
-        // We fetch ALL drafts to calculate exact totals per agent locally.
-        const q = query(collection(db, "temp_entries"), where("status", "==", "draft"));
+        const q = query(collection(db, "temp_entries")); 
         const snapshot = await getDocs(q);
         
         const map = {};
+
+        // --- NEW: FETCH BASE AGENTS TO SHOW USERS WITH 0 DRAFTS/ENTRIES ---
+        try {
+          const fetchSafely = async (colName) => {
+            try { return await getDocs(collection(db, colName)); } catch(e) { return { forEach: () => {} }; }
+          };
+          const [usersSnap, staffSnap] = await Promise.all([fetchSafely("users"), fetchSafely("staff")]);
+          
+          const processBaseUser = (uSnap) => {
+            const uData = uSnap.data();
+            const uUid = uData.uid || uSnap.id;
+            if (uData.name || uData.displayName || uData.role === 'agent') {
+              if (!map[uUid]) {
+                map[uUid] = {
+                  uid: uUid,
+                  name: uData.name || uData.displayName || 'Agent',
+                  count: 0,
+                  amount: 0,
+                  docs: [],
+                  draftDocs: []
+                };
+              }
+            }
+          };
+          usersSnap.forEach(processBaseUser);
+          staffSnap.forEach(processBaseUser);
+        } catch (e) { console.warn("Could not fetch base users", e); }
+        // --- END NEW BLOCK ---
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
@@ -376,13 +403,20 @@
               name: d.staffName || 'Unknown Agent',
               count: 0,
               amount: 0,
-              docs: []
+              docs: [],       
+              draftDocs: []   
             };
           }
           
-          map[uid].count++;
-          map[uid].amount += parseFloat(d.amount || 0);
-          map[uid].docs.push({ id: docSnap.id, ...d }); // Store IDs for batch updates
+          // Always push to docs array so we can rename them even if they are pending
+          map[uid].docs.push({ id: docSnap.id, ...d });
+
+          // ONLY increment amounts and draft counts if the status is actually a draft
+          if (d.status === "draft") {
+            map[uid].count++;
+            map[uid].amount += parseFloat(d.amount || 0);
+            map[uid].draftDocs.push({ id: docSnap.id, ...d }); 
+          }
         });
 
         // Convert to array and sort by Highest Amount
@@ -515,7 +549,7 @@
         const batch = writeBatch(db);
         let docsCount = 0;
 
-        // Update name in all draft docs for this agent
+        // UPGRADE: Update name in ALL docs (both draft and pending) for this agent
         currentAgentData.docs.forEach(docData => {
           const ref = doc(db, "temp_entries", docData.id);
           batch.update(ref, { staffName: newName });
@@ -524,7 +558,7 @@
 
         if(docsCount > 0) await batch.commit();
 
-        showCustomAlert("Success", `Agent name updated to ${newName} across ${docsCount} drafts.`);
+        showCustomAlert("Success", `Agent name updated to ${newName} across ${docsCount} entries.`);
         closeAgentModal();
         loadAgentData(); // Refresh UI entirely
 
@@ -539,6 +573,12 @@
     // --- 7. ACTION: FORCE SUBMIT ---
     window.forceSubmitAgent = async () => {
       if (!currentAgentData) return;
+      
+      // UPGRADE: Prevent submitting if they have 0 drafts
+      if (currentAgentData.count === 0) {
+          showCustomAlert("Empty", "This agent currently has 0 drafts to submit.");
+          return;
+      }
 
       showCustomConfirm(
         "Force Submit?", 
@@ -553,12 +593,14 @@
           try {
             const batch = writeBatch(db);
             
-            currentAgentData.docs.forEach(docData => {
+            // UPGRADE: Ensure we ONLY submit draftDocs, not ones already pending
+            const draftsToSubmit = currentAgentData.draftDocs || [];
+            draftsToSubmit.forEach(docData => {
               const ref = doc(db, "temp_entries", docData.id);
               batch.update(ref, { status: "pending" }); // Push to admin approval queue
             });
 
-            await batch.commit();
+            if (draftsToSubmit.length > 0) await batch.commit();
             
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             
