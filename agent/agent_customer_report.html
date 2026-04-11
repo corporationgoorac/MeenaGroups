@@ -15,6 +15,7 @@
     :root { 
       --bg: #020617; 
       --surface: #0f172a; 
+      --surface-light: #1e293b;
       --card: #1e293b; 
       --input: #1e293b;
       
@@ -22,6 +23,7 @@
       --secondary: #0ea5e9; /* Sky Blue */
       --accent: #3b82f6;  /* Action Blue */
       --danger: #ef4444;  /* Alert Red */
+      --brand-red: #ff4e45; /* Goorac Brand Red */
       
       --text: #f1f5f9; 
       --text-muted: #64748b;
@@ -37,7 +39,7 @@
       padding-bottom: 90px; /* Space for Bottom Nav */
     }
 
-    /* --- GLASS HEADER --- */
+    /* --- GLASS HEADER & LOGO --- */
     header {
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
       padding: 15px 20px; border-bottom: 1px solid var(--border);
@@ -45,6 +47,17 @@
     }
     header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
     .report-badge { font-size: 0.7rem; color: var(--secondary); background: rgba(14, 165, 233, 0.15); padding: 4px 10px; border-radius: 20px; font-weight: 600; text-transform: uppercase; }
+
+    /* New Brand Styles */
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .app-name { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; }
+    .profile-pic-header {
+      width: 34px; height: 34px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--secondary);
+      font-size: 0; background: var(--surface-light);
+      cursor: pointer; transition: transform 0.2s;
+    }
+    .profile-pic-header:active { transform: scale(0.9); }
 
     /* --- SEARCH SECTION --- */
     .search-wrapper { padding: 20px; position: relative; z-index: 40; }
@@ -163,9 +176,28 @@
 </head>
 <body>
 
+  <script>
+    const cachedPic = localStorage.getItem('goorac_user_pic');
+  </script>
+
   <header>
-    <h1>Agent Report</h1>
-    <div class="report-badge">Statement View</div>
+    <div class="brand">
+      <span class="app-name"><span style="color: #ffffff;">Meena</span> <span style="color: var(--brand-red);">Groups</span></span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="report-badge">Statement View</div>
+      <a href="settings.html" style="display: flex; align-items: center;">
+        <img id="headerProfilePic" class="profile-pic-header" alt="Profile" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png'">
+        <script>
+          if (cachedPic) {
+            document.getElementById('headerProfilePic').src = cachedPic;
+          } else {
+            document.getElementById('headerProfilePic').src = 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
+          }
+        </script>
+      </a>
+    </div>
   </header>
 
   <div class="search-wrapper">
@@ -231,8 +263,22 @@
   </nav>
 
   <script type="module">
-    import { db } from "./config.js";
+    // IMPORT AUTH FROM CONFIG
+    import { db, auth } from "./config.js";
     import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    // --- 0. AUTHENTICATION LOGIC ADDED ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Securely update profile pic in background
+        const currentPic = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
+        document.getElementById('headerProfilePic').src = currentPic;
+        localStorage.setItem('goorac_user_pic', currentPic);
+      } else {
+        window.location.href = "login.html"; // Kick unauthenticated users out
+      }
+    });
 
     let currentCustomer = null;
 
@@ -401,4 +447,3 @@
   </script>
 </body>
 </html>
-
