@@ -343,7 +343,7 @@
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, getDocs, writeBatch, doc 
+      collection, query, where, getDocs, writeBatch, doc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let allGroupedAgents = []; // Holds the master grouped data
@@ -360,75 +360,13 @@
       const loader = document.getElementById("loadingState");
       
       try {
-        const q = query(collection(db, "temp_entries")); 
-        const snapshot = await getDocs(q);
-        const map = {};
-
-        // --- UPGRADED: ULTRA-AGGRESSIVE USERS FETCH ---
-        const fetchSafely = async (colName) => {
-          try { 
-            return await getDocs(collection(db, colName)); 
-          } catch(e) { 
-            console.warn(`⚠️ Blocked from reading '${colName}':`, e.message); 
-            return { forEach: () => {} }; 
-          }
-        };
-
-        // Scan everywhere an agent might exist, INCLUDING historical customers
-        const [usersSnap, staffSnap, agentsSnap, customersSnap] = await Promise.all([
-          fetchSafely("users"), 
-          fetchSafely("staff"),
-          fetchSafely("agents"),
-          fetchSafely("customers") // NEW: Dig through historical customer data
-        ]);
+        // --- UPGRADED QUERY: FETCH ALL TEMP ENTRIES TO FIND AGENTS EVEN WITH 0 DRAFTS ---
+        // const q = query(collection(db, "temp_entries"), where("status", "==", "draft")); // OLD
+        const q = query(collection(db, "temp_entries")); // NEW
         
-        const processBaseUser = (uSnap) => {
-          const uData = uSnap.data();
-          const uUid = uData.uid || uSnap.id;
-          // Aggressively find any recognizable name field
-          const agentName = uData.name || uData.displayName || uData.firstName || uData.username || 'Agent';
-          
-          if (!map[uUid]) {
-            map[uUid] = {
-              uid: uUid,
-              name: agentName,
-              count: 0,
-              amount: 0,
-              docs: [],       
-              draftDocs: []   
-            };
-          }
-        };
-
-        usersSnap.forEach(processBaseUser);
-        staffSnap.forEach(processBaseUser);
-        agentsSnap.forEach(processBaseUser);
-
-        // NEW: Dig through historical customer payments to find ghost agents
-        if (customersSnap && customersSnap.forEach) {
-          customersSnap.forEach(cSnap => {
-            const cData = cSnap.data();
-            if (cData.products && Array.isArray(cData.products)) {
-              cData.products.forEach(p => {
-                if (p.payments && Array.isArray(p.payments)) {
-                  p.payments.forEach(pay => {
-                    if (pay.staffUid && !map[pay.staffUid]) {
-                      map[pay.staffUid] = {
-                        uid: pay.staffUid,
-                        name: pay.staffName || 'Historical Agent',
-                        count: 0,
-                        amount: 0,
-                        docs: [],
-                        draftDocs: []
-                      };
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-        // --- END NEW BLOCK ---
+        const snapshot = await getDocs(q);
+        
+        const map = {};
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
@@ -440,8 +378,8 @@
               name: d.staffName || 'Unknown Agent',
               count: 0,
               amount: 0,
-              docs: [],       
-              draftDocs: []   
+              docs: [],       // Store ALL docs so rename works perfectly across pending/draft
+              draftDocs: []   // Store ONLY drafts for force submit
             };
           }
           
