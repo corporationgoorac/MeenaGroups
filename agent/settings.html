@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f0f0f">
+  <link rel="manifest" href="manifest.json">
+  <meta name="robots" content="noindex, nofollow">
+
+  <style>
+    /* --- YOUTUBE DARK MATERIAL THEME --- */
+    :root { 
+      --bg: #0f0f0f; 
+      --surface: #272727; 
+      --surface-light: #3f3f3f;
+      --primary: #ff4e45; /* Brand Red */
+      --text-main: #f1f1f1; 
+      --text-sec: #aaaaaa;
+      --border: #3f3f3f; 
+      --accent: #3ea6ff; /* YouTube Blue */
+    }
+    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
+    body { 
+      background: var(--bg); 
+      color: var(--text-main); 
+      font-family: Roboto, 'Segoe UI', sans-serif; 
+      margin: 0; padding: 0; 
+      padding-bottom: 80px; 
+    }
+
+    /* --- APP BAR --- */
+    header { 
+      background: rgba(15, 15, 15, 0.98);
+      padding: 15px 20px; 
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .brand { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .brand span:first-child { color: #fff; }
+    .brand span:last-child { color: var(--primary); }
+
+    /* --- SETTINGS CONTENT --- */
+    .settings-container { padding: 20px; max-width: 500px; margin: 0 auto; }
+
+    .profile-hero {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 30px 20px;
+      text-align: center;
+      margin-bottom: 25px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .user-avatar {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: 3px solid var(--primary);
+      margin-bottom: 15px;
+      object-fit: cover;
+    }
+
+    .user-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .user-email { color: var(--text-sec); font-size: 0.9rem; }
+
+    /* --- FORM SECTION --- */
+    .settings-group {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .group-title {
+      font-size: 0.8rem; color: var(--text-sec);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 15px; display: block;
+    }
+
+    label { display: block; color: var(--text-sec); font-size: 0.85rem; margin-bottom: 8px; }
+
+    .input-field {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+
+    .input-field:focus { border-color: var(--accent); }
+
+    .btn-save {
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn-logout {
+      width: 100%;
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    /* --- BOTTOM NAV --- */
+    .bottom-nav { 
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: var(--bg); border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; 
+      padding: 8px 0; z-index: 1000;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    
+    .nav-item { 
+      display: flex; flex-direction: column; align-items: center; 
+      text-decoration: none; color: var(--text-sec); font-size: 0.7rem; gap: 4px;
+      padding: 5px; width: 25%;
+    }
+    .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .nav-item.active { color: #fff; }
+
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #2ba640; color: #fff; padding: 10px 20px;
+      border-radius: 20px; font-size: 0.9rem; font-weight: 600;
+      display: none; z-index: 2000;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span>Meena</span><span>Groups</span>
+    </div>
+    <div style="font-size: 0.9rem; font-weight: 600;">Settings</div>
+  </header>
+
+  <div class="settings-container">
+    
+    <div class="profile-hero">
+      <img src="" id="displayPic" class="user-avatar" alt="Profile">
+      <div class="user-name" id="displayName">Loading...</div>
+      <div class="user-email" id="displayEmail">---</div>
+    </div>
+
+    <div class="settings-group">
+      <span class="group-title">Account Details</span>
+      
+      <label>Staff Display Name</label>
+      <input type="text" id="nameInput" class="input-field" placeholder="Enter name">
+      
+      <button class="btn-save" id="btnUpdate">Update Profile</button>
+    </div>
+
+    <div class="settings-group">
+      <span class="group-title">Session</span>
+      <button class="btn-logout" id="btnLogout">Logout from Device</button>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast">Profile Updated!</div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="agent_entry.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span>Entry</span>
+    </a>
+    <a href="agent_view.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>History</span>
+    </a>
+    <a href="settings.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7-4.42 1.79-1.43c.16-.13.21-.36.1-.55l-1.71-2.96c-.1-.19-.33-.25-.52-.18l-2.11.85c-.44-.34-.92-.62-1.44-.83l-.32-2.24c-.03-.2-.2-.34-.4-.34h-3.42c-.2 0-.37.14-.4.34l-.32 2.24c-.52.21-1 .49-1.44.83l-2.11-.85c-.19-.07-.42-.01-.52.18L4.11 9.1c-.11.19-.06.42.1.55L6 11.08c-.06.3-.08.62-.08.92 0 .3.02.62.08.92l-1.79 1.43c-.16.13-.21.36-.1.55l1.71 2.96c.1.19.33.25.52.18l2.11-.85c.44.34.92.62 1.44.83l.32 2.24c.03.2.2.34.4.34h3.42c.2 0 .37.14.4.34l.32-2.24c.52-.21 1-.49 1.44-.83l2.11.85c.19.07.42.01.52-.18l1.71-2.96c.1-.19.06-.42-.1-.55L18 12.92c.06-.3.08-.62.08-.92 0-.3-.02-.62-.08-.92z"/></svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+
+  <script type="module">
+    import { auth } from "./config.js";
+    import { onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    const nameInput = document.getElementById('nameInput');
+    const updateBtn = document.getElementById('btnUpdate');
+    const logoutBtn = document.getElementById('btnLogout');
+
+    // Load User Data
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('displayPic').src = user.photoURL || 'https://via.placeholder.com/90';
+        document.getElementById('displayName').innerText = user.displayName || 'Staff Member';
+        document.getElementById('displayEmail').innerText = user.email;
+        nameInput.value = user.displayName || "";
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // Update Profile
+    updateBtn.addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName) return alert("Enter a name");
+
+      updateBtn.disabled = true;
+      updateBtn.innerText = "Saving...";
+
+      try {
+        await updateProfile(auth.currentUser, { displayName: newName });
+        document.getElementById('displayName').innerText = newName;
+        
+        // Success Toast
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+
+      } catch (e) {
+        alert("Error: " + e.message);
+      } finally {
+        updateBtn.disabled = false;
+        updateBtn.innerText = "Update Profile";
+      }
+    });
+
+    // Logout logic
+    logoutBtn.addEventListener('click', async () => {
+      if(confirm("Are you sure you want to logout?")) {
+        await signOut(auth);
+        window.location.href = "login.html";
+      }
+    });
+  </script>
+</body>
+</html>
