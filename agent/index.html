@@ -166,6 +166,54 @@
     .footer-credit { text-align: center; margin-top: 30px; color: #444; font-size: 0.8rem; }
 
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* * ==========================================
+     * NEW: SUPPORT MODAL & ACTION OVERLAYS 
+     * ==========================================
+     */
+    .support-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);
+      display: none; align-items: center; justify-content: center; z-index: 3000;
+      opacity: 0; transition: 0.3s;
+    }
+    .support-modal-overlay.active { display: flex; opacity: 1; }
+
+    .support-card {
+      background: var(--surface); width: 85%; max-width: 320px;
+      padding: 30px 20px; border-radius: 20px; text-align: center;
+      transform: translateY(20px); transition: 0.3s;
+    }
+    .support-modal-overlay.active .support-card { transform: translateY(0); }
+
+    .support-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 25px; }
+    .support-options { display: flex; flex-direction: column; gap: 15px; }
+
+    .btn-support-action {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 15px; border-radius: 12px; border: none; font-weight: 700;
+      font-size: 1rem; cursor: pointer; color: #fff; width: 100%;
+    }
+    .btn-call { background: #2ba640; }
+    .btn-whatsapp { background: #25d366; }
+    .btn-close-support { background: var(--surface-light); margin-top: 10px; color: var(--text-sec); }
+
+    /* Fullscreen Delay Overlay */
+    .action-loading-overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: #000; z-index: 4000; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
+    .action-loading-overlay.active { display: flex; }
+    .loading-text { font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 20px; }
+    
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1);
+      border-top: 4px solid var(--primary); border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -200,7 +248,7 @@
   <div class="dashboard-container">
     
     <div class="hero-card">
-      <span class="hero-label">Today's Collection</span>
+      <span class="hero-label">Unsubmitted Drafts Collection</span>
       <div class="hero-amount" id="todayTotal">Loading...</div>
       
       <div class="split-stats">
@@ -214,7 +262,7 @@
         </div>
       </div>
 
-      <div class="hero-sub">Synced with Server</div>
+      <div class="hero-sub">Ready to Submit</div>
     </div>
 
     <div class="section-title">Quick Actions</div>
@@ -241,7 +289,7 @@
         <span class="tile-text">Reports</span>
       </a>
 
-      <a href="#" class="action-tile" onclick="alert('Admin Contact: +91-XXXXXXXXXX')">
+      <a href="#" class="action-tile" id="supportBtn">
         <div class="tile-icon icon-adm">
           <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
         </div>
@@ -272,6 +320,28 @@
     </a>
   </nav>
 
+  <div class="support-modal-overlay" id="supportOverlay">
+    <div class="support-card">
+      <h2 class="support-title">Contact Support</h2>
+      <div class="support-options">
+        <button class="btn-support-action btn-call" id="btnCallAction">
+          <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg>
+          Direct Call
+        </button>
+        <button class="btn-support-action btn-whatsapp" id="btnWhatsAppAction">
+          <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.539 2.016 2.126-.54c1.029.563 2.025.873 3.162.873h.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.769-5.766zm3.426 8.313c-.145.411-.833.748-1.159.794-.325.046-.733.076-1.159-.076-.27-.099-.617-.233-1.06-.42-1.884-.794-3.11-2.703-3.203-2.826-.094-.123-.765-.966-.765-1.841 0-.875.456-1.302.619-1.474.162-.171.353-.214.47-.214.118 0 .235 0 .338.005.112.005.254-.042.398.283.144.325.487 1.181.529 1.265.042.085.071.184.015.3-.056.115-.085.187-.17.283-.085.097-.177.214-.254.283-.085.085-.177.177-.076.354.102.177.452.748.966 1.211.662.595 1.226.78 1.403.87.177.085.283.071.382-.042.102-.115.438-.512.556-.685.118-.171.235-.145.398-.085.162.059 1.026.484 1.203.573.177.085.294.129.338.204.045.071.045.414-.1.825z"/></svg>
+          WhatsApp Chat
+        </button>
+        <button class="btn-support-action btn-close-support" id="btnCloseSupport">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Processing...</div>
+  </div>
+
   <script type="module">
     import { db, auth } from "./config.js";
     import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -293,23 +363,16 @@
       }
     });
 
-    // --- FETCH TODAY'S TOTAL FOR LOGGED IN STAFF (DRAFTS ONLY) ---
+    // --- FETCH ALL DRAFTS FOR LOGGED IN STAFF (IGNORES DATE) ---
     async function loadTodayStats(uid) {
       const display = document.getElementById("todayTotal");
       
       try {
-        // Timezone bug fixed: Ensure local timezone date instead of UTC shift
-        const today = new Date();
-        const todayStr = today.getFullYear() + '-' + 
-                         String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                         String(today.getDate()).padStart(2, '0');
-
-        // Correctly filtering for "draft" status AND matching the staff UID
+        // UPDATED: Now showing ALL drafts collection, removing the date filter
         const q = query(
           collection(db, "temp_entries"),
-          where("date", "==", todayStr),
           where("status", "==", "draft"),
-          where("staffUid", "==", uid) // <--- SECURE FILTER ADDED HERE
+          where("staffUid", "==", uid) // <--- SECURE FILTER REMAINS
         );
 
         const snapshot = await getDocs(q);
@@ -348,6 +411,56 @@
         display.style.color = "#ff4e45";
       }
     }
+
+    // --- NEW: SUPPORT MODAL & DELAY LOGIC ---
+    const supportOverlay = document.getElementById('supportOverlay');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const supportBtn = document.getElementById('supportBtn');
+    
+    // BACK BUTTON SUPPORT
+    supportBtn.onclick = (e) => {
+      e.preventDefault();
+      supportOverlay.classList.add('active');
+      history.pushState({ supportOpen: true }, ""); // Adds state for back button
+    };
+
+    function closeSupport() {
+      supportOverlay.classList.remove('active');
+    }
+
+    document.getElementById('btnCloseSupport').onclick = () => {
+       if (history.state && history.state.supportOpen) history.back();
+       else closeSupport();
+    };
+
+    window.onpopstate = (e) => {
+      if (supportOverlay.classList.contains('active')) closeSupport();
+    };
+
+    // CALL ACTION
+    document.getElementById('btnCallAction').onclick = () => {
+      supportOverlay.classList.remove('active');
+      loadingOverlay.classList.add('active');
+      loadingText.innerText = "Calling Goorac Corporation\nsupport desk...";
+      
+      setTimeout(() => {
+        loadingOverlay.classList.remove('active');
+        window.location.href = "tel:9443042733";
+      }, 3000);
+    };
+
+    // WHATSAPP ACTION
+    document.getElementById('btnWhatsAppAction').onclick = () => {
+      supportOverlay.classList.remove('active');
+      loadingOverlay.classList.add('active');
+      loadingText.innerText = "Opening WhatsApp chat with\nGoorac Corporation...";
+      
+      setTimeout(() => {
+        loadingOverlay.classList.remove('active');
+        window.location.href = "https://wa.me/919443042733";
+      }, 3000);
+    };
 
     // --- PWA INSTALLATION LOGIC ---
     let deferredPrompt;
