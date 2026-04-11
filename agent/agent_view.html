@@ -500,6 +500,8 @@
           return;
         }
 
+        let allCardsHtml = ""; // OPTIMIZATION: Build HTML in memory
+
         agentEntries.forEach(d => {
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           
@@ -555,8 +557,10 @@
               </div>
             </div>
           `;
-          listDiv.innerHTML += html;
+          allCardsHtml += html; // Append to string instead of DOM
         });
+
+        listDiv.innerHTML = allCardsHtml; // OPTIMIZATION: Single DOM update
 
       } catch (e) {
         console.error(e);
