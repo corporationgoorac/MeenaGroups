@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>View Entries - Meena Groups</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#020617">
+  <title>Customer Report - Agent App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="robots" content="noindex, nofollow">
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
+    /* --- PREMIUM DARK AGENT THEME --- */
     :root { 
       --bg: #020617; 
       --surface: #0f172a;
@@ -26,6 +30,8 @@
       --header-bg: rgba(15, 23, 42, 0.85);
     }
     
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
     body { 
       background: var(--bg); 
       color: var(--text); 
@@ -34,6 +40,7 @@
       padding: 0; 
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      padding-bottom: 90px;
     }
 
     /* --- TOP NAVIGATION BAR --- */
@@ -50,7 +57,7 @@
     .nav-container {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -59,154 +66,142 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      white-space: nowrap; /* FORCE SINGLE LINE */
     }
 
     .brand-dot {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       background: var(--primary);
       border-radius: 50%;
-      box-shadow: 0 0 15px var(--primary);
+      box-shadow: 0 0 12px var(--primary);
     }
 
     .brand h2 {
       margin: 0;
-      font-size: 1.1rem; /* Sleek single line size */
+      font-size: 1.1rem; /* MADE SMALLER */
       font-weight: 800;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
+      letter-spacing: -0.5px;
+      white-space: nowrap; /* FORCE SINGLE LINE */
     }
 
-    .container { max-width: 1100px; margin: 0 auto; padding: 25px 20px 80px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 25px 15px 80px; }
 
-    /* --- HEADER CONTROLS (Stats & Approve) --- */
-    .header-controls { 
+    /* --- HEADER SECTION --- */
+    .header-section { 
       display: flex; 
-      justify-content: space-between; 
+      justify-content: flex-end; /* ALIGN RIGHT SINCE TEXT IS HIDDEN */
       align-items: center; 
       margin-bottom: 30px; 
       flex-wrap: wrap; 
-      gap: 15px; 
-    }
-
-    .stats-wrapper {
-      display: flex;
       gap: 15px;
-      flex-wrap: wrap;
     }
+    
+    /* COMPLETELY HIDE UNWANTED TEXT AS REQUESTED */
+    .header-text { display: none !important; }
+    
+    .header-controls { display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
 
     .stats-card {
       background: var(--surface); 
       border: 1px solid var(--border); 
-      padding: 15px 20px; 
-      border-radius: 16px; 
+      padding: 12px 18px; 
+      border-radius: 14px; 
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-width: 130px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      flex: 1;
+      min-width: 120px;
     }
-    .stats-card span { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px; }
-    .stats-card strong { font-size: 1.6rem; color: var(--text); font-weight: 800; letter-spacing: -0.5px; }
-    .stats-card .val-cash { color: var(--primary); }
-    .stats-card .val-online { color: var(--secondary); }
+    .stats-card span { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 2px; }
+    .stats-card strong { font-size: 1.25rem; color: var(--text); font-weight: 800; }
+
+    .stat-split-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-direction: row;
+      flex: 2;
+    }
+    .stat-split { display: flex; flex-direction: column; }
+    .stat-divider { width: 1px; min-height: 35px; background: var(--border); }
 
     .btn-approve-all {
       background: var(--primary); 
-      color: #022c22; 
+      color: #064e3b; 
       border: none; 
-      height: 100%;
-      min-height: 70px; /* Matched to stat card height */
-      padding: 0 30px;
-      border-radius: 16px; 
+      padding: 0 20px;
+      border-radius: 14px; 
       font-weight: 800; 
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 8px;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+      flex: 1;
+      min-width: 140px;
     }
-    .btn-approve-all:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 15px 35px -5px rgba(16, 185, 129, 0.5); }
+    .btn-approve-all:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.4); }
     .btn-approve-all:active { transform: translateY(0); }
     .btn-approve-all:disabled { opacity: 0.2; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* --- REVIEW LIST --- */
-    .review-list { display: flex; flex-direction: column; gap: 18px; }
+    /* --- REVIEW LIST & CARDS (REDESIGNED FOR PROFESSIONAL UI) --- */
+    .review-list { display: flex; flex-direction: column; gap: 16px; }
 
     .entry-item {
       background: var(--surface); 
       border: 1px solid var(--border); 
-      border-radius: 20px;
-      padding: 22px; 
-      display: flex; 
-      flex-direction: column;
+      border-radius: 18px;
+      padding: 20px; 
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center; 
+      justify-content: space-between;
       gap: 20px; 
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     }
     .entry-item:hover { 
       border-color: #475569; 
       background: var(--card);
-      transform: scale(1.01);
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4);
     }
+    .entry-item::before { content:''; position: absolute; left:0; top:0; bottom:0; width:4px; background: var(--warning); }
 
-    /* Professional Flex Layout for Cards */
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .col-info h4 { margin: 0; font-size: 1.3rem; color: #fff; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .col-info p { margin: 8px 0 0; color: var(--secondary); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); padding: 4px 10px; border-radius: 6px; width: fit-content; }
+    /* REDESIGNED: Columns Detail */
+    .col-main { display: flex; flex-direction: column; gap: 6px; flex: 2; min-width: 220px; }
+    .c-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .c-name { margin: 0; font-size: 1.15rem; color: #fff; font-weight: 800; letter-spacing: -0.02em; }
+    .c-id { color: var(--secondary); font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; background: rgba(56, 189, 248, 0.1); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2); font-weight: 700; }
     
-    .col-amount { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
-    .amount-display { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
-    
-    .card-mid { display: flex; justify-content: space-between; align-items: center; }
-    .col-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    
-    .tag { 
-      background: #1e293b; 
-      color: #cbd5e1; 
-      padding: 6px 12px; 
-      border-radius: 8px; 
-      font-size: 0.8rem; 
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid var(--border);
-    }
-    
-    .due-tag { 
-      color: #fff; 
-      font-weight: 700; 
-      font-size: 0.8rem; 
-      background: rgba(16, 185, 129, 0.2); 
-      padding: 6px 12px; 
-      border-radius: 8px; 
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
+    .c-sub { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .tag { background: #1e293b; color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); }
+    .due-tag { color: #fff; font-weight: 700; font-size: 0.75rem; background: var(--card); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); }
 
-    .card-bottom { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      border-top: 1px solid rgba(255,255,255,0.05); 
-      padding-top: 15px; 
-    }
+    .col-amount { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 1; min-width: 150px; }
+    .amount-display { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
+    .date-display { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+    /* REDESIGNED: Badges */
+    .agent-tiny-badge { font-size: 0.7rem; background: rgba(255,255,255,0.05); color: #cbd5e1; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; border: 1px solid rgba(255,255,255,0.1); }
+    .non-db-badge { background: var(--warning); color: #000; font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; margin-left: 5px; letter-spacing: 0.5px; }
+    .mode-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; }
+    .mode-badge.cash { color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .mode-badge.online { color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); }
     
-    .date-display { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .entry-item.non-db { border: 1px solid var(--warning); background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent); }
+    .entry-item.non-db::before { background: var(--warning); }
 
     /* Actions */
-    .col-actions { display: flex; gap: 12px; }
+    .col-actions { display: flex; gap: 10px; flex: 0 0 auto; }
     .btn-icon {
       width: 44px; height: 44px; border-radius: 12px; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.2s;
+      display: flex; align-items: center; justify-content: center; transition: 0.2s;
     }
     .btn-edit { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
     .btn-edit:hover { background: var(--warning); color: #000; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
@@ -217,37 +212,43 @@
     .btn-reject { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
     .btn-reject:hover { background: var(--danger); color: white; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 
-    /* --- EDIT MODAL --- */
+    /* --- PROFESSIONAL CUSTOM MODALS --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px);
-      display: none; align-items: center; justify-content: center; z-index: 1000;
-      animation: modalFade 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
+      opacity: 0; transition: opacity 0.3s;
     }
-    @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+    .modal-overlay.open { opacity: 1; }
 
     .modal {
-      background: var(--surface); padding: 32px; border-radius: 24px; width: 90%; max-width: 420px;
-      border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-      transform: translateY(0); transition: 0.3s;
+      background: var(--surface); padding: 28px; border-radius: 24px; width: 90%; max-width: 400px;
+      border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      transform: translateY(20px) scale(0.95); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .modal h3 { margin-top: 0; color: #fff; font-size: 1.5rem; margin-bottom: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
     
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .modal h3 { margin-top: 0; color: #fff; font-size: 1.3rem; margin-bottom: 20px; font-weight: 800; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.75rem; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
     .form-group input { 
-      width: 100%; padding: 16px; background: var(--input-bg); border: 1px solid var(--border); 
-      color: white; border-radius: 14px; box-sizing: border-box; font-size: 1rem; font-weight: 600; transition: 0.2s;
-      font-family: inherit;
+      width: 100%; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); 
+      color: white; border-radius: 12px; box-sizing: border-box; font-size: 1rem; transition: 0.2s;
     }
-    .form-group input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1); }
+    .form-group input:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15); }
     
-    .modal-actions { display: flex; gap: 12px; margin-top: 32px; }
-    .btn-modal { flex: 1; padding: 16px; border-radius: 14px; border: none; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s; font-size: 0.95rem; }
-    .btn-cancel { background: #1e293b; color: white; border: 1px solid var(--border); }
-    .btn-cancel:hover { background: #334155; }
+    .modal-actions { display: flex; gap: 12px; margin-top: 28px; }
+    .btn-modal { flex: 1; padding: 14px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; }
+    .btn-cancel { background: #334155; color: white; }
+    .btn-cancel:hover { background: #475569; }
     .btn-save { background: var(--secondary); color: #020617; }
-    .btn-save:hover { transform: scale(1.02); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3); }
+    .btn-save:hover { filter: brightness(1.1); }
+
+    /* Custom Dialog Specific Styles */
+    #customDialogBox { text-align: center; max-width: 340px; }
+    #customDialogTitle { font-size: 1.4rem; margin-bottom: 12px; }
+    #customDialogMessage { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 28px; line-height: 1.5; }
 
     /* Loading Spinner */
     .loading-spinner {
@@ -256,36 +257,20 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* NEW STYLES: Non-DB Card Styling */
-    .entry-item.non-db { border: 2px dashed var(--warning); }
-    .entry-item.non-db:hover { border-color: var(--warning); box-shadow: 0 10px 25px rgba(245, 158, 11, 0.15); }
-    .non-db-badge { background: var(--warning); color: #000; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle;}
-
-    /* NEW STYLES: Cash/Online Badges */
-    .mode-badge { font-size: 0.7rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; vertical-align: middle;}
-    .mode-badge.cash { color: var(--primary); background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .mode-badge.online { color: var(--secondary); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
-
-    /* NEW STYLES: Print Menu & Printing */
+    /* Print Menu */
     .print-menu {
-      position: absolute; top: 50px; right: 0; background: var(--card); border: 1px solid var(--border);
+      position: absolute; top: 45px; right: 0; background: var(--card); border: 1px solid var(--border);
       border-radius: 12px; width: 220px; display: none; flex-direction: column; z-index: 210; overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
     .print-menu.show { display: flex; }
     .print-menu button {
-      background: transparent; border: none; color: white; padding: 16px 20px; text-align: left;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s;
+      background: transparent; border: none; color: white; padding: 14px 16px; text-align: left;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s;
     }
-    .print-menu button:hover { background: var(--primary); color: #000; }
-    
-    /* --- NEW STYLES ADDED FOR AGENT BADGE & FILTER MODAL --- */
-    .agent-tiny-badge {
-      font-size: 0.85rem; background: rgba(255,255,255,0.05); color: #cbd5e1;
-      padding: 6px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;
-      font-weight: 700; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.1);
-    }
+    .print-menu button:hover { background: var(--surface-light); color: var(--secondary); }
 
+    /* BOTTOM SHEET MODAL FOR AGENT FILTERING */
     .bottom-sheet-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(5px);
@@ -295,52 +280,58 @@
     .bottom-sheet-overlay.open { opacity: 1; }
     .bottom-sheet {
       background: var(--surface); width: 100%; max-width: 600px;
-      border-radius: 28px 28px 0 0; padding: 30px 24px; border: 1px solid var(--border);
+      border-radius: 24px 24px 0 0; padding: 24px; border: 1px solid var(--border);
       border-bottom: none; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      max-height: 80vh; overflow-y: auto; box-shadow: 0 -10px 50px rgba(0,0,0,0.8);
+      max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
     }
     .bottom-sheet-overlay.open .bottom-sheet { transform: translateY(0); }
-    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-    .sheet-title { font-size: 1.4rem; font-weight: 800; color: #fff; margin: 0; }
+    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-title { font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0; }
     .agent-filter-btn {
-      width: 100%; text-align: left; padding: 18px 20px; background: var(--card);
-      border: 1px solid var(--border); border-radius: 16px; color: #fff;
+      width: 100%; text-align: left; padding: 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 14px; color: #fff;
       font-size: 1rem; font-weight: 700; margin-bottom: 12px; cursor: pointer; transition: 0.2s;
       display: flex; justify-content: space-between; align-items: center;
     }
     .agent-filter-btn:hover, .agent-filter-btn.selected {
-      border-color: var(--secondary); background: rgba(56, 189, 248, 0.1); box-shadow: 0 5px 15px rgba(56, 189, 248, 0.1);
+      border-color: var(--secondary); background: rgba(56, 189, 248, 0.1);
     }
-    .agent-badge-count { background: var(--primary); color: #000; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 800; }
+    .agent-badge-count { background: var(--primary); color: #000; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 800;}
 
-    /* NEW STYLES: Fixed Print showing blank papers by explicitly hiding everything else */
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .nav-item {
+      text-decoration: none; color: var(--text-muted); font-size: 0.7rem;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 5px; width: 25%;
+    }
+    .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .nav-item.active { color: var(--secondary); }
+    .nav-item.active svg { fill: var(--secondary); filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.5)); }
+
     @media print {
       body > :not(#printArea) { display: none !important; }
-      #printArea { 
-        display: block !important; 
-        position: relative !important; 
-        width: 100% !important; 
-        background: #fff !important; 
-        color: #000 !important; 
-      }
-      body, html { 
-        background: #fff !important; 
-        height: auto !important; 
-        overflow: visible !important; 
-      }
+      #printArea { display: block !important; position: relative !important; width: 100% !important; background: #fff !important; color: #000 !important; }
+      body, html { background: #fff !important; height: auto !important; overflow: visible !important; }
     }
 
-    /* Mobile Responsive Updates */
     @media (max-width: 850px) {
-      .container { padding: 25px 15px 100px; }
-      .header-controls { flex-direction: column; align-items: stretch; gap: 20px; }
-      .stats-wrapper { flex-wrap: nowrap; padding-bottom: 5px; }
-      .stats-card { flex: 1; min-width: 110px; padding: 12px 15px; }
-      .stats-card strong { font-size: 1.3rem; }
-      .btn-approve-all { height: 60px; justify-content: center; width: 100%; }
-      .card-bottom { flex-direction: column-reverse; align-items: flex-start; gap: 15px; }
-      .col-actions { width: 100%; justify-content: space-between; }
-      .btn-icon { flex: 1; height: 50px; }
+      .header-controls { flex-direction: column; gap: 10px; }
+      .stats-card { width: 100%; text-align: center; }
+      .stat-split-container { justify-content: center; }
+      .btn-approve-all { height: 50px; width: 100%; }
+      .entry-item { flex-direction: column; align-items: flex-start; gap: 15px; }
+      .col-main { width: 100%; }
+      .col-amount { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 15px; }
+      .amount-display { font-size: 1.4rem; }
+      .col-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px solid var(--border); padding-top: 15px;}
+      .btn-icon { width: 100%; height: 46px; border-radius: 12px; }
     }
   </style>
 </head>
@@ -352,16 +343,16 @@
         <div class="brand-dot"></div>
         <h2>MEENA GROUPS</h2>
       </div>
-      <div style="display:flex; align-items:center; gap:15px;">
-        <div id="status-tag" style="font-size: 0.7rem; font-weight: 800; background: var(--primary-muted); color: var(--primary); padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px;">SYSTEM ONLINE</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div id="status-tag" style="font-size: 0.65rem; font-weight: 800; background: var(--primary-muted); color: var(--primary); padding: 4px 10px; border-radius: 20px;">SYSTEM ONLINE</div>
         
-        <div style="position:relative; display:flex; gap:10px;">
-          <button class="icon-btn" onclick="openAgentFilter()" title="Filter by Agent" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:38px; height:38px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        <div style="position:relative; display:flex; gap:8px;">
+          <button class="icon-btn" onclick="openAgentFilter()" title="Filter by Agent" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
           </button>
 
-          <button class="icon-btn" onclick="togglePrintMenu()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:38px; height:38px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          <button class="icon-btn" onclick="togglePrintMenu()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           </button>
           <div class="print-menu" id="printMenu">
             <button onclick="printDB()">Print All Entries (DB)</button>
@@ -373,38 +364,45 @@
   </nav>
 
   <div class="container">
-    <div class="header-controls">
-      <div class="stats-wrapper">
-        <div class="stats-card">
-          <span>Pending Cash</span>
-          <strong id="totalCashAmt" class="val-cash">₹0</strong>
+    <div class="header-section">
+      <div class="header-text">
+        <h1>View Entries</h1>
+        <p>Review and verify agent collections before syncing.</p>
+      </div>
+      <div class="header-controls">
+        <div class="stats-card stat-split-container">
+          <div class="stat-split">
+            <span>Cash Total</span>
+            <strong id="totalCashAmt" style="color:#10b981;">₹0</strong>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-split">
+            <span>Online Total</span>
+            <strong id="totalOnlineAmt" style="color:var(--secondary);">₹0</strong>
+          </div>
         </div>
+        
         <div class="stats-card">
-          <span>Pending Online</span>
-          <strong id="totalOnlineAmt" class="val-online">₹0</strong>
-        </div>
-        <div class="stats-card" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.1);">
-          <span>Total Ready</span>
+          <span>Pending Total</span>
           <strong id="totalPendingAmt">₹0</strong>
         </div>
+        <button class="btn-approve-all" onclick="approveAll()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+          Approve All
+        </button>
       </div>
-      
-      <button class="btn-approve-all" onclick="approveAll()">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-        Approve All
-      </button>
     </div>
 
     <div id="reviewList" class="review-list">
       <div style="text-align:center; padding: 100px 20px; color:var(--text-muted);">
         <div class="loading-spinner"></div>
-        <p style="font-weight: 600; letter-spacing: 0.5px;">Fetching pending entries...</p>
+        <p>Fetching pending entries...</p>
       </div>
     </div>
   </div>
 
-  <div class="modal-overlay" id="editModal">
-    <div class="modal">
+  <div class="modal-overlay" id="editModalOverlay">
+    <div class="modal" id="editModalBox">
       <h3>Edit Collection</h3>
       <input type="hidden" id="editDocId">
       
@@ -424,8 +422,20 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-modal btn-cancel" onclick="closeEditModal()">Cancel</button>
         <button class="btn-modal btn-save" onclick="saveEdit()">Update Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="customDialogOverlay">
+    <div class="modal" id="customDialogBox">
+      <h3 id="customDialogTitle">Alert</h3>
+      <p id="customDialogMessage">Message</p>
+      
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel" id="customDialogCancel" style="display: none;" onclick="closeCustomDialog()">Cancel</button>
+        <button class="btn-modal btn-save" id="customDialogConfirm">OK</button>
       </div>
     </div>
   </div>
@@ -434,25 +444,33 @@
     <div class="bottom-sheet">
       <div class="sheet-header">
         <h3 class="sheet-title">Filter by Agent</h3>
-        <button onclick="closeAgentFilter()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.8rem; cursor: pointer; padding: 0;">✕</button>
+        <button onclick="closeAgentFilter()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;">✕</button>
       </div>
       <div id="agentFilterList">
         </div>
     </div>
   </div>
 
-  <div class="modal-overlay" id="customDialogOverlay">
-    <div class="modal" style="text-align: center; padding: 40px 30px;">
-      <h3 id="customDialogTitle" style="margin-bottom: 10px;">Alert</h3>
-      <p id="customDialogMessage" style="color: var(--text-muted); margin-bottom: 30px; font-size: 1rem; line-height: 1.5;"></p>
-      <div class="modal-actions" style="margin-top: 0;">
-        <button class="btn-modal btn-cancel" id="customDialogCancel" onclick="closeCustomDialog()" style="display: none;">Cancel</button>
-        <button class="btn-modal btn-save" id="customDialogConfirm">OK</button>
-      </div>
-    </div>
-  </div>
-
   <div id="printArea" style="display: none;"></div>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="agent_entry.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      <span>Collect</span>
+    </a>
+    <a href="agent_view.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>History</span>
+    </a>
+    <a href="agent_customer_report.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M11.5 9C10.12 9 9 10.12 9 11.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S12.88 9 11.5 9zM20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-3.21 14.21l-2.91-2.91c-.69.44-1.51.7-2.39.7C9.01 16 7 13.99 7 11.5S9.01 7 11.5 7 16 9.01 16 11.5c0 .88-.26 1.69-.7 2.39l2.91 2.9-1.42 1.42z"/></svg>
+      <span>Report</span>
+    </a>
+  </nav>
 
   <script type="module">
     import { db } from "./config.js";
@@ -461,12 +479,13 @@
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let pendingEntries = [];
-    let currentAgentFilter = 'ALL'; 
-    let activeConfirmCallback = null;
+    let currentAgentFilter = 'ALL';
 
     // --- CUSTOM DIALOG LOGIC & MOBILE BACK BUTTON SUPPORT ---
+    let activeConfirmCallback = null;
+
     window.openCustomDialog = (title, message, isConfirm, callback = null) => {
-      if (navigator.vibrate) navigator.vibrate(40); // Light haptic feedback
+      if (navigator.vibrate) navigator.vibrate(40);
       
       document.getElementById('customDialogTitle').innerText = title;
       document.getElementById('customDialogMessage').innerText = message;
@@ -478,36 +497,36 @@
         cancelBtn.style.display = 'block';
         confirmBtn.innerText = 'Yes, Proceed';
         
-        if(title.includes('Reject') || title.includes('Clear') || title.includes('Delete')) {
+        if(title.includes('Reject') || title.includes('Delete')) {
            confirmBtn.style.background = 'var(--danger)';
            confirmBtn.style.color = '#fff';
         } else {
            confirmBtn.style.background = 'var(--primary)';
-           confirmBtn.style.color = '#022c22';
+           confirmBtn.style.color = '#000';
         }
       } else {
         cancelBtn.style.display = 'none';
         confirmBtn.innerText = 'OK';
         confirmBtn.style.background = 'var(--secondary)';
-        confirmBtn.style.color = '#020617';
+        confirmBtn.style.color = '#000';
       }
       
       activeConfirmCallback = callback;
       
       const overlay = document.getElementById('customDialogOverlay');
       overlay.style.display = 'flex';
-      setTimeout(() => overlay.style.opacity = '1', 10);
+      setTimeout(() => overlay.classList.add('open'), 10);
       
       history.pushState({ modalOpen: 'customDialog' }, "");
     };
 
     window.closeCustomDialog = () => {
       const overlay = document.getElementById('customDialogOverlay');
-      overlay.style.opacity = '0';
+      overlay.classList.remove('open');
       setTimeout(() => overlay.style.display = 'none', 300);
       
       if (history.state && history.state.modalOpen === 'customDialog') {
-        history.back();
+        history.back(); 
       }
     };
 
@@ -519,17 +538,17 @@
     window.showCustomAlert = (title, message) => openCustomDialog(title, message, false);
     window.showCustomConfirm = (title, message, callback) => openCustomDialog(title, message, true, callback);
 
-    // History API Listener for mobile back button for all modals
+    // History API Listener for mobile back button to close modals securely
     window.addEventListener('popstate', (e) => {
-      const editModal = document.getElementById("editModal");
-      if (editModal.style.display === "flex") {
-        editModal.style.opacity = "0";
+      const editModal = document.getElementById("editModalOverlay");
+      if (editModal && editModal.classList.contains("open")) {
+        editModal.classList.remove("open");
         setTimeout(() => editModal.style.display = "none", 300);
       }
       
       const customDialog = document.getElementById("customDialogOverlay");
-      if (customDialog.style.display === "flex") {
-        customDialog.style.opacity = "0";
+      if (customDialog && customDialog.classList.contains("open")) {
+        customDialog.classList.remove("open");
         setTimeout(() => customDialog.style.display = "none", 300);
       }
 
@@ -543,6 +562,9 @@
     // --- 1. LOAD DATA ---
     async function loadPending() {
       const listDiv = document.getElementById("reviewList");
+      const totalDisplay = document.getElementById("totalPendingAmt");
+      const cashDisplay = document.getElementById("totalCashAmt");
+      const onlineDisplay = document.getElementById("totalOnlineAmt");
       const approveAllBtn = document.querySelector(".btn-approve-all");
 
       try {
@@ -550,23 +572,32 @@
         const snapshot = await getDocs(q);
         
         pendingEntries = [];
+        let totalAmt = 0;
+        let totalCash = 0;
+        let totalOnline = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
           d.docId = docSnap.id;
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
           pendingEntries.push(d);
+          
+          let amount = parseFloat(d.amount || 0);
+          totalAmt += amount;
+
+          let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
+          if (isOnline) totalOnline += amount;
+          else totalCash += amount;
         });
 
-        // Sort Newest First
         pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
+
+        totalDisplay.innerText = "₹" + totalAmt.toLocaleString('en-IN');
+        cashDisplay.innerText = "₹" + totalCash.toLocaleString('en-IN');
+        onlineDisplay.innerText = "₹" + totalOnline.toLocaleString('en-IN');
         listDiv.innerHTML = "";
 
         if (pendingEntries.length === 0) {
-          document.getElementById("totalPendingAmt").innerText = "₹0";
-          document.getElementById("totalCashAmt").innerText = "₹0";
-          document.getElementById("totalOnlineAmt").innerText = "₹0";
-          
           listDiv.innerHTML = `
             <div style="text-align:center; padding:100px 20px; color:#64748b; background:var(--surface); border-radius:24px; border:1px dashed var(--border);">
               <div style="font-size: 4rem; margin-bottom:20px; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.2));">✨</div>
@@ -579,35 +610,35 @@
 
         approveAllBtn.disabled = false;
 
-        // Render Cards (in memory for max speed)
-        let allCardsHtml = "";
+        renderAgentFilterList(); // update background filter modal
+
+        let allHtml = "";
 
         pendingEntries.forEach(d => {
-          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
+          if (currentAgentFilter !== 'ALL' && (d.staffName || 'Unknown Agent') !== currentAgentFilter) return;
+
+          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           const isNonDB = d.isNonDatabase === true;
           const isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
           
           const modeBadge = isOnline ? `<span class="mode-badge online">ONLINE</span>` : `<span class="mode-badge cash">CASH</span>`;
-          const nonDbTag = isNonDB ? `<div class="non-db-tag">NON-DB ENTRY</div>` : "";
+          const agentBadge = `<span class="agent-tiny-badge">👤 ${d.staffName || 'Unknown Agent'}</span>`;
           const nonDbClass = isNonDB ? "non-db" : "";
-          const nonDbBadge = isNonDB ? '<span class="non-db-badge">NON-DB</span>' : '';
+          const nonDbTag = isNonDB ? `<span class="non-db-badge">NON-DB</span>` : "";
 
-          const html = `
+          const acceptBtnHtml = isNonDB ? '' : `
+              <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+              </button>`;
+
+          allHtml += `
             <div class="entry-item ${nonDbClass}" id="card-${d.docId}">
-              ${nonDbTag}
-              <div class="card-top">
-                <div class="col-info">
-                  <h4>${d.customerName} ${nonDbBadge}</h4>
-                  <p>ID: ${d.customerId}</p>
+              <div class="col-main">
+                <div class="c-head">
+                  <h4 class="c-name">${d.customerName} ${nonDbTag}</h4>
+                  <span class="c-id">${d.customerId}</span>
                 </div>
-                <div class="col-amount">
-                  <div class="amount-display">₹${d.amount}</div>
-                  <div style="margin-top: 6px;">${modeBadge}</div>
-                </div>
-              </div>
-              
-              <div class="card-mid">
-                <div class="col-meta">
+                <div class="c-sub">
                   <span class="tag">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     ${d.productName}
@@ -616,35 +647,29 @@
                 </div>
               </div>
 
-              <div class="card-bottom">
-                <span class="agent-tiny-badge">👤 ${d.staffName || 'Unknown Agent'}</span>
-                
-                <div class="col-actions">
-                  <div class="date-display" style="margin-right: 10px;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    ${d.date}
-                  </div>
-                  <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                  </button>
-                  <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                  ${isNonDB ? '' : `
-                  <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
-                  </button>`}
+              <div class="col-amount">
+                <div class="amount-display">₹${d.amount} ${modeBadge}</div>
+                <div class="date-display">
+                  ${agentBadge}
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  ${d.date}
                 </div>
+              </div>
+
+              <div class="col-actions">
+                <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </button>
+                <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                ${acceptBtnHtml}
               </div>
             </div>
           `;
-          allCardsHtml += html;
         });
 
-        listDiv.innerHTML = allCardsHtml;
-        
-        // BUG FIX: Automatically re-apply filter to correctly calculate and display sums
-        applyAgentFilter(currentAgentFilter);
+        listDiv.innerHTML = allHtml;
 
       } catch (e) {
         console.error(e);
@@ -652,7 +677,7 @@
       }
     }
 
-    // --- NEW: RENDER AGENT FILTER LIST MODAL ---
+    // --- AGENT FILTER LIST MODAL ---
     function renderAgentFilterList() {
       const list = document.getElementById("agentFilterList");
       const agentCounts = { 'ALL': pendingEntries.length };
@@ -672,7 +697,6 @@
       list.innerHTML = html;
     }
 
-    // --- NEW: APPLY FILTER (INSTANT DOM MANIPULATION) ---
     window.applyAgentFilter = (name) => {
       currentAgentFilter = name;
       closeAgentFilter();
@@ -685,7 +709,7 @@
         const nameMatch = (d.staffName || 'Unknown Agent') === name;
         
         if (name === 'ALL' || nameMatch) {
-          card.style.display = "flex"; // Restoring flex layout
+          card.style.display = "flex"; 
           visibleCount++;
           
           let amount = parseFloat(d.amount || 0);
@@ -693,33 +717,29 @@
           let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
           if (isOnline) fOnline += amount; else fCash += amount;
         } else {
-          card.style.display = "none"; // Hide card
+          card.style.display = "none"; 
         }
       });
       
-      // Update DOM Totals
       document.getElementById("totalPendingAmt").innerText = "₹" + fTotal.toLocaleString('en-IN');
       document.getElementById("totalCashAmt").innerText = "₹" + fCash.toLocaleString('en-IN');
       document.getElementById("totalOnlineAmt").innerText = "₹" + fOnline.toLocaleString('en-IN');
       
-      // Handle empty state gracefully without destroying existing cards
       const listDiv = document.getElementById("reviewList");
       let emptyMsg = document.getElementById("emptyFilterMsg");
       if (visibleCount === 0) {
         if(!emptyMsg) {
-          listDiv.insertAdjacentHTML('beforeend', `<div id="emptyFilterMsg" style="text-align:center; padding:50px 20px; color:var(--text-muted); font-weight:600;">No entries found for this agent.</div>`);
+          listDiv.insertAdjacentHTML('beforeend', `<div id="emptyFilterMsg" style="text-align:center; padding:50px 20px; color:var(--text-muted);">No entries found for this agent.</div>`);
         }
       } else {
         if(emptyMsg) emptyMsg.remove();
       }
       
-      renderAgentFilterList(); // update selected state in modal
+      renderAgentFilterList(); 
     };
 
-    // --- NEW: OPEN/CLOSE AGENT FILTER MODAL ---
     window.openAgentFilter = () => {
       if (navigator.vibrate) navigator.vibrate(40);
-      renderAgentFilterList(); // Ensure fresh counts before opening
       const sheet = document.getElementById("agentFilterSheet");
       sheet.style.display = "flex";
       setTimeout(() => sheet.classList.add("open"), 10);
@@ -747,15 +767,15 @@
       document.getElementById("editDate").value = entry.date;
       document.getElementById("editDueNumber").value = entry.dueNumber || 0;
 
-      const modal = document.getElementById("editModal");
+      const modal = document.getElementById("editModalOverlay");
       modal.style.display = "flex";
-      setTimeout(() => modal.style.opacity = '1', 10);
+      setTimeout(() => modal.classList.add("open"), 10);
       history.pushState({ modalOpen: 'editModal' }, "");
     };
 
-    window.closeModal = () => {
-      const modal = document.getElementById("editModal");
-      modal.style.opacity = '0';
+    window.closeEditModal = () => {
+      const modal = document.getElementById("editModalOverlay");
+      modal.classList.remove("open");
       setTimeout(() => modal.style.display = "none", 300);
       if (history.state && history.state.modalOpen === 'editModal') {
         history.back();
@@ -768,9 +788,10 @@
       const newDate = document.getElementById("editDate").value;
       const newDue = parseInt(document.getElementById("editDueNumber").value);
 
-      if(!newAmt || !newDate) return showCustomAlert("Invalid Input", "Please fill all required fields.");
+      if(!newAmt || !newDate) return showCustomAlert("Invalid", "Please fill required fields.");
 
       const btn = document.querySelector(".btn-save");
+      const originalText = btn.innerText;
       btn.innerText = "Saving...";
 
       try {
@@ -780,12 +801,12 @@
           date: newDate,
           dueNumber: newDue
         });
-        closeModal();
+        closeEditModal();
         loadPending();
-        btn.innerText = "Update Entry";
       } catch (e) {
-        showCustomAlert("Error", e.message);
-        btn.innerText = "Update Entry";
+        showCustomAlert("Error", "Error updating: " + e.message);
+      } finally {
+        btn.innerText = originalText;
       }
     };
 
@@ -793,6 +814,8 @@
     window.approveEntry = async (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
       if (!entry) return;
+
+      if (navigator.vibrate) navigator.vibrate(40);
 
       const card = document.getElementById(`card-${docId}`);
       card.style.opacity = "0.5"; card.style.pointerEvents = "none";
@@ -823,6 +846,7 @@
              finalDue = max + 1;
           }
 
+          // INJECT LOGIN/AUDIT DATA
           const newPayment = {
             date: entry.date,
             amount: entry.amount,
@@ -830,8 +854,8 @@
             dueNumber: parseInt(finalDue),
             type: "Agent Collection",
             approvedAt: new Date().toISOString(),
-            staffName: entry.staffName || 'Unknown Agent', // Audit injected
-            staffUid: entry.staffUid || 'unknown'          // Audit injected
+            staffName: entry.staffName || 'Unknown Agent',
+            staffUid: entry.staffUid || 'unknown'
           };
 
           if (!product.payments) product.payments = [];
@@ -846,48 +870,75 @@
           transaction.delete(tempRef);
         });
 
+        // Safe cleanup state
+        pendingEntries = pendingEntries.filter(e => e.docId !== docId);
+        
         card.style.transform = "scale(0.9) translateX(50px)";
         card.style.opacity = "0";
-        setTimeout(() => { card.remove(); checkEmpty(); }, 300);
+        setTimeout(() => { 
+            card.remove(); 
+            checkEmpty(); 
+            renderAgentFilterList();
+            applyAgentFilter(currentAgentFilter); 
+        }, 300);
 
       } catch (e) {
-        showCustomAlert("Approval Failed", e.toString());
+        showCustomAlert("Failed", "Approval Failed: " + e);
         card.style.opacity = "1"; card.style.pointerEvents = "auto";
       }
     };
 
     // --- 4. REJECT LOGIC ---
     window.rejectEntry = async (docId) => {
-      showCustomConfirm("Reject Entry", "Permanently delete this entry? This action cannot be undone.", async () => {
+      showCustomConfirm("Reject Entry", "Permanently delete this entry?", async () => {
         try {
           if (navigator.vibrate) navigator.vibrate([60, 50, 60]);
           await deleteDoc(doc(db, "temp_entries", docId));
+          
+          // Safe cleanup state
+          pendingEntries = pendingEntries.filter(e => e.docId !== docId);
+
           const card = document.getElementById(`card-${docId}`);
           card.style.opacity = "0";
           card.style.transform = "scale(0.8)";
-          setTimeout(() => { card.remove(); checkEmpty(); }, 250);
+          setTimeout(() => { 
+              card.remove(); 
+              checkEmpty(); 
+              renderAgentFilterList();
+              applyAgentFilter(currentAgentFilter); 
+          }, 250);
         } catch (e) {
           showCustomAlert("Error", e.message);
         }
       });
     };
 
-    // --- 5. BATCH APPROVE ALL (INSTANT & SECURE DELETION FOR NON-DB) ---
+    // --- 5. BATCH APPROVE ALL ---
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
       
-      showCustomConfirm("Approve All", "Approve DB entries to server & clear non-DB entries securely?", async () => {
+      showCustomConfirm("Approve All", "Approve DB entries to server & clear non-DB entries securely without logs?", async () => {
+        
         const btn = document.querySelector(".btn-approve-all");
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span class="loading-spinner" style="width:20px; height:20px; margin:0; border-width:3px; border-top-color:#022c22; border-right-color:rgba(2,44,34,0.2); border-bottom-color:rgba(2,44,34,0.2); border-left-color:rgba(2,44,34,0.2);"></span> <span style="margin-left:10px;">Processing...</span>`;
+        btn.innerHTML = `<span class="loading-spinner" style="width:16px; height:16px; margin:0; border-width:2px;"></span> Processing Batch...`;
         btn.disabled = true;
 
         try {
-          // Split arrays into Database and Non-Database segments
-          const dbEntries = pendingEntries.filter(e => !e.isNonDatabase);
-          const nonDbEntries = pendingEntries.filter(e => e.isNonDatabase);
+          // Process based on CURRENT filter
+          const activeEntries = currentAgentFilter === 'ALL' 
+            ? pendingEntries 
+            : pendingEntries.filter(e => (e.staffName || 'Unknown Agent') === currentAgentFilter);
 
-          // 1. Fetch all affected DB customers to ensure data integrity
+          if(activeEntries.length === 0) {
+              btn.innerHTML = originalHtml;
+              btn.disabled = false;
+              return;
+          }
+
+          const dbEntries = activeEntries.filter(e => !e.isNonDatabase);
+          const nonDbEntries = activeEntries.filter(e => e.isNonDatabase);
+
           const customerIds = [...new Set(dbEntries.map(e => e.customerId))];
           const customersSnapshot = await Promise.all(customerIds.map(id => getDoc(doc(db, "customers", id))));
           
@@ -899,15 +950,10 @@
           const batch = writeBatch(db);
           let totalBatchAmount = 0;
 
-          // 2. Process each DB entry in memory
           dbEntries.forEach(entry => {
             const customerData = customerMap[entry.customerId];
-            if (!customerData) {
-              console.error(`Skipping entry ${entry.docId}, customer not found`);
-              return;
-            }
+            if (!customerData) return;
 
-            // Find Product
             let pIndex = entry.productIndex;
             if (!customerData.products[pIndex] || customerData.products[pIndex].name !== entry.productName) {
               pIndex = customerData.products.findIndex(p => p.name === entry.productName);
@@ -916,7 +962,6 @@
             if (pIndex > -1) {
               const product = customerData.products[pIndex];
               
-              // Calculate Due
               let finalDue = entry.dueNumber;
               if (!finalDue || finalDue <= 0) {
                  const max = (product.payments || []).length > 0 
@@ -925,6 +970,7 @@
                  finalDue = max + 1;
               }
 
+              // INJECT LOGIN/AUDIT DATA
               const newPayment = {
                 date: entry.date,
                 amount: entry.amount,
@@ -932,8 +978,8 @@
                 dueNumber: parseInt(finalDue),
                 type: "Agent Collection",
                 approvedAt: new Date().toISOString(),
-                staffName: entry.staffName || 'Unknown Agent', // Audit injected
-                staffUid: entry.staffUid || 'unknown'          // Audit injected
+                staffName: entry.staffName || 'Unknown Agent',
+                staffUid: entry.staffUid || 'unknown'
               };
 
               if (!product.payments) product.payments = [];
@@ -942,25 +988,21 @@
               
               totalBatchAmount += entry.amount;
 
-              // Mark temp entry for deletion
               const tempRef = doc(db, "temp_entries", entry.docId);
               batch.delete(tempRef);
             }
           });
 
-          // 2.1 Process NON-DB Entries (Strict Delete / Clear Only without merging)
           nonDbEntries.forEach(entry => {
               const tempRef = doc(db, "temp_entries", entry.docId);
               batch.delete(tempRef); 
           });
 
-          // 3. Stage Customer Updates (DB Only)
           Object.keys(customerMap).forEach(custId => {
             const custRef = doc(db, "customers", custId);
             batch.update(custRef, { products: customerMap[custId].products });
           });
 
-          // 4. Stage Stats Update (DB Only calculations)
           if(totalBatchAmount > 0) {
             const statsRef = doc(db, "metadata", "stats");
             batch.update(statsRef, {
@@ -969,17 +1011,14 @@
             });
           }
 
-          // 5. COMMIT EVERYTHING ONCE
           await batch.commit();
 
-          // UI Reset
-          if (navigator.vibrate) navigator.vibrate([400, 100, 400]); // Success buzz
-          showCustomAlert("Success", "DB Approved, Non-DB cleared entirely.");
+          showCustomAlert("Success", "Operation successful! DB Approved, Non-DB cleared entirely.");
           btn.innerHTML = originalHtml;
           loadPending();
 
         } catch (e) {
-          showCustomAlert("Batch Approval Error", e.message);
+          showCustomAlert("Error", "Batch Approval Error: " + e.message);
           btn.innerHTML = originalHtml;
           btn.disabled = false;
         }
@@ -993,18 +1032,25 @@
 
     // --- 6. PRINT SYSTEM & POPUP MENU ---
     window.togglePrintMenu = () => {
+      if (navigator.vibrate) navigator.vibrate(20);
       const menu = document.getElementById("printMenu");
       menu.classList.toggle("show");
     };
 
     window.printDB = () => {
       document.getElementById("printMenu").classList.remove("show");
-      generateProfessionalPrint(pendingEntries.filter(e => !e.isNonDatabase), "DATABASE APPROVALS QUEUE");
+      const filtered = currentAgentFilter === 'ALL' 
+         ? pendingEntries 
+         : pendingEntries.filter(e => (e.staffName || 'Unknown Agent') === currentAgentFilter);
+      generateProfessionalPrint(filtered.filter(e => !e.isNonDatabase), "DATABASE APPROVALS QUEUE");
     };
 
     window.printNonDB = () => {
       document.getElementById("printMenu").classList.remove("show");
-      generateProfessionalPrint(pendingEntries.filter(e => e.isNonDatabase), "NON-DATABASE DRAFTS QUEUE");
+      const filtered = currentAgentFilter === 'ALL' 
+         ? pendingEntries 
+         : pendingEntries.filter(e => (e.staffName || 'Unknown Agent') === currentAgentFilter);
+      generateProfessionalPrint(filtered.filter(e => e.isNonDatabase), "NON-DATABASE DRAFTS QUEUE");
     };
 
     function generateProfessionalPrint(dataToPrint, title) {
@@ -1012,7 +1058,6 @@
       
       const printArea = document.getElementById("printArea");
       
-      // Calculate split for print doc
       let totalAmount = 0, cAmount = 0, oAmount = 0;
       dataToPrint.forEach(d => {
         let amt = parseFloat(d.amount || 0);
@@ -1092,7 +1137,6 @@
 
       printArea.innerHTML = html;
       
-      // Delay printing slightly to allow DOM to update, then trigger print
       setTimeout(() => {
         window.print();
       }, 250);
@@ -1103,7 +1147,7 @@
     
     // Exports
     window.openEdit = openEdit;
-    window.closeModal = closeModal;
+    window.closeEditModal = closeEditModal;
     window.saveEdit = saveEdit;
     window.rejectEntry = rejectEntry;
     window.approveEntry = approveEntry;
