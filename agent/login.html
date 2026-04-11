@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff Login - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f0f0f">
+  <link rel="manifest" href="manifest.json">
+  <meta name="robots" content="noindex, nofollow">
+
+  <style>
+    :root { 
+      --bg: #0f0f0f; 
+      --surface: #0f0f0f; 
+      --card: #1e1e1e;
+      --primary: #ff4e45; /* Brand Red */
+      --text-main: #ffffff; 
+      --text-sec: #aaaaaa;
+      --border: #333333; 
+      --accent: #3ea6ff; /* YouTube Blue */
+    }
+    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
+    body { 
+      background: var(--bg); 
+      color: var(--text-main); 
+      font-family: 'Roboto', 'Segoe UI', sans-serif; 
+      margin: 0; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* --- BRANDING --- */
+    .brand { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 40px; }
+    .brand span:first-child { color: #fff; }
+    .brand span:last-child { color: var(--primary); }
+
+    .container {
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* --- VIEW STATE LOGIC --- */
+    .view { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .view.active { display: flex; animation: fadeIn 0.5s ease-out; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- LOGIN VIEW --- */
+    .google-btn {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 15px rgba(255,255,255,0.1);
+    }
+
+    /* --- PROFILE VIEW (POST-LOGIN) --- */
+    .profile-pic {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 3px solid var(--primary);
+      margin-bottom: 20px;
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(255, 78, 69, 0.3);
+    }
+
+    .welcome-txt { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .email-txt { color: var(--text-sec); font-size: 0.85rem; margin-bottom: 30px; }
+
+    .input-group { width: 100%; margin-bottom: 40px; text-align: left; }
+    label { color: var(--text-sec); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-left: 15px; }
+    
+    .name-input {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .btn-next {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 78, 69, 0.4);
+    }
+
+    .footer { position: fixed; bottom: 20px; color: #333; font-size: 0.75rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <span>Meena</span><span>Groups</span>
+  </div>
+
+  <div class="container">
+    
+    <div id="loginView" class="view active">
+      <p style="color: var(--text-sec); margin-bottom: 30px;">Agent Portal Access</p>
+      <button class="google-btn" id="btnLogin">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G">
+        Sign in with Google
+      </button>
+    </div>
+
+    <div id="onboardingView" class="view">
+      <img src="" id="userPhoto" class="profile-pic" alt="User">
+      <div class="welcome-txt">Welcome back!</div>
+      <div id="userEmail" class="email-txt">email@example.com</div>
+
+      <div class="input-group">
+        <label>Verify Your Staff Name</label>
+        <input type="text" id="staffNameInput" class="name-input" placeholder="Your Name">
+      </div>
+
+      <button class="btn-next" id="btnContinue">Next Step</button>
+    </div>
+
+  </div>
+
+  <div class="footer">POWERED BY GOORAC SYSTEMS</div>
+
+  <script type="module">
+    import { auth, provider } from "./config.js";
+    import { signInWithPopup, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    const loginView = document.getElementById('loginView');
+    const onboardingView = document.getElementById('onboardingView');
+    const loginBtn = document.getElementById('btnLogin');
+    const continueBtn = document.getElementById('btnContinue');
+
+    // Handle initial auth state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        showOnboarding(user);
+      }
+    });
+
+    function showOnboarding(user) {
+      loginView.classList.remove('active');
+      
+      document.getElementById('userPhoto').src = user.photoURL || 'https://via.placeholder.com/90';
+      document.getElementById('userEmail').innerText = user.email;
+      document.getElementById('staffNameInput').value = user.displayName || "";
+      
+      onboardingView.classList.add('active');
+    }
+
+    loginBtn.addEventListener('click', async () => {
+      try {
+        loginBtn.disabled = true;
+        loginBtn.innerText = "Connecting...";
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        alert("Login failed: " + error.message);
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Sign in with Google`;
+      }
+    });
+
+    continueBtn.addEventListener('click', async () => {
+      const finalName = document.getElementById('staffNameInput').value.trim();
+      if (!finalName) return alert("Please enter your name");
+
+      continueBtn.disabled = true;
+      continueBtn.innerText = "Finalizing...";
+
+      try {
+        // Update Firebase Profile with the chosen name
+        await updateProfile(auth.currentUser, { displayName: finalName });
+        window.location.href = "index.html";
+      } catch (e) {
+        alert("Error: " + e.message);
+        continueBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
