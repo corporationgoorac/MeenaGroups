@@ -34,6 +34,15 @@ service cloud.firestore {
       // An agent can only edit/delete if they created it, OR if the Admin is doing it (Now strictly checks 'staffUid')
       allow update, delete: if isAdmin() || request.auth.uid == resource.data.staffUid; 
     }
+
+    // 3. METADATA (Stats & Totals) - 🔧 ADDED TO PREVENT PERMISSION ERRORS
+    match /metadata/{document} {
+      // Allow all staff to read metadata so dashboards can show the totals
+      allow read: if isStaff();
+      
+      // ONLY the Admin master key can update stats during the approval process
+      allow write: if isAdmin();
+    }
     
   }
 }
