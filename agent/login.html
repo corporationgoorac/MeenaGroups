@@ -58,6 +58,8 @@
     /* --- LOGIN VIEW --- */
     .google-btn {
       width: 100%;
+      max-width: 280px; /* Prevents button from stretching too wide */
+      margin: 0 auto; /* Centers the button */
       background: #ffffff;
       color: #0f0f0f;
       border: none;
@@ -169,7 +171,13 @@
     // Handle initial auth state
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        showOnboarding(user);
+        // If the user already has a display name, bypass onboarding completely
+        if (user.displayName && user.displayName.trim() !== "") {
+          window.location.href = "index.html";
+        } else {
+          // If no name is set, show the onboarding view
+          showOnboarding(user);
+        }
       }
     });
 
@@ -188,6 +196,7 @@
         loginBtn.disabled = true;
         loginBtn.innerText = "Connecting...";
         await signInWithPopup(auth, provider);
+        // The onAuthStateChanged listener will handle the redirect automatically after success
       } catch (error) {
         alert("Login failed: " + error.message);
         loginBtn.disabled = false;
