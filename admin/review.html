@@ -267,7 +267,7 @@
 
     /* NEW STYLES: Cash/Online Badges */
     .mode-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid currentColor; vertical-align: middle;}
-    .mode-badge.cash { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+    .mode-badge.cash { color: var(--primary); background: rgba(16, 185, 129, 0.1); }
     .mode-badge.online { color: var(--secondary); background: rgba(56, 189, 248, 0.1); }
 
     /* NEW STYLES: Print Menu & Printing */
@@ -316,6 +316,45 @@
       .btn-approve-all { height: 56px; justify-content: center; width: 100%; }
       .stat-split-container { justify-content: center; }
     }
+
+    /* ADDED STYLES FOR NEW FEATURES */
+    .agent-tiny-badge {
+      font-size: 0.7rem; background: rgba(255,255,255,0.08); color: #cbd5e1;
+      padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
+      font-weight: 600; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.1); margin-top: 5px;
+    }
+    
+    .btn-sort {
+      background: var(--surface); color: var(--text); border: 1px solid var(--border);
+      padding: 0 16px; border-radius: 14px; display: flex; align-items: center; gap: 8px;
+      cursor: pointer; transition: 0.2s; height: 100%; min-height: 44px;
+    }
+    .btn-sort:hover { background: var(--card); border-color: var(--secondary); }
+
+    .bottom-sheet-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px);
+      z-index: 2000; display: none; align-items: flex-end; justify-content: center;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .bottom-sheet-overlay.open { opacity: 1; }
+
+    .bottom-sheet {
+      background: var(--surface); width: 100%; max-width: 500px;
+      border-radius: 24px 24px 0 0; padding: 30px 25px; border-top: 1px solid var(--border);
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bottom-sheet-overlay.open .bottom-sheet { transform: translateY(0); }
+    
+    .bottom-sheet h3 { margin-top: 0; font-size: 1.3rem; color: #fff; margin-bottom: 20px; }
+    
+    .agent-list-item {
+      padding: 16px; background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 10px; cursor: pointer; color: var(--text);
+      font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+    }
+    .agent-list-item:hover { border-color: var(--secondary); }
+    .agent-list-item.active { background: rgba(56, 189, 248, 0.15); border-color: var(--secondary); color: var(--secondary); }
   </style>
 </head>
 <body>
@@ -352,7 +391,7 @@
         <div class="stats-card stat-split-container">
           <div class="stat-split">
             <span>Cash Total</span>
-            <strong id="totalCashAmt" style="color:var(--success);">₹0</strong>
+            <strong id="totalCashAmt" style="color:var(--primary);">₹0</strong>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-split">
@@ -365,6 +404,11 @@
           <span>Pending Total</span>
           <strong id="totalPendingAmt">₹0</strong>
         </div>
+
+        <button class="btn-sort" onclick="openFilterModal()" title="Filter by Agent">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        </button>
+
         <button class="btn-approve-all" onclick="approveAll()">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
           Approve All
@@ -407,18 +451,43 @@
     </div>
   </div>
 
+  <div class="bottom-sheet-overlay" id="filterModalOverlay" onclick="if(event.target===this) closeFilterModal()">
+    <div class="bottom-sheet" id="filterBottomSheet">
+       <h3>Filter by Agent</h3>
+       <div id="agentFilterList"></div>
+       <button class="btn-modal btn-cancel" onclick="closeFilterModal()" style="width:100%; margin-top:15px;">Close</button>
+    </div>
+  </div>
+
   <div id="printArea" style="display: none;"></div>
 
   <script type="module">
     import { db } from "./config.js";
+    import { auth } from "./config.js";
     import { 
       collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc, writeBatch, getDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
     let pendingEntries = [];
+    let currentUserUid = null;
+    window.currentFilterAgent = 'ALL';
+
+    // --- 0. AUTH CHECK ---
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserUid = user.uid;
+        loadPending();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
 
     // --- 1. LOAD DATA ---
     async function loadPending() {
+      // Prevent loading if not logged in
+      if (!currentUserUid) return;
+
       const listDiv = document.getElementById("reviewList");
       const totalDisplay = document.getElementById("totalPendingAmt");
       const cashDisplay = document.getElementById("totalCashAmt");
@@ -457,6 +526,22 @@
         onlineDisplay.innerText = "₹" + totalOnline.toLocaleString('en-IN');
         listDiv.innerHTML = "";
 
+        // ADDED: Override Totals if Filter is Active
+        if (window.currentFilterAgent !== 'ALL') {
+           let fTotal = 0, fCash = 0, fOnline = 0;
+           pendingEntries.forEach(d => {
+              if (d.staffUid === window.currentFilterAgent) {
+                 let amount = parseFloat(d.amount || 0);
+                 fTotal += amount;
+                 let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
+                 if (isOnline) fOnline += amount; else fCash += amount;
+              }
+           });
+           totalDisplay.innerText = "₹" + fTotal.toLocaleString('en-IN');
+           cashDisplay.innerText = "₹" + fCash.toLocaleString('en-IN');
+           onlineDisplay.innerText = "₹" + fOnline.toLocaleString('en-IN');
+        }
+
         if (pendingEntries.length === 0) {
           listDiv.innerHTML = `
             <div style="text-align:center; padding:100px 20px; color:#64748b; background:var(--surface); border-radius:24px; border:1px dashed var(--border);">
@@ -471,10 +556,16 @@
         approveAllBtn.disabled = false;
 
         pendingEntries.forEach(d => {
+          // ADDED: Filter check
+          if (window.currentFilterAgent !== 'ALL' && d.staffUid !== window.currentFilterAgent) return;
+
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
           const isNonDB = d.isNonDatabase === true;
           const isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
           const modeBadge = isOnline ? `<span class="mode-badge online">ONLINE</span>` : `<span class="mode-badge cash">CASH</span>`;
+          
+          // ADDED: Agent Badge
+          const agentBadge = `<span class="agent-tiny-badge"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> ${d.staffName || 'Agent'}</span>`;
 
           const card = document.createElement("div");
           // Add non-db class specially
@@ -494,6 +585,7 @@
             </div>
             
             <div class="col-meta">
+              ${agentBadge}
               <span class="tag">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 ${d.productName}
@@ -528,6 +620,50 @@
       }
     }
 
+    // --- ADDED: FILTER MODAL LOGIC & MOBILE BACK BUTTON ---
+    window.openFilterModal = () => {
+       const agents = [];
+       const seenUids = new Set();
+       pendingEntries.forEach(e => {
+          if(e.staffUid && !seenUids.has(e.staffUid)) {
+             seenUids.add(e.staffUid);
+             agents.push({uid: e.staffUid, name: e.staffName || 'Agent'});
+          }
+       });
+       
+       let html = `<div class="agent-list-item ${window.currentFilterAgent==='ALL'?'active':''}" onclick="applyFilter('ALL')">
+                      <div style="width:10px;height:10px;border-radius:50%;background:var(--secondary);"></div> All Agents
+                   </div>`;
+       agents.forEach(a => {
+          html += `<div class="agent-list-item ${window.currentFilterAgent===a.uid?'active':''}" onclick="applyFilter('${a.uid}')">
+                      <div style="width:10px;height:10px;border-radius:50%;background:var(--primary);"></div> ${a.name}
+                   </div>`;
+       });
+       
+       document.getElementById('agentFilterList').innerHTML = html;
+       
+       const overlay = document.getElementById('filterModalOverlay');
+       overlay.style.display = 'flex';
+       setTimeout(() => overlay.classList.add('open'), 10);
+       
+       history.pushState({ modalOpen: 'filterModal' }, "");
+    };
+
+    window.closeFilterModal = () => {
+       const overlay = document.getElementById('filterModalOverlay');
+       overlay.classList.remove('open');
+       setTimeout(() => overlay.style.display = 'none', 300);
+       if (history.state && history.state.modalOpen === 'filterModal') {
+          history.back();
+       }
+    };
+
+    window.applyFilter = (uid) => {
+       window.currentFilterAgent = uid;
+       closeFilterModal();
+       loadPending(); // Refresh UI instantly
+    };
+
     // --- 2. EDIT MODAL LOGIC ---
     window.openEdit = (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
@@ -538,12 +674,32 @@
       document.getElementById("editDate").value = entry.date;
       document.getElementById("editDueNumber").value = entry.dueNumber || 0;
 
-      document.getElementById("editModal").style.display = "flex";
+      const overlay = document.getElementById("editModal");
+      overlay.style.display = "flex";
+      
+      history.pushState({ modalOpen: 'editModal' }, "");
     };
 
     window.closeModal = () => {
-      document.getElementById("editModal").style.display = "none";
+      const overlay = document.getElementById("editModal");
+      overlay.style.display = "none";
+      if (history.state && history.state.modalOpen === 'editModal') {
+        history.back();
+      }
     };
+
+    // ADDED: Global Popstate Listener for all modals
+    window.addEventListener('popstate', (e) => {
+       const filterModal = document.getElementById('filterModalOverlay');
+       if (filterModal && filterModal.classList.contains('open')) {
+          filterModal.classList.remove('open');
+          setTimeout(() => filterModal.style.display = 'none', 300);
+       }
+       const editModal = document.getElementById('editModal');
+       if (editModal && editModal.style.display === 'flex') {
+          editModal.style.display = 'none';
+       }
+    });
 
     window.saveEdit = async () => {
       const docId = document.getElementById("editDocId").value;
@@ -563,7 +719,11 @@
           date: newDate,
           dueNumber: newDue
         });
-        closeModal();
+        
+        // Don't trigger history.back() here manually if closeModal handles it, 
+        // but since we updated it, call direct DOM close to avoid double backing.
+        document.getElementById("editModal").style.display = "none";
+        
         loadPending();
         btn.innerText = "Update Entry";
       } catch (e) {
@@ -653,8 +813,13 @@
 
     // --- 5. BATCH APPROVE ALL (INSTANT & SECURE DELETION FOR NON-DB) ---
     window.approveAll = async () => {
-      if (pendingEntries.length === 0) return;
-      if (!confirm(`Approve DB entries to server & clear non-DB entries securely without logs?`)) return;
+      // Use filtered entries if active, otherwise use all pending
+      const targetEntries = window.currentFilterAgent !== 'ALL' 
+         ? pendingEntries.filter(e => e.staffUid === window.currentFilterAgent) 
+         : pendingEntries;
+
+      if (targetEntries.length === 0) return;
+      if (!confirm(`Approve ${targetEntries.length} DB entries to server & clear non-DB entries securely without logs?`)) return;
 
       const btn = document.querySelector(".btn-approve-all");
       const originalHtml = btn.innerHTML;
@@ -663,8 +828,8 @@
 
       try {
         // Split arrays into Database and Non-Database segments
-        const dbEntries = pendingEntries.filter(e => !e.isNonDatabase);
-        const nonDbEntries = pendingEntries.filter(e => e.isNonDatabase);
+        const dbEntries = targetEntries.filter(e => !e.isNonDatabase);
+        const nonDbEntries = targetEntries.filter(e => e.isNonDatabase);
 
         // 1. Fetch all affected DB customers to ensure data integrity
         const customerIds = [...new Set(dbEntries.map(e => e.customerId))];
@@ -752,7 +917,7 @@
         // UI Reset
         alert("✅ Operation successful! DB Approved, Non-DB cleared entirely.");
         btn.innerHTML = originalHtml;
-        loadPending();
+        loadPending(); // Reloads data from server and clears list
 
       } catch (e) {
         alert("Batch Approval Error: " + e.message);
@@ -872,9 +1037,6 @@
         window.print();
       }, 250);
     }
-
-    // Initialize
-    loadPending();
     
     // Exports
     window.openEdit = openEdit;
@@ -886,7 +1048,9 @@
     window.togglePrintMenu = togglePrintMenu;
     window.printDB = printDB;
     window.printNonDB = printNonDB;
+    window.openFilterModal = openFilterModal;
+    window.closeFilterModal = closeFilterModal;
+    window.applyFilter = applyFilter;
   </script>
 </body>
 </html>
-
