@@ -267,7 +267,7 @@
 
     /* NEW STYLES: Cash/Online Badges */
     .mode-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid currentColor; vertical-align: middle;}
-    .mode-badge.cash { color: var(--primary); background: rgba(16, 185, 129, 0.1); }
+    .mode-badge.cash { color: var(--success); background: rgba(16, 185, 129, 0.1); }
     .mode-badge.online { color: var(--secondary); background: rgba(56, 189, 248, 0.1); }
 
     /* NEW STYLES: Print Menu & Printing */
@@ -283,6 +283,40 @@
     }
     .print-menu button:hover { background: var(--primary); color: #000; }
     
+    /* --- NEW STYLES ADDED FOR AGENT BADGE & FILTER MODAL --- */
+    .agent-tiny-badge {
+      font-size: 0.75rem; background: rgba(255,255,255,0.05); color: #cbd5e1;
+      padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
+      font-weight: 600; letter-spacing: 0.5px; margin-right: 8px; border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .bottom-sheet-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(5px);
+      display: none; align-items: flex-end; justify-content: center; z-index: 2000;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .bottom-sheet-overlay.open { opacity: 1; }
+    .bottom-sheet {
+      background: var(--surface); width: 100%; max-width: 600px;
+      border-radius: 24px 24px 0 0; padding: 24px; border: 1px solid var(--border);
+      border-bottom: none; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      max-height: 80vh; overflow-y: auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    }
+    .bottom-sheet-overlay.open .bottom-sheet { transform: translateY(0); }
+    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-title { font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0; }
+    .agent-filter-btn {
+      width: 100%; text-align: left; padding: 15px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px; color: #fff;
+      font-size: 1rem; font-weight: 600; margin-bottom: 10px; cursor: pointer; transition: 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .agent-filter-btn:hover, .agent-filter-btn.selected {
+      border-color: var(--secondary); background: rgba(56, 189, 248, 0.1);
+    }
+    .agent-badge-count { background: var(--primary); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
+
     /* NEW STYLES: Fixed Print showing blank papers by explicitly hiding everything else */
     @media print {
       body > :not(#printArea) { display: none !important; }
@@ -316,45 +350,6 @@
       .btn-approve-all { height: 56px; justify-content: center; width: 100%; }
       .stat-split-container { justify-content: center; }
     }
-
-    /* ADDED STYLES FOR NEW FEATURES */
-    .agent-tiny-badge {
-      font-size: 0.7rem; background: rgba(255,255,255,0.08); color: #cbd5e1;
-      padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;
-      font-weight: 600; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.1); margin-top: 5px;
-    }
-    
-    .btn-sort {
-      background: var(--surface); color: var(--text); border: 1px solid var(--border);
-      padding: 0 16px; border-radius: 14px; display: flex; align-items: center; gap: 8px;
-      cursor: pointer; transition: 0.2s; height: 100%; min-height: 44px;
-    }
-    .btn-sort:hover { background: var(--card); border-color: var(--secondary); }
-
-    .bottom-sheet-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px);
-      z-index: 2000; display: none; align-items: flex-end; justify-content: center;
-      opacity: 0; transition: opacity 0.3s;
-    }
-    .bottom-sheet-overlay.open { opacity: 1; }
-
-    .bottom-sheet {
-      background: var(--surface); width: 100%; max-width: 500px;
-      border-radius: 24px 24px 0 0; padding: 30px 25px; border-top: 1px solid var(--border);
-      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .bottom-sheet-overlay.open .bottom-sheet { transform: translateY(0); }
-    
-    .bottom-sheet h3 { margin-top: 0; font-size: 1.3rem; color: #fff; margin-bottom: 20px; }
-    
-    .agent-list-item {
-      padding: 16px; background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 12px; margin-bottom: 10px; cursor: pointer; color: var(--text);
-      font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 10px;
-    }
-    .agent-list-item:hover { border-color: var(--secondary); }
-    .agent-list-item.active { background: rgba(56, 189, 248, 0.15); border-color: var(--secondary); color: var(--secondary); }
   </style>
 </head>
 <body>
@@ -368,7 +363,11 @@
       <div style="display:flex; align-items:center; gap:15px;">
         <div id="status-tag" style="font-size: 0.7rem; font-weight: 800; background: var(--primary-muted); color: var(--primary); padding: 4px 10px; border-radius: 20px;">SYSTEM ONLINE</div>
         
-        <div style="position:relative;">
+        <div style="position:relative; display:flex; gap:10px;">
+          <button class="icon-btn" onclick="openAgentFilter()" title="Filter by Agent" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+          </button>
+
           <button class="icon-btn" onclick="togglePrintMenu()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;">
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           </button>
@@ -391,7 +390,7 @@
         <div class="stats-card stat-split-container">
           <div class="stat-split">
             <span>Cash Total</span>
-            <strong id="totalCashAmt" style="color:var(--primary);">₹0</strong>
+            <strong id="totalCashAmt" style="color:var(--success);">₹0</strong>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-split">
@@ -404,11 +403,6 @@
           <span>Pending Total</span>
           <strong id="totalPendingAmt">₹0</strong>
         </div>
-
-        <button class="btn-sort" onclick="openFilterModal()" title="Filter by Agent">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-        </button>
-
         <button class="btn-approve-all" onclick="approveAll()">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
           Approve All
@@ -451,11 +445,14 @@
     </div>
   </div>
 
-  <div class="bottom-sheet-overlay" id="filterModalOverlay" onclick="if(event.target===this) closeFilterModal()">
-    <div class="bottom-sheet" id="filterBottomSheet">
-       <h3>Filter by Agent</h3>
-       <div id="agentFilterList"></div>
-       <button class="btn-modal btn-cancel" onclick="closeFilterModal()" style="width:100%; margin-top:15px;">Close</button>
+  <div class="bottom-sheet-overlay" id="agentFilterSheet">
+    <div class="bottom-sheet">
+      <div class="sheet-header">
+        <h3 class="sheet-title">Filter by Agent</h3>
+        <button onclick="closeAgentFilter()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;">✕</button>
+      </div>
+      <div id="agentFilterList">
+        </div>
     </div>
   </div>
 
@@ -463,31 +460,15 @@
 
   <script type="module">
     import { db } from "./config.js";
-    import { auth } from "./config.js";
     import { 
       collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc, writeBatch, getDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
     let pendingEntries = [];
-    let currentUserUid = null;
-    window.currentFilterAgent = 'ALL';
-
-    // --- 0. AUTH CHECK ---
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUserUid = user.uid;
-        loadPending();
-      } else {
-        window.location.href = "login.html";
-      }
-    });
+    let currentAgentFilter = 'ALL'; // NEW: Variable to hold current filter state
 
     // --- 1. LOAD DATA ---
     async function loadPending() {
-      // Prevent loading if not logged in
-      if (!currentUserUid) return;
-
       const listDiv = document.getElementById("reviewList");
       const totalDisplay = document.getElementById("totalPendingAmt");
       const cashDisplay = document.getElementById("totalCashAmt");
@@ -526,22 +507,6 @@
         onlineDisplay.innerText = "₹" + totalOnline.toLocaleString('en-IN');
         listDiv.innerHTML = "";
 
-        // ADDED: Override Totals if Filter is Active
-        if (window.currentFilterAgent !== 'ALL') {
-           let fTotal = 0, fCash = 0, fOnline = 0;
-           pendingEntries.forEach(d => {
-              if (d.staffUid === window.currentFilterAgent) {
-                 let amount = parseFloat(d.amount || 0);
-                 fTotal += amount;
-                 let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
-                 if (isOnline) fOnline += amount; else fCash += amount;
-              }
-           });
-           totalDisplay.innerText = "₹" + fTotal.toLocaleString('en-IN');
-           cashDisplay.innerText = "₹" + fCash.toLocaleString('en-IN');
-           onlineDisplay.innerText = "₹" + fOnline.toLocaleString('en-IN');
-        }
-
         if (pendingEntries.length === 0) {
           listDiv.innerHTML = `
             <div style="text-align:center; padding:100px 20px; color:#64748b; background:var(--surface); border-radius:24px; border:1px dashed var(--border);">
@@ -555,17 +520,17 @@
 
         approveAllBtn.disabled = false;
 
+        // NEW: Initial call to populate the modal list behind the scenes
+        renderAgentFilterList();
+
         pendingEntries.forEach(d => {
-          // ADDED: Filter check
-          if (window.currentFilterAgent !== 'ALL' && d.staffUid !== window.currentFilterAgent) return;
+          // NEW: Skip rendering if it doesn't match the current agent filter
+          if (currentAgentFilter !== 'ALL' && (d.staffName || 'Unknown Agent') !== currentAgentFilter) return;
 
           const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto (Next)';
           const isNonDB = d.isNonDatabase === true;
           const isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
           const modeBadge = isOnline ? `<span class="mode-badge online">ONLINE</span>` : `<span class="mode-badge cash">CASH</span>`;
-          
-          // ADDED: Agent Badge
-          const agentBadge = `<span class="agent-tiny-badge"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> ${d.staffName || 'Agent'}</span>`;
 
           const card = document.createElement("div");
           // Add non-db class specially
@@ -585,7 +550,6 @@
             </div>
             
             <div class="col-meta">
-              ${agentBadge}
               <span class="tag">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 ${d.productName}
@@ -596,6 +560,7 @@
             <div class="col-amount">
               <div class="amount-display">₹${d.amount} ${modeBadge}</div>
               <div class="date-display">
+                <span class="agent-tiny-badge">👤 ${d.staffName || 'Unknown Agent'}</span>
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 ${d.date}
               </div>
@@ -620,49 +585,96 @@
       }
     }
 
-    // --- ADDED: FILTER MODAL LOGIC & MOBILE BACK BUTTON ---
-    window.openFilterModal = () => {
-       const agents = [];
-       const seenUids = new Set();
-       pendingEntries.forEach(e => {
-          if(e.staffUid && !seenUids.has(e.staffUid)) {
-             seenUids.add(e.staffUid);
-             agents.push({uid: e.staffUid, name: e.staffName || 'Agent'});
-          }
-       });
-       
-       let html = `<div class="agent-list-item ${window.currentFilterAgent==='ALL'?'active':''}" onclick="applyFilter('ALL')">
-                      <div style="width:10px;height:10px;border-radius:50%;background:var(--secondary);"></div> All Agents
-                   </div>`;
-       agents.forEach(a => {
-          html += `<div class="agent-list-item ${window.currentFilterAgent===a.uid?'active':''}" onclick="applyFilter('${a.uid}')">
-                      <div style="width:10px;height:10px;border-radius:50%;background:var(--primary);"></div> ${a.name}
-                   </div>`;
-       });
-       
-       document.getElementById('agentFilterList').innerHTML = html;
-       
-       const overlay = document.getElementById('filterModalOverlay');
-       overlay.style.display = 'flex';
-       setTimeout(() => overlay.classList.add('open'), 10);
-       
-       history.pushState({ modalOpen: 'filterModal' }, "");
+    // --- NEW: RENDER AGENT FILTER LIST MODAL ---
+    function renderAgentFilterList() {
+      const list = document.getElementById("agentFilterList");
+      const agentCounts = { 'ALL': pendingEntries.length };
+      
+      pendingEntries.forEach(e => {
+        const name = e.staffName || 'Unknown Agent';
+        agentCounts[name] = (agentCounts[name] || 0) + 1;
+      });
+
+      let html = `<button class="agent-filter-btn ${currentAgentFilter==='ALL'?'selected':''}" onclick="applyAgentFilter('ALL')"><span>All Agents</span> <span class="agent-badge-count">${agentCounts['ALL']}</span></button>`;
+      
+      Object.keys(agentCounts).forEach(name => {
+        if(name !== 'ALL') {
+          html += `<button class="agent-filter-btn ${currentAgentFilter===name?'selected':''}" onclick="applyAgentFilter('${name}')"><span>${name}</span> <span class="agent-badge-count">${agentCounts[name]}</span></button>`;
+        }
+      });
+      list.innerHTML = html;
+    }
+
+    // --- NEW: APPLY FILTER (INSTANT DOM MANIPULATION) ---
+    window.applyAgentFilter = (name) => {
+      currentAgentFilter = name;
+      closeAgentFilter();
+      
+      let fTotal = 0, fCash = 0, fOnline = 0, visibleCount = 0;
+      
+      pendingEntries.forEach(d => {
+        const card = document.getElementById(`card-${d.docId}`);
+        if (!card) return; // safety
+        const nameMatch = (d.staffName || 'Unknown Agent') === name;
+        
+        if (name === 'ALL' || nameMatch) {
+          card.style.display = "grid"; // Show card
+          visibleCount++;
+          
+          let amount = parseFloat(d.amount || 0);
+          fTotal += amount;
+          let isOnline = (d.paymentMode || d.type || '').toLowerCase().includes('online') || (d.paymentMode || '').toLowerCase().includes('upi');
+          if (isOnline) fOnline += amount; else fCash += amount;
+        } else {
+          card.style.display = "none"; // Hide card
+        }
+      });
+      
+      // Update DOM Totals
+      document.getElementById("totalPendingAmt").innerText = "₹" + fTotal.toLocaleString('en-IN');
+      document.getElementById("totalCashAmt").innerText = "₹" + fCash.toLocaleString('en-IN');
+      document.getElementById("totalOnlineAmt").innerText = "₹" + fOnline.toLocaleString('en-IN');
+      
+      // Handle empty state gracefully without destroying existing cards
+      const listDiv = document.getElementById("reviewList");
+      let emptyMsg = document.getElementById("emptyFilterMsg");
+      if (visibleCount === 0) {
+        if(!emptyMsg) {
+          listDiv.insertAdjacentHTML('beforeend', `<div id="emptyFilterMsg" style="text-align:center; padding:50px 20px; color:var(--text-muted);">No entries found for this agent.</div>`);
+        }
+      } else {
+        if(emptyMsg) emptyMsg.remove();
+      }
+      
+      renderAgentFilterList(); // update selected state in modal
     };
 
-    window.closeFilterModal = () => {
-       const overlay = document.getElementById('filterModalOverlay');
-       overlay.classList.remove('open');
-       setTimeout(() => overlay.style.display = 'none', 300);
-       if (history.state && history.state.modalOpen === 'filterModal') {
-          history.back();
-       }
+    // --- NEW: OPEN/CLOSE AGENT FILTER MODAL ---
+    window.openAgentFilter = () => {
+      if (navigator.vibrate) navigator.vibrate(40);
+      const sheet = document.getElementById("agentFilterSheet");
+      sheet.style.display = "flex";
+      setTimeout(() => sheet.classList.add("open"), 10);
+      history.pushState({ modalOpen: 'agentFilter' }, "");
     };
 
-    window.applyFilter = (uid) => {
-       window.currentFilterAgent = uid;
-       closeFilterModal();
-       loadPending(); // Refresh UI instantly
+    window.closeAgentFilter = () => {
+      const sheet = document.getElementById("agentFilterSheet");
+      sheet.classList.remove("open");
+      setTimeout(() => sheet.style.display = "none", 300);
+      if (history.state && history.state.modalOpen === 'agentFilter') {
+        history.back();
+      }
     };
+
+    // --- NEW: MOBILE POPSTATE LISTENER ---
+    window.addEventListener('popstate', (e) => {
+      const sheet = document.getElementById("agentFilterSheet");
+      if(sheet && sheet.classList.contains("open")) {
+        sheet.classList.remove("open");
+        setTimeout(() => sheet.style.display = "none", 300);
+      }
+    });
 
     // --- 2. EDIT MODAL LOGIC ---
     window.openEdit = (docId) => {
@@ -674,32 +686,12 @@
       document.getElementById("editDate").value = entry.date;
       document.getElementById("editDueNumber").value = entry.dueNumber || 0;
 
-      const overlay = document.getElementById("editModal");
-      overlay.style.display = "flex";
-      
-      history.pushState({ modalOpen: 'editModal' }, "");
+      document.getElementById("editModal").style.display = "flex";
     };
 
     window.closeModal = () => {
-      const overlay = document.getElementById("editModal");
-      overlay.style.display = "none";
-      if (history.state && history.state.modalOpen === 'editModal') {
-        history.back();
-      }
+      document.getElementById("editModal").style.display = "none";
     };
-
-    // ADDED: Global Popstate Listener for all modals
-    window.addEventListener('popstate', (e) => {
-       const filterModal = document.getElementById('filterModalOverlay');
-       if (filterModal && filterModal.classList.contains('open')) {
-          filterModal.classList.remove('open');
-          setTimeout(() => filterModal.style.display = 'none', 300);
-       }
-       const editModal = document.getElementById('editModal');
-       if (editModal && editModal.style.display === 'flex') {
-          editModal.style.display = 'none';
-       }
-    });
 
     window.saveEdit = async () => {
       const docId = document.getElementById("editDocId").value;
@@ -719,11 +711,7 @@
           date: newDate,
           dueNumber: newDue
         });
-        
-        // Don't trigger history.back() here manually if closeModal handles it, 
-        // but since we updated it, call direct DOM close to avoid double backing.
-        document.getElementById("editModal").style.display = "none";
-        
+        closeModal();
         loadPending();
         btn.innerText = "Update Entry";
       } catch (e) {
@@ -766,13 +754,16 @@
              finalDue = max + 1;
           }
 
+          // NEW: Injected staff details for audit
           const newPayment = {
             date: entry.date,
             amount: entry.amount,
             paymentMode: entry.paymentMode || 'Cash', // Ensure mode is passed
             dueNumber: parseInt(finalDue),
             type: "Agent Collection",
-            approvedAt: new Date().toISOString()
+            approvedAt: new Date().toISOString(),
+            staffName: entry.staffName || 'Unknown', 
+            staffUid: entry.staffUid || 'unknown'     
           };
 
           if (!product.payments) product.payments = [];
@@ -813,13 +804,8 @@
 
     // --- 5. BATCH APPROVE ALL (INSTANT & SECURE DELETION FOR NON-DB) ---
     window.approveAll = async () => {
-      // Use filtered entries if active, otherwise use all pending
-      const targetEntries = window.currentFilterAgent !== 'ALL' 
-         ? pendingEntries.filter(e => e.staffUid === window.currentFilterAgent) 
-         : pendingEntries;
-
-      if (targetEntries.length === 0) return;
-      if (!confirm(`Approve ${targetEntries.length} DB entries to server & clear non-DB entries securely without logs?`)) return;
+      if (pendingEntries.length === 0) return;
+      if (!confirm(`Approve DB entries to server & clear non-DB entries securely without logs?`)) return;
 
       const btn = document.querySelector(".btn-approve-all");
       const originalHtml = btn.innerHTML;
@@ -828,8 +814,8 @@
 
       try {
         // Split arrays into Database and Non-Database segments
-        const dbEntries = targetEntries.filter(e => !e.isNonDatabase);
-        const nonDbEntries = targetEntries.filter(e => e.isNonDatabase);
+        const dbEntries = pendingEntries.filter(e => !e.isNonDatabase);
+        const nonDbEntries = pendingEntries.filter(e => e.isNonDatabase);
 
         // 1. Fetch all affected DB customers to ensure data integrity
         const customerIds = [...new Set(dbEntries.map(e => e.customerId))];
@@ -869,13 +855,16 @@
                finalDue = max + 1;
             }
 
+            // NEW: Injected staff details for audit
             const newPayment = {
               date: entry.date,
               amount: entry.amount,
               paymentMode: entry.paymentMode || 'Cash', // Safely move mode
               dueNumber: parseInt(finalDue),
               type: "Agent Collection",
-              approvedAt: new Date().toISOString()
+              approvedAt: new Date().toISOString(),
+              staffName: entry.staffName || 'Unknown', 
+              staffUid: entry.staffUid || 'unknown'     
             };
 
             if (!product.payments) product.payments = [];
@@ -917,7 +906,7 @@
         // UI Reset
         alert("✅ Operation successful! DB Approved, Non-DB cleared entirely.");
         btn.innerHTML = originalHtml;
-        loadPending(); // Reloads data from server and clears list
+        loadPending();
 
       } catch (e) {
         alert("Batch Approval Error: " + e.message);
@@ -927,7 +916,7 @@
     };
 
     function checkEmpty() {
-      const remaining = document.querySelectorAll(".entry-item");
+      const remaining = document.querySelectorAll(".entry-item[style*='display: grid'], .entry-item:not([style*='display: none'])");
       if(remaining.length === 0) loadPending();
     }
 
@@ -1013,7 +1002,7 @@
               <tr style="background: ${bg}; border-bottom: 1px solid #e2e8f0;">
                   <td style="padding: 14px 12px;">
                       <strong style="display:block; font-size:14px; color:#0f172a;">${d.customerName}</strong>
-                      <span style="color:#64748b; font-size: 11px;">ID: ${d.customerId} | Date: ${d.date}</span>
+                      <span style="color:#64748b; font-size: 11px;">ID: ${d.customerId} | Date: ${d.date} | Agent: ${d.staffName || 'N/A'}</span>
                   </td>
                   <td style="padding: 14px 12px; color:#334155; font-weight: 500;">${d.productName}</td>
                   <td style="padding: 14px 12px; text-align: center; font-weight:700; color:#475569;">${dueStr}</td>
@@ -1037,6 +1026,9 @@
         window.print();
       }, 250);
     }
+
+    // Initialize
+    loadPending();
     
     // Exports
     window.openEdit = openEdit;
@@ -1048,9 +1040,9 @@
     window.togglePrintMenu = togglePrintMenu;
     window.printDB = printDB;
     window.printNonDB = printNonDB;
-    window.openFilterModal = openFilterModal;
-    window.closeFilterModal = closeFilterModal;
-    window.applyFilter = applyFilter;
+    window.openAgentFilter = openAgentFilter;
+    window.closeAgentFilter = closeAgentFilter;
+    window.applyAgentFilter = applyAgentFilter;
   </script>
 </body>
 </html>
