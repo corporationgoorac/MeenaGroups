@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meena Ecosystem | Goorac Corporation</title>
     <style>
-        /* Modern Meta AI App Theme */
+        /* Light Mode (Meta AI Style - Default) */
         :root {
-            /* Clean, airy backgrounds (Meta style) */
+            /* Clean, airy backgrounds */
             --bg-color: #f0f2f5; 
             --surface-color: #ffffff;
             --surface-hover: #ffffff;
@@ -18,20 +18,62 @@
             --text-secondary: #65676b;
             
             /* Iconic Meta AI Gradient (Blue -> Purple -> Pink) */
-            --meta-gradient: linear-gradient(115deg, #0064e0, #c92bb8, #ff2a7e);
-            --meta-gradient-hover: linear-gradient(115deg, #005ac9, #b527a5, #e62671);
+            --brand-gradient: linear-gradient(115deg, #0064e0, #c92bb8, #ff2a7e);
+            --brand-gradient-hover: linear-gradient(115deg, #005ac9, #b527a5, #e62671);
             
             /* Secondary Elements */
             --btn-secondary-bg: #e4e6eb;
             --btn-secondary-text: #050505;
             --btn-secondary-hover: #d8dadf;
             
-            /* Soft Depth Shadows */
+            /* Shadows and Assets */
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
             --shadow-glow: 0 4px 15px rgba(201, 43, 184, 0.25);
             
+            --icon-bg: #f0f2f5;
+            --icon-border: rgba(0,0,0,0.04);
+            
+            --toast-bg: #050505;
+            --toast-text: #ffffff;
+
             --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Dark Mode (Instagram Style Pattern) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Pitch black backgrounds & dark gray borders (Instagram standard) */
+                --bg-color: #000000; 
+                --surface-color: #000000;
+                --surface-hover: #121212;
+                --border-color: #262626; 
+                
+                /* High contrast white/gray text */
+                --text-primary: #fafafa;
+                --text-secondary: #a8a8a8;
+                
+                /* Iconic Instagram Sunset Gradient */
+                --brand-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+                --brand-gradient-hover: linear-gradient(45deg, #f09433 0%, #e6683c 20%, #dc2743 45%, #cc2366 70%, #bc1888 100%);
+                
+                /* Dark secondary buttons */
+                --btn-secondary-bg: #262626;
+                --btn-secondary-text: #fafafa;
+                --btn-secondary-hover: #363636;
+                
+                /* Flat UI in dark mode (no harsh drop shadows) */
+                --shadow-sm: none;
+                --shadow-md: none;
+                --shadow-glow: 0 4px 15px rgba(220, 39, 67, 0.3);
+                
+                --icon-bg: #121212;
+                --icon-border: #262626;
+                
+                /* Inverted toast for visibility */
+                --toast-bg: #fafafa;
+                --toast-text: #000000;
+            }
         }
 
         * {
@@ -49,6 +91,7 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -72,8 +115,8 @@
             font-weight: 800;
             letter-spacing: -0.8px;
             margin-bottom: 8px;
-            /* Meta AI Gradient Text Effect */
-            background: var(--meta-gradient);
+            /* Adaptive Gradient Text Effect */
+            background: var(--brand-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: inline-block;
@@ -112,7 +155,7 @@
             }
         }
 
-        /* Soft Meta-style Cards */
+        /* Soft Meta/Instagram-style Cards */
         .app-card {
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -137,7 +180,8 @@
         .app-card:hover {
             box-shadow: var(--shadow-md);
             transform: translateY(-4px);
-            border-color: transparent;
+            background-color: var(--surface-hover);
+            border-color: var(--border-color); /* Retain crisp outline in IG dark mode */
         }
 
         .app-header {
@@ -151,10 +195,10 @@
             height: 56px;
             border-radius: 16px;
             object-fit: cover;
-            background-color: #f0f2f5;
+            background-color: var(--icon-bg);
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(0,0,0,0.04);
+            border: 1px solid var(--icon-border);
         }
 
         .app-card:hover .app-icon {
@@ -200,16 +244,16 @@
         }
 
         .btn-primary {
-            background: var(--meta-gradient);
+            background: var(--brand-gradient);
             color: #ffffff;
             border: none;
             box-shadow: var(--shadow-glow);
         }
 
         .btn-primary:hover {
-            background: var(--meta-gradient-hover);
+            background: var(--brand-gradient-hover);
             transform: scale(1.02);
-            box-shadow: 0 6px 20px rgba(201, 43, 184, 0.35);
+            box-shadow: 0 6px 20px var(--shadow-glow);
         }
 
         .btn-secondary {
@@ -355,9 +399,9 @@
             toast.style.left = '50%';
             toast.style.transform = 'translateX(-50%) translateY(100px)';
             
-            /* Updated Toast to match the new light Meta theme */
-            toast.style.background = '#050505'; /* Dark toast for high contrast */
-            toast.style.color = '#ffffff';
+            /* Updated Toast to adapt automatically to Light/Dark themes */
+            toast.style.background = 'var(--toast-bg)'; /* Dark toast in light, Light toast in dark */
+            toast.style.color = 'var(--toast-text)';
             
             toast.style.padding = '14px 28px';
             toast.style.borderRadius = '50px';
