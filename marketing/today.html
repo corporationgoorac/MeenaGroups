@@ -231,6 +231,17 @@
             </div>
     </div>
 
+    <div id="productSearchModal" class="search-modal">
+        <div class="search-header">
+            <span class="material-symbols-outlined" style="cursor:pointer;" onclick="closeProductSearchModalManual()">arrow_back</span>
+            <input type="text" id="productSearchInput" placeholder="Search product name (e.g. Progesterone)..." onkeyup="handleProductSearchDelay()">
+            <span class="material-symbols-outlined" style="cursor:pointer;" onclick="clearProductSearch()">close</span>
+        </div>
+        <div class="search-results-container" id="productSearchResults">
+            <div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>
+        </div>
+    </div>
+
     <div id="gstModal" class="search-modal">
         <div class="search-header">
             <span class="material-symbols-outlined" style="cursor:pointer;" onclick="closeGstModalManual()">arrow_back</span>
@@ -280,6 +291,8 @@
             </div>
         </div>
         <div class="header-right">
+            <span class="material-symbols-outlined" style="cursor:pointer; font-size: 26px; margin-right: 15px; color: var(--accent-color);" onclick="openProductSearchModal()" title="Search Customers by Product">manage_search</span>
+            
             <span class="material-symbols-outlined" style="cursor:pointer; font-size: 26px; margin-right: 15px; color: var(--warning-color);" onclick="openGstModal()">request_quote</span>
             <span class="material-symbols-outlined" style="cursor:pointer; font-size: 26px;" onclick="openSearchModal()">search</span>
         </div>
@@ -540,6 +553,127 @@
                 } else {
                     cards[i].style.display = 'none';
                 }
+            }
+        };
+
+        // ADDED: Product -> Customer Search Logic
+        let prodSearchTimeout;
+        window.openProductSearchModal = function() {
+            const modal = document.getElementById('productSearchModal');
+            modal.classList.add('active');
+            document.getElementById('productSearchInput').focus();
+            history.pushState({ prodSearchModalOpen: true }, "");
+        };
+
+        window.closeProductSearchModalManual = function() {
+            history.back(); 
+        };
+
+        window.clearProductSearch = function() {
+            document.getElementById('productSearchInput').value = '';
+            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>';
+            document.getElementById('productSearchInput').focus();
+        };
+
+        window.handleProductSearchDelay = function() {
+            clearTimeout(prodSearchTimeout);
+            prodSearchTimeout = setTimeout(() => {
+                window.executeProductSearch();
+            }, 600); // 600ms debounce
+        };
+
+        window.executeProductSearch = async function() {
+            const queryTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('productSearchResults');
+            
+            if (!queryTerm) {
+                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching records...</div>';
+
+            try {
+                // Fetch recent sales to search through (Limiting to 500 for performance)
+                const q = query(
+                    collection(db, "sellings"),
+                    orderBy("date", "desc"),
+                    limit(500)
+                );
+                
+                const snap = await getDocs(q);
+                let matches = [];
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.items && Array.isArray(data.items)) {
+                        const matchingItems = data.items.filter(item => (item.name || '').toLowerCase().includes(queryTerm));
+                        
+                        if (matchingItems.length > 0) {
+                            const customerName = data.customer?.name || 'Cash Customer';
+                            const customerPhone = data.customer?.phone || 'No Phone';
+                            const customerAddress = data.customer?.address || 'No Address';
+                            const invoiceNo = data.invoiceNo || 'N/A';
+                            
+                            let dateFmt = "N/A";
+                            if (data.date && data.date.toDate) {
+                                const d = data.date.toDate();
+                                dateFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+                            }
+
+                            matches.push({
+                                customerName,
+                                customerPhone,
+                                customerAddress,
+                                invoiceNo,
+                                dateFmt,
+                                products: matchingItems.map(i => `${i.name} (Qty: ${i.qty})`).join(', ')
+                            });
+                        }
+                    }
+                });
+
+                if (matches.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <h3>No Customers Found</h3>
+                            <p>No recent sales found containing "${queryTerm}".</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</div>`;
+                
+                matches.forEach(match => {
+                    htmlOutput += `
+                        <div class="invoice-card" style="margin-bottom: 15px;">
+                            <div class="inv-header" style="background: #1a1a1a;">
+                                <div class="inv-meta">
+                                    <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
+                                </div>
+                                <div class="inv-time">${match.dateFmt}</div>
+                            </div>
+                            <div class="inv-body">
+                                <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
+                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
+                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
+                                </div>
+                                <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
+                                    <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
+                                    <strong style="color: var(--text-secondary);">Bought:</strong> <span style="color: white;">${match.products}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = htmlOutput;
+
+            } catch (err) {
+                console.error("Error searching products:", err);
+                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
             }
         };
 
@@ -1326,7 +1460,7 @@
             document.getElementById('printArea').innerHTML = ''; // Clean up after print dialog closes
         });
 
-        // Ensure popstate handles the closing of BOTH the search and GST modals
+        // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
         window.addEventListener('popstate', (e) => {
             const searchModal = document.getElementById('searchModal');
             if (searchModal.classList.contains('active')) {
@@ -1337,6 +1471,11 @@
             const gstModal = document.getElementById('gstModal');
             if (gstModal.classList.contains('active')) {
                 gstModal.classList.remove('active');
+            }
+
+            const productSearchModal = document.getElementById('productSearchModal');
+            if (productSearchModal && productSearchModal.classList.contains('active')) {
+                productSearchModal.classList.remove('active');
             }
         });
 
