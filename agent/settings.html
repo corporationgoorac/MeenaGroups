@@ -31,6 +31,14 @@
       margin: 0; padding: 0; 
       padding-bottom: 80px;
       overflow-x: hidden;
+      /* NEW: Hide scrollbar for IE, Edge and Firefox */
+      -ms-overflow-style: none;  
+      scrollbar-width: none;  
+    }
+    
+    /* NEW: Hide scrollbar for Chrome, Safari and Opera */
+    body::-webkit-scrollbar {
+      display: none;
     }
 
     /* --- APP BAR --- */
@@ -76,6 +84,9 @@
 
     .user-name { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
     .user-email { color: var(--text-sec); font-size: 0.9rem; font-weight: 400; }
+    
+    /* NEW: Phone number display styling */
+    .user-phone { color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-top: 6px; letter-spacing: 0.5px; }
 
     /* --- FORM SECTION --- */
     .settings-group {
@@ -160,6 +171,25 @@
       display: none; z-index: 2000;
       border-top: 1px solid var(--accent);
     }
+
+    /* --- NEW: PRODUCTION READY ENHANCEMENTS --- */
+    .profile-hero {
+      background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border-bottom: none;
+      border-radius: 0 0 24px 24px;
+    }
+    .user-avatar {
+      box-shadow: 0 0 20px rgba(255, 78, 69, 0.3);
+      transition: transform 0.3s ease;
+    }
+    .btn-save:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 4px 15px rgba(62, 166, 255, 0.4);
+    }
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.05);
+    }
   </style>
 </head>
 <body>
@@ -170,6 +200,8 @@
       if (cachedUser.name) {
         document.getElementById('displayName').innerText = cachedUser.name;
         document.getElementById('displayEmail').innerText = cachedUser.email;
+        // NEW: Load cached phone number instantly
+        if(cachedUser.phone) document.getElementById('displayPhone').innerText = cachedUser.phone;
         document.getElementById('nameInput').value = cachedUser.name;
         const pic = document.getElementById('displayPic');
         pic.src = cachedUser.photo || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
@@ -190,6 +222,7 @@
       <img src="https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png" id="displayPic" class="user-avatar" alt="Profile" onerror="this.src='https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png'">
       <div class="user-name" id="displayName">Loading profile...</div>
       <div class="user-email" id="displayEmail">---</div>
+      <div class="user-phone" id="displayPhone">---</div>
     </div>
 
     <div class="settings-group">
@@ -247,16 +280,21 @@
       if (user) {
         const photo = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_circle_blue_120dp.png';
         const name = user.displayName || 'Staff Member';
+        // NEW: Get phone number from auth
+        const phone = user.phoneNumber || 'No Phone Linked';
         
         displayPic.src = photo;
         document.getElementById('displayName').innerText = name;
         document.getElementById('displayEmail').innerText = user.email;
+        // NEW: Set phone number text
+        document.getElementById('displayPhone').innerText = phone;
         nameInput.value = name;
 
         // Save to LocalStorage for instant next-load
         localStorage.setItem('goorac_staff_user', JSON.stringify({
           name: name,
           email: user.email,
+          phone: phone, // NEW: Cache phone number
           photo: photo
         }));
 
