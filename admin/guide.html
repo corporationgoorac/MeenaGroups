@@ -114,6 +114,32 @@
       pointer-events: none;
     }
 
+    /* --- NEW: STAFF MANAGER ICON --- */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-icon {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .btn-icon:hover {
+      border-color: var(--secondary);
+      background: var(--card);
+      transform: translateY(-2px);
+    }
+
     .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
 
     /* --- AGENT CARDS GRID --- */
@@ -252,9 +278,40 @@
     .btn-dlg-cancel { background: #334155; color: white; }
     .btn-dlg-confirm { background: var(--primary); color: #000; }
 
+    /* --- NEW: STAFF MANAGER DRAWER (RIGHT SIDE) --- */
+    .side-drawer-overlay {
+      position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(5px);
+      z-index: 2500; opacity: 0; display: none; transition: opacity 0.3s;
+    }
+    .side-drawer-overlay.open { opacity: 1; }
+    
+    .side-drawer {
+      position: fixed; top: 0; right: 0; width: 100%; max-width: 400px; height: 100%;
+      background: var(--surface); border-left: 1px solid var(--border);
+      transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+    }
+    .side-drawer-overlay.open .side-drawer { transform: translateX(0); }
+    
+    .drawer-header {
+      padding: 24px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; background: var(--header-bg);
+    }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+    
+    .auth-user-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 18px; margin-bottom: 14px; cursor: pointer; transition: 0.2s; position: relative;
+    }
+    .auth-user-card:hover { border-color: var(--secondary); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+    .auth-user-card h4 { margin: 0 0 6px 0; color: #fff; font-size: 1.1rem; }
+    .auth-user-card p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+    .auth-user-card .uid-badge { display: inline-block; margin-top: 10px; background: rgba(56, 189, 248, 0.1); color: var(--secondary); padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-family: monospace; border: 1px solid rgba(56, 189, 248, 0.2); }
+
     @media (max-width: 600px) {
       .nav-container { flex-direction: column; align-items: flex-start; }
-      .search-wrapper { width: 100%; max-width: 100%; }
+      .search-wrapper { width: 100%; max-width: 100%; order: 3; margin-top: 10px; }
+      .header-actions { position: absolute; right: 20px; top: 15px; }
       .agent-grid { grid-template-columns: 1fr; }
       .action-row { flex-direction: column; }
     }
@@ -272,6 +329,12 @@
       <div class="search-wrapper">
         <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         <input type="text" id="searchInput" class="search-input" placeholder="Search agents by name...">
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-icon" onclick="openStaffManager()" title="Manage Auth Users">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        </button>
       </div>
     </div>
   </nav>
@@ -340,11 +403,55 @@
     </div>
   </div>
 
+  <div class="side-drawer-overlay" id="staffManagerOverlay">
+    <div class="side-drawer">
+      <div class="drawer-header">
+        <h3 style="margin:0; font-size:1.4rem; color:#fff; font-weight:800;">Staff Auth Sync</h3>
+        <button class="btn-close" onclick="closeStaffManager()">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div id="authUsersLoading" style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+          <div class="loading-spinner"></div>
+          <p>Connecting to HF Backend...</p>
+        </div>
+        <div id="authUsersList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet-overlay" id="staffAuthEditModalOverlay" style="z-index: 2600;">
+    <div class="bottom-sheet">
+      <div class="sheet-header">
+        <div>
+          <h3 class="sheet-title">Edit Master Auth Name</h3>
+          <p class="sheet-subtitle" id="staffAuthEditUid">UID: ...</p>
+        </div>
+        <button class="btn-close" onclick="closeStaffAuthEditModal()">✕</button>
+      </div>
+      
+      <div class="form-group">
+        <label>New Auth Display Name</label>
+        <input type="text" id="staffAuthEditNameInput" placeholder="Enter universal name...">
+      </div>
+
+      <div class="action-row">
+        <button class="btn-action btn-force-submit" onclick="saveStaffAuthName()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2z"></path></svg>
+          Update System-Wide
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from "./config.js";
+    // IMPORT UPDATE: Added updateDoc to safely push updates if needed later without deleting anything.
     import { 
-      collection, query, where, getDocs, writeBatch, doc 
+      collection, query, where, getDocs, writeBatch, doc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // --- NEW: BACKEND CONFIG ---
+    const HF_BACKEND_URL = "https://corporationgoorac-meenagroups.hf.space";
 
     let allGroupedAgents = []; // Holds the master grouped data
     let filteredAgents = [];   // Holds search results
@@ -354,10 +461,22 @@
     // Avatar Color Palette
     const avatarColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899'];
 
-    // --- 1. FETCH & GROUP DATA ---
-    async function loadAgentData() {
+    // --- 1. FETCH & GROUP DATA (NOW OPTIMIZED) ---
+    // OPTIMIZATION: Added forceRefresh parameter to utilize memory caching and save database reads.
+    async function loadAgentData(forceRefresh = false) {
       const grid = document.getElementById("agentGrid");
       const loader = document.getElementById("loadingState");
+      
+      // OPTIMIZATION: Memory Cache Check. Prevents re-reading if data is already loaded in this session.
+      if (!forceRefresh && allGroupedAgents.length > 0) {
+          loader.style.display = "none";
+          grid.innerHTML = "";
+          displayedCount = 0;
+          renderNextBatch();
+          return;
+      }
+
+      loader.style.display = "block";
       
       try {
         // --- ONLY SEE TEMP ENTRY AS REQUESTED ---
@@ -528,11 +647,18 @@
           docsCount++;
         });
 
+        // NEW UPGRADE: Update the master name in the "staffs" auth collection for future use
+        if (currentAgentData.uid && currentAgentData.uid !== 'unknown_uid') {
+          const staffAuthRef = doc(db, "staffs", currentAgentData.uid);
+          batch.update(staffAuthRef, { name: newName });
+          docsCount++; 
+        }
+
         if(docsCount > 0) await batch.commit();
 
         showCustomAlert("Success", `Agent name updated to ${newName} across ${docsCount} entries.`);
         closeAgentModal();
-        loadAgentData(); // Refresh UI entirely
+        loadAgentData(true); // OPTIMIZATION: Pass TRUE to force refresh from DB
 
       } catch (e) {
         showCustomAlert("Error", "Update failed: " + e.message);
@@ -578,7 +704,7 @@
             
             showCustomAlert("Success", `Submitted ${currentAgentData.count} drafts to the pending queue successfully.`);
             closeAgentModal();
-            loadAgentData(); // Refresh grid
+            loadAgentData(true); // OPTIMIZATION: Pass TRUE to force refresh from DB
 
           } catch (e) {
             showCustomAlert("Error", "Submit failed: " + e.message);
@@ -640,22 +766,135 @@
     window.showCustomAlert = (title, message) => openCustomDialog(title, message, false);
     window.showCustomConfirm = (title, message, callback) => openCustomDialog(title, message, true, callback);
 
-    // Mobile Back Button Router
+    // --- 9. NEW: STAFF MANAGER & AUTH EDIT LOGIC ---
+    let currentAuthEditUid = null;
+
+    window.openStaffManager = () => {
+      if (navigator.vibrate) navigator.vibrate(40);
+      const drawer = document.getElementById("staffManagerOverlay");
+      drawer.style.display = "block";
+      setTimeout(() => drawer.classList.add("open"), 10);
+      history.pushState({ modalOpen: 'staffManager' }, "");
+      fetchAuthUsersFromHF();
+    };
+
+    window.closeStaffManager = () => {
+      const drawer = document.getElementById("staffManagerOverlay");
+      drawer.classList.remove("open");
+      setTimeout(() => drawer.style.display = "none", 300);
+      if (history.state && history.state.modalOpen === 'staffManager') history.back();
+    };
+
+    async function fetchAuthUsersFromHF() {
+      const list = document.getElementById("authUsersList");
+      const loader = document.getElementById("authUsersLoading");
+      list.innerHTML = "";
+      loader.style.display = "block";
+
+      try {
+         const res = await fetch(`${HF_BACKEND_URL}/api/users`);
+         const data = await res.json();
+         loader.style.display = "none";
+         
+         if(data.success) {
+            data.users.forEach(u => {
+               const rawDate = u.lastSignInTime !== 'Never' ? new Date(u.lastSignInTime).toLocaleString() : 'Never logged in';
+               list.innerHTML += `
+                 <div class="auth-user-card" onclick="openStaffAuthEditModal('${u.uid}', '${u.displayName.replace(/'/g, "\\'")}')">
+                    <h4 id="auth-name-${u.uid}">${u.displayName}</h4>
+                    <p>📧 ${u.email || 'No Email Registered'}</p>
+                    <p style="margin-top:4px; opacity:0.7;">🕒 Last Active: ${rawDate}</p>
+                    <span class="uid-badge">UID: ${u.uid}</span>
+                 </div>
+               `;
+            });
+         } else {
+            list.innerHTML = `<p style="color:var(--danger); text-align:center;">Failed: ${data.error}</p>`;
+         }
+      } catch(e) {
+         loader.style.display = "none";
+         list.innerHTML = `<p style="color:var(--danger); text-align:center;">Could not connect to Hugging Face backend. Please check server status.</p>`;
+      }
+    }
+
+    window.openStaffAuthEditModal = (uid, currentName) => {
+       if (navigator.vibrate) navigator.vibrate(40);
+       currentAuthEditUid = uid;
+       document.getElementById("staffAuthEditUid").innerText = `UID: ${uid}`;
+       document.getElementById("staffAuthEditNameInput").value = currentName;
+       
+       const modal = document.getElementById("staffAuthEditModalOverlay");
+       modal.style.display = "flex";
+       setTimeout(() => modal.classList.add("open"), 10);
+       history.pushState({ modalOpen: 'staffAuthEditModal' }, "");
+    };
+
+    window.closeStaffAuthEditModal = () => {
+       const modal = document.getElementById("staffAuthEditModalOverlay");
+       modal.classList.remove("open");
+       setTimeout(() => modal.style.display = "none", 300);
+       if (history.state && history.state.modalOpen === 'staffAuthEditModal') history.back();
+    };
+
+    window.saveStaffAuthName = async () => {
+       const newName = document.getElementById("staffAuthEditNameInput").value.trim();
+       if(!newName || !currentAuthEditUid) return;
+
+       const btn = document.querySelector("#staffAuthEditModalOverlay .btn-force-submit");
+       const origText = btn.innerHTML;
+       btn.innerHTML = "Updating...";
+       btn.disabled = true;
+
+       try {
+          const res = await fetch(`${HF_BACKEND_URL}/api/users/update-name`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ uid: currentAuthEditUid, newName })
+          });
+          const data = await res.json();
+          
+          if(data.success) {
+             // 1. Update UI locally to reflect change instantly
+             const nameEl = document.getElementById(`auth-name-${currentAuthEditUid}`);
+             if(nameEl) nameEl.innerText = newName;
+             
+             // 2. Bonus Optimization: Also push name update to 'staffs' collection in Firestore so DB stays synced
+             try {
+                await updateDoc(doc(db, "staffs", currentAuthEditUid), { name: newName });
+             } catch(e) { console.warn("Notice: Auth updated, but staff doc sync failed/missing.", e); }
+
+             closeStaffAuthEditModal();
+             showCustomAlert("System Updated", "User's master Auth name has been updated successfully.");
+          } else {
+             showCustomAlert("Backend Error", data.error);
+          }
+       } catch(e) {
+          showCustomAlert("Network Error", "Could not reach the Hugging Face server. Is it running?");
+       } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+       }
+    };
+
+    // Mobile Back Button Router (UPDATED)
     window.addEventListener('popstate', (e) => {
-      const agentModal = document.getElementById("agentModalOverlay");
-      if (agentModal && agentModal.classList.contains("open")) {
-        agentModal.classList.remove("open");
-        setTimeout(() => agentModal.style.display = "none", 300);
-      }
+      const overlays = [
+         { id: "agentModalOverlay", class: "open" },
+         { id: "customDialogOverlay", class: "open" },
+         { id: "staffManagerOverlay", class: "open" },
+         { id: "staffAuthEditModalOverlay", class: "open" }
+      ];
       
-      const customDialog = document.getElementById("customDialogOverlay");
-      if (customDialog && customDialog.classList.contains("open")) {
-        customDialog.classList.remove("open");
-        setTimeout(() => customDialog.style.display = "none", 300);
-      }
+      overlays.forEach(overlayInfo => {
+         const el = document.getElementById(overlayInfo.id);
+         if (el && el.classList.contains(overlayInfo.class)) {
+            el.classList.remove(overlayInfo.class);
+            setTimeout(() => el.style.display = "none", 300);
+         }
+      });
     });
 
-    // Initialize
+    // Initialize (Defaulting to false so it fetches initially)
     loadAgentData();
 
   </script>
