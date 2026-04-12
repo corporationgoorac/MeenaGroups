@@ -334,16 +334,19 @@
                 
                 // Identify non-stick products
                 // const nonStickRegex = /non[\s\-]?stick/i;
-                const nonStickRegex = /non[\s\-]?st[io]ck/i; // BUG FIX: Safely catches "non-stock" alongside "non-stick"
-                const isANonStick = nonStickRegex.test(aName);
-                const isBNonStick = nonStickRegex.test(bName);
+                // const nonStickRegex = /non[\s\-]?st[io]ck/i; // BUG FIX: Safely catches "non-stock" alongside "non-stick"
+                
+                // ADVANCED FIX: Exclusively targeting "non-stock" per user request, ignoring "non-stick"
+                const nonStockRegex = /non[\s\-]?stock/i; 
+                const isANonStock = nonStockRegex.test(aName);
+                const isBNonStock = nonStockRegex.test(bName);
                 
                 // Identify exact matches (Smart matching)
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
 
-                // 1. Non-stick always goes to the bottom
-                if (isANonStick && !isBNonStick) return 1;
+                // 1. Non-stock always goes to the bottom
+                if (isANonStock && !isBNonStick) return 1;
                 if (!isANonStick && isBNonStick) return -1;
                 
                 // 2. Exact match always goes to the top
@@ -356,7 +359,17 @@
                     const bStarts = bName.startsWith(term);
                     if (aStarts && !bStarts) return -1;
                     if (!aStarts && bStarts) return 1;
+                    
+                    // 4. Secondary priority: Word boundary match (e.g. searching "stand" matches "Display Stand")
+                    const aHasWord = aName.includes(` ${term}`) || aName.includes(`-${term}`);
+                    const bHasWord = bName.includes(` ${term}`) || bName.includes(`-${term}`);
+                    if (aHasWord && !bHasWord) return -1;
+                    if (!aHasWord && bHasWord) return 1;
                 }
+
+                // 5. Fallback: Alphabetical sorting for clean, professional look
+                if (aName < bName) return -1;
+                if (aName > bName) return 1;
 
                 // Default: preserve existing order
                 return 0; 
