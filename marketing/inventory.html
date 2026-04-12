@@ -493,6 +493,7 @@
         let lastVisibleItem = null;
         let isFetchingMore = false;
         let hasMoreData = true;
+        let currentSearchTerm = ''; // Tracks search input globally for pagination
 
         async function loadInventory(isLoadMore = false) {
             const grid = document.getElementById('inventoryGrid');
@@ -532,12 +533,22 @@
                 // inventoryCache = advancedSort(inventoryCache);
                 // renderInventory(inventoryCache);
                 
-                // --- NEW DYNAMIC PAGINATED QUERY ---
+                // --- NEW DYNAMIC PAGINATED QUERY (Handles both Search and Default feed) ---
                 let q;
-                if (isLoadMore && lastVisibleItem) {
-                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                if (currentSearchTerm !== '') {
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    if (isLoadMore && lastVisibleItem) {
+                        // NO orderBy here to avoid requiring composite indexes for search
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(10));
+                    }
                 } else {
-                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                    if (isLoadMore && lastVisibleItem) {
+                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                    }
                 }
 
                 const snap = await getDocs(q);
@@ -557,16 +568,34 @@
                 // Update the cursor to the very last document fetched
                 lastVisibleItem = snap.docs[snap.docs.length - 1];
 
+                // OLD snap logic commented out
+                // snap.forEach(doc => {
+                //     if(!inventoryCache.find(i => i.id === doc.id)) {
+                //         inventoryCache.push({ id: doc.id, ...doc.data() });
+                //     }
+                // });
+                // inventoryCache = advancedSort(inventoryCache);
+                // renderInventory(inventoryCache);
+
+                // NEW snap logic: Only sort the new batch, and smoothly append it without re-sorting old items
+                let newItems = [];
                 snap.forEach(doc => {
                     // Prevent duplicates just in case
                     if(!inventoryCache.find(i => i.id === doc.id)) {
-                        inventoryCache.push({ id: doc.id, ...doc.data() });
+                        newItems.push({ id: doc.id, ...doc.data() });
                     }
                 });
                 
-                // Re-run the advanced sort on the entire accumulated cache so new 0-qty items always sink to the bottom
-                inventoryCache = advancedSort(inventoryCache);
-                renderInventory(inventoryCache);
+                // Only sort the incoming batch (dropping 0 qty to bottom of this batch)
+                newItems = advancedSort(newItems, currentSearchTerm);
+                inventoryCache = inventoryCache.concat(newItems);
+
+                // Seamlessly inject or replace the grid
+                if (isLoadMore) {
+                    renderInventoryAppend(newItems);
+                } else {
+                    renderInventory(inventoryCache);
+                }
 
                 if (isLoadMore && document.getElementById('scrollLoader')) {
                     document.getElementById('scrollLoader').style.display = 'none';
@@ -588,9 +617,10 @@
             const element = e.target;
             // If the user scrolls within 100 pixels of the bottom of the container
             if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
-                // Ensure we don't trigger pagination when searching or viewing the specific low-stock filter
-                if (!showingLowStock && document.getElementById('searchInventory').value.trim() === '') {
-                    loadInventory(true); // Call loadInventory with 'true' to trigger loadMore logic
+                // OLD: if (!showingLowStock && document.getElementById('searchInventory').value.trim() === '') {
+                // NEW logic below permits search pagination:
+                if (!showingLowStock) {
+                    loadInventory(true); // Trigger loadMore seamlessly
                 }
             }
         });
@@ -641,6 +671,50 @@
             grid.innerHTML = htmlBuffer; 
         }
 
+        // --- NEW RENDER APPEND METHOD (PREVENTS SCROLL JUMPING) ---
+        function renderInventoryAppend(dataArray) {
+            const grid = document.getElementById('inventoryGrid');
+            if (dataArray.length === 0) return;
+
+            let htmlBuffer = '';
+            dataArray.forEach(item => {
+                const q = item.qty || 0;
+                let qtyClass = "";
+                let oosBadge = "";
+                let cardClass = "inv-card";
+
+                if (q === 0) {
+                    qtyClass = "zero";
+                    cardClass += " out-of-stock";
+                    oosBadge = `<div class="oos-badge">Out of Stock</div>`;
+                } else if (q < 3) {
+                    qtyClass = "low";
+                }
+                
+                const safeName = (item.name || '').replace(/'/g, "\\'");
+
+                htmlBuffer += `
+                    <div class="${cardClass}">
+                        ${oosBadge}
+                        <div class="inv-info">
+                            <span class="inv-name">${item.name}</span>
+                            <span class="inv-model">${item.model || 'No Model ID'}</span>
+                            <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
+                            <div class="card-actions">
+                                <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="inv-qty ${qtyClass}">
+                            <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
+                            ${q === 0 ? '0' : q}
+                        </div>
+                    </div>
+                `;
+            });
+            grid.insertAdjacentHTML('beforeend', htmlBuffer);
+        }
+
         // --- Low Stock Filter Logic ---
         window.filterLowStock = async function() {
             const btn = document.getElementById('btnLowStock');
@@ -650,6 +724,7 @@
                 btn.style.backgroundColor = "var(--warning-color)";
                 searchBox.value = '';
                 showingLowStock = false;
+                currentSearchTerm = ''; // Reset search term
                 loadInventory(); 
             } else {
                 try {
@@ -689,6 +764,8 @@
             searchTimeout = setTimeout(async () => {
                 const term = e.target.value.toLowerCase().trim();
                 
+                // OLD STATIC LOGIC COMMENTED OUT
+                /*
                 if(term === '') {
                     // BUG FIX: Ensure the low stock button resets its UI if we clear a search while it was active
                     if (showingLowStock) {
@@ -726,6 +803,25 @@
                     console.error("Search error:", err);
                     showToast("Search failed.", "error");
                 }
+                */
+
+                // --- NEW PAGINATED SEARCH LOGIC ---
+                currentSearchTerm = term;
+                if(term === '') {
+                    // BUG FIX: Ensure the low stock button resets its UI if we clear a search while it was active
+                    if (showingLowStock) {
+                        const btn = document.getElementById('btnLowStock');
+                        btn.style.backgroundColor = "var(--warning-color)";
+                        btn.querySelector('.material-symbols-outlined').style.color = "white";
+                        showingLowStock = false;
+                    }
+                } else {
+                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Searching database...</div>';
+                }
+                
+                // Trigger fresh paginated load using the global currentSearchTerm
+                loadInventory(false);
+
             }, 400); // 400ms debounce
         });
 
@@ -878,6 +974,8 @@
                 renderPendingList();
                 history.back(); 
                 
+                currentSearchTerm = ''; // Reset search on new item creation
+                document.getElementById('searchInventory').value = '';
                 loadInventory();
 
             } catch (err) {
