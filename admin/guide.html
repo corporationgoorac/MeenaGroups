@@ -379,6 +379,11 @@
         <input type="text" id="editAgentNameInput" placeholder="Enter new name...">
       </div>
 
+      <div class="form-group">
+        <label>Update Phone Number</label>
+        <input type="text" id="editAgentPhoneInput" placeholder="Enter phone number (+91...)">
+      </div>
+
       <div class="action-row">
         <button class="btn-action btn-save-name" onclick="saveAgentName()">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2z"></path></svg>
@@ -434,6 +439,11 @@
         <input type="text" id="staffAuthEditNameInput" placeholder="Enter universal name...">
       </div>
 
+      <div class="form-group">
+        <label>New Auth Phone Number</label>
+        <input type="text" id="staffAuthEditPhoneInput" placeholder="Enter universal phone (+91...)">
+      </div>
+
       <div class="action-row">
         <button class="btn-action btn-force-submit" onclick="saveStaffAuthName()">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2z"></path></svg>
@@ -445,7 +455,6 @@
 
   <script type="module">
     import { db } from "./config.js";
-    // IMPORT UPDATE: Added updateDoc to safely push updates if needed later without deleting anything.
     import { 
       collection, query, where, getDocs, writeBatch, doc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -462,12 +471,10 @@
     const avatarColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899'];
 
     // --- 1. FETCH & GROUP DATA (NOW OPTIMIZED) ---
-    // OPTIMIZATION: Added forceRefresh parameter to utilize memory caching and save database reads.
     async function loadAgentData(forceRefresh = false) {
       const grid = document.getElementById("agentGrid");
       const loader = document.getElementById("loadingState");
       
-      // OPTIMIZATION: Memory Cache Check. Prevents re-reading if data is already loaded in this session.
       if (!forceRefresh && allGroupedAgents.length > 0) {
           loader.style.display = "none";
           grid.innerHTML = "";
@@ -479,7 +486,6 @@
       loader.style.display = "block";
       
       try {
-        // --- ONLY SEE TEMP ENTRY AS REQUESTED ---
         const q = query(collection(db, "temp_entries"), where("status", "in", ["draft", "pending"])); 
         const snapshot = await getDocs(q);
         const map = {};
@@ -492,6 +498,7 @@
             map[uid] = {
               uid: uid,
               name: d.staffName || 'Unknown Agent',
+              phone: d.staffPhone || '', // Captured existing phone for modal population
               count: 0,
               amount: 0,
               docs: [],       
@@ -499,10 +506,8 @@
             };
           }
           
-          // Always push to docs array so we can rename them even if they are pending
           map[uid].docs.push({ id: docSnap.id, ...d });
 
-          // ONLY increment amounts and draft counts if the status is actually a draft
           if (d.status === "draft") {
             map[uid].count++;
             map[uid].amount += parseFloat(d.amount || 0);
@@ -510,7 +515,6 @@
           }
         });
 
-        // Convert to array and sort by Highest Amount
         allGroupedAgents = Object.values(map).sort((a, b) => b.amount - a.amount);
         filteredAgents = [...allGroupedAgents];
         
@@ -545,7 +549,6 @@
       for (let i = displayedCount; i < endIndex; i++) {
         const agent = filteredAgents[i];
         
-        // Generate Avatar Letter and Color
         const initial = agent.name.charAt(0).toUpperCase();
         const colorIndex = agent.uid.length % avatarColors.length;
         const bgColor = avatarColors[colorIndex];
@@ -607,7 +610,9 @@
       document.getElementById("modalAgentName").innerText = currentAgentData.name;
       document.getElementById("modalAgentStats").innerText = `${currentAgentData.count} Drafts • ₹${currentAgentData.amount.toLocaleString('en-IN')}`;
       document.getElementById("modalAgentUid").value = currentAgentData.uid;
+      
       document.getElementById("editAgentNameInput").value = currentAgentData.name;
+      document.getElementById("editAgentPhoneInput").value = currentAgentData.phone || ''; // Populates existing phone
 
       const sheet = document.getElementById("agentModalOverlay");
       sheet.style.display = "flex";
@@ -626,10 +631,12 @@
       }
     };
 
-    // --- 6. ACTION: SAVE NAME ---
+    // --- 6. ACTION: SAVE NAME & PHONE (AGENT MODAL) ---
     window.saveAgentName = async () => {
       const newName = document.getElementById("editAgentNameInput").value.trim();
-      if (!newName || newName === currentAgentData.name) return closeAgentModal();
+      const newPhone = document.getElementById("editAgentPhoneInput").value.trim();
+      
+      if (!newName && !newPhone) return closeAgentModal();
 
       const btn = document.querySelector(".btn-save-name");
       const originalText = btn.innerHTML;
@@ -640,25 +647,29 @@
         const batch = writeBatch(db);
         let docsCount = 0;
 
-        // UPGRADE: Update name in ALL docs (both draft and pending) for this agent
         currentAgentData.docs.forEach(docData => {
           const ref = doc(db, "temp_entries", docData.id);
-          batch.update(ref, { staffName: newName });
+          let updates = {};
+          if(newName) updates.staffName = newName;
+          if(newPhone) updates.staffPhone = newPhone;
+          batch.update(ref, updates);
           docsCount++;
         });
 
-        // NEW UPGRADE: Update the master name in the "staffs" auth collection for future use
         if (currentAgentData.uid && currentAgentData.uid !== 'unknown_uid') {
           const staffAuthRef = doc(db, "staffs", currentAgentData.uid);
-          batch.update(staffAuthRef, { name: newName });
+          let updates = {};
+          if(newName) updates.name = newName;
+          if(newPhone) updates.phone = newPhone;
+          batch.update(staffAuthRef, updates);
           docsCount++; 
         }
 
         if(docsCount > 0) await batch.commit();
 
-        showCustomAlert("Success", `Agent name updated to ${newName} across ${docsCount} entries.`);
+        showCustomAlert("Success", `Agent details updated across ${docsCount} entries.`);
         closeAgentModal();
-        loadAgentData(true); // OPTIMIZATION: Pass TRUE to force refresh from DB
+        loadAgentData(true);
 
       } catch (e) {
         showCustomAlert("Error", "Update failed: " + e.message);
@@ -672,7 +683,6 @@
     window.forceSubmitAgent = async () => {
       if (!currentAgentData) return;
       
-      // UPGRADE: Prevent submitting if they have 0 drafts
       if (currentAgentData.count === 0) {
           showCustomAlert("Empty", "This agent currently has 0 drafts to submit.");
           return;
@@ -691,11 +701,10 @@
           try {
             const batch = writeBatch(db);
             
-            // UPGRADE: Ensure we ONLY submit draftDocs, not ones already pending
             const draftsToSubmit = currentAgentData.draftDocs || [];
             draftsToSubmit.forEach(docData => {
               const ref = doc(db, "temp_entries", docData.id);
-              batch.update(ref, { status: "pending" }); // Push to admin approval queue
+              batch.update(ref, { status: "pending" }); 
             });
 
             if (draftsToSubmit.length > 0) await batch.commit();
@@ -704,7 +713,7 @@
             
             showCustomAlert("Success", `Submitted ${currentAgentData.count} drafts to the pending queue successfully.`);
             closeAgentModal();
-            loadAgentData(true); // OPTIMIZATION: Pass TRUE to force refresh from DB
+            loadAgentData(true); 
 
           } catch (e) {
             showCustomAlert("Error", "Submit failed: " + e.message);
@@ -766,7 +775,7 @@
     window.showCustomAlert = (title, message) => openCustomDialog(title, message, false);
     window.showCustomConfirm = (title, message, callback) => openCustomDialog(title, message, true, callback);
 
-    // --- 9. NEW: STAFF MANAGER & AUTH EDIT LOGIC ---
+    // --- 9. STAFF MANAGER & AUTH EDIT LOGIC ---
     let currentAuthEditUid = null;
 
     window.openStaffManager = () => {
@@ -799,10 +808,14 @@
          if(data.success) {
             data.users.forEach(u => {
                const rawDate = u.lastSignInTime !== 'Never' ? new Date(u.lastSignInTime).toLocaleString() : 'Never logged in';
+               const safeName = (u.displayName || '').replace(/'/g, "\\'");
+               const safePhone = (u.phoneNumber || '').replace(/'/g, "\\'");
+               
                list.innerHTML += `
-                 <div class="auth-user-card" onclick="openStaffAuthEditModal('${u.uid}', '${u.displayName.replace(/'/g, "\\'")}')">
+                 <div class="auth-user-card" onclick="openStaffAuthEditModal('${u.uid}', '${safeName}', '${safePhone}')">
                     <h4 id="auth-name-${u.uid}">${u.displayName}</h4>
                     <p>📧 ${u.email || 'No Email Registered'}</p>
+                    <p>📱 <span id="auth-phone-${u.uid}">${u.phoneNumber || 'No Phone'}</span></p>
                     <p style="margin-top:4px; opacity:0.7;">🕒 Last Active: ${rawDate}</p>
                     <span class="uid-badge">UID: ${u.uid}</span>
                  </div>
@@ -817,11 +830,14 @@
       }
     }
 
-    window.openStaffAuthEditModal = (uid, currentName) => {
+    // UPDATED: Now receives the currentPhone parameter
+    window.openStaffAuthEditModal = (uid, currentName, currentPhone) => {
        if (navigator.vibrate) navigator.vibrate(40);
        currentAuthEditUid = uid;
        document.getElementById("staffAuthEditUid").innerText = `UID: ${uid}`;
+       
        document.getElementById("staffAuthEditNameInput").value = currentName;
+       document.getElementById("staffAuthEditPhoneInput").value = (currentPhone && currentPhone !== 'No Phone') ? currentPhone : '';
        
        const modal = document.getElementById("staffAuthEditModalOverlay");
        modal.style.display = "flex";
@@ -836,9 +852,12 @@
        if (history.state && history.state.modalOpen === 'staffAuthEditModal') history.back();
     };
 
+    // UPDATED: Fetches both Name and Phone endpoints to the Node.js backend
     window.saveStaffAuthName = async () => {
        const newName = document.getElementById("staffAuthEditNameInput").value.trim();
-       if(!newName || !currentAuthEditUid) return;
+       const newPhone = document.getElementById("staffAuthEditPhoneInput").value.trim();
+       if(!newName && !newPhone) return;
+       if(!currentAuthEditUid) return;
 
        const btn = document.querySelector("#staffAuthEditModalOverlay .btn-force-submit");
        const origText = btn.innerHTML;
@@ -846,27 +865,51 @@
        btn.disabled = true;
 
        try {
-          const res = await fetch(`${HF_BACKEND_URL}/api/users/update-name`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ uid: currentAuthEditUid, newName })
-          });
-          const data = await res.json();
-          
-          if(data.success) {
-             // 1. Update UI locally to reflect change instantly
+          let hasError = false;
+          let errorMsg = "";
+
+          // 1. Update Name if provided
+          if (newName) {
+              const resName = await fetch(`${HF_BACKEND_URL}/api/users/update-name`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ uid: currentAuthEditUid, newName })
+              });
+              const dataName = await resName.json();
+              if(!dataName.success) { hasError = true; errorMsg += dataName.error + " "; }
+          }
+
+          // 2. Update Phone if provided (Uses the auto-format logic you have on backend)
+          if (newPhone) {
+              const resPhone = await fetch(`${HF_BACKEND_URL}/api/users/update-phone`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ uid: currentAuthEditUid, newPhone })
+              });
+              const dataPhone = await resPhone.json();
+              if(!dataPhone.success) { hasError = true; errorMsg += dataPhone.error + " "; }
+          }
+
+          if(!hasError || errorMsg === "") {
+             // Instantly Update UI locally
              const nameEl = document.getElementById(`auth-name-${currentAuthEditUid}`);
-             if(nameEl) nameEl.innerText = newName;
+             if(nameEl && newName) nameEl.innerText = newName;
              
-             // 2. Bonus Optimization: Also push name update to 'staffs' collection in Firestore so DB stays synced
+             const phoneEl = document.getElementById(`auth-phone-${currentAuthEditUid}`);
+             if(phoneEl && newPhone) phoneEl.innerText = newPhone;
+             
+             // Sync to Firestore 'staffs' document
              try {
-                await updateDoc(doc(db, "staffs", currentAuthEditUid), { name: newName });
+                let updates = {};
+                if(newName) updates.name = newName;
+                if(newPhone) updates.phone = newPhone;
+                await updateDoc(doc(db, "staffs", currentAuthEditUid), updates);
              } catch(e) { console.warn("Notice: Auth updated, but staff doc sync failed/missing.", e); }
 
              closeStaffAuthEditModal();
-             showCustomAlert("System Updated", "User's master Auth name has been updated successfully.");
+             showCustomAlert("System Updated", "User's master Auth details have been updated successfully.");
           } else {
-             showCustomAlert("Backend Error", data.error);
+             showCustomAlert("Partial Update / Error", errorMsg);
           }
        } catch(e) {
           showCustomAlert("Network Error", "Could not reach the Hugging Face server. Is it running?");
@@ -876,7 +919,6 @@
        }
     };
 
-    // Mobile Back Button Router (UPDATED)
     window.addEventListener('popstate', (e) => {
       const overlays = [
          { id: "agentModalOverlay", class: "open" },
@@ -894,7 +936,6 @@
       });
     });
 
-    // Initialize (Defaulting to false so it fetches initially)
     loadAgentData();
 
   </script>
