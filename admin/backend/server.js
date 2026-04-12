@@ -11,7 +11,6 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Firebase Admin SDK using Hugging Face Secrets
-// You must paste your entire Firebase service account JSON into a Hugging Face secret named FIREBASE_SERVICE_ACCOUNT
 try {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({
@@ -27,7 +26,6 @@ const db = admin.firestore();
 // ==========================================
 // 1. AUTOMATED CRON JOB (12:00 AM IST)
 // ==========================================
-// This runs every day at Midnight (00:00) Indian Standard Time
 cron.schedule('0 0 * * *', async () => {
   console.log(`[${new Date().toISOString()}] 🕒 Running Midnight Cron Job: Submitting Drafts...`);
   
@@ -39,8 +37,6 @@ cron.schedule('0 0 * * *', async () => {
       return;
     }
 
-    // Firestore allows a maximum of 500 writes per batch. 
-    // This safely chunks the updates if you have a lot of agents/drafts.
     const batches = [];
     let currentBatch = db.batch();
     let count = 0;
@@ -78,20 +74,19 @@ cron.schedule('0 0 * * *', async () => {
 // 2. EXPRESS API ENDPOINTS
 // ==========================================
 
-// Health Check Endpoint for Hugging Face
 app.get('/', (req, res) => {
   res.send('Meena Groups Admin Backend is running.');
 });
 
-// GET: Fetch all Auth Users
+// GET: Fetch all Auth Users (Now includes phoneNumber)
 app.get('/api/users', async (req, res) => {
   try {
-    // Fetches up to 1000 users. If you have more, you would implement pagination with pageTokens.
     const listUsersResult = await admin.auth().listUsers(1000);
     
     const users = listUsersResult.users.map(user => ({
       uid: user.uid,
       email: user.email,
+      phoneNumber: user.phoneNumber || 'No Phone', // Added phone number retrieval
       displayName: user.displayName || 'No Name Set',
       lastSignInTime: user.metadata.lastSignInTime || 'Never',
       creationTime: user.metadata.creationTime
@@ -126,7 +121,54 @@ app.post('/api/users/update-name', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error("Error updating user name:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST: Update Auth User Phone Number
+app.post('/api/users/update-phone', async (req, res) => {
+  const { uid, newPhone } = req.body;
+
+  if (!uid || !newPhone) {
+    return res.status(400).json({ success: false, error: "Missing uid or newPhone" });
+  }
+
+  // --- AUTOMATIC PHONE NUMBER FORMATTING ---
+  // 1. Remove all spaces, dashes, and parentheses
+  let formattedPhone = newPhone.replace(/[\s\-\(\)]/g, ''); 
+  
+  // 2. Remove leading '0' if an Indian user typed it out of habit
+  if (formattedPhone.startsWith('0') && formattedPhone.length > 10) {
+    formattedPhone = formattedPhone.substring(1);
+  }
+  
+  // 3. Ensure it has the '+91' country code
+  if (!formattedPhone.startsWith('+')) {
+    if (formattedPhone.startsWith('91') && formattedPhone.length === 12) {
+      formattedPhone = '+' + formattedPhone;
+    } else {
+      formattedPhone = '+91' + formattedPhone;
+    }
+  }
+
+  try {
+    const userRecord = await admin.auth().updateUser(uid, {
+      // Must include country code, e.g., +91...
+      phoneNumber: formattedPhone 
+    });
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Phone number updated successfully", 
+      user: {
+        uid: userRecord.uid,
+        phoneNumber: userRecord.phoneNumber
+      }
+    });
+  } catch (error) {
+    console.error("Error updating phone number:", error);
+    // Firebase throws specific errors if the phone number format is invalid or already in use
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -134,8 +176,17 @@ app.post('/api/users/update-name', async (req, res) => {
 // ==========================================
 // 3. SERVER INITIALIZATION
 // ==========================================
-// Hugging Face Spaces specifically route external traffic to port 7860
 const PORT = process.env.PORT || 7860;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// ==========================================
+// 4. EXTERNAL SERVER INITIALIZATION
+// ==========================================
+try {
+  require('./msg.js');
+  console.log("📨 msg.js external server initialized successfully.");
+} catch (error) {
+  console.error("❌ Failed to load msg.js:", error.message);
+}
