@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const cron = require('node-cron');
+const fs = require('fs'); // NEW: Needed to read the QR image
+const path = require('path'); // NEW: Needed to find the image path
 require('dotenv').config();
 
 const app = express();
@@ -76,6 +78,24 @@ cron.schedule('0 0 * * *', async () => {
 
 app.get('/', (req, res) => {
   res.send('Meena Groups Admin Backend is running.');
+});
+
+// --- NEW: WEBPAGE TO VIEW QR CODE ---
+app.get('/qr', (req, res) => {
+  const qrPath = path.join(__dirname, 'whatsapp-qr.png');
+  // Check if the image exists inside the container
+  if (fs.existsSync(qrPath)) {
+    res.sendFile(qrPath); // Send the image directly to the browser
+  } else {
+    // If it's already scanned or still downloading, show a helpful message
+    res.status(404).send(`
+      <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+        <h2>QR Code Status</h2>
+        <p>The QR Code is either already successfully scanned, or the system is currently generating a new one.</p>
+        <p>Please wait 10 seconds and <button onclick="window.location.reload()" style="padding: 5px 10px; cursor: pointer;">Refresh Page</button></p>
+      </div>
+    `);
+  }
 });
 
 // GET: Fetch all Auth Users (Now includes phoneNumber)

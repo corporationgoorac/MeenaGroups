@@ -1,0 +1,27 @@
+FROM node:18-bullseye
+
+# Install Chromium and required Linux graphics libraries
+RUN apt-get update && apt-get install -y \
+    chromium \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up working directory
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of your application code
+COPY . .
+
+# Give the 'node' user permission to write the WhatsApp session folder
+RUN chown -R node:node /app
+USER node
+
+# Expose the Hugging Face port
+EXPOSE 7860
+
+# Start the server
+CMD ["node", "server.js"]
