@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="marketing/icon.png" alt="Meena Groups Logo" width="120" style="margin-bottom: 10px;" />
+  <img src="admin/icon.png" alt="Meena Groups Logo" width="120" style="margin-bottom: 10px;" />
   
   <h1 style="background-color: #111; padding: 10px 25px; border-radius: 8px; display: inline-block;">
     <span style="color: #FF0000; font-family: 'Arial Black', Impact, sans-serif; font-weight: 900; letter-spacing: 1px;">Meena</span>
