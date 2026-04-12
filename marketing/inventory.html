@@ -308,7 +308,10 @@
 
         // 2. Firebase Imports 
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
+        // --- COMMENTED OUT OLD IMPORT TO ADD PAGINATION (startAfter) ---
+        // import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
@@ -482,30 +485,115 @@
             }
         };
 
-        // --- FETCH AND DISPLAY INVENTORY (CAPPED AT 50 TO PREVENT 10K READS) ---
+        // --- FETCH AND DISPLAY INVENTORY (PAGINATION INTEGRATED) ---
         let inventoryCache = [];
         let showingLowStock = false;
+        
+        // --- NEW PAGINATION VARIABLES ---
+        let lastVisibleItem = null;
+        let isFetchingMore = false;
+        let hasMoreData = true;
 
-        async function loadInventory() {
+        async function loadInventory(isLoadMore = false) {
             const grid = document.getElementById('inventoryGrid');
+            
+            // --- NEW PAGINATION LOGIC ---
+            if (isLoadMore) {
+                if (isFetchingMore || !hasMoreData) return;
+                isFetchingMore = true;
+                // Safely add a scroll loader if it doesn't exist
+                if(!document.getElementById('scrollLoader')) {
+                    const loader = document.createElement('div');
+                    loader.id = 'scrollLoader';
+                    loader.style.cssText = "text-align:center; color:var(--accent-color); width:100%; padding:20px; font-weight:bold;";
+                    loader.innerText = "Loading more products...";
+                    grid.parentNode.appendChild(loader);
+                } else {
+                    document.getElementById('scrollLoader').style.display = 'block';
+                    document.getElementById('scrollLoader').innerText = "Loading more products...";
+                }
+            } else {
+                // Reset everything for a fresh load
+                hasMoreData = true;
+                lastVisibleItem = null;
+                inventoryCache = [];
+                // We leave the innerHTML loading message untouched to preserve lines, 
+                // but it gets overwritten when the data renders below.
+            }
+
             try {
-                // MODIFIED: Added limit(50) to allow up to 50 results
-                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(50));
+                // --- OLD STATIC LOAD COMMENTED OUT TO PRESERVE LINES ---
+                // const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(50));
+                // const snap = await getDocs(q);
+                // inventoryCache = [];
+                // snap.forEach(doc => {
+                //     inventoryCache.push({ id: doc.id, ...doc.data() });
+                // });
+                // inventoryCache = advancedSort(inventoryCache);
+                // renderInventory(inventoryCache);
+                
+                // --- NEW DYNAMIC PAGINATED QUERY ---
+                let q;
+                if (isLoadMore && lastVisibleItem) {
+                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                } else {
+                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                }
+
                 const snap = await getDocs(q);
                 
-                inventoryCache = [];
+                if (snap.empty) {
+                    hasMoreData = false;
+                    if (isLoadMore && document.getElementById('scrollLoader')) {
+                        document.getElementById('scrollLoader').innerText = "End of inventory";
+                        setTimeout(() => { if(document.getElementById('scrollLoader')) document.getElementById('scrollLoader').style.display = 'none'; }, 2000);
+                    } else if (!isLoadMore) {
+                        grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">No matching products found.</div>';
+                    }
+                    isFetchingMore = false;
+                    return;
+                }
+
+                // Update the cursor to the very last document fetched
+                lastVisibleItem = snap.docs[snap.docs.length - 1];
+
                 snap.forEach(doc => {
-                    inventoryCache.push({ id: doc.id, ...doc.data() });
+                    // Prevent duplicates just in case
+                    if(!inventoryCache.find(i => i.id === doc.id)) {
+                        inventoryCache.push({ id: doc.id, ...doc.data() });
+                    }
                 });
                 
+                // Re-run the advanced sort on the entire accumulated cache so new 0-qty items always sink to the bottom
                 inventoryCache = advancedSort(inventoryCache);
                 renderInventory(inventoryCache);
+
+                if (isLoadMore && document.getElementById('scrollLoader')) {
+                    document.getElementById('scrollLoader').style.display = 'none';
+                }
+
             } catch (err) {
                 console.error(err);
-                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
+                if (!isLoadMore) {
+                    grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px;">Error loading inventory. Check permissions.</div>';
+                }
                 showToast(err.message || "Failed to load inventory data.", "error");
+            } finally {
+                isFetchingMore = false;
             }
         }
+
+        // --- ADDED: INFINITE SCROLL LISTENER ---
+        document.querySelector('.main-scroll-area').addEventListener('scroll', (e) => {
+            const element = e.target;
+            // If the user scrolls within 100 pixels of the bottom of the container
+            if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+                // Ensure we don't trigger pagination when searching or viewing the specific low-stock filter
+                if (!showingLowStock && document.getElementById('searchInventory').value.trim() === '') {
+                    loadInventory(true); // Call loadInventory with 'true' to trigger loadMore logic
+                }
+            }
+        });
 
         function renderInventory(dataArray) {
             const grid = document.getElementById('inventoryGrid');
