@@ -12,14 +12,14 @@
 
   <style>
     /* * ==========================================
-     * 1. PROFESSIONAL CORPORATE THEME
+     * 1. PROFESSIONAL CORPORATE THEME (DARK MODE DEFAULT)
      * ==========================================
      */
     :root { 
       --bg: #050505; 
       --surface: #111111; 
       --card: #1a1a1a; 
-      --border: #333;
+      --border: #333333;
       
       /* Branding Colors */
       --brand-red: #ff3b30; 
@@ -32,8 +32,48 @@
       
       --text-main: #ffffff;
       --text-muted: #8e8e93;
+
+      /* Structural Colors for automatic switching */
+      --header-bg: rgba(20, 20, 20, 0.8);
+      --card-top-bg: linear-gradient(to bottom, #1a1a1a, #111111);
+      --footer-bg: #080808;
+      --table-border: rgba(255, 255, 255, 0.05);
+      --mobile-tr-bg: #151515;
+      --modal-overlay: rgba(0,0,0,0.85);
+      --modal-btn-bg: #ffffff;
+      --modal-btn-txt: #000000;
+      --modal-btn-hover: #eeeeee;
     }
     
+    /* * ==========================================
+     * 1.1 AUTOMATIC LIGHT MODE DETECTION
+     * ==========================================
+     */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f2f2f7; 
+        --surface: #ffffff; 
+        --card: #ffffff; 
+        --border: #d1d1d6;
+        
+        --brand-red: #d70015; /* Darker red for better contrast in light mode */
+        --brand-white: #000000; /* Dark text for brand name */
+        
+        --text-main: #1c1c1e;
+        --text-muted: #8e8e93;
+
+        --header-bg: rgba(255, 255, 255, 0.85);
+        --card-top-bg: linear-gradient(to bottom, #fcfcfc, #f2f2f7);
+        --footer-bg: #f2f2f7;
+        --table-border: rgba(0, 0, 0, 0.05);
+        --mobile-tr-bg: #ffffff;
+        --modal-overlay: rgba(255,255,255,0.75);
+        --modal-btn-bg: #000000;
+        --modal-btn-txt: #ffffff;
+        --modal-btn-hover: #333333;
+      }
+    }
+
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
     
     body { 
@@ -43,6 +83,7 @@
       margin: 0; padding: 0; 
       min-height: 100vh;
       display: flex; flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     /* * ==========================================
@@ -50,13 +91,14 @@
      * ==========================================
      */
     header {
-      background: rgba(20, 20, 20, 0.8);
+      background: var(--header-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       padding: 20px;
       position: sticky; top: 0; z-index: 50;
       display: flex; justify-content: space-between; align-items: center;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .brand-logo {
@@ -97,7 +139,11 @@
       padding: 40px 30px;
       border-radius: 24px;
       width: 100%; max-width: 380px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    @media (prefers-color-scheme: dark) {
+      .login-card { box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
     }
 
     .login-header { text-align: center; margin-bottom: 30px; }
@@ -111,7 +157,7 @@
       width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
-      color: white;
+      color: var(--text-main);
       padding: 14px;
       border-radius: 12px;
       font-size: 1rem;
@@ -148,7 +194,8 @@
     }
     .user-info h1 { margin: 0; font-size: 1.5rem; }
     .user-info p { margin: 5px 0 0; color: var(--text-muted); font-family: monospace; }
-    .btn-logout { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+    .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600;}
+    .btn-logout:hover { background: var(--border); }
 
     /* Product Card */
     .product-card {
@@ -161,7 +208,7 @@
 
     .card-top {
       padding: 20px;
-      background: linear-gradient(to bottom, #1a1a1a, #111);
+      background: var(--card-top-bg);
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid var(--border);
     }
@@ -179,13 +226,13 @@
       text-transform: uppercase; letter-spacing: 0.5px;
     }
     
-    .ledger-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .ledger-table td { padding: 15px; border-bottom: 1px solid var(--table-border); vertical-align: middle; }
     
     /* Columns Styling */
-    .col-due { font-weight: 700; color: #fff; display: block; }
-    .col-date { font-size: 0.7rem; color: #666; margin-top: 3px; font-family: monospace; }
+    .col-due { font-weight: 700; color: var(--text-main); display: block; }
+    .col-date { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-family: monospace; }
     
-    .col-amt { font-family: 'Inter', sans-serif; font-weight: 600; color: #fff; }
+    .col-amt { font-family: 'Inter', sans-serif; font-weight: 600; color: var(--text-main); }
     
     /* Balance Column (Running Total) */
     .col-bal { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--text-muted); opacity: 0.8; }
@@ -201,7 +248,7 @@
 
     /* Footer Stats */
     .card-footer {
-      padding: 20px; background: #080808; 
+      padding: 20px; background: var(--footer-bg); 
       display: flex; justify-content: flex-end; align-items: center; gap: 15px;
       border-top: 1px solid var(--border);
     }
@@ -230,11 +277,11 @@
             display: grid;
             grid-template-columns: 1fr 1fr; /* 2 Column Layout */
             gap: 8px;
-            background: #151515;
+            background: var(--mobile-tr-bg);
             margin: 10px;
             padding: 15px;
             border-radius: 12px;
-            border: 1px solid #222;
+            border: 1px solid var(--border);
         }
 
         .ledger-table td {
@@ -251,11 +298,11 @@
         
         /* Paid (Bottom Left) */
         .td-pay { grid-column: 1 / span 1; margin-top: 8px; }
-        .td-pay::before { content: "Paid: "; color: #555; font-size: 0.7rem; }
+        .td-pay::before { content: "Paid: "; color: var(--text-muted); font-size: 0.7rem; }
 
         /* Balance (Bottom Right) */
         .td-bal { grid-column: 2 / span 1; text-align: right; margin-top: 8px; }
-        .td-bal::before { content: "Bal: "; color: #555; font-size: 0.7rem; }
+        .td-bal::before { content: "Bal: "; color: var(--text-muted); font-size: 0.7rem; }
         
         .card-top, .card-footer { padding: 15px; }
     }
@@ -267,7 +314,7 @@
     #custom-modal {
       display: none;
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
+      background: var(--modal-overlay);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       z-index: 1000;
@@ -276,13 +323,13 @@
     }
 
     .modal-content {
-      background: #111;
-      border: 1px solid #333;
+      background: var(--surface);
+      border: 1px solid var(--border);
       padding: 30px;
       border-radius: 16px;
       text-align: center;
       max-width: 400px; width: 100%;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
       transform: scale(0.95);
       opacity: 0;
       transition: all 0.3s ease;
@@ -291,16 +338,17 @@
     .modal-show .modal-content { transform: scale(1); opacity: 1; }
 
     .modal-icon { font-size: 2rem; margin-bottom: 15px; display: block; }
-    .modal-title { color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0 0 10px 0; }
-    .modal-msg { color: #888; font-size: 0.9rem; line-height: 1.5; margin-bottom: 25px; }
+    .modal-title { color: var(--text-main); font-size: 1.25rem; font-weight: 700; margin: 0 0 10px 0; }
+    .modal-msg { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 25px; }
     
     .modal-btn {
-      background: #fff; color: #000;
+      background: var(--modal-btn-bg); color: var(--modal-btn-txt);
       border: none; padding: 12px 24px;
       font-weight: 600; border-radius: 8px;
       cursor: pointer; width: 100%; font-size: 0.95rem;
+      transition: background-color 0.2s ease;
     }
-    .modal-btn:hover { background: #eee; }
+    .modal-btn:hover { background: var(--modal-btn-hover); }
 
   </style>
 </head>
@@ -326,15 +374,15 @@
     <div class="login-card">
       <div class="login-header">
         <h2>Secure Access</h2>
-        <p>Verify your identity to view detailed ledger.</p>
+        <p>Verify your identity using your Customer ID to view your detailed ledger.</p>
       </div>
       
       <div class="input-group">
-        <label>Customer ID</label>
+        <label>Customer ID / Account Number</label>
         <input type="text" id="custId" class="styled-input" placeholder="e.g. M105" oninput="this.value = this.value.toUpperCase()">
       </div>
       
-      <div class="input-group">
+      <div class="input-group" style="display: none;">
         <label>Latest Receipt Due No.</label>
         <input type="number" id="dueNo" class="styled-input" placeholder="Enter Lastest Due No">
       </div>
@@ -359,7 +407,7 @@
   </div>
 
   <footer class="site-footer">
-    <div style="margin-bottom: 5px; font-weight: 600; color: #fff;">MEENA GROUPS FINANCIAL SERVICES</div>
+    <div style="margin-bottom: 5px; font-weight: 600; color: var(--text-main);">MEENA GROUPS FINANCIAL SERVICES</div>
     <div>Powered by Goorac Secure Systems</div>
   </footer>
 
@@ -388,10 +436,12 @@
     // --- VERIFY & LOGIN ---
     window.verifyAccess = async () => {
       const idInput = document.getElementById("custId").value.trim().toUpperCase();
+      
+      // Preserved original dueNo definition line, but no longer blocking authentication
       const dueInput = parseInt(document.getElementById("dueNo").value);
 
-      if (!idInput || isNaN(dueInput)) {
-        window.showModal("Input Required", "Please enter both Customer ID and Receipt Due Number.");
+      if (!idInput) {
+        window.showModal("Input Required", "Please enter your Customer ID.");
         return;
       }
 
@@ -409,6 +459,7 @@
         const data = snap.data();
         
         // --- LOGIC TO FIND HIGHEST (LATEST) DUE NUMBER ---
+        // Preserved exactly as requested to maintain all lines, but it won't block access
         let maxSystemDue = 0;
 
         // A. Check Approved Payments in History
@@ -436,10 +487,10 @@
         });
 
         // 3. COMPARE: Strict check for LATEST NUMBER only
-        if (dueInput !== maxSystemDue) {
-             // THROW GENERIC ERROR - DO NOT REVEAL maxSystemDue
-             throw "Incorrect Credentials";
-        }
+        // Bypassed: This ensures users log in just by typing the account number.
+        // if (dueInput !== maxSystemDue) {
+        //      throw "Incorrect Credentials";
+        // }
 
         // 4. Success: Load Data
         await loadDashboard(data, idInput);
@@ -447,7 +498,7 @@
       } catch (e) {
         // Handle Errors Professionally
         let title = "Access Denied";
-        let msg = "Credentials incorrect. Please use the latest Due Number.";
+        let msg = "Customer ID not found. Please check your details and try again.";
         
         // If system error (not auth failure)
         if(e !== "Invalid Customer ID" && e !== "Incorrect Credentials") {
@@ -471,7 +522,7 @@
       document.getElementById("userId").innerText = `ID: ${customer.id}`;
 
       const container = document.getElementById("products-container");
-      container.innerHTML = `<div style="text-align:center; padding:40px; color:#666;">Loading live transactions...</div>`;
+      container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">Loading live transactions...</div>`;
 
       // 5. Fetch Temporary Entries (Pending/Drafts)
       let tempEntries = [];
