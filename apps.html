@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meena Ecosystem Apps | Goorac Corporation</title>
+    <title>Meena Ecosystem | Goorac Corporation</title>
     <style>
-        /* Modern X/Twitter Dark Mode Theme */
+        /* Premium Dark Theme with Accent Glows */
         :root {
-            --bg-color: #000000;
-            --surface-color: #16181c;
-            --border-color: #2f3336;
-            --text-primary: #e7e9ea;
-            --text-secondary: #71767b;
+            --bg-color: #050505;
+            --surface-color: #121212;
+            --surface-hover: #1e1e1e;
+            --border-color: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
             --accent-color: #1d9bf0;
-            --accent-hover: #1a8cd8;
-            --btn-ghost-hover: rgba(239, 243, 244, 0.1);
+            --accent-glow: rgba(29, 155, 240, 0.15);
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
@@ -28,110 +28,167 @@
             background-color: var(--bg-color);
             color: var(--text-primary);
             font-family: var(--font-family);
-            line-height: 1.5;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
         }
 
         .container {
             width: 100%;
-            max-width: 600px; /* Twitter-like timeline width */
-            padding-bottom: 40px;
+            max-width: 900px;
+            padding: 0 20px 60px 20px;
         }
 
+        /* Glassmorphism Sticky Header */
         header {
-            padding: 30px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 25px 0;
             text-align: center;
+            background: rgba(5, 5, 5, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 20px;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 800;
-            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+            margin-bottom: 5px;
+            /* Gradient Text Effect */
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
-            font-size: 15px;
-            color: var(--text-secondary);
+            font-size: 14px;
+            color: var(--accent-color);
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .section-title {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
-            margin: 30px 0 15px 0;
-            padding-left: 10px;
-        }
-
-        .app-list {
+            margin: 40px 0 20px 0;
+            padding-left: 5px;
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 1s ease-out;
         }
 
+        .section-title::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 20px;
+            background-color: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        /* Grid Layout for PC, Column for Mobile */
+        .app-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .app-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Smooth Card Animations & Hover Effects */
         .app-card {
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 20px;
+            padding: 24px;
             display: flex;
-            align-items: flex-start;
+            flex-direction: column;
             gap: 15px;
-            transition: background-color 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s ease-out forwards;
         }
 
+        /* Staggered loading animations */
+        .app-list:nth-of-type(1) .app-card:nth-child(1) { animation-delay: 0.1s; }
+        .app-list:nth-of-type(1) .app-card:nth-child(2) { animation-delay: 0.2s; }
+        .app-list:nth-of-type(2) .app-card:nth-child(1) { animation-delay: 0.3s; }
+        .app-list:nth-of-type(2) .app-card:nth-child(2) { animation-delay: 0.4s; }
+
         .app-card:hover {
-            background-color: rgba(255, 255, 255, 0.03);
+            background-color: var(--surface-hover);
+            transform: translateY(-5px);
+            border-color: rgba(29, 155, 240, 0.4);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .app-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             object-fit: cover;
-            background-color: var(--border-color); /* Fallback for transparency */
-            flex-shrink: 0;
+            background-color: var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
         }
 
-        .app-content {
-            flex-grow: 1;
+        .app-card:hover .app-icon {
+            transform: scale(1.05);
         }
 
         .app-title {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 700;
-            margin-bottom: 4px;
+            color: var(--text-primary);
         }
 
         .app-desc {
             font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: 15px;
+            flex-grow: 1;
         }
 
         .app-actions {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: auto;
         }
 
+        /* Sleek Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 15px;
-            font-weight: 700;
-            border-radius: 9999px; /* Twitter pill-shaped buttons */
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 12px;
             padding: 0 20px;
-            height: 36px;
+            height: 40px;
             cursor: pointer;
             text-decoration: none;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
+            transition: all 0.2s ease;
             font-family: inherit;
+            flex: 1;
         }
 
         .btn-primary {
@@ -141,32 +198,56 @@
         }
 
         .btn-primary:hover {
-            background-color: #d7dbdc;
+            background-color: #e0e0e0;
+            transform: scale(1.02);
         }
 
         .btn-secondary {
-            background-color: transparent;
+            background-color: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
         }
 
         .btn-secondary:hover {
-            background-color: var(--btn-ghost-hover);
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .app-card {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
+        /* Keyframe Animations */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
             }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Mobile specific tweaks */
+        @media (max-width: 480px) {
             .app-actions {
-                justify-content: center;
-                width: 100%;
+                flex-direction: column;
             }
             .btn {
-                flex: 1;
+                width: 100%;
             }
         }
     </style>
@@ -176,32 +257,32 @@
     <div class="container">
         <header>
             <h1>App Directory</h1>
-            <p class="subtitle">Powered by Goorac Corporation</p>
+            <p class="subtitle">Goorac Corporation</p>
         </header>
 
         <h2 class="section-title">Meena Groups</h2>
         <div class="app-list">
             <div class="app-card">
-                <img src="https://meena.goorac.biz/admin/icon.png" alt="Admin Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmYzMzM2Ii8+PC9zdmc+'">
-                <div class="app-content">
+                <div class="app-header">
+                    <img src="https://meena.goorac.biz/admin/icon.png" alt="Admin Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmEyYTJhIi8+PC9zdmc+'">
                     <h3 class="app-title">Meena Admin</h3>
-                    <p class="app-desc">Comprehensive dashboard for central management, user access control, and high-level operational oversight.</p>
-                    <div class="app-actions">
-                        <a href="https://meena.goorac.biz/admin" class="btn btn-primary" target="_blank" rel="noopener noreferrer">View App</a>
-                        <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/admin', 'Meena Admin')">Share Link</button>
-                    </div>
+                </div>
+                <p class="app-desc">Comprehensive dashboard for central management, user access control, and high-level operational oversight.</p>
+                <div class="app-actions">
+                    <a href="https://meena.goorac.biz/admin" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
+                    <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/admin', 'Meena Admin')">Share Link</button>
                 </div>
             </div>
 
             <div class="app-card">
-                <img src="https://meena.goorac.biz/admin/icon.png" alt="Agent Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmYzMzM2Ii8+PC9zdmc+'">
-                <div class="app-content">
+                <div class="app-header">
+                    <img src="https://meena.goorac.biz/admin/icon.png" alt="Agent Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmEyYTJhIi8+PC9zdmc+'">
                     <h3 class="app-title">Meena Agent</h3>
-                    <p class="app-desc">Streamlined interface designed specifically for field agents to optimize workflow and manage real-time client interactions.</p>
-                    <div class="app-actions">
-                        <a href="https://meena.goorac.biz/agent" class="btn btn-primary" target="_blank" rel="noopener noreferrer">View App</a>
-                        <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/agent', 'Meena Agent')">Share Link</button>
-                    </div>
+                </div>
+                <p class="app-desc">Streamlined interface designed specifically for field agents to optimize workflow and manage real-time client interactions.</p>
+                <div class="app-actions">
+                    <a href="https://meena.goorac.biz/agent" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
+                    <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/agent', 'Meena Agent')">Share Link</button>
                 </div>
             </div>
         </div>
@@ -209,26 +290,26 @@
         <h2 class="section-title">Meena Marketing</h2>
         <div class="app-list">
             <div class="app-card">
-                <img src="https://meena.goorac.biz/marketing/icon.png" alt="Marketing Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmYzMzM2Ii8+PC9zdmc+'">
-                <div class="app-content">
-                    <h3 class="app-title">Meena Marketing Hub</h3>
-                    <p class="app-desc">Advanced enterprise tools for deploying campaigns, tracking lead conversion, and executing targeted digital outreach.</p>
-                    <div class="app-actions">
-                        <a href="https://meena.goorac.biz/marketing" class="btn btn-primary" target="_blank" rel="noopener noreferrer">View App</a>
-                        <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/marketing', 'Meena Marketing Hub')">Share Link</button>
-                    </div>
+                <div class="app-header">
+                    <img src="https://meena.goorac.biz/marketing/icon.png" alt="Marketing Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmEyYTJhIi8+PC9zdmc+'">
+                    <h3 class="app-title">Marketing Hub</h3>
+                </div>
+                <p class="app-desc">Advanced enterprise tools for deploying campaigns, tracking lead conversion, and executing targeted digital outreach.</p>
+                <div class="app-actions">
+                    <a href="https://meena.goorac.biz/marketing" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
+                    <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/marketing', 'Meena Marketing Hub')">Share Link</button>
                 </div>
             </div>
 
             <div class="app-card">
-                <img src="https://meena.goorac.biz/marketing/icon.png" alt="Billing Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmYzMzM2Ii8+PC9zdmc+'">
-                <div class="app-content">
+                <div class="app-header">
+                    <img src="https://meena.goorac.biz/marketing/icon.png" alt="Billing Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMmEyYTJhIi8+PC9zdmc+'">
                     <h3 class="app-title">Meena Billing</h3>
-                    <p class="app-desc">Secure and high-performance platform for automated invoice generation, payment tracking, and financial reconciliation.</p>
-                    <div class="app-actions">
-                        <a href="https://meena.goorac.biz/billing/bill" class="btn btn-primary" target="_blank" rel="noopener noreferrer">View App</a>
-                        <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/billing/bill', 'Meena Billing')">Share Link</button>
-                    </div>
+                </div>
+                <p class="app-desc">Secure and high-performance platform for automated invoice generation, payment tracking, and financial reconciliation.</p>
+                <div class="app-actions">
+                    <a href="https://meena.goorac.biz/billing/bill" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
+                    <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/billing/bill', 'Meena Billing')">Share Link</button>
                 </div>
             </div>
         </div>
@@ -237,23 +318,56 @@
     <script>
         function shareLink(url, title) {
             if (navigator.share) {
-                // Use native Web Share API on supported devices (mobile)
                 navigator.share({
                     title: title,
-                    text: `Check out ${title} by Goorac Corporation.`,
+                    text: `Access ${title} on the Goorac Ecosystem.`,
                     url: url,
                 })
                 .then(() => console.log('Successful share'))
                 .catch((error) => console.log('Error sharing', error));
             } else {
-                // Fallback to copying to clipboard for desktop browsers
                 navigator.clipboard.writeText(url).then(function() {
-                    alert(`Link for ${title} copied to clipboard!`);
+                    // Create a sleek custom toast notification instead of basic alert
+                    showToast(`Link for ${title} copied!`);
                 }, function(err) {
                     console.error('Could not copy text: ', err);
                     alert(`Failed to copy link. URL: ${url}`);
                 });
             }
+        }
+
+        // Custom Toast Notification for desktop copying
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '30px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%) translateY(100px)';
+            toast.style.background = 'var(--text-primary)';
+            toast.style.color = 'var(--bg-color)';
+            toast.style.padding = '12px 24px';
+            toast.style.borderRadius = '50px';
+            toast.style.fontWeight = '600';
+            toast.style.fontSize = '14px';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            toast.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            toast.style.zIndex = '1000';
+            
+            document.body.appendChild(toast);
+            
+            // Trigger animation in
+            setTimeout(() => {
+                toast.style.transform = 'translateX(-50%) translateY(0)';
+            }, 10);
+            
+            // Animate out and remove
+            setTimeout(() => {
+                toast.style.transform = 'translateX(-50%) translateY(100px)';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 400);
+            }, 3000);
         }
     </script>
 </body>
