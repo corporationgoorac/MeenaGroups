@@ -120,6 +120,8 @@
         .search-header input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 1.1em; outline: none; }
         .search-header input::placeholder { color: var(--text-secondary); }
         .search-results-container { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
+        /* FIXED: Prevents cards from squishing/overlapping in the modal */
+        .search-results-container > * { flex-shrink: 0; }
 
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
@@ -234,11 +236,11 @@
     <div id="productSearchModal" class="search-modal">
         <div class="search-header">
             <span class="material-symbols-outlined" style="cursor:pointer;" onclick="closeProductSearchModalManual()">arrow_back</span>
-            <input type="text" id="productSearchInput" placeholder="Search product name (e.g. Progesterone)..." onkeyup="handleProductSearchDelay()">
+            <input type="text" id="productSearchInput" placeholder="Search product or 'non stock'..." onkeyup="handleProductSearchDelay()">
             <span class="material-symbols-outlined" style="cursor:pointer;" onclick="clearProductSearch()">close</span>
         </div>
         <div class="search-results-container" id="productSearchResults">
-            <div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>
+            <div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>
         </div>
     </div>
 
@@ -556,7 +558,7 @@
             }
         };
 
-        // ADDED: Product -> Customer Search Logic
+        // ADDED: Product -> Customer Search Logic (FIXED OVERLAPPING, ARRAY KEYWORDS, & NON-STOCK)
         let prodSearchTimeout;
         window.openProductSearchModal = function() {
             const modal = document.getElementById('productSearchModal');
@@ -571,7 +573,7 @@
 
         window.clearProductSearch = function() {
             document.getElementById('productSearchInput').value = '';
-            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>';
+            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
             document.getElementById('productSearchInput').focus();
         };
 
@@ -587,18 +589,76 @@
             const resultsContainer = document.getElementById('productSearchResults');
             
             if (!queryTerm) {
-                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name to see customers who bought it.</div>';
+                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                 return;
             }
 
-            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching records...</div>';
+            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching products...</div>';
 
             try {
-                // Fetch recent sales to search through (Limiting to 500 for performance)
+                const isNonStockSearch = queryTerm === 'non stock' || queryTerm === 'non-stock' || queryTerm === 'nonstock';
+                let products = [];
+
+                if (isNonStockSearch) {
+                    products.push({ id: 'ns', name: 'Non-Stock Items (All)', model: 'N/A', isSpecial: true });
+                } else {
+                    const searchWord = queryTerm.split(/[\s\-_]+/)[0]; // Use first word for array-contains search
+                    const q = query(
+                        collection(db, "inventory"),
+                        where("searchKeywords", "array-contains", searchWord),
+                        limit(100)
+                    );
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+                }
+
+                if (products.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <h3>No Products Found</h3>
+                            <p>No inventory items match "${queryTerm}".</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 5px; color: var(--success-color); font-weight: bold; flex-shrink: 0;">Select a product to view buyers</div>`;
+                
+                products.forEach(prod => {
+                    const safeName = (prod.name || '').replace(/'/g, "\\'");
+                    const isNS = prod.isSpecial ? true : false;
+                    htmlOutput += `
+                        <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; cursor: pointer; border-color: var(--accent-color); transition: 0.2s;" onclick="showCustomersForProduct('${safeName}', ${isNS})" onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='var(--surface-color)'">
+                            <div class="inv-body" style="flex-grow: 1; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div class="item-name" style="font-size: 1.1em; color: var(--marketing-white);">${prod.name}</div>
+                                    <div class="item-sub" style="color: var(--text-secondary); font-size: 0.85em; margin-top: 4px;">Model: ${prod.model || 'N/A'} ${isNS ? '' : '• Stock: ' + (prod.qty || 0)}</div>
+                                </div>
+                                <span class="material-symbols-outlined" style="color: var(--accent-color);">chevron_right</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = htmlOutput;
+
+            } catch (err) {
+                console.error("Error searching products:", err);
+                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
+            }
+        };
+
+        window.showCustomersForProduct = async function(productName, isNonStock = false) {
+            const resultsContainer = document.getElementById('productSearchResults');
+            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Fetching all buyers from database...</div>';
+
+            try {
+                // Fetch sales from entire DB (ordered by date, limited to 2000 for safety/perf)
                 const q = query(
                     collection(db, "sellings"),
                     orderBy("date", "desc"),
-                    limit(500)
+                    limit(2000)
                 );
                 
                 const snap = await getDocs(q);
@@ -607,7 +667,10 @@
                 snap.forEach(doc => {
                     const data = doc.data();
                     if (data.items && Array.isArray(data.items)) {
-                        const matchingItems = data.items.filter(item => (item.name || '').toLowerCase().includes(queryTerm));
+                        const matchingItems = data.items.filter(item => {
+                            if (isNonStock) return item.isNonStock;
+                            return item.name === productName; // Exact match based on clicked product
+                        });
                         
                         if (matchingItems.length > 0) {
                             const customerName = data.customer?.name || 'Cash Customer';
@@ -627,42 +690,52 @@
                                 customerAddress,
                                 invoiceNo,
                                 dateFmt,
-                                products: matchingItems.map(i => `${i.name} (Qty: ${i.qty})`).join(', ')
+                                products: matchingItems.map(i => {
+                                    const nsTag = i.isNonStock ? '<span class="tag-ns" style="font-size: 0.65em; padding: 2px 4px; margin-left: 4px; display: inline-block;">NON-STOCK</span>' : '';
+                                    return `<div style="padding: 2px 0;">- ${i.name} (Qty: ${i.qty}) ${nsTag}</div>`;
+                                }).join('')
                             });
                         }
                     }
                 });
 
+                let htmlOutput = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; flex-shrink: 0;">
+                        <button onclick="executeProductSearch()" style="background:var(--surface-color); color:white; border:1px solid #444; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='var(--surface-color)'"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Back</button>
+                        <span style="color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</span>
+                    </div>
+                `;
+
                 if (matches.length === 0) {
-                    resultsContainer.innerHTML = `
+                    htmlOutput += `
                         <div class="empty-state">
                             <span class="material-symbols-outlined">search_off</span>
-                            <h3>No Customers Found</h3>
-                            <p>No recent sales found containing "${queryTerm}".</p>
+                            <h3>No Buyers Found</h3>
+                            <p>No one has bought this exact product yet.</p>
                         </div>
                     `;
+                    resultsContainer.innerHTML = htmlOutput;
                     return;
                 }
-
-                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</div>`;
                 
                 matches.forEach(match => {
                     htmlOutput += `
-                        <div class="invoice-card" style="margin-bottom: 15px;">
+                        <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; margin-bottom: 15px;">
                             <div class="inv-header" style="background: #1a1a1a;">
                                 <div class="inv-meta">
                                     <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
                                 </div>
                                 <div class="inv-time">${match.dateFmt}</div>
                             </div>
-                            <div class="inv-body">
+                            <div class="inv-body" style="flex-grow: 1;">
                                 <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
                                     <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
                                     <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
                                 </div>
                                 <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
                                     <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
-                                    <strong style="color: var(--text-secondary);">Bought:</strong> <span style="color: white;">${match.products}</span>
+                                    <strong style="color: var(--text-secondary); display:block; margin-top: 6px;">Bought:</strong> 
+                                    <div style="color: white; margin-top: 4px; line-height: 1.4;">${match.products}</div>
                                 </div>
                             </div>
                         </div>
@@ -672,8 +745,8 @@
                 resultsContainer.innerHTML = htmlOutput;
 
             } catch (err) {
-                console.error("Error searching products:", err);
-                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
+                console.error("Error fetching buyers:", err);
+                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error fetching data. Please try again.</div>';
             }
         };
 
