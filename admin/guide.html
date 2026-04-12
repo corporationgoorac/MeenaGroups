@@ -827,7 +827,8 @@
          
          if(data.success) {
             data.users.forEach(u => {
-               const rawDate = u.lastSignInTime !== 'Never' ? new Date(u.lastSignInTime).toLocaleString() : 'Never logged in';
+               // Updated to 12-hour format in Indian Timezone (IST)
+               const rawDate = u.lastSignInTime !== 'Never' ? new Date(u.lastSignInTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never logged in';
                const safeName = (u.displayName || '').replace(/'/g, "\\'");
                const safePhone = (u.phoneNumber || '').replace(/'/g, "\\'");
                
@@ -940,16 +941,18 @@
     };
 
     window.addEventListener('popstate', (e) => {
+      const activeModal = e.state ? e.state.modalOpen : null;
       const overlays = [
-         { id: "agentModalOverlay", class: "open" },
-         { id: "customDialogOverlay", class: "open" },
-         { id: "staffManagerOverlay", class: "open" },
-         { id: "staffAuthEditModalOverlay", class: "open" }
+         { id: "agentModalOverlay", class: "open", name: "agentModal" },
+         { id: "customDialogOverlay", class: "open", name: "customDialog" },
+         { id: "staffManagerOverlay", class: "open", name: "staffManager" },
+         { id: "staffAuthEditModalOverlay", class: "open", name: "staffAuthEditModal" }
       ];
       
       overlays.forEach(overlayInfo => {
          const el = document.getElementById(overlayInfo.id);
-         if (el && el.classList.contains(overlayInfo.class)) {
+         // ONLY close if it's currently open AND it's not the active one in the history state.
+         if (el && el.classList.contains(overlayInfo.class) && overlayInfo.name !== activeModal) {
             el.classList.remove(overlayInfo.class);
             setTimeout(() => el.style.display = "none", 300);
          }
