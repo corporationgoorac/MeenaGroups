@@ -1,0 +1,42 @@
+# Use a lightweight Node.js 18 image as the base
+FROM node:18-bullseye-slim
+
+# Install Chromium and required fonts for English and Tamil text
+RUN apt-get update \
+    && apt-get install -y wget gnupg \
+    && apt-get install -y chromium \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# SET THE SERVER TIMEZONE TO INDIAN STANDARD TIME (IST)
+ENV TZ="Asia/Kolkata"
+
+# Tell Puppeteer to use the installed system Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy package files first to optimize Docker caching
+COPY package*.json ./
+
+# Install the Node.js dependencies
+RUN npm install
+
+# Copy the rest of your application code (server.js, files, etc.)
+COPY . .
+
+# CRITICAL FOR HUGGING FACE: Hugging Face runs spaces as a non-root user (UID 1000).
+# We must give this user ownership of the application folder so WhatsApp can write session files.
+RUN chown -R 1000:1000 /usr/src/app
+
+# Switch to the non-root user
+USER 1000
+
+# Expose port 7860 (The port Hugging Face and our Express server use)
+EXPOSE 7860
+
+# Start the Node.js server
+CMD ["node", "server.js"]
