@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Billing & Invoicing - Meena Marketing</title>
+    <title>Daily Sales - Meena Marketing</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* Shared Core Theme (App UI) */
+        /* Shared Core Theme */
         :root {
             --bg-color: #121212;
             --surface-color: #212121;
@@ -34,85 +34,80 @@
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
 
-        /* Screen App Header */
+        /* Standard Header */
         header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
         .brand-container { display: flex; align-items: center; gap: 10px; }
-        .logo-img { width: 32px; height: 32px; border-radius: 6px; }
+        .logo-img { width: 35px; height: 35px; border-radius: 8px; }
         .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-        .brand-title { font-size: 1.1em; font-weight: bold; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
-
-        /* Custom Install Popup */
-        #installPopup { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid var(--accent-color); }
-        .install-img { width: 40px; height: 40px; border-radius: 8px; }
-        .install-text { flex-grow: 1; }
-        .install-text h4 { margin: 0 0 4px 0; font-size: 0.95em; color: var(--success-color); }
-        .install-text p { margin: 0; font-size: 0.75em; color: var(--text-secondary); }
-        .install-btn { background: var(--success-color); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85em;}
-        .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; padding: 0 5px; }
-
-        /* Main App Area */
-        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding: 20px; width: 100%; max-width: 900px; margin: 0 auto; }
         
-        .section-box { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .section-title { font-size: 1.1em; color: var(--marketing-white); border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;}
+        /* ADDED: Header Right for Search Icon */
+        .header-right { display: flex; align-items: center; }
+
+        /* Main Container */
+        .container { padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+        /* Summary & Filter Section */
+        .top-controls { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px;}
         
-        .form-group { display: flex; flex-direction: column; gap: 12px; }
-        .input-row { display: flex; gap: 12px; flex-wrap: wrap; }
-        .input-row > div { flex: 1; min-width: 120px; }
-        label { display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;}
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; transition: 0.3s; }
-        input:focus, select:focus { border-color: var(--accent-color); }
+        .date-filter { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 8px 15px; border-radius: 8px; border: 1px solid #444; flex-grow: 1; min-width: 200px;}
+        .date-filter input { background: transparent; border: none; color: white; font-size: 1.1em; outline: none; width: 100%; }
+        .date-filter input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
-        /* Autocomplete */
-        .search-wrapper { position: relative; }
-        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface-color); border: 1px solid var(--accent-color); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.8); }
-        .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center;}
-        .suggestion-item:hover { background: #2a2a2a; }
-        .s-name { font-weight: bold; font-size: 1.05em; color: var(--marketing-white); }
-        .s-stock { font-size: 0.85em; background: rgba(0, 200, 83, 0.2); color: var(--success-color); padding: 3px 8px; border-radius: 4px;}
-        .s-stock.zero { background: rgba(255, 51, 51, 0.2); color: var(--meena-red); }
+        /* ADDED: Payment Filter Styles */
+        .payment-filter { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 8px 15px; border-radius: 8px; border: 1px solid #444; flex-grow: 1; min-width: 150px;}
+        .payment-filter select { background: transparent; border: none; color: white; font-size: 1em; outline: none; width: 100%; cursor: pointer; }
+        .payment-filter select option { background: var(--surface-color); color: white; }
 
-        /* Toggles */
-        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
-        .checkbox-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--warning-color); cursor: pointer; }
-        .checkbox-row label { margin: 0; cursor: pointer; color: var(--warning-color); font-weight: bold; text-transform: none;}
+        .sales-summary { display: flex; gap: 20px; text-align: right; flex-grow: 1; justify-content: flex-end;}
+        .summary-item h4 { margin: 0; font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase; }
+        .summary-item p { margin: 5px 0 0 0; font-size: 1.5em; font-weight: bold; color: var(--success-color); }
+        .summary-item p.count { color: var(--marketing-white); }
 
-        .btn-add { background: #333; border: 1px solid #555; color: white; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.05em; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;}
-        .btn-add:hover { background: #444; border-color: var(--accent-color); }
-
-        /* Cart Table UI */
-        .cart-container { border: 1px solid #444; border-radius: 8px; overflow: hidden; margin-top: 15px; }
-        .cart-item { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #333; background: #1a1a1a; align-items: center;}
-        .cart-item:last-child { border-bottom: none; }
-        .c-details { flex: 1; }
-        .c-title { font-weight: bold; color: var(--marketing-white); font-size: 1.05em;}
-        .c-meta { font-size: 0.8em; color: var(--text-secondary); margin-top: 3px;}
-        .c-meta span.gst-tag { color: var(--accent-color); background: rgba(0, 86, 179, 0.2); padding: 1px 5px; border-radius: 3px; }
-        .c-meta span.ns-tag { color: var(--warning-color); background: rgba(255, 152, 0, 0.2); padding: 1px 5px; border-radius: 3px; }
-        .c-price { text-align: right; font-weight: bold; color: white; font-size: 1.1em; margin-right: 15px;}
-        .c-del { color: var(--meena-red); background: none; border: none; cursor: pointer; padding: 5px; }
-
-        /* Totals */
-        .totals-box { margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; }
-        .t-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.95em;}
-        .t-row.grand { font-size: 1.3em; font-weight: bold; color: var(--success-color); border-top: 1px dashed #555; padding-top: 10px; margin-top: 5px;}
-
-        /* Bottom Action Bar */
-        .bottom-actions { display: flex; gap: 15px; margin-top: 20px; }
-        .btn-main { flex: 1; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;}
-        .btn-save { background: var(--success-color); color: white; }
-        .btn-save:hover:not(:disabled) { background: #00a844; }
-        .btn-save:disabled { background: #444; color: #888; cursor: not-allowed; }
+        /* Invoice Cards */
+        .sales-list { display: flex; flex-direction: column; gap: 15px; }
+        .invoice-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; overflow: hidden; }
         
-        .btn-print { background: var(--accent-color); color: white; display: none; }
-        .btn-print:hover { background: #004494; }
+        .inv-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
+        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
+        .inv-meta span { font-size: 0.75em; color: var(--text-secondary); font-weight: normal; background: #333; padding: 2px 6px; border-radius: 4px;}
+        
+        /* ADDED: Payment Mode Tag Style */
+        .inv-meta span.pay-tag { background: var(--accent-color); color: white; font-weight: bold; letter-spacing: 0.5px; border: 1px solid #004494;}
 
-        /* Toasts */
+        .inv-time { font-size: 0.85em; color: var(--text-secondary); }
+
+        .inv-body { padding: 15px 20px; }
+        .customer-info { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #444; }
+        .customer-info p { margin: 3px 0; font-size: 0.9em; color: var(--text-secondary); }
+        .customer-info strong { color: white; font-size: 1.05em; }
+
+        .item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;}
+        .item-row { display: flex; justify-content: space-between; font-size: 0.9em; align-items: flex-start;}
+        .item-desc { flex: 1; padding-right: 15px; }
+        .item-name { font-weight: bold; color: white; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;}
+        .item-sub { color: var(--text-secondary); font-size: 0.85em; margin-top: 2px;}
+        .item-price { text-align: right; font-weight: bold; white-space: nowrap; }
+        
+        .tag-ns { background: rgba(255, 152, 0, 0.2); color: var(--warning-color); padding: 1px 6px; border-radius: 4px; font-size: 0.7em; border: 1px solid var(--warning-color); text-transform: uppercase;}
+        .tag-gst { color: var(--accent-color); font-size: 0.8em; font-weight: bold; margin-left: 5px;}
+
+        .inv-footer { background: rgba(0, 200, 83, 0.05); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; }
+        .inv-total-label { font-weight: bold; color: var(--text-secondary); text-transform: uppercase; font-size: 0.9em;}
+        .inv-total-val { font-size: 1.3em; font-weight: bold; color: var(--success-color); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); background: var(--surface-color); border-radius: 12px; border: 1px solid #333;}
+        .empty-state .material-symbols-outlined { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+
+        /* Loader */
+        .loader { text-align: center; padding: 40px; color: var(--accent-color); font-weight: bold; display: none; }
+
+        /* Toasts Added */
         .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s;}
         .toast-msg.error { background: var(--meena-red); }
         .toast-msg.success { background: var(--success-color); }
@@ -127,18 +122,6 @@
         .search-results-container { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
         /* FIXED: Prevents cards from squishing/overlapping in the modal */
         .search-results-container > * { flex-shrink: 0; }
-
-        /* --- ADDED INVENTORY CARD STYLES FOR PRODUCT SEARCH MODAL --- */
-        .inv-card { background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; position: relative; overflow: hidden; box-sizing: border-box; width: 100%; flex-shrink: 0; cursor: pointer; margin-bottom: 15px;}
-        .inv-card:hover { border-color: var(--accent-color); background: #2a2a2a; }
-        .inv-card.out-of-stock { opacity: 0.6; border-color: var(--meena-red); }
-        .inv-info { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0; }
-        .inv-name { font-size: 1.15em; font-weight: bold; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .inv-model { font-size: 0.85em; color: var(--text-secondary); background: #333; padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;}
-        .inv-price { color: var(--success-color); font-weight: bold; font-size: 1.05em; margin-top: 5px;}
-        .inv-qty { background: rgba(0, 86, 179, 0.2); border: 1px solid var(--accent-color); color: var(--marketing-white); padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 1.2em; text-align: center; min-width: 45px; flex-shrink: 0; margin-left: 10px;}
-        .inv-qty.zero { border-color: var(--meena-red); color: var(--meena-red); background: rgba(255, 51, 51, 0.1); font-size: 0.9em; padding: 10px 8px; }
-        .oos-badge { position: absolute; top: 0; right: 0; background: var(--meena-red); color: white; font-size: 0.7em; padding: 3px 10px; border-bottom-left-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
 
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
@@ -357,7 +340,10 @@
         // 1. Service Worker Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
 
-        // 2. Firebase Imports (FIXED PATH: Added dot to ensure local folder resolution)
+        // 2. Firebase Imports 
+        // --- OLD IMPORT COMMENTED OUT TO INTRODUCE STARTAFTER PAGINATION ---
+        // import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
         import { db } from './config.js';
         import { collection, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -575,25 +561,28 @@
             }
         };
 
-        // --- ADVANCED SMART SORTING ALGORITHM (From Inventory Page) ---
+        // --- ADVANCED SMART SORTING ALGORITHM FOR PAGINATION ---
         function advancedSort(items, searchTerm = '') {
             const term = searchTerm.toLowerCase().trim();
             return items.sort((a, b) => {
                 const aName = (a.name || '').toLowerCase();
                 const bName = (b.name || '').toLowerCase();
-                
+
                 const isAOutOfStock = (a.qty || 0) === 0;
                 const isBOutOfStock = (b.qty || 0) === 0;
 
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
 
+                // 1. Out of stock always goes to the bottom
                 if (isAOutOfStock && !isBOutOfStock) return 1;
                 if (!isAOutOfStock && isBOutOfStock) return -1;
                 
+                // 2. Exact match always goes to the top
                 if (isAExact && !isBExact) return -1;
                 if (!isAExact && isBExact) return 1;
 
+                // 3. Smart partial match priority
                 if (term) {
                     const aStarts = aName.startsWith(term);
                     const bStarts = bName.startsWith(term);
@@ -605,7 +594,8 @@
             });
         }
 
-        // ADDED: Product -> Customer Search Logic (FIXED OVERLAPPING, ARRAY KEYWORDS, & NON-STOCK)
+        // --- OLD PRODUCT/CUSTOMER SEARCH COMMENTED OUT SAFELY ---
+        /*
         let prodSearchTimeout;
         window.openProductSearchModal = function() {
             const modal = document.getElementById('productSearchModal');
@@ -631,8 +621,6 @@
             }, 600); // 600ms debounce
         };
 
-        /* --- OLD executeProductSearch & showCustomersForProduct COMMENTED OUT TO COMPLY WITH NO DELETIONS RULE --- */
-        /*
         window.executeProductSearch = async function() {
             const queryTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('productSearchResults');
@@ -642,72 +630,14 @@
                 return;
             }
 
-            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching products...</div>';
+            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching records...</div>';
 
             try {
-                const isNonStockSearch = queryTerm === 'non stock' || queryTerm === 'non-stock' || queryTerm === 'nonstock';
-                let products = [];
-
-                if (isNonStockSearch) {
-                    products.push({ id: 'ns', name: 'Non-Stock Items (All)', model: 'N/A', isSpecial: true });
-                } else {
-                    const searchWord = queryTerm.split(/[\s\-_]+/)[0]; // Use first word for array-contains search
-                    const q = query(
-                        collection(db, "inventory"),
-                        where("searchKeywords", "array-contains", searchWord),
-                        limit(100)
-                    );
-                    const snap = await getDocs(q);
-                    snap.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-                }
-
-                if (products.length === 0) {
-                    resultsContainer.innerHTML = `
-                        <div class="empty-state">
-                            <span class="material-symbols-outlined">search_off</span>
-                            <h3>No Products Found</h3>
-                            <p>No inventory items match "${queryTerm}".</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 5px; color: var(--success-color); font-weight: bold; flex-shrink: 0;">Select a product to view buyers</div>`;
-                
-                products.forEach(prod => {
-                    const safeName = (prod.name || '').replace(/'/g, "\\'");
-                    const isNS = prod.isSpecial ? true : false;
-                    htmlOutput += `
-                        <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; cursor: pointer; border-color: var(--accent-color); transition: 0.2s;" onclick="showCustomersForProduct('${safeName}', ${isNS})" onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='var(--surface-color)'">
-                            <div class="inv-body" style="flex-grow: 1; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div class="item-name" style="font-size: 1.1em; color: var(--marketing-white);">${prod.name}</div>
-                                    <div class="item-sub" style="color: var(--text-secondary); font-size: 0.85em; margin-top: 4px;">Model: ${prod.model || 'N/A'} ${isNS ? '' : '• Stock: ' + (prod.qty || 0)}</div>
-                                </div>
-                                <span class="material-symbols-outlined" style="color: var(--accent-color);">chevron_right</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                resultsContainer.innerHTML = htmlOutput;
-
-            } catch (err) {
-                console.error("Error searching products:", err);
-                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
-            }
-        };
-
-        window.showCustomersForProduct = async function(productName, isNonStock = false) {
-            const resultsContainer = document.getElementById('productSearchResults');
-            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Fetching all buyers from database...</div>';
-
-            try {
-                // Fetch sales from entire DB (ordered by date, limited to 2000 for safety/perf)
+                // Fetch recent sales to search through (Limiting to 500 for performance)
                 const q = query(
                     collection(db, "sellings"),
                     orderBy("date", "desc"),
-                    limit(2000)
+                    limit(500)
                 );
                 
                 const snap = await getDocs(q);
@@ -716,10 +646,7 @@
                 snap.forEach(doc => {
                     const data = doc.data();
                     if (data.items && Array.isArray(data.items)) {
-                        const matchingItems = data.items.filter(item => {
-                            if (isNonStock) return item.isNonStock;
-                            return item.name === productName; // Exact match based on clicked product
-                        });
+                        const matchingItems = data.items.filter(item => (item.name || '').toLowerCase().includes(queryTerm));
                         
                         if (matchingItems.length > 0) {
                             const customerName = data.customer?.name || 'Cash Customer';
@@ -739,52 +666,42 @@
                                 customerAddress,
                                 invoiceNo,
                                 dateFmt,
-                                products: matchingItems.map(i => {
-                                    const nsTag = i.isNonStock ? '<span class="tag-ns" style="font-size: 0.65em; padding: 2px 4px; margin-left: 4px; display: inline-block;">NON-STOCK</span>' : '';
-                                    return `<div style="padding: 2px 0;">- ${i.name} (Qty: ${i.qty}) ${nsTag}</div>`;
-                                }).join('')
+                                products: matchingItems.map(i => `${i.name} (Qty: ${i.qty})`).join(', ')
                             });
                         }
                     }
                 });
 
-                let htmlOutput = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; flex-shrink: 0;">
-                        <button onclick="executeProductSearch()" style="background:var(--surface-color); color:white; border:1px solid #444; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='var(--surface-color)'"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Back</button>
-                        <span style="color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</span>
-                    </div>
-                `;
-
                 if (matches.length === 0) {
-                    htmlOutput += `
+                    resultsContainer.innerHTML = `
                         <div class="empty-state">
                             <span class="material-symbols-outlined">search_off</span>
-                            <h3>No Buyers Found</h3>
-                            <p>No one has bought this exact product yet.</p>
+                            <h3>No Customers Found</h3>
+                            <p>No recent sales found containing "${queryTerm}".</p>
                         </div>
                     `;
-                    resultsContainer.innerHTML = htmlOutput;
                     return;
                 }
+
+                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</div>`;
                 
                 matches.forEach(match => {
                     htmlOutput += `
-                        <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; margin-bottom: 15px;">
+                        <div class="invoice-card" style="margin-bottom: 15px;">
                             <div class="inv-header" style="background: #1a1a1a;">
                                 <div class="inv-meta">
                                     <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
                                 </div>
                                 <div class="inv-time">${match.dateFmt}</div>
                             </div>
-                            <div class="inv-body" style="flex-grow: 1;">
+                            <div class="inv-body">
                                 <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
                                     <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
                                     <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
                                 </div>
                                 <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
                                     <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
-                                    <strong style="color: var(--text-secondary); display:block; margin-top: 6px;">Bought:</strong> 
-                                    <div style="color: white; margin-top: 4px; line-height: 1.4;">${match.products}</div>
+                                    <strong style="color: var(--text-secondary);">Bought:</strong> <span style="color: white;">${match.products}</span>
                                 </div>
                             </div>
                         </div>
@@ -794,228 +711,226 @@
                 resultsContainer.innerHTML = htmlOutput;
 
             } catch (err) {
-                console.error("Error fetching buyers:", err);
-                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error fetching data. Please try again.</div>';
+                console.error("Error searching products:", err);
+                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
             }
         };
         */
 
-        // --- NEW PAGINATED PRODUCT SEARCH WITH INVENTORY UI ---
-        let psLastVisible = null;
-        let psIsFetching = false;
-        let psHasMore = true;
-        let psCurrentTerm = '';
-        let psCache = [];
+        // --- NEW FULLY UPGRADED PAGINATED SEARCH ENGINE (INVENTORY -> BUYERS) ---
+        let prodSearchTimeout;
+        let prodSuggLastVisible = null;
+        let prodSuggIsFetching = false;
+        let prodSuggHasMore = true;
+        let prodSuggCurrentTerm = '';
+        let prodSuggCache = [];
+        
+        let custLastVisible = null;
+        let custIsFetching = false;
+        let custHasMore = true;
+        let currentTargetProduct = '';
+        let currentTargetIsNS = false;
+        let custMatchesCache = [];
 
-        window.executeProductSearch = async function(isLoadMore = false) {
-            const queryTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
+        window.openProductSearchModal = function() {
+            const modal = document.getElementById('productSearchModal');
+            modal.classList.add('active');
+            document.getElementById('productSearchInput').focus();
+            history.pushState({ prodSearchModalOpen: true }, "");
+        };
+
+        window.closeProductSearchModalManual = function() {
+            history.back(); 
+        };
+
+        window.clearProductSearch = function() {
+            document.getElementById('productSearchInput').value = '';
+            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
+            document.getElementById('productSearchInput').focus();
+            currentTargetProduct = '';
+        };
+
+        window.handleProductSearchDelay = function() {
+            clearTimeout(prodSearchTimeout);
+            prodSearchTimeout = setTimeout(() => {
+                prodSuggCurrentTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
+                currentTargetProduct = ''; // Reset buyer mode when typing new search
+                loadProductSuggestions(false);
+            }, 600); // 600ms debounce
+        };
+
+        // 1. Searches Inventory (with pagination & 0-qty sorting)
+        window.loadProductSuggestions = async function(isLoadMore = false) {
             const resultsContainer = document.getElementById('productSearchResults');
             
-            if (!queryTerm) {
-                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
-                return;
-            }
-
             if (isLoadMore) {
-                if (psIsFetching || !psHasMore) return;
-                psIsFetching = true;
+                if (prodSuggIsFetching || !prodSuggHasMore) return;
+                prodSuggIsFetching = true;
                 const loader = document.createElement('div');
-                loader.id = 'psScrollLoader';
-                loader.style.cssText = "padding:10px; text-align:center; color:var(--accent-color); font-weight:bold;";
+                loader.id = 'prodScrollLoader';
+                loader.style.cssText = "padding:20px; text-align:center; color:var(--accent-color); font-weight:bold;";
                 loader.innerText = "Loading more products...";
                 resultsContainer.appendChild(loader);
             } else {
-                psCurrentTerm = queryTerm;
-                psLastVisible = null;
-                psHasMore = true;
-                psCache = [];
-                psIsFetching = true;
+                prodSuggHasMore = true;
+                prodSuggLastVisible = null;
+                prodSuggCache = [];
+                prodSuggIsFetching = true;
                 resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching products...</div>';
             }
 
             try {
-                const isNonStockSearch = psCurrentTerm === 'non stock' || psCurrentTerm === 'non-stock' || psCurrentTerm === 'nonstock';
-                let products = [];
-                let snap;
+                const isNonStockSearch = prodSuggCurrentTerm === 'non stock' || prodSuggCurrentTerm === 'non-stock' || prodSuggCurrentTerm === 'nonstock';
+                let newItems = [];
 
                 if (isNonStockSearch) {
                     if (!isLoadMore) {
-                        products.push({ id: 'ns', name: 'Non-Stock Items (All)', model: 'N/A', isSpecial: true, qty: 1 }); // dummy qty
-                        psHasMore = false;
+                        newItems.push({ id: 'ns', name: 'Non-Stock Items (All)', model: 'N/A', isSpecial: true, qty: 999 });
                     }
+                    prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWord = psCurrentTerm.split(/[\s\-_]+/)[0];
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
+                    if (!searchWord) {
+                        resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
+                        prodSuggIsFetching = false;
+                        return;
+                    }
+
                     let q;
-                    if (isLoadMore && psLastVisible) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(psLastVisible), limit(15));
+                    if (isLoadMore && prodSuggLastVisible) {
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(prodSuggLastVisible), limit(15));
                     } else {
                         q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(15));
                     }
-                    snap = await getDocs(q);
-                    
+
+                    const snap = await getDocs(q);
                     if (snap.empty) {
-                        psHasMore = false;
-                        if (!isLoadMore) {
+                        prodSuggHasMore = false;
+                        if (isLoadMore && document.getElementById('prodScrollLoader')) {
+                            document.getElementById('prodScrollLoader').innerText = "End of results";
+                            setTimeout(() => { if(document.getElementById('prodScrollLoader')) document.getElementById('prodScrollLoader').remove(); }, 1500);
+                        } else if (!isLoadMore) {
                             resultsContainer.innerHTML = `
                                 <div class="empty-state">
                                     <span class="material-symbols-outlined">search_off</span>
                                     <h3>No Products Found</h3>
-                                    <p>No inventory items match "${psCurrentTerm}".</p>
+                                    <p>No inventory items match "${prodSuggCurrentTerm}".</p>
                                 </div>
                             `;
-                        } else if (document.getElementById('psScrollLoader')) {
-                            document.getElementById('psScrollLoader').style.display = 'none';
                         }
-                        psIsFetching = false;
+                        prodSuggIsFetching = false;
                         return;
                     }
 
-                    psLastVisible = snap.docs[snap.docs.length - 1];
+                    prodSuggLastVisible = snap.docs[snap.docs.length - 1];
                     snap.forEach(doc => {
-                        if (!psCache.find(i => i.id === doc.id)) products.push({ id: doc.id, ...doc.data() });
+                        if (!prodSuggCache.find(i => i.id === doc.id)) {
+                            newItems.push({ id: doc.id, ...doc.data() });
+                        }
                     });
                 }
 
-                // Sort this batch to put 0 qty at the bottom of this specific page load
-                products = advancedSort(products, psCurrentTerm);
-                psCache = psCache.concat(products);
-
-                let htmlOutput = '';
-                if (!isLoadMore) {
-                    htmlOutput += `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold; flex-shrink: 0;">Select a product to view buyers</div>`;
-                }
-
-                // Map products into exact Inventory UI cards
-                products.forEach(prod => {
-                    const safeName = (prod.name || '').replace(/'/g, "\\'");
-                    const isNS = prod.isSpecial ? true : false;
-                    const q = prod.qty || 0;
-                    let qtyClass = "";
-                    let oosBadge = "";
-                    let cardClass = "inv-card";
-
-                    if (q === 0 && !isNS) {
-                        qtyClass = "zero";
-                        cardClass += " out-of-stock";
-                        oosBadge = `<div class="oos-badge">Out of Stock</div>`;
-                    }
-
-                    htmlOutput += `
-                        <div class="${cardClass}" onclick="showCustomersForProduct('${safeName}', ${isNS})">
-                            ${oosBadge}
-                            <div class="inv-info">
-                                <span class="inv-name">${prod.name}</span>
-                                <span class="inv-model">${prod.model || 'N/A'}</span>
-                                <span class="inv-price">₹${(prod.price || 0).toLocaleString()}</span>
-                            </div>
-                            <div class="inv-qty ${qtyClass}" style="${isNS ? 'display:none;' : ''}">
-                                <div style="font-size: 0.5em; text-transform: uppercase; color: inherit;">QTY</div>
-                                ${q === 0 ? '0' : q}
-                            </div>
-                        </div>
-                    `;
-                });
+                // Smoothly sort the new batch and append
+                newItems = advancedSort(newItems, prodSuggCurrentTerm);
+                prodSuggCache = prodSuggCache.concat(newItems);
 
                 if (isLoadMore) {
-                    if (document.getElementById('psScrollLoader')) document.getElementById('psScrollLoader').remove();
-                    resultsContainer.insertAdjacentHTML('beforeend', htmlOutput);
+                    if (document.getElementById('prodScrollLoader')) document.getElementById('prodScrollLoader').remove();
+                    renderProductSuggestionsAppend(newItems);
                 } else {
-                    resultsContainer.innerHTML = htmlOutput;
+                    resultsContainer.innerHTML = '<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 5px; color: var(--success-color); font-weight: bold; flex-shrink: 0;">Select a product to view buyers</div>';
+                    renderProductSuggestionsAppend(newItems);
                 }
 
             } catch (err) {
                 console.error("Error searching products:", err);
                 if (!isLoadMore) resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
             } finally {
-                psIsFetching = false;
+                prodSuggIsFetching = false;
             }
         };
 
-        // --- NEW PAGINATED & ARRAY-CONTAINS CUSTOMER SEARCH ---
-        let custLastVisible = null;
-        let custIsFetching = false;
-        let custHasMore = true;
-        let custCurrentProduct = '';
-        let custIsNS = false;
-        let custMatchCount = 0;
+        function renderProductSuggestionsAppend(dataArray) {
+            const resultsContainer = document.getElementById('productSearchResults');
+            let htmlOutput = '';
+            dataArray.forEach(prod => {
+                const safeName = (prod.name || '').replace(/'/g, "\\'");
+                const isNS = prod.isSpecial ? true : false;
+                const stockText = isNS ? '' : (prod.qty <= 0 ? '<span style="color:var(--meena-red); font-weight:bold;">Out of Stock</span>' : `• Stock: ${prod.qty}`);
+                
+                htmlOutput += `
+                    <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; cursor: pointer; border-color: var(--accent-color); transition: 0.2s;" onclick="showCustomersForProduct('${safeName}', ${isNS}, false)" onmouseover="this.style.background='#2a2a2a'" onmouseout="this.style.background='var(--surface-color)'">
+                        <div class="inv-body" style="flex-grow: 1; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="item-name" style="font-size: 1.1em; color: var(--marketing-white);">${prod.name}</div>
+                                <div class="item-sub" style="color: var(--text-secondary); font-size: 0.85em; margin-top: 4px;">Model: ${prod.model || 'N/A'} ${stockText}</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--accent-color);">chevron_right</span>
+                        </div>
+                    </div>
+                `;
+            });
+            resultsContainer.insertAdjacentHTML('beforeend', htmlOutput);
+        }
 
-        window.showCustomersForProduct = async function(productName, isNonStock = false) {
+        // 2. Searches Buyers using the NEW ARRAY SYSTEM + Pagination (Saves 2,000 reads!)
+        window.showCustomersForProduct = async function(productName, isNonStock = false, isLoadMore = false) {
             const resultsContainer = document.getElementById('productSearchResults');
             
-            // Hide search input to lock view
-            document.getElementById('productSearchInput').style.display = 'none';
-
-            custCurrentProduct = productName;
-            custIsNS = isNonStock;
-            custLastVisible = null;
-            custHasMore = true;
-            custIsFetching = true;
-            custMatchCount = 0;
-
-            resultsContainer.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; flex-shrink: 0;">
-                    <button onclick="backToProductSearch()" style="background:var(--surface-color); color:white; border:1px solid #444; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition: 0.2s;"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Back</button>
-                    <span id="custCountText" style="color: var(--success-color); font-weight: bold;">Searching...</span>
-                </div>
-                <div id="custResultsList" style="display:flex; flex-direction:column; gap:15px;"></div>
-                <div id="custLoader" class="loader" style="display:block; padding:20px;">Fetching buyers...</div>
-            `;
-
-            await fetchCustomersBatch();
-        };
-
-        window.backToProductSearch = function() {
-            document.getElementById('productSearchInput').style.display = 'block';
-            window.executeProductSearch(false); // Reload products
-        };
-
-        window.loadMoreCustomersForProduct = async function() {
-            if (custIsFetching || !custHasMore) return;
-            custIsFetching = true;
-            const loader = document.getElementById('custLoader');
-            if (loader) { loader.style.display = 'block'; loader.innerText = 'Loading more buyers...'; }
-            await fetchCustomersBatch();
-        };
-
-        async function fetchCustomersBatch() {
-            const listContainer = document.getElementById('custResultsList');
-            const countText = document.getElementById('custCountText');
-            const loader = document.getElementById('custLoader');
+            if (!isLoadMore) {
+                currentTargetProduct = productName;
+                currentTargetIsNS = isNonStock;
+                custHasMore = true;
+                custLastVisible = null;
+                custMatchesCache = [];
+                custIsFetching = true;
+                resultsContainer.innerHTML = '<div class="loader" style="display:block;">Fetching buyers from database...</div>';
+            } else {
+                if (custIsFetching || !custHasMore) return;
+                custIsFetching = true;
+                const loader = document.createElement('div');
+                loader.id = 'custScrollLoader';
+                loader.style.cssText = "padding:20px; text-align:center; color:var(--accent-color); font-weight:bold;";
+                loader.innerText = "Loading more buyers...";
+                resultsContainer.appendChild(loader);
+            }
 
             try {
                 let q;
-                
-                // NEW 2000-READ BUG FIX: Use array-contains on purchasedProductNames
-                if (custIsNS && custCurrentProduct === 'Non-Stock Items (All)') {
-                    // For the special dummy button "All Non-Stock", search recent overall (no direct array link for dynamic non-stocks unless named exactly)
-                    if (custLastVisible) {
-                        q = query(collection(db, "sellings"), orderBy("date", "desc"), startAfter(custLastVisible), limit(50));
+                if (currentTargetIsNS) {
+                    // For "all non-stock", we just scan recent invoices chronologically.
+                    if (isLoadMore && custLastVisible) {
+                        q = query(collection(db, "sellings"), orderBy("date", "desc"), startAfter(custLastVisible), limit(25));
                     } else {
-                        q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(50));
+                        q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(25));
                     }
                 } else {
-                    // THE CORE FIX: Direct targeting via purchasedProductNames flat array
-                    if (custLastVisible) {
-                        q = query(collection(db, "sellings"), where("purchasedProductNames", "array-contains", custCurrentProduct), orderBy("date", "desc"), startAfter(custLastVisible), limit(15));
+                    // EFFICIENT ARRAY-CONTAINS QUERY: Costs near 0 reads. 
+                    // (Dropping orderBy to prevent crashing users without complex composite indexes)
+                    if (isLoadMore && custLastVisible) {
+                        q = query(collection(db, "sellings"), where("purchasedProductNames", "array-contains", currentTargetProduct), startAfter(custLastVisible), limit(15));
                     } else {
-                        q = query(collection(db, "sellings"), where("purchasedProductNames", "array-contains", custCurrentProduct), orderBy("date", "desc"), limit(15));
+                        q = query(collection(db, "sellings"), where("purchasedProductNames", "array-contains", currentTargetProduct), limit(15));
                     }
                 }
-                
-                const snap = await getDocs(q);
 
+                const snap = await getDocs(q);
                 if (snap.empty) {
                     custHasMore = false;
-                    if (loader) loader.style.display = 'none';
-                    if (custMatchCount === 0) {
-                        listContainer.innerHTML = `
+                    if (isLoadMore && document.getElementById('custScrollLoader')) {
+                        document.getElementById('custScrollLoader').innerText = "No more buyers found";
+                        setTimeout(() => { if(document.getElementById('custScrollLoader')) document.getElementById('custScrollLoader').remove(); }, 1500);
+                    } else if (!isLoadMore) {
+                        resultsContainer.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; flex-shrink: 0;">
+                                <button onclick="loadProductSuggestions(false)" style="background:var(--surface-color); color:white; border:1px solid #444; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='var(--surface-color)'"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Back</button>
+                            </div>
                             <div class="empty-state">
                                 <span class="material-symbols-outlined">search_off</span>
                                 <h3>No Buyers Found</h3>
-                                <p>No one has bought this product yet.</p>
+                                <p>No one has bought this exact product yet.</p>
                             </div>
                         `;
-                        countText.innerText = `0 purchases`;
                     }
                     custIsFetching = false;
                     return;
@@ -1023,84 +938,118 @@
 
                 custLastVisible = snap.docs[snap.docs.length - 1];
 
-                let htmlOutput = '';
+                let newMatches = [];
                 snap.forEach(doc => {
                     const data = doc.data();
                     if (data.items && Array.isArray(data.items)) {
                         const matchingItems = data.items.filter(item => {
-                            if (custIsNS && custCurrentProduct === 'Non-Stock Items (All)') return item.isNonStock;
-                            return item.name === custCurrentProduct;
+                            if (currentTargetIsNS) return item.isNonStock;
+                            return item.name === currentTargetProduct; 
                         });
                         
-                        if (matchingItems.length > 0) {
-                            custMatchCount++;
+                        if (matchingItems.length > 0 && !custMatchesCache.find(m => m.id === doc.id)) {
                             const customerName = data.customer?.name || 'Cash Customer';
                             const customerPhone = data.customer?.phone || 'No Phone';
                             const customerAddress = data.customer?.address || 'No Address';
                             const invoiceNo = data.invoiceNo || 'N/A';
                             
+                            let rawDate = 0;
                             let dateFmt = "N/A";
                             if (data.date && data.date.toDate) {
                                 const d = data.date.toDate();
+                                rawDate = d.getTime();
                                 dateFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
                             }
 
-                            const productsHtml = matchingItems.map(i => {
-                                const nsTag = i.isNonStock ? '<span class="tag-ns" style="font-size: 0.65em; padding: 2px 4px; margin-left: 4px; display: inline-block;">NON-STOCK</span>' : '';
-                                return `<div style="padding: 2px 0;">- ${i.name} (Qty: ${i.qty}) ${nsTag}</div>`;
-                            }).join('');
-
-                            htmlOutput += `
-                                <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column;">
-                                    <div class="inv-header" style="background: #1a1a1a;">
-                                        <div class="inv-meta">
-                                            <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${customerName}</h3>
-                                        </div>
-                                        <div class="inv-time">${dateFmt}</div>
-                                    </div>
-                                    <div class="inv-body" style="flex-grow: 1;">
-                                        <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
-                                            <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${customerPhone}</p>
-                                            <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${customerAddress}</p>
-                                        </div>
-                                        <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
-                                            <strong style="color: var(--text-secondary);">Invoice:</strong> ${invoiceNo}<br>
-                                            <strong style="color: var(--text-secondary); display:block; margin-top: 6px;">Bought:</strong> 
-                                            <div style="color: white; margin-top: 4px; line-height: 1.4;">${productsHtml}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                            newMatches.push({
+                                id: doc.id,
+                                rawDate,
+                                customerName,
+                                customerPhone,
+                                customerAddress,
+                                invoiceNo,
+                                dateFmt,
+                                products: matchingItems.map(i => {
+                                    const nsTag = i.isNonStock ? '<span class="tag-ns" style="font-size: 0.65em; padding: 2px 4px; margin-left: 4px; display: inline-block;">NON-STOCK</span>' : '';
+                                    return `<div style="padding: 2px 0;">- ${i.name} (Qty: ${i.qty}) ${nsTag}</div>`;
+                                }).join('')
+                            });
                         }
                     }
                 });
 
-                if (htmlOutput) listContainer.insertAdjacentHTML('beforeend', htmlOutput);
-                countText.innerText = `Found ${custMatchCount} purchase(s)`;
-                if (loader) loader.style.display = 'none';
-                
+                // Manual date sort for safety
+                newMatches.sort((a, b) => b.rawDate - a.rawDate);
+                custMatchesCache = custMatchesCache.concat(newMatches);
+
+                if (isLoadMore) {
+                    if (document.getElementById('custScrollLoader')) document.getElementById('custScrollLoader').remove();
+                    renderCustomersAppend(newMatches);
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; flex-shrink: 0;">
+                            <button onclick="loadProductSuggestions(false)" style="background:var(--surface-color); color:white; border:1px solid #444; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='var(--surface-color)'"><span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Back</button>
+                            <span style="color: var(--success-color); font-weight: bold;">Purchase History</span>
+                        </div>
+                    `;
+                    renderCustomersAppend(newMatches);
+                }
+
+                // Auto-fetch if Non-Stock mode didn't find any in the first 25 scan
+                if (newMatches.length === 0 && currentTargetIsNS && custHasMore) {
+                    custIsFetching = false; 
+                    window.showCustomersForProduct(productName, isNonStock, true);
+                }
+
             } catch (err) {
                 console.error("Error fetching buyers:", err);
-                if (loader) loader.style.display = 'none';
-                showToast("Error fetching buyers.");
+                if (!isLoadMore) resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error fetching data. Please try again.</div>';
             } finally {
                 custIsFetching = false;
             }
+        };
+
+        function renderCustomersAppend(dataArray) {
+            const resultsContainer = document.getElementById('productSearchResults');
+            let htmlOutput = '';
+            dataArray.forEach(match => {
+                htmlOutput += `
+                    <div class="invoice-card" style="flex-shrink: 0; display: flex; flex-direction: column; margin-bottom: 15px;">
+                        <div class="inv-header" style="background: #1a1a1a;">
+                            <div class="inv-meta">
+                                <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
+                            </div>
+                            <div class="inv-time">${match.dateFmt}</div>
+                        </div>
+                        <div class="inv-body" style="flex-grow: 1;">
+                            <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
+                                <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
+                                <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
+                            </div>
+                            <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
+                                <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
+                                <strong style="color: var(--text-secondary); display:block; margin-top: 6px;">Bought:</strong> 
+                                <div style="color: white; margin-top: 4px; line-height: 1.4;">${match.products}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            resultsContainer.insertAdjacentHTML('beforeend', htmlOutput);
         }
 
-        // SCROLL LISTENER FOR DYNAMIC PAGINATION (BOTH PRODUCTS AND CUSTOMERS)
+        // 3. The Infinite Scroll Hook
         document.getElementById('productSearchResults').addEventListener('scroll', (e) => {
             const element = e.target;
             if (element.scrollHeight - element.scrollTop <= element.clientHeight + 50) {
-                // If search input is visible, we are looking at products
-                if (document.getElementById('productSearchInput').style.display !== 'none') {
-                    if (window.executeProductSearch) window.executeProductSearch(true);
+                if (currentTargetProduct === '' && !currentTargetIsNS) {
+                    loadProductSuggestions(true); // Paginate the inventory search
                 } else {
-                    // Otherwise, we are looking at the customer buyers list
-                    if (window.loadMoreCustomersForProduct) window.loadMoreCustomersForProduct();
+                    showCustomersForProduct(currentTargetProduct, currentTargetIsNS, true); // Paginate the buyers
                 }
             }
         });
+
 
         // ADDED: GST Filing Export Modal & PDF Generator Logic
         window.openGstModal = function() {
@@ -1857,3 +1806,53 @@
                     showToast("No GST bills found in this date range.");
                 } else {
                     // Create an off-screen container for html2pdf to parse
+                    const element = document.createElement('div');
+                    element.innerHTML = fullPrintHtml;
+                    
+                    const opt = {
+                        margin:       0,
+                        filename:     `Full_GST_Bills_${fromDateStr}_to_${toDateStr}.pdf`,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    await html2pdf().set(opt).from(element).save();
+                    showToast("Full PDF Exported Successfully!", "success");
+                }
+
+            } catch(e) {
+                console.error("PDF Gen Error:", e);
+                showToast("Error generating Full PDF layout.");
+            }
+
+            btnPrint.innerHTML = `<span class="material-symbols-outlined">download</span> Download Full Bills (PDF)`;
+            btnPrint.disabled = false;
+        };
+
+        window.addEventListener('afterprint', () => {
+            document.getElementById('printArea').innerHTML = ''; // Clean up after print dialog closes
+        });
+
+        // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
+        window.addEventListener('popstate', (e) => {
+            const searchModal = document.getElementById('searchModal');
+            if (searchModal.classList.contains('active')) {
+                searchModal.classList.remove('active');
+                document.getElementById('searchInput').value = '';
+            }
+            
+            const gstModal = document.getElementById('gstModal');
+            if (gstModal.classList.contains('active')) {
+                gstModal.classList.remove('active');
+            }
+
+            const productSearchModal = document.getElementById('productSearchModal');
+            if (productSearchModal && productSearchModal.classList.contains('active')) {
+                productSearchModal.classList.remove('active');
+            }
+        });
+
+    </script>
+</body>
+</html>
