@@ -249,7 +249,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 
             // --- A. TEXT ADMIN ALERT (Text Only) ---
             if (currentAdminPhone) {
-                const adminWhatsappId = currentAdminPhone + '@c.us';
+                // FIX: Strip ALL non-numeric characters (including the '+' symbol) before appending '@c.us'
+                const adminWhatsappId = currentAdminPhone.replace(/\D/g, '') + '@c.us';
                 
                 // Build the item list text dynamically for the admin
                 let itemListText = '';
@@ -270,7 +271,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             const formattedCustPhone = formatPhone(rawCustPhone);
 
             if (formattedCustPhone) {
-                const custWhatsappId = formattedCustPhone + '@c.us';
+                // FIX: Strip ALL non-numeric characters (including the '+' symbol) before appending '@c.us'
+                const custWhatsappId = formattedCustPhone.replace(/\D/g, '') + '@c.us';
                 
                 try {
                     // Check if customer is actually on WhatsApp
