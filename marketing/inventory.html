@@ -148,8 +148,12 @@
         .action-btn.info:hover { background: var(--info-color); color: white; }
         .action-btn .material-symbols-outlined { font-size: 18px; }
 
-        /* Custom Confirm Modal Additions */
-        #modalConfirm { z-index: 3000; }
+        /* MODIFIED Custom Confirm Modal Additions - Centered Popup */
+        #modalConfirm { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.75); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 3000; }
+        #modalConfirm.active { opacity: 1; pointer-events: auto; }
+        .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 380px; border-radius: 16px; border: 1px solid #444; box-shadow: 0 15px 35px rgba(0,0,0,0.8); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; display: flex; flex-direction: column; }
+        #modalConfirm.active .modal-content-wrap { transform: scale(1); }
+        #modalConfirm .modal-header { position: relative; border-bottom: 1px solid #333; }
         #modalConfirm .modal-header h2 { color: var(--warning-color); }
         .confirm-actions { display: flex; gap: 15px; margin-top: 30px; }
         .btn-cancel { background: #333; color: white; border: none; padding: 15px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 1em; }
@@ -339,16 +343,18 @@
     </div>
 
     <div class="modal" id="modalConfirm">
-        <div class="modal-header">
-            <button class="close-modal" id="btnCancelIcon"><span class="material-symbols-outlined">close</span></button>
-            <h2 id="confirmTitle">Confirm Action</h2>
-        </div>
-        <div class="form-group">
-            <p id="confirmMessage" style="font-size: 1.1em; line-height: 1.5; color: var(--marketing-white);"></p>
-            <input type="number" id="confirmInput" placeholder="Enter value...">
-            <div class="confirm-actions">
-                <button class="btn-cancel" id="btnCancelConfirm">Cancel</button>
-                <button class="btn-confirm" id="btnAcceptConfirm">Confirm</button>
+        <div class="modal-content-wrap">
+            <div class="modal-header">
+                <button class="close-modal" id="btnCancelIcon"><span class="material-symbols-outlined">close</span></button>
+                <h2 id="confirmTitle">Confirm Action</h2>
+            </div>
+            <div class="form-group">
+                <p id="confirmMessage" style="font-size: 1.1em; line-height: 1.5; color: var(--marketing-white);"></p>
+                <input type="number" id="confirmInput" placeholder="Enter value...">
+                <div class="confirm-actions">
+                    <button class="btn-cancel" id="btnCancelConfirm">Cancel</button>
+                    <button class="btn-confirm" id="btnAcceptConfirm">Confirm</button>
+                </div>
             </div>
         </div>
     </div>
@@ -713,9 +719,15 @@
                 // inventoryCache = advancedSort(inventoryCache);
                 // renderInventory(inventoryCache);
                 
-                // --- NEW DYNAMIC PAGINATED QUERY (Handles both Search and Default feed) ---
+                // --- MODIFIED DYNAMIC PAGINATED QUERY (Handles Low Stock, Search, and Default) ---
                 let q;
-                if (currentSearchTerm !== '') {
+                if (showingLowStock) {
+                    if (isLoadMore && lastVisibleItem) {
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), limit(10));
+                    }
+                } else if (currentSearchTerm !== '') {
                     const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
                     if (isLoadMore && lastVisibleItem) {
                         // NO orderBy here to avoid requiring composite indexes for search
@@ -792,16 +804,12 @@
             }
         }
 
-        // --- ADDED: INFINITE SCROLL LISTENER ---
+        // --- MODIFIED: INFINITE SCROLL LISTENER (Now supports all filters) ---
         document.querySelector('.main-scroll-area').addEventListener('scroll', (e) => {
             const element = e.target;
             // If the user scrolls within 100 pixels of the bottom of the container
             if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
-                // OLD: if (!showingLowStock && document.getElementById('searchInventory').value.trim() === '') {
-                // NEW logic below permits search pagination:
-                if (!showingLowStock) {
-                    loadInventory(true); // Trigger loadMore seamlessly
-                }
+                loadInventory(true); // Trigger loadMore seamlessly for Search, Low Stock, or Default
             }
         });
 
@@ -897,45 +905,31 @@
             grid.insertAdjacentHTML('beforeend', htmlBuffer);
         }
 
-        // --- Low Stock Filter Logic ---
+        // --- MODIFIED Low Stock Filter Logic (Now Uses Pagination Engine) ---
         window.filterLowStock = async function() {
             const btn = document.getElementById('btnLowStock');
             const searchBox = document.getElementById('searchInventory');
             
             if (showingLowStock) {
+                // Deactivate Filter
                 btn.style.backgroundColor = "var(--warning-color)";
+                btn.querySelector('.material-symbols-outlined').style.color = "white"; // Reset icon color
                 searchBox.value = '';
                 showingLowStock = false;
                 currentSearchTerm = ''; // Reset search term
                 loadInventory(); 
             } else {
-                try {
-                    btn.style.backgroundColor = "#fff";
-                    btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
-                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
-                    
-                    // Added limit(50) here to protect against fetching 10,000 items if you have thousands out of stock
-                    const qAll = query(collection(db, "inventory"), where("qty", "<", 3), limit(50)); 
-                    const snap = await getDocs(qAll);
-                    
-                    let lowStockItems = [];
-                    snap.forEach(doc => {
-                        lowStockItems.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    showingLowStock = true;
-                    // Apply advanced sort to low stock items as well
-                    lowStockItems = advancedSort(lowStockItems);
-                    
-                    // Keep cache synced so we can still edit low stock items
-                    inventoryCache = lowStockItems; 
-                    renderInventory(lowStockItems);
-                    
-                } catch(err) {
-                    console.error("Stock filter error", err);
-                    showToast(err.message || "Error checking low stock.", "error");
-                    btn.style.backgroundColor = "var(--warning-color)";
-                }
+                // Activate Filter
+                btn.style.backgroundColor = "#fff";
+                btn.querySelector('.material-symbols-outlined').style.color = "var(--warning-color)";
+                document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--warning-color); width:100%; padding:40px;">Checking stock levels...</div>';
+                
+                showingLowStock = true;
+                currentSearchTerm = ''; // Reset search to prevent conflicts
+                searchBox.value = '';
+                
+                // Trigger the core loadInventory engine which now supports low-stock pagination
+                loadInventory(false); 
             }
         };
 
