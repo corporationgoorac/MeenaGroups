@@ -22,6 +22,7 @@
             --accent-color: #0056b3;
             --success-color: #00c853;
             --warning-color: #ff9800;
+            --info-color: #2196F3;
             --nav-bg: #1a1a1a;
             --input-bg: #2a2a2a;
         }
@@ -143,7 +144,17 @@
         .action-btn.edit:hover { background: var(--accent-color); border-color: var(--accent-color); }
         .action-btn.delete { color: var(--meena-red); background: rgba(255, 51, 51, 0.1); border-color: rgba(255, 51, 51, 0.3); }
         .action-btn.delete:hover { background: var(--meena-red); color: white; }
+        .action-btn.info { color: var(--info-color); background: rgba(33, 150, 243, 0.1); border-color: rgba(33, 150, 243, 0.3); }
+        .action-btn.info:hover { background: var(--info-color); color: white; }
         .action-btn .material-symbols-outlined { font-size: 18px; }
+
+        /* Custom Confirm Modal Additions */
+        #modalConfirm { z-index: 3000; }
+        #modalConfirm .modal-header h2 { color: var(--warning-color); }
+        .confirm-actions { display: flex; gap: 15px; margin-top: 30px; }
+        .btn-cancel { background: #333; color: white; border: none; padding: 15px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 1em; }
+        .btn-confirm { background: var(--meena-red); color: white; border: none; padding: 15px; border-radius: 8px; flex: 1; cursor: pointer; font-weight: bold; font-size: 1em; }
+        #confirmInput { display: none; width: 100%; margin-top: 15px; }
 
     </style>
 </head>
@@ -298,6 +309,50 @@
         </div>
     </div>
 
+    <div class="modal" id="modalProductInfo">
+        <div class="modal-header">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>Product History</h2>
+        </div>
+        <div class="form-group">
+            <h3 id="infoName" style="margin-top: 0; color: var(--marketing-white); font-size: 1.3em;"></h3>
+            <p id="infoModel" style="color: var(--text-secondary); margin-bottom: 25px; margin-top: -10px;"></p>
+            
+            <div style="background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px;">
+                <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Stock History</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 1.1em; font-weight: bold;" id="infoQty"></span>
+                    <span id="infoQtyBadge" style="padding: 6px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold;"></span>
+                </div>
+            </div>
+
+            <div style="background: var(--surface-color); padding: 18px; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px;">
+                <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Price History</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 1.1em; font-weight: bold; color: var(--success-color);" id="infoPrice"></span>
+                    <span style="color: var(--text-secondary); font-size: 0.9em; text-decoration: line-through;" id="infoMrp"></span>
+                </div>
+            </div>
+
+            <div style="text-align: center; color: var(--text-secondary); font-size: 0.85em; margin-top: 35px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;" id="infoTimestamp"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalConfirm">
+        <div class="modal-header">
+            <button class="close-modal" id="btnCancelIcon"><span class="material-symbols-outlined">close</span></button>
+            <h2 id="confirmTitle">Confirm Action</h2>
+        </div>
+        <div class="form-group">
+            <p id="confirmMessage" style="font-size: 1.1em; line-height: 1.5; color: var(--marketing-white);"></p>
+            <input type="number" id="confirmInput" placeholder="Enter value...">
+            <div class="confirm-actions">
+                <button class="btn-cancel" id="btnCancelConfirm">Cancel</button>
+                <button class="btn-confirm" id="btnAcceptConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // 1. Service Worker Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
@@ -395,11 +450,120 @@
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
         });
 
+        // --- NEW: CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL ---
+        let confirmResolve = null;
+        window.openConfirmModal = function(title, message, isPrompt = false, defaultValue = "", confirmColor = "var(--meena-red)", confirmText = "Confirm") {
+            return new Promise((resolve) => {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMessage').innerText = message;
+                
+                const input = document.getElementById('confirmInput');
+                if (isPrompt) {
+                    input.style.display = 'block';
+                    input.value = defaultValue;
+                    // Focus works better after a tiny delay on mobile
+                    setTimeout(() => input.focus(), 100);
+                } else {
+                    input.style.display = 'none';
+                    input.value = '';
+                }
+
+                const btnAccept = document.getElementById('btnAcceptConfirm');
+                btnAccept.style.backgroundColor = confirmColor;
+                btnAccept.innerText = confirmText;
+
+                openModal('modalConfirm');
+                
+                const cleanup = () => {
+                    window.removeEventListener('popstate', onPopState);
+                    confirmResolve = null;
+                };
+
+                const onPopState = () => {
+                    if (confirmResolve) {
+                        confirmResolve(null); 
+                        cleanup();
+                    }
+                };
+                window.addEventListener('popstate', onPopState);
+
+                confirmResolve = (val) => {
+                    resolve(val);
+                    cleanup();
+                    if(document.getElementById('modalConfirm').classList.contains('active')) {
+                        history.back(); 
+                    }
+                };
+            });
+        };
+
+        document.getElementById('btnCancelConfirm').addEventListener('click', () => { if (confirmResolve) confirmResolve(null); });
+        document.getElementById('btnCancelIcon').addEventListener('click', () => { 
+            if (confirmResolve) confirmResolve(null); 
+            else history.back(); 
+        });
+        document.getElementById('btnAcceptConfirm').addEventListener('click', () => {
+            if (confirmResolve) {
+                const input = document.getElementById('confirmInput');
+                if (input.style.display === 'block') confirmResolve(input.value);
+                else confirmResolve(true);
+            }
+        });
+
+        // --- NEW: OPEN INFO MODAL ---
+        window.openInfoModal = function(id) {
+            const item = inventoryCache.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('infoName').innerText = item.name;
+            document.getElementById('infoModel').innerText = item.model || 'No Model ID';
+
+            const currQty = item.qty || 0;
+            const prevQty = item.previousQty !== undefined ? item.previousQty : currQty;
+            document.getElementById('infoQty').innerText = `Previous: ${prevQty} ➔ Current: ${currQty}`;
+
+            const badge = document.getElementById('infoQtyBadge');
+            const diff = currQty - prevQty;
+            if (diff > 0) {
+                badge.innerText = `+${diff} (Stock Added)`;
+                badge.style.backgroundColor = 'rgba(0, 200, 83, 0.2)';
+                badge.style.color = 'var(--success-color)';
+            } else if (diff < 0) {
+                badge.innerText = `${diff} (Stock Reduced)`;
+                badge.style.backgroundColor = 'rgba(255, 51, 51, 0.2)';
+                badge.style.color = 'var(--meena-red)';
+            } else {
+                badge.innerText = `No Change`;
+                badge.style.backgroundColor = 'rgba(170, 170, 170, 0.2)';
+                badge.style.color = 'var(--text-secondary)';
+            }
+
+            const currPrice = item.price || 0;
+            const prevPrice = item.previousPrice !== undefined ? item.previousPrice : currPrice;
+            document.getElementById('infoPrice').innerText = `₹${prevPrice.toLocaleString()} ➔ ₹${currPrice.toLocaleString()}`;
+            
+            const currMrp = item.mrp || 0;
+            const prevMrp = item.previousMrp !== undefined ? item.previousMrp : currMrp;
+            document.getElementById('infoMrp').innerText = `MRP: ₹${prevMrp.toLocaleString()} ➔ ₹${currMrp.toLocaleString()}`;
+
+            let dateStr = "No recent updates recorded";
+            if (item.lastUpdated) {
+                const d = new Date(item.lastUpdated);
+                dateStr = `Last updated: ${d.toLocaleString()}`;
+            }
+            document.getElementById('infoTimestamp').innerText = dateStr;
+
+            openModal('modalProductInfo');
+        };
+
         // --- EDIT AND DELETE FUNCTIONS ---
         window.editQty = async function(id, currentQty) {
-            const newQty = prompt("Enter new quantity:", currentQty);
-            if (newQty === null || newQty.trim() === "") return;
-            const parsedQty = parseInt(newQty);
+            const item = inventoryCache.find(i => i.id === id);
+            if (!item) return;
+
+            const newQtyStr = await openConfirmModal("Quick Edit Quantity", `Enter new quantity for ${item.name}:`, true, currentQty, "var(--accent-color)", "Save Update");
+            if (newQtyStr === null || newQtyStr.trim() === "") return;
+            const parsedQty = parseInt(newQtyStr);
             
             if (isNaN(parsedQty) || parsedQty < 0) {
                 showToast("Please enter a valid number.", "error");
@@ -408,7 +572,12 @@
 
             try {
                 const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { qty: parsedQty });
+                await updateDoc(itemRef, { 
+                    qty: parsedQty,
+                    previousQty: currentQty,
+                    lastUpdated: new Date().toISOString(),
+                    createdAt: serverTimestamp() // Push to top
+                });
                 showToast("Quantity updated successfully!", "success");
                 loadInventory(); // Refresh the list
             } catch (err) {
@@ -450,6 +619,11 @@
             btnSave.innerHTML = "Updating...";
 
             try {
+                const item = inventoryCache.find(i => i.id === id);
+                const oldQty = item ? (item.qty || 0) : 0;
+                const oldPrice = item ? (item.price || 0) : 0;
+                const oldMrp = item ? (item.mrp || 0) : 0;
+
                 const itemRef = doc(db, "inventory", id);
                 await updateDoc(itemRef, { 
                     name: newName,
@@ -457,7 +631,12 @@
                     mrp: newMrp,
                     price: newPrice,
                     qty: newQty,
-                    searchKeywords: generateKeywords(newName, newModel) // <-- ADDED KEYWORD GENERATION
+                    searchKeywords: generateKeywords(newName, newModel), 
+                    previousQty: oldQty,
+                    previousPrice: oldPrice,
+                    previousMrp: oldMrp,
+                    lastUpdated: new Date().toISOString(),
+                    createdAt: serverTimestamp() // Pushes to the top naturally
                 });
                 showToast("Product updated successfully!", "success");
                 history.back(); 
@@ -472,7 +651,8 @@
         });
 
         window.deleteItem = async function(id, name) {
-            if (!confirm(`Are you sure you want to completely delete "${name}"?`)) return;
+            const isConfirmed = await openConfirmModal("Delete Product", `Are you sure you want to completely delete "${name}"? This action cannot be undone.`, false, "", "var(--meena-red)", "Delete Product");
+            if (!isConfirmed) return;
             
             try {
                 const itemRef = doc(db, "inventory", id);
@@ -657,6 +837,7 @@
                             <span class="inv-model">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
+                                <button class="action-btn info" onclick="openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
                             </div>
@@ -701,6 +882,7 @@
                             <span class="inv-model">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
+                                <button class="action-btn info" onclick="openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
                             </div>
@@ -849,6 +1031,7 @@
             try {
                 let isUpdate = false;
                 let existingId = null;
+                let existingQtyToSave = 0;
 
                 if (model !== "") {
                     const q = query(collection(db, "inventory"), where("model", "==", model), limit(1));
@@ -858,11 +1041,12 @@
                         const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
-                        const confirmUpdate = confirm(`Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`);
+                        const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
                         
                         if (confirmUpdate) {
                             isUpdate = true;
                             existingId = existingDoc.id;
+                            existingQtyToSave = existingData.qty || 0;
                         } else {
                             btnAdd.disabled = false;
                             btnAdd.innerHTML = originalText;
@@ -878,7 +1062,8 @@
                     price, 
                     qty, 
                     isUpdate, 
-                    existingId 
+                    existingId,
+                    existingQty: existingQtyToSave 
                 });
                 
                 document.getElementById('iName').value = '';
@@ -950,7 +1135,10 @@
                     if (item.isUpdate && item.existingId) {
                         const existingRef = doc(db, "inventory", item.existingId);
                         batch.update(existingRef, {
-                            qty: increment(item.qty)
+                            qty: increment(item.qty),
+                            previousQty: item.existingQty,
+                            lastUpdated: new Date().toISOString(),
+                            createdAt: serverTimestamp() // Pushes updated item to top
                         });
                     } else {
                         const newRef = doc(collection(db, "inventory"));
