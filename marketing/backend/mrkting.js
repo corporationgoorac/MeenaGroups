@@ -6,14 +6,15 @@ let isInitialized = false;
 
 /**
  * MEENA MARKETING - ENTERPRISE DIGITAL AD AGENT
- * 1. 7-Day Anti-Ban Drip Marketing Cycle (RAM Based, 200 Limit)
+ * 1. 30-Day Anti-Ban Drip Marketing Cycle (FIREBASE TRACKED)
  * 2. 1000+ Product Combinations & 500+ Template Variations
  * 3. On-Demand Generator Trigger (!generate image)
- * 4. 8-Hour Business Pacing Math
+ * 4. 14-Hour Business Pacing Math (6:00 AM - 8:00 PM IST)
  * 5. Unique Promo Code Generation & Time-Based Greetings
  * 6. 500+ Dynamic Agent Pitch Generator (Bilingual)
  * 7. Canvas Height Expansion (Fixed Overlap Bug)
- * 8. NEW: Anti-Duplication Shield (Prevents spam on server reconnects)
+ * 8. Anti-Duplication Shield (Prevents spam on server reconnects)
+ * 9. Opt-Out Blacklist & Dead Number Graveyard Processing
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
@@ -23,8 +24,8 @@ module.exports = (client, db) => {
     }
     isInitialized = true;
 
-    let marketingBatch = [];
     let isProcessing = false;
+    const docRef = db.collection('marketing_messages').doc('campaign_data');
 
     // --- UTILITIES ---
     const sleep = (ms) => new Promise(res => setTimeout(res, ms));
@@ -56,10 +57,31 @@ module.exports = (client, db) => {
         return { en: 'Good Evening', ta: 'மாலை வணக்கம்' };
     };
 
-    // --- 1. ON-DEMAND WHATSAPP AD GENERATOR ---
+    // --- 1. ON-DEMAND WHATSAPP AD GENERATOR & OPT-OUT HANDLER ---
     client.on('message', async (msg) => {
         const input = msg.body.trim().toLowerCase();
         
+        // OPT-OUT BLACKLIST HANDLER
+        if (input === 'stop') {
+            try {
+                const formattedNumber = '+' + msg.from.replace('@c.us', '');
+                let snap = await docRef.get();
+                if (snap.exists) {
+                    let data = snap.data();
+                    let optedOut = data.optedOut || [];
+                    if (!optedOut.includes(formattedNumber)) {
+                        optedOut.push(formattedNumber);
+                        await docRef.set({ optedOut: optedOut }, { merge: true });
+                    }
+                }
+                await msg.reply("✅ _You have successfully opted out. You will no longer receive promotional offers from Meena Marketing._");
+                console.log(`🛑 [Marketing] Customer ${formattedNumber} opted out.`);
+            } catch (err) {
+                console.error("Opt-out error:", err);
+            }
+            return;
+        }
+
         if (input === 'generate image' || input === 'generate ad') {
             await msg.reply("🎨 _Digital Agent is designing a new promotional poster... Please wait._");
             
@@ -81,97 +103,164 @@ module.exports = (client, db) => {
         }
     });
 
-    // --- 2. CORE AUTOMATED DISTRIBUTION LOGIC ---
+    // --- 2. CORE AUTOMATED DISTRIBUTION LOGIC (FIREBASE UPGRADED) ---
     const fetchAndPrepareBatch = async () => {
         if (isProcessing) return;
         isProcessing = true;
         
-        console.log("📥 [Marketing] Weekly Cycle Started: Pulling last 200 bills...");
-        
         try {
-            // FIREBASE OPTIMIZATION: Exactly 200 reads, performed ONLY once a week.
-            const snap = await db.collection('sellings')
-                .orderBy('date', 'desc')
-                .limit(200)
-                .get();
+            let snap = await docRef.get();
+            let dbData = snap.exists ? snap.data() : null;
 
-            const uniqueCustomers = new Map();
+            // Initialize DB if empty or if cycle is fully complete
+            if (!dbData || !dbData.pendingCustomers || dbData.pendingCustomers.length === 0) {
+                console.log("📥 [Marketing] 30-Day Cycle Started: Pulling last 200 bills from Firebase...");
+                
+                // FIREBASE OPTIMIZATION: Exactly 200 reads, performed ONLY once a month.
+                const sellingSnap = await db.collection('sellings').orderBy('date', 'desc').limit(200).get();
+                const uniqueCustomers = new Map();
 
-            // RAM-Based Deduplication
-            snap.forEach(doc => {
-                const data = doc.data();
-                const rawPhone = data.customer?.phone;
-                const formatted = formatPhone(rawPhone);
+                // Deduplication
+                sellingSnap.forEach(doc => {
+                    const data = doc.data();
+                    const rawPhone = data.customer?.phone;
+                    const formatted = formatPhone(rawPhone);
 
-                if (formatted && !uniqueCustomers.has(formatted)) {
-                    uniqueCustomers.set(formatted, {
-                        name: data.customer?.name || 'Customer',
-                        phone: formatted
-                    });
-                }
-            });
+                    if (formatted && !uniqueCustomers.has(formatted)) {
+                        uniqueCustomers.set(formatted, {
+                            name: data.customer?.name || 'Customer',
+                            phone: formatted
+                        });
+                    }
+                });
 
-            const customersList = Array.from(uniqueCustomers.values());
-            console.log(`🧹 [Marketing] Deduplicated to ${customersList.length} unique customers.`);
+                let customersList = Array.from(uniqueCustomers.values());
+                let optedOut = dbData?.optedOut || [];
+                let invalidNumbers = dbData?.invalidNumbers || [];
 
-            // Validate WhatsApp Registration instantly to prevent bans
-            const validatedList = [];
-            for (const cust of customersList) {
-                const waId = cust.phone.replace('+', '') + '@c.us';
-                try {
-                    const isRegistered = await client.isRegisteredUser(waId);
-                    if (isRegistered) validatedList.push(cust);
-                } catch (e) {}
-                await sleep(500); 
+                // Filter out Blacklist and Graveyard immediately
+                customersList = customersList.filter(c => !optedOut.includes(c.phone) && !invalidNumbers.includes(c.phone));
+
+                console.log(`🧹 [Marketing] Deduplicated and filtered to ${customersList.length} safe unique customers.`);
+
+                const todayStr = new Date().toLocaleDateString('en-IN');
+                dbData = {
+                    campaignMonth: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+                    pendingCustomers: customersList,
+                    sentCustomers: [],
+                    optedOut: optedOut,
+                    invalidNumbers: invalidNumbers,
+                    messagesSentToday: 0,
+                    lastRunDate: todayStr
+                };
+
+                await docRef.set(dbData);
             }
 
-            marketingBatch = validatedList;
-            console.log(`🚀 [Marketing] Pacing ${marketingBatch.length} messages over 7 days.`);
-            
-            runDistributionCycle();
+            // Begin the distribution loop
+            runDistributionCycle(dbData);
+
         } catch (err) {
             console.error("❌ [Marketing] Error fetching batch:", err);
             isProcessing = false;
         }
     };
 
-    const runDistributionCycle = async () => {
-        const totalInBatch = marketingBatch.length;
-        if (totalInBatch === 0) {
+    const runDistributionCycle = async (dbData) => {
+        const todayStr = new Date().toLocaleDateString('en-IN');
+        
+        // Reset daily counters if it's a new day
+        if (dbData.lastRunDate !== todayStr) {
+            dbData.messagesSentToday = 0;
+            dbData.lastRunDate = todayStr;
+            await docRef.set({ messagesSentToday: 0, lastRunDate: todayStr }, { merge: true });
+        }
+
+        const maxDailyMessages = 7; 
+        let currentHour = new Date().getHours();
+
+        // 14-HOUR MATH: Ensure all daily messages finish strictly between 6 AM and 8 PM
+        if (currentHour < 6 || currentHour >= 20) {
+            console.log(`🌙 [Marketing] Outside business hours (6 AM - 8 PM). Sleeping...`);
             isProcessing = false;
             return;
         }
 
-        const perDay = Math.ceil(totalInBatch / 7);
-
-        for (let day = 1; day <= 7; day++) {
-            console.log(`📅 [Marketing] Day ${day} of 7 starting...`);
-            const dailyQuota = marketingBatch.splice(0, perDay);
-
-            // 8-HOUR MATH BUG FIX: Ensure all daily messages finish within business hours
-            const businessMinutesPerDay = 8 * 60; // 8 hours (480 minutes)
-            let baseGapMinutes = 45; // default fallback
-            
-            if (dailyQuota.length > 0) {
-                baseGapMinutes = Math.floor(businessMinutesPerDay / dailyQuota.length);
-            }
-
-            for (const customer of dailyQuota) {
-                await sendPromotion(customer);
-                
-                // ANTI-BAN PACING: Add randomness (+/- 5 mins) to base gap so it looks human
-                const randomMinutes = baseGapMinutes + Math.floor(Math.random() * 10 - 5); 
-                const finalDelay = Math.max(5, randomMinutes); // Ensure it never drops below a 5 min gap
-                
-                await sleep(finalDelay * 60000);
-            }
-            
-            // Wait for next day
-            if (marketingBatch.length > 0) await sleep(1000 * 60 * 60 * 6); // 6 hour gap between day cycles
+        if (dbData.messagesSentToday >= maxDailyMessages) {
+            console.log(`🔒 [Marketing] Daily quota of ${maxDailyMessages} met. Sleeping until tomorrow...`);
+            isProcessing = false;
+            return;
         }
 
-        console.log("✅ [Marketing] 7-Day Cycle Complete. RAM Cleared.");
-        isProcessing = false;
+        if (dbData.pendingCustomers.length === 0) {
+            console.log("✅ [Marketing] Entire 30-Day Cycle Complete. Restarting database fetch.");
+            isProcessing = false;
+            // Instantly triggers a fresh fetch
+            fetchAndPrepareBatch(); 
+            return;
+        }
+
+        // --- THE ENGINE LOOP ---
+        console.log(`⚙️ [Marketing] Engine running. ${dbData.pendingCustomers.length} remaining. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
+
+        // Grab the first customer in line
+        const customer = dbData.pendingCustomers[0];
+        const waId = customer.phone.replace('+', '') + '@c.us';
+
+        let wasSentSuccessfully = false;
+
+        try {
+            // SAFEGUARD: Check Graveyard
+            const isRegistered = await client.isRegisteredUser(waId);
+            
+            if (!isRegistered) {
+                console.log(`🪦 [Marketing] Number ${customer.phone} is not on WhatsApp. Moving to Graveyard.`);
+                dbData.invalidNumbers.push(customer.phone);
+            } else {
+                // --- HUMAN SIMULATION ---
+                try {
+                    const chat = await client.getChatById(waId);
+                    await chat.sendStateTyping();
+                    await sleep(Math.floor(Math.random() * 3000) + 5000); // Type for 5-8 seconds
+                } catch (e) {}
+
+                await sendPromotion(customer);
+                wasSentSuccessfully = true;
+            }
+        } catch (error) {
+            console.error(`⚠️ [Marketing] Unexpected error processing ${customer.phone}:`, error);
+        }
+
+        // --- DATABASE ARRAY SHIFTING (1-Read Magic) ---
+        // Remove them from pending regardless of success or failure so we don't get stuck
+        dbData.pendingCustomers.shift(); 
+        
+        if (wasSentSuccessfully) {
+            dbData.sentCustomers.push(customer);
+            dbData.messagesSentToday += 1;
+        }
+
+        // Overwrite the single document
+        await docRef.set(dbData);
+        
+        // RAM Cleanup
+        if (client.pupPage) {
+            await client.pupPage.evaluate(() => {
+                if (window.Store && window.Store.Msg) window.Store.Msg.clear();
+            }).catch(() => {});
+        }
+
+        isProcessing = false; // Release the lock before the massive sleep delay
+
+        if (wasSentSuccessfully && dbData.messagesSentToday < maxDailyMessages) {
+            // ANTI-BAN PACING: Wait randomly between 90 and 150 minutes
+            const randomMinutes = Math.floor(Math.random() * 60) + 90;
+            console.log(`⏳ [Marketing] Success. Sleeping for ${randomMinutes} minutes to simulate human pacing.`);
+            await sleep(randomMinutes * 60000);
+            
+            // Loop back on itself to process the next person if time allows
+            fetchAndPrepareBatch(); 
+        }
     };
 
     const sendPromotion = async (customer) => {
@@ -184,9 +273,10 @@ module.exports = (client, db) => {
             const caption = getBilingualCaption(customer.name, adData);
             
             await client.sendMessage(waId, media, { caption });
-            console.log(`📩 Sent Ad to ${customer.name}`);
+            console.log(`📩 Sent Ad to ${customer.name} (${customer.phone})`);
         } catch (err) {
             console.error(`❌ Failed to send Ad to ${customer.name}`);
+            throw err; // Throw up to the loop so it doesn't count as successfully sent
         }
     };
 
@@ -388,9 +478,9 @@ module.exports = (client, db) => {
     };
 
     // --- INITIALIZATION ---
-    // Start first cycle after WhatsApp is ready
+    // Start the intelligent boot cycle 
     fetchAndPrepareBatch();
 
-    // Set Weekly Interval (7 Days = 604,800,000 ms)
-    setInterval(fetchAndPrepareBatch, 7 * 24 * 60 * 60 * 1000);
+    // The bot will wake up every 60 minutes to check if it's time to send the next batch
+    setInterval(fetchAndPrepareBatch, 60 * 60 * 1000);
 };
