@@ -594,129 +594,6 @@
             });
         }
 
-        // --- OLD PRODUCT/CUSTOMER SEARCH COMMENTED OUT SAFELY ---
-        /*
-        let prodSearchTimeout;
-        window.openProductSearchModal = function() {
-            const modal = document.getElementById('productSearchModal');
-            modal.classList.add('active');
-            document.getElementById('productSearchInput').focus();
-            history.pushState({ prodSearchModalOpen: true }, "");
-        };
-
-        window.closeProductSearchModalManual = function() {
-            history.back(); 
-        };
-
-        window.clearProductSearch = function() {
-            document.getElementById('productSearchInput').value = '';
-            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
-            document.getElementById('productSearchInput').focus();
-        };
-
-        window.handleProductSearchDelay = function() {
-            clearTimeout(prodSearchTimeout);
-            prodSearchTimeout = setTimeout(() => {
-                window.executeProductSearch();
-            }, 600); // 600ms debounce
-        };
-
-        window.executeProductSearch = async function() {
-            const queryTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
-            const resultsContainer = document.getElementById('productSearchResults');
-            
-            if (!queryTerm) {
-                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
-                return;
-            }
-
-            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching records...</div>';
-
-            try {
-                // Fetch recent sales to search through (Limiting to 500 for performance)
-                const q = query(
-                    collection(db, "sellings"),
-                    orderBy("date", "desc"),
-                    limit(500)
-                );
-                
-                const snap = await getDocs(q);
-                let matches = [];
-
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    if (data.items && Array.isArray(data.items)) {
-                        const matchingItems = data.items.filter(item => (item.name || '').toLowerCase().includes(queryTerm));
-                        
-                        if (matchingItems.length > 0) {
-                            const customerName = data.customer?.name || 'Cash Customer';
-                            const customerPhone = data.customer?.phone || 'No Phone';
-                            const customerAddress = data.customer?.address || 'No Address';
-                            const invoiceNo = data.invoiceNo || 'N/A';
-                            
-                            let dateFmt = "N/A";
-                            if (data.date && data.date.toDate) {
-                                const d = data.date.toDate();
-                                dateFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                            }
-
-                            matches.push({
-                                customerName,
-                                customerPhone,
-                                customerAddress,
-                                invoiceNo,
-                                dateFmt,
-                                products: matchingItems.map(i => `${i.name} (Qty: ${i.qty})`).join(', ')
-                            });
-                        }
-                    }
-                });
-
-                if (matches.length === 0) {
-                    resultsContainer.innerHTML = `
-                        <div class="empty-state">
-                            <span class="material-symbols-outlined">search_off</span>
-                            <h3>No Customers Found</h3>
-                            <p>No recent sales found containing "${queryTerm}".</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</div>`;
-                
-                matches.forEach(match => {
-                    htmlOutput += `
-                        <div class="invoice-card" style="margin-bottom: 15px;">
-                            <div class="inv-header" style="background: #1a1a1a;">
-                                <div class="inv-meta">
-                                    <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
-                                </div>
-                                <div class="inv-time">${match.dateFmt}</div>
-                            </div>
-                            <div class="inv-body">
-                                <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
-                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
-                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
-                                </div>
-                                <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
-                                    <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
-                                    <strong style="color: var(--text-secondary);">Bought:</strong> <span style="color: white;">${match.products}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                resultsContainer.innerHTML = htmlOutput;
-
-            } catch (err) {
-                console.error("Error searching products:", err);
-                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
-            }
-        };
-        */
-
         // --- NEW FULLY UPGRADED PAGINATED SEARCH ENGINE (INVENTORY -> BUYERS) ---
         let prodSearchTimeout;
         let prodSuggLastVisible = null;
@@ -1131,7 +1008,26 @@
                 // STRICT SORTING BY INVOICE NUMBER TO ENSURE CONTINUOUS SEQUENCE
                 matchedInvoices.sort((a, b) => a.num - b.num);
                 
-                const rows = [];
+                // FIXED: Use HTML instead of jsPDF for proper Tamil/Unicode & ₹ symbol support
+                let summaryHtml = `
+                <div style="background: white; color: black; font-family: 'Segoe UI', Arial, sans-serif; padding: 20px;">
+                    <h2 style="margin: 0; color: #d32f2f;">Meena Marketing - GST Sales Report</h2>
+                    <p style="margin: 5px 0 20px 0; font-size: 12px; color: #555;">Reporting Period: ${fromDateStr} to ${toDateStr}</p>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background-color: #d32f2f; color: white;">
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: left;">Date</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: left;">Invoice No</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: left;">Customer</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: right;">Taxable (₹)</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: right;">CGST (₹)</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: right;">SGST (₹)</th>
+                                <th style="padding: 10px; border: 1px solid #ccc; text-align: right;">Grand Total (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
                 matchedInvoices.forEach(item => {
                     const data = item.data;
                     let dateFmt = "N/A";
@@ -1139,9 +1035,6 @@
                         const d = data.date.toDate();
                         dateFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
                     }
-                    
-                    const invNo = data.invoiceNo || 'N/A';
-                    const customer = data.customer?.name || 'Cash Customer';
                     
                     const subTotal = (data.totals?.sub || 0);
                     const gstTotal = (data.totals?.gst || 0);
@@ -1153,60 +1046,56 @@
                     totalSgst += halfGst;
                     totalGrand += grandTotal;
                     
-                    // Push standard row to PDF table
-                    rows.push([
-                        dateFmt,
-                        invNo,
-                        customer,
-                        subTotal.toFixed(2),
-                        halfGst.toFixed(2),
-                        halfGst.toFixed(2),
-                        grandTotal.toFixed(2)
-                    ]);
+                    summaryHtml += `
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ccc;">${dateFmt}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc;">${data.invoiceNo || 'N/A'}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc;">${data.customer?.name || 'Cash Customer'}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc; text-align: right;">${subTotal.toFixed(2)}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc; text-align: right;">${halfGst.toFixed(2)}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc; text-align: right;">${halfGst.toFixed(2)}</td>
+                            <td style="padding: 10px; border: 1px solid #ccc; text-align: right;">${grandTotal.toFixed(2)}</td>
+                        </tr>
+                    `;
                 });
                 
-                if(rows.length === 0) {
+                if(matchedInvoices.length === 0) {
                     showToast("No GST bills found in this date range.");
                     btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download Summary PDF`;
                     btn.disabled = false;
                     return;
                 }
                 
-                // Add bold total row at the bottom
-                rows.push([
-                    "", "GRAND TOTALS", "", 
-                    totalTaxable.toFixed(2), 
-                    totalCgst.toFixed(2), 
-                    totalSgst.toFixed(2), 
-                    totalGrand.toFixed(2)
-                ]);
+                summaryHtml += `
+                            <tr style="background-color: #f5f5f5; font-weight: bold;">
+                                <td colspan="3" style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #000;">GRAND TOTALS</td>
+                                <td style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #000;">${totalTaxable.toFixed(2)}</td>
+                                <td style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #000;">${totalCgst.toFixed(2)}</td>
+                                <td style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #000;">${totalSgst.toFixed(2)}</td>
+                                <td style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #d32f2f;">${totalGrand.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>`;
                 
-                // Generate the actual PDF Document
-                const docPdf = new jsPDF();
+                const element = document.createElement('div');
+                element.innerHTML = summaryHtml;
                 
-                docPdf.setFontSize(16);
-                docPdf.text("Meena Marketing - GST Sales Report", 14, 15);
-                docPdf.setFontSize(10);
-                docPdf.text(`Reporting Period: ${fromDateStr} to ${toDateStr}`, 14, 22);
+                // FIX: Attach invisibly to DOM to prevent generator freeze
+                element.style.position = 'absolute';
+                element.style.left = '-9999px';
+                document.body.appendChild(element);
                 
-                // Use autoTable plugin for clean columns
-                docPdf.autoTable({
-                    startY: 28,
-                    head: [['Date', 'Invoice No', 'Customer', 'Taxable Val (Rs)', 'CGST (Rs)', 'SGST (Rs)', 'Grand Total (Rs)']],
-                    body: rows,
-                    theme: 'grid',
-                    headStyles: { fillColor: [211, 47, 47] }, // Red theme to match Meena Marketing
-                    didParseCell: function(data) {
-                        // Apply special styling to the last "GRAND TOTALS" row
-                        if (data.row.index === rows.length - 1) {
-                            data.cell.styles.fontStyle = 'bold';
-                            data.cell.styles.textColor = [0, 0, 0];
-                            if(data.column.index === 1) data.cell.styles.halign = 'right';
-                        }
-                    }
-                });
+                const opt = {
+                    margin:       10,
+                    filename:     `GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
                 
-                docPdf.save(`GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`);
+                await html2pdf().set(opt).from(element).save();
+                document.body.removeChild(element); // Clean up
                 showToast("PDF Exported Successfully!", "success");
                 
             } catch(e) {
@@ -1517,6 +1406,11 @@
                     const element = document.createElement('div');
                     element.innerHTML = fullPrintHtml;
                     
+                    // FIX: Attach invisibly to DOM to prevent freeze
+                    element.style.position = 'absolute';
+                    element.style.left = '-9999px';
+                    document.body.appendChild(element);
+                    
                     const opt = {
                         margin:       0,
                         filename:     `GST_Bills_From_INV_${targetInvNum}.pdf`,
@@ -1526,6 +1420,8 @@
                     };
 
                     await html2pdf().set(opt).from(element).save();
+                    document.body.removeChild(element); // Clean up
+                    
                     showToast(`Exported ${matchCount} Bills Successfully!`, "success");
                 }
 
@@ -1809,6 +1705,11 @@
                     const element = document.createElement('div');
                     element.innerHTML = fullPrintHtml;
                     
+                    // FIX: Attach invisibly to DOM to prevent freeze
+                    element.style.position = 'absolute';
+                    element.style.left = '-9999px';
+                    document.body.appendChild(element);
+                    
                     const opt = {
                         margin:       0,
                         filename:     `Full_GST_Bills_${fromDateStr}_to_${toDateStr}.pdf`,
@@ -1818,6 +1719,8 @@
                     };
 
                     await html2pdf().set(opt).from(element).save();
+                    document.body.removeChild(element); // Clean up
+                    
                     showToast("Full PDF Exported Successfully!", "success");
                 }
 
