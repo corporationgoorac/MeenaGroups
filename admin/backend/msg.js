@@ -110,7 +110,7 @@ async function getAgentDetails(uid) {
 }
 
 // ---------------------------------------------------------
-// 3. CRON JOB: 5:00 PM IST DRAFT REMINDER
+// 3. CRON JOB: 5:00 PM & 10:00 PM IST DRAFT REMINDER
 // ---------------------------------------------------------
 function setupScheduledJobs() {
     // Runs exactly at 17:00 (5:00 PM) everyday
@@ -155,6 +155,54 @@ function setupScheduledJobs() {
             }
         } catch (error) {
             console.error('Error in 5 PM Cron:', error);
+        }
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
+    });
+
+    // Runs exactly at 22:00 (10:00 PM) everyday
+    cron.schedule('0 22 * * *', async () => {
+        const timeNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true });
+        console.log(`[${timeNow}] ⏰ Running 10 PM Draft Alert Check...`);
+        
+        try {
+            // Single query to get all drafts
+            const snap = await db.collection('temp_entries').where('status', '==', 'draft').get();
+            if (snap.empty) {
+                console.log('✅ No pending drafts found at 10 PM.');
+                return;
+            }
+
+            // Group the drafts by agent UID (Optimization: 1 message per agent)
+            const agentStats = {}; 
+            snap.forEach(doc => {
+                const d = doc.data();
+                const uid = d.staffUid;
+                if (!uid) return;
+                
+                if (!agentStats[uid]) {
+                    agentStats[uid] = { count: 0, totalAmount: 0 };
+                }
+                agentStats[uid].count++;
+                agentStats[uid].totalAmount += parseFloat(d.amount || 0); // Accumulate the draft amounts
+            });
+
+            // Send out the WhatsApp messages
+            for (const [uid, stats] of Object.entries(agentStats)) {
+                const agent = await getAgentDetails(uid);
+                if (agent && agent.phone) {
+                    const formattedAmount = stats.totalAmount.toLocaleString('en-IN');
+                    
+                    // --- UPDATED BRANDING: Bold Meena Groups & Amounts ---
+                    const msg = `*MEENA GROUPS REMINDER* 🏢\n\nHello *${agent.name}*,\nYou currently have *${stats.count} draft(s)* totaling *₹${formattedAmount}* waiting in your app.\n\nPlease ensure you submit them to the admin queue before the end of your shift today.`;
+                    
+                    await client.sendMessage(agent.phone, msg);
+                    console.log(`-> Sent 10 PM reminder to ${agent.name} (${stats.count} drafts, ₹${formattedAmount})`);
+                }
+            }
+        } catch (error) {
+            console.error('Error in 10 PM Cron:', error);
         }
     }, {
         scheduled: true,
