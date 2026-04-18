@@ -331,13 +331,14 @@ async function generateReceiptImage(client, data) {
     const page = await client.pupBrowser.newPage(); 
     await page.setViewport({ width: 600, height: 800 }); // Compact Receipt Size
 
+    // FIX: Added flex: 1, word-break, and nowrap to prevent text overlapping and misalignments
     const itemsHtml = (data.items || []).map(item => `
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #27272a; padding-bottom:8px;">
-            <div>
-                <div style="font-weight:700; font-size:16px;">${item.name}</div>
-                <div style="color:#a1a1aa; font-size:12px;">${item.qty} x ₹${(item.price || 0).toLocaleString()}</div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; margin-bottom:12px; border-bottom:1px solid #27272a; padding-bottom:10px;">
+            <div style="flex: 1; word-break: break-word; overflow-wrap: break-word;">
+                <div style="font-weight:700; font-size:16px; line-height:1.4;">${item.name}</div>
+                <div style="color:#a1a1aa; font-size:13px; margin-top:4px;">${item.qty} x ₹${(item.price || 0).toLocaleString()}</div>
             </div>
-            <div style="font-weight:700; font-size:16px;">₹${(item.finalTotal || 0).toLocaleString()}</div>
+            <div style="font-weight:700; font-size:16px; white-space:nowrap; text-align:right; min-width:80px;">₹${(item.finalTotal || 0).toLocaleString()}</div>
         </div>
     `).join('');
 
@@ -345,9 +346,12 @@ async function generateReceiptImage(client, data) {
     <html>
     <head>
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            /* FIX: Added Noto Sans Tamil to support Tamil text natively without showing boxes */
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+Tamil:wght@400;700;900&display=swap');
+            
             body { 
-                background: #09090b; color: #fff; font-family: 'Inter', sans-serif; 
+                background: #09090b; color: #fff; 
+                font-family: 'Inter', 'Noto Sans Tamil', sans-serif; 
                 padding: 40px; margin: 0; box-sizing: border-box;
             }
             .header { text-align: center; border-bottom: 2px dashed #3f3f46; padding-bottom: 20px; margin-bottom: 20px; }
@@ -355,8 +359,14 @@ async function generateReceiptImage(client, data) {
             .sub { color: #a1a1aa; font-size: 14px; margin-top: 5px; }
             .meta { display: flex; justify-content: space-between; font-size: 14px; color: #d4d4d8; margin-bottom: 30px; }
             .totals { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ef4444; }
-            .t-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
+            
+            /* FIX: Ensure total amounts don't wrap the Rupee symbol and align perfectly to the right */
+            .t-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 15px; }
+            .t-row span:last-child { white-space: nowrap; text-align: right; }
+            
             .t-grand { font-size: 24px; font-weight: 900; color: #10b981; margin-top: 15px; }
+            .t-grand span:last-child { white-space: nowrap; }
+            
             .footer { text-align: center; color: #71717a; font-size: 12px; margin-top: 40px; }
             .pay-tag { background: #27272a; padding: 4px 10px; border-radius: 6px; font-weight: 700; color: #3b82f6;}
         </style>
