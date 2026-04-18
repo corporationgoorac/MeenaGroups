@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const admin = require('firebase-admin');
 const express = require('express');
 const qrcode = require('qrcode');
@@ -271,23 +271,46 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             const formattedCustPhone = formatPhone(rawCustPhone);
 
             if (formattedCustPhone) {
-                // FIX: Strip ALL non-numeric characters (including the '+' symbol) before appending '@c.us'
-                const custWhatsappId = formattedCustPhone.replace(/\D/g, '') + '@c.us';
+                // FIX: Strip ALL non-numeric characters (including the '+' symbol)
+                const plainPhone = formattedCustPhone.replace(/\D/g, '');
                 
                 try {
-                    // Check if customer is actually on WhatsApp
-                    const isRegistered = await client.isRegisteredUser(custWhatsappId);
+                    // Check if customer is actually on WhatsApp (Using getNumberId prevents the @lid / findChat bug)
+                    const contactId = await client.getNumberId(plainPhone);
                     
-                    if (isRegistered) {
+                    if (contactId) {
+                        // Use the exact verified ID from WhatsApp's database
+                        const verifiedWhatsappId = contactId._serialized;
+                        
                         // 1. Generate Receipt Image
                         const imageBuffer = await generateReceiptImage(client, billData);
-                        const media = new require('whatsapp-web.js').MessageMedia('image/png', imageBuffer.toString('base64'), `Receipt_${invNo}.png`);
+                        const media = new MessageMedia('image/png', imageBuffer.toString('base64'), `Receipt_${invNo}.png`);
                         
                         // 2. Bilingual Caption
                         const caption = `🎉 *Thank you for shopping at Meena Marketing!*\n📄 Bill No: *${invNo}*\n💰 Total Amount: *₹${grandTotal.toLocaleString()}*\n📅 Date: ${dateStr}\n\n🎉 *மீனா மார்க்கெட்டிங்கில் பொருட்கள் வாங்கியமைக்கு நன்றி!*\n📄 பில் எண்: *${invNo}*\n💰 மொத்த தொகை: *₹${grandTotal.toLocaleString()}*\n📅 தேதி: ${dateStr}\n\n_System Generated Receipt_`;
                         
-                        await client.sendMessage(custWhatsappId, media, { caption: caption });
-                        console.log(`✅ Sent receipt to customer for ${invNo}`);
+                        try {
+                            // Attempt 1: Try sending media directly (Works normally for existing chats)
+                            await client.sendMessage(verifiedWhatsappId, media, { caption: caption });
+                            console.log(`✅ Sent receipt to customer for ${invNo}`);
+                        } catch (sendErr) {
+                            // Attempt 2: Fallback for 'findChat' / '@lid' multi-device bug
+                            if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                                console.log(`⚠️ Applying initialization workaround for new chat: ${verifiedWhatsappId}`);
+                                
+                                // Send text first to initialize chat session in cache safely
+                                await client.sendMessage(verifiedWhatsappId, `🛍️ Processing your receipt for Invoice: ${invNo}...`);
+                                
+                                // Brief delay to ensure cache is updated locally
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                
+                                // Retry sending the media image
+                                await client.sendMessage(verifiedWhatsappId, media, { caption: caption });
+                                console.log(`✅ Sent receipt to customer for ${invNo} (after initialization)`);
+                            } else {
+                                throw sendErr; // Re-throw if it's a different unknown error
+                            }
+                        }
                     } else {
                         console.log(`⚠️ Number ${formattedCustPhone} is not registered on WhatsApp. Skipped.`);
                     }
