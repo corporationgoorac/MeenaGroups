@@ -325,20 +325,20 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 });
 
 // ---------------------------------------------------------
-// 6. PUPPETEER IMAGE GENERATOR (Dark Theme Receipt)
+// 6. PUPPETEER IMAGE GENERATOR (Redesigned & Overlap Fixed)
 // ---------------------------------------------------------
 async function generateReceiptImage(client, data) {
     const page = await client.pupBrowser.newPage(); 
     await page.setViewport({ width: 600, height: 800 }); // Compact Receipt Size
 
-    // FIX: Added flex: 1, word-break, and nowrap to prevent text overlapping and misalignments
+    // FIX: Replaced '₹' with 'Rs.' so standard English font letters are used. This 100% prevents the overlapping issue on Linux Headless servers.
     const itemsHtml = (data.items || []).map(item => `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; margin-bottom:12px; border-bottom:1px solid #27272a; padding-bottom:10px;">
             <div style="flex: 1; word-break: break-word; overflow-wrap: break-word;">
                 <div style="font-weight:700; font-size:16px; line-height:1.4;">${item.name}</div>
-                <div style="color:#a1a1aa; font-size:13px; margin-top:4px;">${item.qty} x ₹${(item.price || 0).toLocaleString()}</div>
+                <div style="color:#a1a1aa; font-size:13px; margin-top:4px;">${item.qty} x Rs. ${(item.price || 0).toLocaleString()}</div>
             </div>
-            <div style="font-weight:700; font-size:16px; white-space:nowrap; text-align:right; min-width:80px;">₹${(item.finalTotal || 0).toLocaleString()}</div>
+            <div style="font-weight:700; font-size:16px; white-space:nowrap; text-align:right; min-width:80px;">Rs. ${(item.finalTotal || 0).toLocaleString()}</div>
         </div>
     `).join('');
 
@@ -346,69 +346,79 @@ async function generateReceiptImage(client, data) {
     <html>
     <head>
         <style>
-            /* FIX: Added Noto Sans Tamil to support Tamil text natively without showing boxes */
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+Tamil:wght@400;700;900&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+Tamil:wght@400;700&display=swap');
             
             body { 
-                background: #09090b; color: #fff; 
+                background: #000000; color: #ffffff; 
                 font-family: 'Inter', 'Noto Sans Tamil', sans-serif; 
-                padding: 40px; margin: 0; box-sizing: border-box;
+                padding: 30px; margin: 0; box-sizing: border-box;
             }
-            .header { text-align: center; border-bottom: 2px dashed #3f3f46; padding-bottom: 20px; margin-bottom: 20px; }
-            .brand { font-size: 28px; font-weight: 900; color: #ef4444; letter-spacing: -1px; }
+            .receipt-card {
+                background: #0f0f11;
+                border: 1px solid #27272a;
+                border-radius: 16px;
+                padding: 30px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            }
+            .header { text-align: center; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #27272a; }
+            .brand { font-size: 28px; font-weight: 900; color: #ef4444; letter-spacing: -0.5px; }
             .sub { color: #a1a1aa; font-size: 14px; margin-top: 5px; }
-            .meta { display: flex; justify-content: space-between; font-size: 14px; color: #d4d4d8; margin-bottom: 30px; }
-            .totals { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ef4444; }
             
-            /* FIX: Ensure total amounts don't wrap the Rupee symbol and align perfectly to the right */
-            .t-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 15px; }
-            .t-row span:last-child { white-space: nowrap; text-align: right; }
+            .meta { display: flex; justify-content: space-between; align-items: center; background: #18181b; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
+            .meta-left { display: flex; flex-direction: column; gap: 4px; }
+            .meta-name { font-weight: 700; font-size: 16px; color: #f4f4f5; }
+            .meta-inv { color: #a1a1aa; font-size: 13px; }
+            .pay-tag { background: #2563eb; padding: 6px 14px; border-radius: 8px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
             
-            .t-grand { font-size: 24px; font-weight: 900; color: #10b981; margin-top: 15px; }
-            .t-grand span:last-child { white-space: nowrap; }
+            .totals { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #3f3f46; }
+            .t-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; }
+            .t-row span:last-child { white-space: nowrap; text-align: right; font-weight: 600; }
             
-            .footer { text-align: center; color: #71717a; font-size: 12px; margin-top: 40px; }
-            .pay-tag { background: #27272a; padding: 4px 10px; border-radius: 6px; font-weight: 700; color: #3b82f6;}
+            .t-grand { font-size: 22px; font-weight: 900; color: #10b981; margin-top: 20px; padding-top: 15px; border-top: 1px solid #27272a; }
+            
+            .footer { text-align: center; color: #71717a; font-size: 12px; margin-top: 35px; line-height: 1.6; }
         </style>
     </head>
     <body>
-        <div class="header">
-            <div class="brand">MEENA MARKETING</div>
-            <div class="sub">Premium Quality Products</div>
-        </div>
-        
-        <div class="meta">
-            <div>
-                <div style="font-weight:700;">${data.customer?.name || 'Cash Customer'}</div>
-                <div style="color:#a1a1aa;">Inv: ${data.invoiceNo}</div>
+        <div class="receipt-card">
+            <div class="header">
+                <div class="brand">MEENA MARKETING</div>
+                <div class="sub">Premium Quality Products</div>
             </div>
-            <div style="text-align:right;">
-                <div class="pay-tag">${data.paymentMode || 'Cash'}</div>
+            
+            <div class="meta">
+                <div class="meta-left">
+                    <span class="meta-name">${data.customer?.name || 'Cash Customer'}</span>
+                    <span class="meta-inv">Inv: ${data.invoiceNo}</span>
+                </div>
+                <div>
+                    <span class="pay-tag">${data.paymentMode || 'Cash'}</span>
+                </div>
             </div>
-        </div>
 
-        <div class="items">
-            ${itemsHtml}
-        </div>
+            <div class="items">
+                ${itemsHtml}
+            </div>
 
-        <div class="totals">
-            <div class="t-row">
-                <span style="color:#a1a1aa">Subtotal</span>
-                <span>₹${(data.totals?.sub || 0).toLocaleString()}</span>
+            <div class="totals">
+                <div class="t-row">
+                    <span style="color:#a1a1aa">Subtotal</span>
+                    <span>Rs. ${(data.totals?.sub || 0).toLocaleString()}</span>
+                </div>
+                <div class="t-row">
+                    <span style="color:#a1a1aa">Tax (GST)</span>
+                    <span>Rs. ${(data.totals?.gst || 0).toLocaleString()}</span>
+                </div>
+                <div class="t-row t-grand">
+                    <span>TOTAL</span>
+                    <span>Rs. ${(data.totals?.grand || 0).toLocaleString()}</span>
+                </div>
             </div>
-            <div class="t-row">
-                <span style="color:#a1a1aa">Tax (GST)</span>
-                <span>₹${(data.totals?.gst || 0).toLocaleString()}</span>
-            </div>
-            <div class="t-row t-grand">
-                <span>TOTAL</span>
-                <span>₹${(data.totals?.grand || 0).toLocaleString()}</span>
-            </div>
-        </div>
 
-        <div class="footer">
-            Thank you for your business!<br>
-            Powered by Goorac Software Solutions
+            <div class="footer">
+                Thank you for your business!<br>
+                Powered by Goorac Software Solutions
+            </div>
         </div>
     </body>
     </html>`;
