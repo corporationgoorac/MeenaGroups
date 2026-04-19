@@ -15,14 +15,18 @@ let isInitialized = false;
  * 7. Canvas Height Expansion (Fixed Overlap Bug)
  * 8. Anti-Duplication Shield (Prevents spam on server reconnects)
  * 9. Opt-Out Blacklist & Dead Number Graveyard Processing
+ * 10. ENTERPRISE CRON PACING: Database tracked delays, Server-crash proof
+ * 11. SMART WEEKEND BOOSTER: Dynamically adjusts quota on Sundays
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
-    if (isInitialized) {
+    // ADDED: global.isMarketingInitialized to survive require() cache clears
+    if (isInitialized || global.isMarketingInitialized) {
         console.log("🛡️ [Marketing] Prevented duplicate agent spawn on WhatsApp reconnect.");
         return; 
     }
     isInitialized = true;
+    global.isMarketingInitialized = true;
 
     let isProcessing = false;
     const docRef = db.collection('marketing_messages').doc('campaign_data');
@@ -103,7 +107,7 @@ module.exports = (client, db) => {
         }
     });
 
-    // --- 2. CORE AUTOMATED DISTRIBUTION LOGIC (FIREBASE UPGRADED) ---
+    // --- 2. CORE AUTOMATED DISTRIBUTION LOGIC (ENTERPRISE PACING) ---
     const fetchAndPrepareBatch = async () => {
         if (isProcessing) return;
         isProcessing = true;
@@ -111,6 +115,15 @@ module.exports = (client, db) => {
         try {
             let snap = await docRef.get();
             let dbData = snap.exists ? snap.data() : null;
+            const now = Date.now();
+
+            // ADVANCED PACING CHECK: Read timestamp from DB to see if we are allowed to send yet.
+            if (dbData && dbData.nextAllowedTime && now < dbData.nextAllowedTime) {
+                const waitMins = Math.ceil((dbData.nextAllowedTime - now) / 60000);
+                console.log(`⏳ [Marketing] Pacing active. Next message scheduled in ${waitMins} minute(s).`);
+                isProcessing = false;
+                return; // Early exit prevents duplicate sending loops
+            }
 
             // Initialize DB if empty or if cycle is fully complete
             if (!dbData || !dbData.pendingCustomers || dbData.pendingCustomers.length === 0) {
@@ -151,14 +164,16 @@ module.exports = (client, db) => {
                     optedOut: optedOut,
                     invalidNumbers: invalidNumbers,
                     messagesSentToday: 0,
-                    lastRunDate: todayStr
+                    lastRunDate: todayStr,
+                    nextAllowedTime: 0, // NEW: Tracks EXACT millisecond next message is allowed
+                    totalCycleCount: customersList.length // NEW: For Progress Tracking
                 };
 
                 await docRef.set(dbData);
             }
 
-            // Begin the distribution loop
-            runDistributionCycle(dbData);
+            // Begin the distribution engine
+            await runDistributionCycle(dbData);
 
         } catch (err) {
             console.error("❌ [Marketing] Error fetching batch:", err);
@@ -168,20 +183,22 @@ module.exports = (client, db) => {
 
     const runDistributionCycle = async (dbData) => {
         const todayStr = new Date().toLocaleDateString('en-IN');
+        const currentDayOfWeek = new Date().getDay(); // 0 is Sunday
         
         // Reset daily counters if it's a new day
         if (dbData.lastRunDate !== todayStr) {
             dbData.messagesSentToday = 0;
             dbData.lastRunDate = todayStr;
-            await docRef.set({ messagesSentToday: 0, lastRunDate: todayStr }, { merge: true });
+            dbData.nextAllowedTime = 0; // Wipe pacing clear for the new day
         }
 
-        const maxDailyMessages = 7; 
+        // ADVANCED LOGIC: Weekend Booster. Sundays get 10 limits instead of 7.
+        const maxDailyMessages = (currentDayOfWeek === 0) ? 10 : 7; 
         let currentHour = new Date().getHours();
 
         // 14-HOUR MATH: Ensure all daily messages finish strictly between 6 AM and 8 PM
         if (currentHour < 6 || currentHour >= 20) {
-            console.log(`🌙 [Marketing] Outside business hours (6 AM - 8 PM). Sleeping...`);
+            console.log(`🌙 [Marketing] Outside business hours (6 AM - 8 PM). Resting...`);
             isProcessing = false;
             return;
         }
@@ -194,19 +211,34 @@ module.exports = (client, db) => {
 
         if (dbData.pendingCustomers.length === 0) {
             console.log("✅ [Marketing] Entire 30-Day Cycle Complete. Restarting database fetch.");
+            // Wipe nextAllowedTime to force an immediate cycle reload
+            await docRef.set({ nextAllowedTime: 0 }, { merge: true });
             isProcessing = false;
-            // Instantly triggers a fresh fetch
-            fetchAndPrepareBatch(); 
             return;
         }
 
         // --- THE ENGINE LOOP ---
-        console.log(`⚙️ [Marketing] Engine running. ${dbData.pendingCustomers.length} remaining. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
+        const total = dbData.totalCycleCount || 1;
+        const remaining = dbData.pendingCustomers.length;
+        const progress = Math.round(((total - remaining) / total) * 100);
+        
+        console.log(`⚙️ [Marketing] Engine running. Progress: ${progress}%. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
 
         // Grab the first customer in line
-        const customer = dbData.pendingCustomers[0];
-        const waId = customer.phone.replace('+', '') + '@c.us';
+        const customer = dbData.pendingCustomers[0]; 
 
+        // SAFEGUARD: In case Firebase holds old string arrays instead of objects
+        const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
+        
+        if (!customerPhone) {
+            console.log("⚠️ [Marketing] Invalid customer format in DB. Removing entry.");
+            dbData.pendingCustomers.shift();
+            await docRef.set(dbData);
+            isProcessing = false;
+            return;
+        }
+
+        const waId = customerPhone.replace('+', '') + '@c.us';
         let wasSentSuccessfully = false;
 
         try {
@@ -214,8 +246,8 @@ module.exports = (client, db) => {
             const isRegistered = await client.isRegisteredUser(waId);
             
             if (!isRegistered) {
-                console.log(`🪦 [Marketing] Number ${customer.phone} is not on WhatsApp. Moving to Graveyard.`);
-                dbData.invalidNumbers.push(customer.phone);
+                console.log(`🪦 [Marketing] Number ${customerPhone} is not on WhatsApp. Moving to Graveyard.`);
+                dbData.invalidNumbers.push(customerPhone);
             } else {
                 // --- HUMAN SIMULATION ---
                 try {
@@ -228,19 +260,29 @@ module.exports = (client, db) => {
                 wasSentSuccessfully = true;
             }
         } catch (error) {
-            console.error(`⚠️ [Marketing] Unexpected error processing ${customer.phone}:`, error);
+            console.error(`⚠️ [Marketing] Unexpected error processing ${customerPhone}:`, error);
         }
 
         // --- DATABASE ARRAY SHIFTING (1-Read Magic) ---
-        // Remove them from pending regardless of success or failure so we don't get stuck
         dbData.pendingCustomers.shift(); 
         
         if (wasSentSuccessfully) {
             dbData.sentCustomers.push(customer);
             dbData.messagesSentToday += 1;
+            
+            // ENTERPRISE PACING MATH: Calculates the exact timestamp in the future for the next send.
+            const randomMinutes = Math.floor(Math.random() * 60) + 90; // Between 90 and 150 minutes
+            dbData.nextAllowedTime = Date.now() + (randomMinutes * 60000);
+            
+            const nextTimeStr = new Date(dbData.nextAllowedTime).toLocaleTimeString('en-IN');
+            console.log(`📅 [Marketing] Success. Next message is securely locked in database for ${nextTimeStr}`);
+            
+        } else {
+            // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, apply a 60 second micro-delay to avoid API spam.
+            dbData.nextAllowedTime = Date.now() + 60000; 
         }
 
-        // Overwrite the single document
+        // Save State to Firebase (Overwrites the document, preventing data bloating)
         await docRef.set(dbData);
         
         // RAM Cleanup
@@ -250,32 +292,26 @@ module.exports = (client, db) => {
             }).catch(() => {});
         }
 
-        isProcessing = false; // Release the lock before the massive sleep delay
-
-        if (wasSentSuccessfully && dbData.messagesSentToday < maxDailyMessages) {
-            // ANTI-BAN PACING: Wait randomly between 90 and 150 minutes
-            const randomMinutes = Math.floor(Math.random() * 60) + 90;
-            console.log(`⏳ [Marketing] Success. Sleeping for ${randomMinutes} minutes to simulate human pacing.`);
-            await sleep(randomMinutes * 60000);
-            
-            // Loop back on itself to process the next person if time allows
-            fetchAndPrepareBatch(); 
-        }
+        // Lock securely released. The interval will pick this up when nextAllowedTime is met.
+        isProcessing = false; 
     };
 
     const sendPromotion = async (customer) => {
-        const waId = customer.phone.replace('+', '') + '@c.us';
+        // SAFEGUARD: Robustly handle both new Object and old String database formats
+        const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
+        const customerName = typeof customer === 'string' ? 'Customer' : (customer?.name || 'Customer');
+        const waId = customerPhone.replace('+', '') + '@c.us';
         const adData = generateRandomAdData();
 
         try {
-            const imageBuffer = await generateAdImage(client, customer.name, adData);
+            const imageBuffer = await generateAdImage(client, customerName, adData);
             const media = new MessageMedia('image/png', imageBuffer.toString('base64'), 'meena_offer.png');
-            const caption = getBilingualCaption(customer.name, adData);
+            const caption = getBilingualCaption(customerName, adData);
             
             await client.sendMessage(waId, media, { caption });
-            console.log(`📩 Sent Ad to ${customer.name} (${customer.phone})`);
+            console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
         } catch (err) {
-            console.error(`❌ Failed to send Ad to ${customer.name}`);
+            console.error(`❌ Failed to send Ad to ${customerName}`);
             throw err; // Throw up to the loop so it doesn't count as successfully sent
         }
     };
@@ -478,9 +514,14 @@ module.exports = (client, db) => {
     };
 
     // --- INITIALIZATION ---
-    // Start the intelligent boot cycle 
-    fetchAndPrepareBatch();
+    // Start the initial boot check slightly delayed to let the main client settle
+    // ADDED: ClearTimeout prevents looping if module is forcefully hot-reloaded
+    if (global.marketingBootTimeout) clearTimeout(global.marketingBootTimeout);
+    global.marketingBootTimeout = setTimeout(fetchAndPrepareBatch, 10000);
 
-    // The bot will wake up every 60 minutes to check if it's time to send the next batch
-    setInterval(fetchAndPrepareBatch, 60 * 60 * 1000);
+    // ENTERPRISE POLLING: Wakes up every 5 minutes to check the database timestamp. 
+    // Uses virtually zero memory/CPU compared to keeping a promise active in RAM.
+    // ADDED: ClearInterval completely destroys overlapping polling loops
+    if (global.marketingPollingInterval) clearInterval(global.marketingPollingInterval);
+    global.marketingPollingInterval = setInterval(fetchAndPrepareBatch, 5 * 60 * 1000);
 };
