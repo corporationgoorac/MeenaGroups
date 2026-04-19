@@ -565,9 +565,9 @@
 
         loadDailySales(dateFilterInput.value);
 
-        // --- NEW: INDIVIDUAL INVOICE PRINT TRIGGER FUNCTION ---
+        // --- FIXED: INDIVIDUAL INVOICE PRINT TRIGGER FUNCTION ---
         window.printSingleInvoiceAction = function(docId) {
-            // Vibrate twice quickly
+            // Vibrate quickly
             if(navigator.vibrate) navigator.vibrate();
 
             const data = window.loadedInvoicesMap[docId];
@@ -729,15 +729,15 @@
                 </div>
             `;
 
-            // FIX: Explicitly show the print area and hide main UI before printing to avoid blank white pages
-            printArea.style.display = 'flex';
+            // FIX: Add printing class immediately
             document.body.classList.add('printing-active');
 
-            // Force a quick layout recalculation so the browser registers the visual change before opening print dialog
-            void printArea.offsetHeight;
-            void document.body.offsetHeight; // Extra safety for iOS Safari
+            // FIX: Force browser to calculate DOM layout synchronously right away
+            // This prevents "blank page" issues without needing a setTimeout
+            void document.body.offsetHeight;
 
-            // FIX: Removed setTimeout. Mobile browser popup blockers often block window.print() if it is delayed inside a setTimeout. It must be called synchronously inside the user-click event.
+            // FIX: Trigger print synchronously in the same thread as the user click 
+            // This stops iOS/Chrome mobile from blocking the print dialog
             window.print();
         };
 
@@ -875,7 +875,7 @@
                     }
                     prodSuggHasMore = false; 
                 } else {
-                    // FIX: Re-added the to extract the string from the split array. array-contains needs a string!
+                    // FIX: Re-added to extract string, which properly fixes "Search returning empty results"
                     const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
@@ -1277,7 +1277,6 @@
                         <tbody>
                 `;
                 
-                // FIX: Restored array index accessing for proper PDF table formatting
                 rows.forEach(r => {
                     summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
                 });
@@ -1915,13 +1914,10 @@
             btnPrint.disabled = false;
         };
 
-        // FIX: Replaced the old layout clearing script to accurately reset the view state after printing finishes or is cancelled
+        // FIX: Clean up the UI instantly after the print window is closed/cancelled
         window.addEventListener('afterprint', () => {
             const printArea = document.getElementById('printArea');
-            if (printArea) {
-                printArea.innerHTML = ''; 
-                printArea.style.display = 'none';
-            }
+            printArea.innerHTML = ''; 
             document.body.classList.remove('printing-active');
         });
 
