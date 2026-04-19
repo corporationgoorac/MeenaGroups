@@ -127,7 +127,15 @@
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
-        #printArea { display: none; }
+        #printArea { 
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            visibility: hidden;
+            width: 100%;
+            height: 0;
+            overflow: hidden;
+        }
 
         @media print {
             /* Force 1 page and remove browser headers/footers */
@@ -148,10 +156,13 @@
             
             /* Show only the Print Area */
             #printArea { 
+                visibility: visible;
                 display: flex !important; 
                 position: absolute; 
                 left: 0; top: 0; 
                 width: 100%; 
+                height: auto;
+                overflow: visible;
                 max-width: 210mm; 
                 margin: 0 auto; 
                 padding: 0; 
@@ -495,7 +506,7 @@
                             itemsHtml += `
                                 <li class="item-row">
                                     <div class="item-desc">
-                                        <div class="item-name">${item.name} <span style="font-weight:normal;">x${item.qty}</span> ${nsTag}</div>
+                                        <div class="item-name">${item.name || 'Unknown Item'} <span style="font-weight:normal;">x${item.qty || 0}</span> ${nsTag}</div>
                                         <div class="item-sub">${modelText}₹${(item.price || 0).toLocaleString()}/ea ${gstTag}</div>
                                     </div>
                                     <div class="item-price">₹${(item.finalTotal || 0).toLocaleString()}</div>
@@ -563,17 +574,18 @@
         // --- NEW: INDIVIDUAL INVOICE PRINT TRIGGER FUNCTION ---
         window.printSingleInvoiceAction = function(docId) {
             // Vibrate twice quickly
-            if(navigator.vibrate) navigator.vibrate([150, 100, 150]);
+            if(navigator.vibrate) navigator.vibrate();
 
             const data = window.loadedInvoicesMap[docId];
             if(!data) {
                 return showToast("Error: Invoice data not found.");
             }
 
-            // Extract Exact Print Date
+            // Extract Exact Print Date safely handling missing/alternate date fields
             let printDateStr = "N/A";
-            if (data.date && data.date.toDate) {
-                const dObj = data.date.toDate();
+            const exactTimeStampObj = data.createdAt || data.date;
+            if (exactTimeStampObj && exactTimeStampObj.toDate) {
+                const dObj = exactTimeStampObj.toDate();
                 printDateStr = `${dObj.getDate().toString().padStart(2, '0')}-${(dObj.getMonth()+1).toString().padStart(2, '0')}-${dObj.getFullYear()}`;
             }
 
@@ -585,26 +597,28 @@
                     const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
                     const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
                     
+                    const itemNameSafe = item.name || 'Unknown Item';
                     const desc = `
-                        <strong style="font-size:13px; display:block; color:#000;">${item.name}</strong>
+                        <strong style="font-size:13px; display:block; color:#000;">${itemNameSafe}</strong>
                         <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                     `;
                     
-                    const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
+                    const qtySafe = item.qty || 0; // Safely handle undefined qty to prevent JS crash
+                    const uPrice = qtySafe > 0 ? ((item.baseTotal || 0) / qtySafe) : 0;
 
                     trItems += `
                         <tr>
                             <td>${num}.</td>
                             <td>${desc}</td>
                             <td class="text-right">₹${uPrice.toFixed(2)}</td>
-                            <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
+                            <td class="text-center">${qtySafe.toString().padStart(2, '0')}</td>
                             <td class="text-right" style="font-weight:bold; color:#000;">₹${(item.finalTotal || 0).toFixed(2)}</td>
                         </tr>
                     `;
                 });
             }
 
-            // Extract Totals
+            // Extract Totals safely
             const sub = (data.totals?.sub || 0);
             const gst = (data.totals?.gst || 0);
             const halfGst = gst / 2;
@@ -864,7 +878,7 @@
                     }
                     prodSuggHasMore = false; 
                 } else {
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
@@ -1266,7 +1280,7 @@
                 `;
                 
                 rows.forEach(r => {
-                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
+                    summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
                 });
                 
                 summaryHtml += `
