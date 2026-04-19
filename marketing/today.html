@@ -128,11 +128,6 @@
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
         #printArea { display: none; }
-        
-        /* ADDED: Explicit JS-toggled printing mode classes to prevent blank pages on mobile */
-        body.printing-active > *:not(#printArea):not(script):not(style) { display: none !important; }
-        body.printing-active { background: white; color: black; }
-        body.printing-active #printArea { display: flex !important; position: relative !important; }
 
         @media print {
             /* Force 1 page and remove browser headers/footers */
@@ -142,7 +137,7 @@
             }
             
             /* Hide the entire App UI */
-            body > *:not(#printArea):not(script):not(style) { display: none !important; }
+            body > *:not(#printArea) { display: none !important; }
             body { 
                 background: white; color: black; 
                 margin: 0; padding: 0; 
@@ -154,7 +149,7 @@
             /* Show only the Print Area */
             #printArea { 
                 display: flex !important; 
-                position: relative !important; /* Changed from absolute to relative to prevent clipping issues */
+                position: absolute; 
                 left: 0; top: 0; 
                 width: 100%; 
                 max-width: 210mm; 
@@ -729,17 +724,9 @@
                 </div>
             `;
 
-            // FIX: Explicitly show the print area and hide main UI before printing to avoid blank white pages
-            printArea.style.display = 'flex';
-            document.body.classList.add('printing-active');
-
-            // Force a quick layout recalculation so the browser registers the visual change
-            void printArea.offsetHeight;
-
-            // FIX: Using a slight delay optimized to avoid mobile browser popup blockers
             setTimeout(() => {
                 window.print();
-            }, 150); 
+            }, 500);
         };
 
 
@@ -1914,12 +1901,9 @@
             btnPrint.disabled = false;
         };
 
-        // FIX: Replaced the old layout clearing script to accurately reset the view state
         window.addEventListener('afterprint', () => {
-            const printArea = document.getElementById('printArea');
-            printArea.innerHTML = ''; 
-            printArea.style.display = 'none';
-            document.body.classList.remove('printing-active');
+            // Disabled clearing the DOM immediately as this triggers blank prints on mobile
+            // document.getElementById('printArea').innerHTML = ''; 
         });
 
         window.addEventListener('popstate', (e) => {
