@@ -99,6 +99,8 @@ module.exports = (client, db) => {
                 const media = new MessageMedia('image/png', imageBuffer.toString('base64'), 'meena_ad.png');
                 const caption = getBilingualCaption(customerName, adData);
                 
+                // ENTERPRISE FIX: Give DOM time to sync before sending
+                await sleep(2000);
                 await client.sendMessage(msg.from, media, { caption: caption });
             } catch (err) {
                 console.error("Manual Ad Generation Error:", err);
@@ -225,7 +227,7 @@ module.exports = (client, db) => {
         console.log(`⚙️ [Marketing] Engine running. Progress: ${progress}%. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
 
         // Grab the first customer in line
-        const customer = dbData.pendingCustomers[0]; 
+        const customer = dbData.pendingCustomers; 
 
         // SAFEGUARD: In case Firebase holds old string arrays instead of objects
         const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
@@ -245,7 +247,15 @@ module.exports = (client, db) => {
         try {
             // SAFEGUARD: Check Graveyard
             let isRegistered = true;
-            try { isRegistered = await client.isRegisteredUser(waId); } catch(e) { if(e.message && e.message.includes('WidFactory')) console.log('⚠️ WidFactory timeout on check. Proceeding to attempt send.'); else throw e; }
+            try { 
+                // ENTERPRISE FIX: Give WhatsApp Web DOM time to sync before checking WidFactory
+                await sleep(3000); 
+                isRegistered = await client.isRegisteredUser(waId); 
+            } catch(e) { 
+                if(e.message && (e.message.includes('WidFactory') || e.message.includes('Evaluation failed') || e.message.includes('findChat'))) {
+                    console.log('⚠️ WidFactory timeout or DOM sync error on check. Proceeding to attempt send.');
+                } else throw e; 
+            }
             
             if (!isRegistered) {
                 console.log(`🪦 [Marketing] Number ${customerPhone} is not on WhatsApp. Moving to Graveyard.`);
@@ -253,10 +263,14 @@ module.exports = (client, db) => {
             } else {
                 // --- HUMAN SIMULATION ---
                 try {
+                    // ENTERPRISE FIX: Allow time for DOM to find the chat before engaging
+                    await sleep(2000);
                     const chat = await client.getChatById(waId);
                     await chat.sendStateTyping();
                     await sleep(Math.floor(Math.random() * 3000) + 5000); // Type for 5-8 seconds
-                } catch (e) {}
+                } catch (e) {
+                    console.log(`⚠️ Could not simulate typing for ${customerPhone}, likely a new chat. Proceeding directly to send.`);
+                }
 
                 await sendPromotion(customer);
                 wasSentSuccessfully = true;
@@ -264,7 +278,7 @@ module.exports = (client, db) => {
         } catch (error) {
             console.error(`⚠️ [Marketing] Unexpected error processing ${customerPhone}:`, error);
             // NEW FIX: Detect internal whatsapp-web.js loading issues to prevent losing the lead
-            if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed'))) {
+            if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed') || error.message.includes('findChat'))) {
                 isTransientError = true;
             }
         }
@@ -287,7 +301,7 @@ module.exports = (client, db) => {
             // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, apply a 60 second micro-delay to avoid API spam.
             dbData.nextAllowedTime = Date.now() + 60000; 
             
-            // NEW FIX: Re-queue the customer if it was a transient WidFactory error instead of discarding them
+            // NEW FIX: Re-queue the customer if it was a transient WidFactory/DOM error instead of discarding them
             if (isTransientError) {
                 dbData.pendingCustomers.unshift(customer);
                 console.log(`♻️ [Marketing] Re-queued ${customerPhone} due to internal WhatsApp syncing issue.`);
@@ -320,7 +334,24 @@ module.exports = (client, db) => {
             const media = new MessageMedia('image/png', imageBuffer.toString('base64'), 'meena_offer.png');
             const caption = getBilingualCaption(customerName, adData);
             
-            await client.sendMessage(waId, media, { caption });
+            // ENTERPRISE FIX: Retry mechanism + robust loading delays for WhatsApp DOM injection limits
+            await sleep(4000); // Give ample room to the WhatsApp load and DOM settlement
+            
+            let retries = 3;
+            let success = false;
+
+            while (retries > 0 && !success) {
+                try {
+                    await client.sendMessage(waId, media, { caption });
+                    success = true;
+                } catch (sendErr) {
+                    retries--;
+                    console.error(`⚠️ [Marketing] Send loop failure. Retries left: ${retries}. Error: ${sendErr.message}`);
+                    if (retries === 0) throw sendErr;
+                    await sleep(6000); // Wait 6 seconds for DOM to breathe before retry
+                }
+            }
+
             console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
         } catch (err) {
             console.error(`❌ Failed to send Ad to ${customerName}`);

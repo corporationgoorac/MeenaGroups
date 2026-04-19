@@ -123,6 +123,7 @@ setInterval(async () => {
 // 3. CORE UTILITIES
 // ---------------------------------------------------------
 const serverStartTime = new Date();
+const sleep = (ms) => new Promise(res => setTimeout(res, ms)); // ENTERPRISE FIX: Global sleep utility for WhatsApp DOM delays
 let currentAdminPhone = null;
 
 // Fetch admin on boot
@@ -249,9 +250,6 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 
             // --- A. TEXT ADMIN ALERT (Text Only) ---
             if (currentAdminPhone) {
-                // FIX: Strip ALL non-numeric characters (including the '+' symbol) before appending '@c.us'
-                const adminWhatsappId = currentAdminPhone.replace(/\D/g, '') + '@c.us';
-                
                 // Build the item list text dynamically for the admin
                 let itemListText = '';
                 if (billData.items && Array.isArray(billData.items)) {
@@ -263,7 +261,28 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 
                 const adminAlert = `🚨 *NEW SALE ALERT*\n\n📄 *Invoice:* ${invNo}\n👤 *Customer:* ${billData.customer?.name || 'Cash Customer'}\n🛍️ *Purchased Items:*\n${itemListText}💰 *Amount:* ₹${grandTotal.toLocaleString()}\n💳 *Mode:* ${payMode}\n\n_Meena Marketing Backend_`;
                 
-                client.sendMessage(adminWhatsappId, adminAlert).catch(e => console.log("Failed to send admin alert", e));
+                // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes for Admin
+                const adminPlainPhone = currentAdminPhone.replace(/\D/g, '');
+                try {
+                    await sleep(2000); // Give DOM time to process
+                    const adminContactId = await client.getNumberId(adminPlainPhone);
+                    const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+                    
+                    try {
+                        await client.sendMessage(verifiedAdminId, adminAlert);
+                    } catch (adminSendErr) {
+                        if (adminSendErr.message && (adminSendErr.message.includes('findChat') || adminSendErr.message.includes('@lid') || adminSendErr.message.includes('not found'))) {
+                            console.log(`⚠️ Applying initialization workaround for Admin chat: ${verifiedAdminId}`);
+                            await client.sendMessage(verifiedAdminId, `🚨 Syncing Admin Alert Channel...`);
+                            await sleep(2000);
+                            await client.sendMessage(verifiedAdminId, adminAlert);
+                        } else {
+                            throw adminSendErr;
+                        }
+                    }
+                } catch (e) {
+                    console.log("Failed to send admin alert Error:", e.message);
+                }
             }
 
             // --- B. CUSTOMER RECEIPT (Image + Text) ---
@@ -275,6 +294,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                 const plainPhone = formattedCustPhone.replace(/\D/g, '');
                 
                 try {
+                    // ENTERPRISE FIX: Brief delay before querying to ensure stability
+                    await sleep(1500); 
                     // Check if customer is actually on WhatsApp (Using getNumberId prevents the @lid / findChat bug)
                     const contactId = await client.getNumberId(plainPhone);
                     
@@ -302,7 +323,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                                 await client.sendMessage(verifiedWhatsappId, `🛍️ Processing your receipt for Invoice: ${invNo}...`);
                                 
                                 // Brief delay to ensure cache is updated locally
-                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                await sleep(1500);
                                 
                                 // Retry sending the media image
                                 await client.sendMessage(verifiedWhatsappId, media, { caption: caption });
@@ -432,7 +453,15 @@ async function generateReceiptImage(client, data) {
 // ---------------------------------------------------------
 // 7. DYNAMIC MODULE LOADER (Passes client and db)
 // ---------------------------------------------------------
+let modulesLoaded = false; // NEW BUG FIX: Prevents multiple initializations on WhatsApp reconnects
+
 client.on('ready', () => {
+    if (modulesLoaded) {
+        console.log('📦 Modules already loaded. Skipping re-initialization on reconnect.');
+        return;
+    }
+    modulesLoaded = true;
+
     // Look for marketing module
     if (fs.existsSync('./marketing.js')) {
         console.log('📦 Loading marketing.js module...');
