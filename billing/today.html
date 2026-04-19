@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#121212">
     
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700;900&display=swap" rel="stylesheet" />
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -32,7 +33,7 @@
 
         *, *::before, *::after { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
+        body { font-family: 'Segoe UI', 'Noto Sans Tamil', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
 
         /* Standard Header */
         header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; }
@@ -135,7 +136,7 @@
             /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
             body > *:not(#printArea) { display: none !important; }
             /* FIX: Ensure body is block (not flex) for pagination */
-            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
             /* FIX: Remove position: absolute to allow multiple pages to flow naturally */
             #printArea { display: block !important; position: relative; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
@@ -1181,7 +1182,7 @@
                     totalGrand.toFixed(2)
                 ]);
                 
-                // Generate the actual PDF Document
+                /* --- ORIGINAL JSPDF CODE PRESERVED AND COMMENTED OUT AS REQUESTED ---
                 const docPdf = new jsPDF();
                 
                 docPdf.setFontSize(16);
@@ -1207,6 +1208,62 @@
                 });
                 
                 docPdf.save(`GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`);
+                */
+
+                // --- NEW HTML2PDF CODE FOR NATIVE TAMIL FONT SUPPORT ---
+                let summaryHtml = `
+                <style>
+                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; padding: 20px; }
+                    .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+                    .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+                    .summary-table th { background-color: #d32f2f; color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .summary-table tr:last-child { font-weight: bold; background-color: #f5f5f5; }
+                    .summary-header h2 { color: #d32f2f; margin: 0 0 5px 0; font-size: 20px;}
+                    .summary-header p { margin: 0; font-size: 12px; color: #333; }
+                </style>
+                <div class="pdf-export-wrapper">
+                    <div class="summary-header">
+                        <h2>Meena Marketing - GST Sales Report</h2>
+                        <p>Reporting Period: ${fromDateStr} to ${toDateStr}</p>
+                    </div>
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Invoice No</th>
+                                <th>Customer</th>
+                                <th>Taxable Val (Rs)</th>
+                                <th>CGST (Rs)</th>
+                                <th>SGST (Rs)</th>
+                                <th>Grand Total (Rs)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                rows.forEach(r => {
+                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
+                });
+                
+                summaryHtml += `
+                        </tbody>
+                    </table>
+                </div>`;
+                
+                const element = document.createElement('div');
+                element.innerHTML = summaryHtml;
+                
+                const opt = {
+                    margin:       10,
+                    filename:     `GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['css', 'legacy'] }
+                };
+                
+                await html2pdf().set(opt).from(element).save();
+
                 showToast("PDF Exported Successfully!", "success");
                 
             } catch(e) {
@@ -1261,7 +1318,7 @@
                 const snap = await getDocs(q);
                 let fullPrintHtml = `
                 <style>
-                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', Arial, sans-serif; }
+                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; }
                     .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 295mm; }
                     .print-page:last-child { page-break-after: auto; }
                     .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
@@ -1521,8 +1578,9 @@
                         margin:       0,
                         filename:     `GST_Bills_From_INV_${targetInvNum}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { scale: 2, useCORS: true },
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak:    { mode: ['css', 'legacy'] }
                     };
 
                     await html2pdf().set(opt).from(element).save();
@@ -1573,7 +1631,7 @@
                 const snap = await getDocs(q);
                 let fullPrintHtml = `
                 <style>
-                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', Arial, sans-serif; }
+                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; }
                     .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 295mm; }
                     .print-page:last-child { page-break-after: auto; }
                     .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
@@ -1813,8 +1871,9 @@
                         margin:       0,
                         filename:     `Full_GST_Bills_${fromDateStr}_to_${toDateStr}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { scale: 2, useCORS: true },
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak:    { mode: ['css', 'legacy'] }
                     };
 
                     await html2pdf().set(opt).from(element).save();
