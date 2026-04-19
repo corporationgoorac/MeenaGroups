@@ -34,12 +34,35 @@ module.exports = (client, db) => {
     // --- UTILITIES ---
     const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 
+    // ENTERPRISE FIX: Smart Phone Number Formatter handling Gaps, +81, 92, and standard 10-digit Indian numbers
     const formatPhone = (num) => {
         if (!num) return null;
-        let cleaned = num.toString().replace(/[^0-9]/g, '');
-        if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1);
-        if (cleaned.length === 10) cleaned = '91' + cleaned;
-        if (cleaned.length === 12 && cleaned.startsWith('91')) return cleaned; // FIX: Return just 91 instead of +91 as requested
+        // Strip out all spaces, dashes, and letters natively
+        let cleaned = num.toString().replace(/[^0-9+]/g, ''); 
+        
+        // Ensure only one '+' sign exists at the very beginning
+        if (cleaned.startsWith('+')) {
+            cleaned = '+' + cleaned.replace(/\+/g, '');
+        } else {
+            cleaned = cleaned.replace(/\+/g, '');
+        }
+        
+        // Remove leading zero if it's an 11-digit local format
+        if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1); 
+        
+        // Intelligently assign the + symbol based on length
+        if (!cleaned.startsWith('+')) {
+            if (cleaned.length === 10) {
+                cleaned = '+91' + cleaned; // Default 10 digits to +91 (India)
+            } else if (cleaned.length >= 11) {
+                cleaned = '+' + cleaned; // Assume country code is already present (e.g., 91, 81, 92)
+            }
+        }
+        
+        // Final WhatsApp Validation check (Country code + Phone)
+        if (cleaned.startsWith('+') && cleaned.length >= 10 && cleaned.length <= 16) {
+            return cleaned;
+        }
         return null;
     };
 
@@ -68,7 +91,10 @@ module.exports = (client, db) => {
         // OPT-OUT BLACKLIST HANDLER
         if (input === 'stop') {
             try {
-                const formattedNumber = msg.from.replace('@c.us', ''); // FIX: Removed '+' prefix
+                // FORMAT FIX for opt-out to match DB structure safely
+                const rawPhone = msg.from.replace('@c.us', '');
+                const formattedNumber = formatPhone(rawPhone) || rawPhone; 
+                
                 let snap = await docRef.get();
                 if (snap.exists) {
                     let data = snap.data();
@@ -122,7 +148,9 @@ module.exports = (client, db) => {
             // ADVANCED PACING CHECK: Read timestamp from DB to see if we are allowed to send yet.
             if (dbData && dbData.nextAllowedTime && now < dbData.nextAllowedTime) {
                 const waitMins = Math.ceil((dbData.nextAllowedTime - now) / 60000);
-                console.log(`⏳ [Marketing] Pacing active. Next message scheduled in ${waitMins} minute(s).`);
+                if (waitMins > 0) {
+                    console.log(`⏳ [Marketing] Pacing active. Next message scheduled in ${waitMins} minute(s).`);
+                }
                 isProcessing = false;
                 return; // Early exit prevents duplicate sending loops
             }
@@ -227,59 +255,71 @@ module.exports = (client, db) => {
         console.log(`⚙️ [Marketing] Engine running. Progress: ${progress}%. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
 
         // Grab the first customer in line
-        const customer = dbData.pendingCustomers; 
+        const customer = dbData.pendingCustomers[0]; 
 
-        // SAFEGUARD: In case Firebase holds old string arrays instead of objects
-        const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
+        // SAFEGUARD & FORMAT FIX: In case Firebase holds old string arrays instead of objects
+        const rawPhone = typeof customer === 'string' ? customer : customer?.phone;
+        const formattedPhone = formatPhone(rawPhone);
         
-        if (!customerPhone) {
-            console.log("⚠️ [Marketing] Invalid customer format in DB. Removing entry.");
+        if (!formattedPhone) {
+            console.log(`⚠️ [Marketing] Invalid customer format in DB for: ${rawPhone}. Removing entry.`);
+            dbData.invalidNumbers.push(rawPhone);
             dbData.pendingCustomers.shift();
+            dbData.nextAllowedTime = Date.now() + 6000; // FAST SKIP: 6 seconds
             await docRef.set(dbData);
             isProcessing = false;
+            
+            // SMART QUICK-TRIGGER: Prevent waiting 5 mins for the interval if we just did a 6-second skip
+            setTimeout(fetchAndPrepareBatch, 6000);
             return;
         }
 
-        const waId = String(customerPhone).replace(/\D/g, '') + '@c.us';
+        // Strip non-numeric characters for API validation like server.js
+        const plainPhone = formattedPhone.replace(/\D/g, ''); 
+        
+        let verifiedWhatsappId = null;
         let wasSentSuccessfully = false;
         let isTransientError = false; // NEW FIX: Track transient WhatsApp Web errors like WidFactory
 
         try {
-            // SAFEGUARD: Check Graveyard
-            let isRegistered = true;
-            try { 
-                // ENTERPRISE FIX: Give WhatsApp Web DOM time to sync before checking WidFactory
-                await sleep(3000); 
-                isRegistered = await client.isRegisteredUser(waId); 
-            } catch(e) { 
-                if(e.message && (e.message.includes('WidFactory') || e.message.includes('Evaluation failed') || e.message.includes('findChat'))) {
-                    console.log('⚠️ WidFactory timeout or DOM sync error on check. Proceeding to attempt send.');
-                } else throw e; 
-            }
+            // ENTERPRISE FIX: Use getNumberId like server.js to bypass @lid bugs and verify registry
+            await sleep(3000); 
+            const contactId = await client.getNumberId(plainPhone);
             
-            if (!isRegistered) {
-                console.log(`🪦 [Marketing] Number ${customerPhone} is not on WhatsApp. Moving to Graveyard.`);
-                dbData.invalidNumbers.push(customerPhone);
-            } else {
-                // --- HUMAN SIMULATION ---
-                try {
-                    // ENTERPRISE FIX: Allow time for DOM to find the chat before engaging
-                    await sleep(2000);
-                    const chat = await client.getChatById(waId);
-                    await chat.sendStateTyping();
-                    await sleep(Math.floor(Math.random() * 3000) + 5000); // Type for 5-8 seconds
-                } catch (e) {
-                    console.log(`⚠️ Could not simulate typing for ${customerPhone}, likely a new chat. Proceeding directly to send.`);
-                }
-
-                await sendPromotion(customer);
-                wasSentSuccessfully = true;
+            if (contactId) {
+                verifiedWhatsappId = contactId._serialized;
             }
-        } catch (error) {
-            console.error(`⚠️ [Marketing] Unexpected error processing ${customerPhone}:`, error);
-            // NEW FIX: Detect internal whatsapp-web.js loading issues to prevent losing the lead
-            if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed') || error.message.includes('findChat'))) {
-                isTransientError = true;
+        } catch(e) { 
+            if(e.message && (e.message.includes('WidFactory') || e.message.includes('Evaluation failed') || e.message.includes('findChat'))) {
+                console.log('⚠️ WidFactory timeout or DOM sync error on check. Proceeding to attempt send with fallback ID.');
+                verifiedWhatsappId = plainPhone + '@c.us';
+            } else throw e; 
+        }
+            
+        if (!verifiedWhatsappId) {
+            console.log(`🪦 [Marketing] Number ${formattedPhone} is not on WhatsApp. Moving to Graveyard.`);
+            dbData.invalidNumbers.push(formattedPhone);
+        } else {
+            // --- HUMAN SIMULATION ---
+            try {
+                // ENTERPRISE FIX: Allow time for DOM to find the chat before engaging
+                await sleep(2000);
+                const chat = await client.getChatById(verifiedWhatsappId);
+                await chat.sendStateTyping();
+                await sleep(Math.floor(Math.random() * 3000) + 5000); // Type for 5-8 seconds
+            } catch (e) {
+                console.log(`⚠️ Could not simulate typing for ${formattedPhone}, likely a new chat. Proceeding directly to send.`);
+            }
+
+            try {
+                await sendPromotion(customer, verifiedWhatsappId);
+                wasSentSuccessfully = true;
+            } catch (error) {
+                console.error(`⚠️ [Marketing] Unexpected error processing ${formattedPhone}:`, error);
+                // NEW FIX: Detect internal whatsapp-web.js loading issues to prevent losing the lead
+                if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed') || error.message.includes('findChat'))) {
+                    isTransientError = true;
+                }
             }
         }
 
@@ -298,13 +338,13 @@ module.exports = (client, db) => {
             console.log(`📅 [Marketing] Success. Next message is securely locked in database for ${nextTimeStr}`);
             
         } else {
-            // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, apply a 60 second micro-delay to avoid API spam.
-            dbData.nextAllowedTime = Date.now() + 60000; 
+            // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, skip and try next in 6 seconds (bypass 90 mins)
+            dbData.nextAllowedTime = Date.now() + 6000; 
             
             // NEW FIX: Re-queue the customer if it was a transient WidFactory/DOM error instead of discarding them
             if (isTransientError) {
                 dbData.pendingCustomers.unshift(customer);
-                console.log(`♻️ [Marketing] Re-queued ${customerPhone} due to internal WhatsApp syncing issue.`);
+                console.log(`♻️ [Marketing] Re-queued ${formattedPhone} due to internal WhatsApp syncing issue.`);
             }
         }
 
@@ -318,15 +358,20 @@ module.exports = (client, db) => {
             }).catch(() => {});
         }
 
-        // Lock securely released. The interval will pick this up when nextAllowedTime is met.
         isProcessing = false; 
+
+        // SMART QUICK-TRIGGER: If we scheduled a fast 6-second retry, forcefully call the batch again 
+        // without waiting for the 5-minute global polling interval to catch up.
+        const timeToNext = dbData.nextAllowedTime - Date.now();
+        if (timeToNext > 0 && timeToNext <= 60000) { // If wait time is under 1 minute (e.g. 6 seconds)
+            setTimeout(fetchAndPrepareBatch, timeToNext);
+        }
     };
 
-    const sendPromotion = async (customer) => {
+    const sendPromotion = async (customer, verifiedWhatsappId) => {
         // SAFEGUARD: Robustly handle both new Object and old String database formats
         const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
         const customerName = typeof customer === 'string' ? 'Customer' : (customer?.name || 'Customer');
-        const waId = String(customerPhone).replace(/\D/g, '') + '@c.us';
         const adData = generateRandomAdData();
 
         try {
@@ -342,13 +387,28 @@ module.exports = (client, db) => {
 
             while (retries > 0 && !success) {
                 try {
-                    await client.sendMessage(waId, media, { caption });
+                    await client.sendMessage(verifiedWhatsappId, media, { caption });
                     success = true;
                 } catch (sendErr) {
-                    retries--;
-                    console.error(`⚠️ [Marketing] Send loop failure. Retries left: ${retries}. Error: ${sendErr.message}`);
-                    if (retries === 0) throw sendErr;
-                    await sleep(6000); // Wait 6 seconds for DOM to breathe before retry
+                    // SERVER.JS FIX FOR findChat / @lid errors 
+                    if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                        console.log(`⚠️ Applying initialization workaround for chat: ${verifiedWhatsappId}`);
+                        
+                        // Send text first to initialize chat session in cache safely
+                        await client.sendMessage(verifiedWhatsappId, `🛍️ Loading a special offer for you...`);
+                        
+                        // Brief delay to ensure cache is updated locally
+                        await sleep(2000);
+                        
+                        // Retry sending the media image
+                        await client.sendMessage(verifiedWhatsappId, media, { caption });
+                        success = true;
+                    } else {
+                        retries--;
+                        console.error(`⚠️ [Marketing] Send loop failure. Retries left: ${retries}. Error: ${sendErr.message}`);
+                        if (retries === 0) throw sendErr;
+                        await sleep(6000); // Wait 6 seconds for DOM to breathe before retry
+                    }
                 }
             }
 
