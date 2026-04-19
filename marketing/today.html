@@ -127,15 +127,12 @@
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
-        #printArea { 
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            visibility: hidden;
-            width: 100%;
-            height: 0;
-            overflow: hidden;
-        }
+        #printArea { display: none; }
+        
+        /* ADDED: Explicit JS-toggled printing mode classes to prevent blank pages on mobile */
+        body.printing-active > *:not(#printArea):not(script):not(style) { display: none !important; }
+        body.printing-active { background: white; color: black; }
+        body.printing-active #printArea { display: flex !important; position: relative !important; }
 
         @media print {
             /* Force 1 page and remove browser headers/footers */
@@ -145,7 +142,7 @@
             }
             
             /* Hide the entire App UI */
-            body > *:not(#printArea) { display: none !important; }
+            body > *:not(#printArea):not(script):not(style) { display: none !important; }
             body { 
                 background: white; color: black; 
                 margin: 0; padding: 0; 
@@ -156,13 +153,10 @@
             
             /* Show only the Print Area */
             #printArea { 
-                visibility: visible;
                 display: flex !important; 
-                position: absolute; 
+                position: relative !important; /* Changed from absolute to relative to prevent clipping issues */
                 left: 0; top: 0; 
                 width: 100%; 
-                height: auto;
-                overflow: visible;
                 max-width: 210mm; 
                 margin: 0 auto; 
                 padding: 0; 
@@ -506,7 +500,7 @@
                             itemsHtml += `
                                 <li class="item-row">
                                     <div class="item-desc">
-                                        <div class="item-name">${item.name || 'Unknown Item'} <span style="font-weight:normal;">x${item.qty || 0}</span> ${nsTag}</div>
+                                        <div class="item-name">${item.name} <span style="font-weight:normal;">x${item.qty}</span> ${nsTag}</div>
                                         <div class="item-sub">${modelText}₹${(item.price || 0).toLocaleString()}/ea ${gstTag}</div>
                                     </div>
                                     <div class="item-price">₹${(item.finalTotal || 0).toLocaleString()}</div>
@@ -581,11 +575,10 @@
                 return showToast("Error: Invoice data not found.");
             }
 
-            // Extract Exact Print Date safely handling missing/alternate date fields
+            // Extract Exact Print Date
             let printDateStr = "N/A";
-            const exactTimeStampObj = data.createdAt || data.date;
-            if (exactTimeStampObj && exactTimeStampObj.toDate) {
-                const dObj = exactTimeStampObj.toDate();
+            if (data.date && data.date.toDate) {
+                const dObj = data.date.toDate();
                 printDateStr = `${dObj.getDate().toString().padStart(2, '0')}-${(dObj.getMonth()+1).toString().padStart(2, '0')}-${dObj.getFullYear()}`;
             }
 
@@ -597,28 +590,26 @@
                     const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
                     const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
                     
-                    const itemNameSafe = item.name || 'Unknown Item';
                     const desc = `
-                        <strong style="font-size:13px; display:block; color:#000;">${itemNameSafe}</strong>
+                        <strong style="font-size:13px; display:block; color:#000;">${item.name}</strong>
                         <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                     `;
                     
-                    const qtySafe = item.qty || 0; // Safely handle undefined qty to prevent JS crash
-                    const uPrice = qtySafe > 0 ? ((item.baseTotal || 0) / qtySafe) : 0;
+                    const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
 
                     trItems += `
                         <tr>
                             <td>${num}.</td>
                             <td>${desc}</td>
                             <td class="text-right">₹${uPrice.toFixed(2)}</td>
-                            <td class="text-center">${qtySafe.toString().padStart(2, '0')}</td>
+                            <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
                             <td class="text-right" style="font-weight:bold; color:#000;">₹${(item.finalTotal || 0).toFixed(2)}</td>
                         </tr>
                     `;
                 });
             }
 
-            // Extract Totals safely
+            // Extract Totals
             const sub = (data.totals?.sub || 0);
             const gst = (data.totals?.gst || 0);
             const halfGst = gst / 2;
@@ -738,10 +729,17 @@
                 </div>
             `;
 
-            // Give the DOM a tiny fraction of a second to render layout before opening print system
+            // FIX: Explicitly show the print area and hide main UI before printing to avoid blank white pages
+            printArea.style.display = 'flex';
+            document.body.classList.add('printing-active');
+
+            // Force a quick layout recalculation so the browser registers the visual change
+            void printArea.offsetHeight;
+
+            // FIX: Using a slight delay optimized to avoid mobile browser popup blockers
             setTimeout(() => {
                 window.print();
-            }, 100);
+            }, 150); 
         };
 
 
@@ -1916,8 +1914,12 @@
             btnPrint.disabled = false;
         };
 
+        // FIX: Replaced the old layout clearing script to accurately reset the view state
         window.addEventListener('afterprint', () => {
-            document.getElementById('printArea').innerHTML = ''; 
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = ''; 
+            printArea.style.display = 'none';
+            document.body.classList.remove('printing-active');
         });
 
         window.addEventListener('popstate', (e) => {
