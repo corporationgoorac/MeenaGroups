@@ -130,26 +130,44 @@
         #printArea { display: none; }
 
         @media print {
-            /* Force page size and remove browser headers/footers */
-            @page { size: A4 portrait; margin: 0mm; }
+            /* Force 1 page and remove browser headers/footers */
+            @page {
+                size: A4 portrait;
+                margin: 0mm; 
+            }
             
-            /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
+            /* Hide the entire App UI */
             body > *:not(#printArea) { display: none !important; }
-            /* FIX: Ensure body is block (not flex) for pagination */
-            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { 
+                background: white; color: black; 
+                margin: 0; padding: 0; 
+                font-family: 'Segoe UI', Arial, sans-serif; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
             
-            /* FIX: Remove position: absolute to allow multiple pages to flow naturally */
-            #printArea { display: block !important; position: relative; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
+            /* Show only the Print Area */
+            #printArea { 
+                display: flex !important; 
+                position: absolute; 
+                left: 0; top: 0; 
+                width: 100%; 
+                max-width: 210mm; 
+                margin: 0 auto; 
+                padding: 0; 
+                background: white; color: #000;
+                flex-direction: column;
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
+                min-height: 295mm; /* Forces absolute footer to bottom */
+            }
 
-            /* FIX: Slightly reduced min-height to prevent 1px overflow causing extra blank pages */
-            .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 295mm; }
-            .print-page:last-child { page-break-after: auto; }
-
-            /* Top Band Header */
+            /* Top Band Header (B&W replacement for yellow header) */
             .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
             .print-header-left { width: 55%; }
             .print-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 25px; }
-            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;} 
+            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;}
             .print-brand p { margin: 0; font-size: 11px; font-weight: bold; color: #333; }
             
             .print-invoice-to { margin-top: 10px; }
@@ -162,7 +180,7 @@
             .qr-box { border: 2px solid #000; background-color: #fff !important; padding: 5px; display: inline-block; margin-bottom: 15px; }
             .qr-box span { font-size: 36px; color: #000; display: block; }
             
-            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;} 
+            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;}
             .invoice-no-text { font-size: 14px; font-weight: bold; margin: 5px 0 15px 0; color: #000;}
             
             .invoice-date-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
@@ -183,7 +201,7 @@
             .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; }
             
             .print-left-footer-info { width: 45%; }
-            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} 
+            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;}
             .thanks-box strong { display: block; font-size: 12px; margin-bottom: 4px; color: #000;}
             .thanks-box p { margin: 0; font-size: 9px; color: #444; line-height: 1.4; }
             
@@ -196,7 +214,7 @@
             .totals-grid .t-label { text-align: right; }
             .totals-grid .t-val { text-align: right; color: #000; }
             .totals-grid .t-grand-row { background-color: #cccccc !important; border-top: 2px solid #000;}
-            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; } 
+            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; }
 
             /* Signature Area */
             .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; }
@@ -206,7 +224,7 @@
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
             /* Absolute Footer */
-            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: auto; }
+            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
 
@@ -458,10 +476,11 @@
                         hours = hours ? hours : 12; 
                         const minsStr = minutes < 10 ? '0'+minutes : minutes;
                         
+                        // NOTE: AM/PM text removed from UI, purely using style & icon.
                         if(ampm === 'AM') {
-                            timeString = `<span class="time-badge time-am" title="Exact Save Time"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">light_mode</span>${hours}:${minsStr} AM</span>`;
+                            timeString = `<span class="time-badge time-am" title="Exact Save Time: ${hours}:${minsStr} AM"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">light_mode</span>${hours}:${minsStr}</span>`;
                         } else {
-                            timeString = `<span class="time-badge time-pm" title="Exact Save Time"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">dark_mode</span>${hours}:${minsStr} PM</span>`;
+                            timeString = `<span class="time-badge time-pm" title="Exact Save Time: ${hours}:${minsStr} PM"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">dark_mode</span>${hours}:${minsStr}</span>`;
                         }
                     }
 
@@ -600,110 +619,108 @@
                 </tr>
             ` : '';
 
-            // Inject highly formatted html block into #printArea
+            // Inject highly formatted html block into #printArea exactly matching bill.html format
             const printArea = document.getElementById('printArea');
             printArea.innerHTML = `
-                <div class="print-page">
-                    <div class="print-top-band">
-                        <div class="print-header-left">
-                            <div class="print-brand">
-                                <h2>Meena Marketing</h2>
-                                <p>Dealers in Premium Quality Products</p>
-                                <p style="font-weight: normal; margin-top: 4px; line-height: 1.3;">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
-                                <p style="font-weight: normal; margin-top: 2px;"><strong>Ph:</strong> 9444589733</p>
-                                <div style="margin-top: 8px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 4px 8px; border-radius: 4px; background-color: #f5f5f5; letter-spacing: 0.5px;">GSTIN: 33BUJPR3363M1Z5</span></div>
-                            </div>
-                            
-                            <div class="print-invoice-to">
-                                <p class="section-label">INVOICE TO</p>
-                                <h3>${data.customer?.name || 'Cash Customer'}</h3>
-                                <p><strong>PHONE :</strong> <span>${data.customer?.phone || 'N/A'}</span></p>
-                                <p><strong>ADDRESS :</strong> <span>${data.customer?.address || 'N/A'}</span></p>
-                            </div>
+                <div class="print-top-band">
+                    <div class="print-header-left">
+                        <div class="print-brand">
+                            <h2>Meena Marketing</h2>
+                            <p>Dealers in Premium Quality Products</p>
+                            <p style="font-weight: normal; margin-top: 4px; line-height: 1.3;">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
+                            <p style="font-weight: normal; margin-top: 2px;"><strong>Ph:</strong> 9444589733</p>
+                            <div style="margin-top: 8px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 4px 8px; border-radius: 4px; background-color: #f5f5f5; letter-spacing: 0.5px;">GSTIN: 33BUJPR3363M1Z5</span></div>
                         </div>
                         
-                        <div class="print-header-right">
-                            <div class="qr-box"><span class="material-symbols-outlined">qr_code_2</span></div>
-                            <h1 class="invoice-title-text">INVOICE</h1>
-                            <p class="invoice-no-text">No. <span>${data.invoiceNo || 'INV-XXX'}</span></p>
-                            
-                            <div class="invoice-date-box">
-                                <span class="material-symbols-outlined">calendar_month</span>
-                                <div>
-                                    <span>Invoice Date</span>
-                                    <strong>${printDateStr}</strong>
-                                </div>
+                        <div class="print-invoice-to">
+                            <p class="section-label">INVOICE TO</p>
+                            <h3>${data.customer?.name || 'Cash Customer'}</h3>
+                            <p><strong>PHONE :</strong> <span>${data.customer?.phone || 'N/A'}</span></p>
+                            <p><strong>ADDRESS :</strong> <span>${data.customer?.address || 'N/A'}</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="print-header-right">
+                        <div class="qr-box"><span class="material-symbols-outlined">qr_code_2</span></div>
+                        <h1 class="invoice-title-text">INVOICE</h1>
+                        <p class="invoice-no-text">No. <span>${data.invoiceNo || 'INV-XXX'}</span></p>
+                        
+                        <div class="invoice-date-box">
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            <div>
+                                <span>Invoice Date</span>
+                                <strong>${printDateStr}</strong>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="print-table-container">
-                        <table class="print-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 5%;">No.</th>
-                                    <th style="width: 50%;">Descriptions</th>
-                                    <th style="width: 15%;" class="text-right">Unit Price</th>
-                                    <th style="width: 10%;" class="text-center">Unit</th>
-                                    <th style="width: 20%;" class="text-right">Price</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${trItems}
-                            </tbody>
+                <div class="print-table-container">
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">No.</th>
+                                <th style="width: 50%;">Descriptions</th>
+                                <th style="width: 15%;" class="text-right">Unit Price</th>
+                                <th style="width: 10%;" class="text-center">Unit</th>
+                                <th style="width: 20%;" class="text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${trItems}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="print-middle-section">
+                    <div class="print-left-footer-info">
+                        <div class="thanks-box">
+                            <strong>Thank you for your business!</strong>
+                            <p>We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
+                        </div>
+                        
+                        <div class="payment-methods">
+                            <p>Payment Mode:<br><span>${payMode}</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="print-totals-box">
+                        <table class="totals-grid">
+                            <tr>
+                                <td class="t-label">Sub Total</td>
+                                <td class="t-val">₹${sub.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td class="t-label">CGST</td>
+                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td class="t-label">SGST</td>
+                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td class="t-label">Total Tax (GST)</td>
+                                <td class="t-val">₹${gst.toFixed(2)}</td>
+                            </tr>
+                            ${discRowHtml}
+                            <tr class="t-grand-row">
+                                <td class="t-label">TOTAL :</td>
+                                <td class="t-val">₹${grand.toFixed(2)}</td>
+                            </tr>
                         </table>
                     </div>
+                </div>
 
-                    <div class="print-middle-section">
-                        <div class="print-left-footer-info">
-                            <div class="thanks-box">
-                                <strong>Thank you for your business!</strong>
-                                <p>We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
-                            </div>
-                            
-                            <div class="payment-methods">
-                                <p>Payment Mode:<br><span>${payMode}</span></p>
-                            </div>
-                        </div>
-                        
-                        <div class="print-totals-box">
-                            <table class="totals-grid">
-                                <tr>
-                                    <td class="t-label">Sub Total</td>
-                                    <td class="t-val">₹${sub.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td class="t-label">CGST</td>
-                                    <td class="t-val">₹${halfGst.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td class="t-label">SGST</td>
-                                    <td class="t-val">₹${halfGst.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td class="t-label">Total Tax (GST)</td>
-                                    <td class="t-val">₹${gst.toFixed(2)}</td>
-                                </tr>
-                                ${discRowHtml}
-                                <tr class="t-grand-row">
-                                    <td class="t-label">TOTAL :</td>
-                                    <td class="t-val">₹${grand.toFixed(2)}</td>
-                                </tr>
-                            </table>
-                        </div>
+                <div class="print-signature-area">
+                    <div class="sign-box">
+                        <div class="sign-placeholder"></div>
+                        <h4>Authorized Signatory</h4>
+                        <p>For Meena Marketing</p>
                     </div>
+                </div>
 
-                    <div class="print-signature-area">
-                        <div class="sign-box">
-                            <div class="sign-placeholder"></div>
-                            <h4>Authorized Signatory</h4>
-                            <p>For Meena Marketing</p>
-                        </div>
-                    </div>
-
-                    <div class="print-absolute-footer">
-                        <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
-                    </div>
+                <div class="print-absolute-footer">
+                    <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
                 </div>
             `;
 
