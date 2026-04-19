@@ -39,7 +39,7 @@ module.exports = (client, db) => {
         let cleaned = num.toString().replace(/[^0-9]/g, '');
         if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1);
         if (cleaned.length === 10) cleaned = '91' + cleaned;
-        if (cleaned.length === 12 && cleaned.startsWith('91')) return '+' + cleaned;
+        if (cleaned.length === 12 && cleaned.startsWith('91')) return cleaned; // FIX: Return just 91 instead of +91 as requested
         return null;
     };
 
@@ -68,7 +68,7 @@ module.exports = (client, db) => {
         // OPT-OUT BLACKLIST HANDLER
         if (input === 'stop') {
             try {
-                const formattedNumber = '+' + msg.from.replace('@c.us', '');
+                const formattedNumber = msg.from.replace('@c.us', ''); // FIX: Removed '+' prefix
                 let snap = await docRef.get();
                 if (snap.exists) {
                     let data = snap.data();
@@ -218,7 +218,7 @@ module.exports = (client, db) => {
         }
 
         // --- THE ENGINE LOOP ---
-        const total = dbData.totalCycleCount || 1;
+        const total = Math.max(dbData.totalCycleCount || 1, dbData.pendingCustomers.length);
         const remaining = dbData.pendingCustomers.length;
         const progress = Math.round(((total - remaining) / total) * 100);
         
@@ -238,12 +238,14 @@ module.exports = (client, db) => {
             return;
         }
 
-        const waId = customerPhone.replace('+', '') + '@c.us';
+        const waId = String(customerPhone).replace(/\D/g, '') + '@c.us';
         let wasSentSuccessfully = false;
+        let isTransientError = false; // NEW FIX: Track transient WhatsApp Web errors like WidFactory
 
         try {
             // SAFEGUARD: Check Graveyard
-            const isRegistered = await client.isRegisteredUser(waId);
+            let isRegistered = true;
+            try { isRegistered = await client.isRegisteredUser(waId); } catch(e) { if(e.message && e.message.includes('WidFactory')) console.log('⚠️ WidFactory timeout on check. Proceeding to attempt send.'); else throw e; }
             
             if (!isRegistered) {
                 console.log(`🪦 [Marketing] Number ${customerPhone} is not on WhatsApp. Moving to Graveyard.`);
@@ -261,6 +263,10 @@ module.exports = (client, db) => {
             }
         } catch (error) {
             console.error(`⚠️ [Marketing] Unexpected error processing ${customerPhone}:`, error);
+            // NEW FIX: Detect internal whatsapp-web.js loading issues to prevent losing the lead
+            if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed'))) {
+                isTransientError = true;
+            }
         }
 
         // --- DATABASE ARRAY SHIFTING (1-Read Magic) ---
@@ -280,6 +286,12 @@ module.exports = (client, db) => {
         } else {
             // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, apply a 60 second micro-delay to avoid API spam.
             dbData.nextAllowedTime = Date.now() + 60000; 
+            
+            // NEW FIX: Re-queue the customer if it was a transient WidFactory error instead of discarding them
+            if (isTransientError) {
+                dbData.pendingCustomers.unshift(customer);
+                console.log(`♻️ [Marketing] Re-queued ${customerPhone} due to internal WhatsApp syncing issue.`);
+            }
         }
 
         // Save State to Firebase (Overwrites the document, preventing data bloating)
@@ -300,7 +312,7 @@ module.exports = (client, db) => {
         // SAFEGUARD: Robustly handle both new Object and old String database formats
         const customerPhone = typeof customer === 'string' ? customer : customer?.phone;
         const customerName = typeof customer === 'string' ? 'Customer' : (customer?.name || 'Customer');
-        const waId = customerPhone.replace('+', '') + '@c.us';
+        const waId = String(customerPhone).replace(/\D/g, '') + '@c.us';
         const adData = generateRandomAdData();
 
         try {
@@ -510,7 +522,7 @@ module.exports = (client, db) => {
     };
 
     const getBilingualCaption = (name, adData) => {
-        return `🎉 *MEENA MARKETING EXCLUSIVE DEALS* 🎉\n\n${adData.timeGreeting.en} *${name}*, ${adData.enPitch}\n\n🔥 *Top Deal:* ${adData.brand} ${adData.mainProduct}\n🎁 *Offer:* ${adData.offer.text}\n🏷️ *Your Promo Code:* ${adData.promoCode}\n\nWe also have huge discounts on:\n✅ ${adData.subProduct1}\n✅ ${adData.subProduct2}\n✅ ${adData.subProduct3}\n✅ ${adData.subProduct4}\n\n➖➖➖➖➖➖➖➖\n\n${adData.timeGreeting.ta} *${name}*, ${adData.taPitch}\n\n🔥 *சிறப்பு சலுகை:* ${adData.brand} ${adData.mainProduct}\n🎁 *ஆஃபர்:* ${adData.offer.taText}\n\n✅ *Bajaj Finance Easy EMI Available!*\n📱 Contact: 9444589733\n📍 31B,C, East, Sannathi, Alwarthirunagari\n\n_Reply STOP to opt-out of offers. Powered by Goorac_`;
+        return `🎉 *MEENA MARKETING EXCLUSIVE DEALS* 🎉\n\n${adData.timeGreeting.en} *${name}*, ${adData.enPitch}\n\n🔥 *Top Deal:* ${adData.brand} ${adData.mainProduct}\n🎁 *Offer:* ${adData.offer.text}\n🏷️ *Your Promo Code:* ${adData.promoCode}\n\nWe also have huge discounts on:\n✅ ${adData.subProduct1}\n✅ ${adData.subProduct2}\n✅ ${adData.subProduct3}\n✅ ${adData.subProduct4}\n\n➖➖➖➖➖➖➖➖\n\n${adData.timeGreeting.ta} *${name}*, ${adData.taPitch}\n\n🔥 *சிறப்பு சலுகை:* ${adData.brand} ${adData.mainProduct}\n🎁 *ஆஃபர்:* ${adData.offer.taText}\n\n✅ *Bajaj Finance Easy EMI Available!*\n📱 Contact: 9444589733\n📍 31B,C, East, Sannathi, Alwarthirunagari\n\n_Reply STOP to opt-out of offers. Powered by Quantum_`;
     };
 
     // --- INITIALIZATION ---
