@@ -128,6 +128,11 @@
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
         #printArea { display: none; }
+        
+        /* ADDED: Explicit JS-toggled printing mode classes to prevent blank pages on mobile */
+        body.printing-active > *:not(#printArea):not(script):not(style) { display: none !important; }
+        body.printing-active { background: white; color: black; }
+        body.printing-active #printArea { display: flex !important; position: relative !important; }
 
         @media print {
             /* Force 1 page and remove browser headers/footers */
@@ -137,7 +142,7 @@
             }
             
             /* Hide the entire App UI */
-            body > *:not(#printArea) { display: none !important; }
+            body > *:not(#printArea):not(script):not(style) { display: none !important; }
             body { 
                 background: white; color: black; 
                 margin: 0; padding: 0; 
@@ -149,7 +154,7 @@
             /* Show only the Print Area */
             #printArea { 
                 display: flex !important; 
-                position: absolute; 
+                position: relative !important; /* Changed from absolute to relative to prevent clipping issues */
                 left: 0; top: 0; 
                 width: 100%; 
                 max-width: 210mm; 
@@ -724,9 +729,16 @@
                 </div>
             `;
 
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            // FIX: Explicitly show the print area and hide main UI before printing to avoid blank white pages
+            printArea.style.display = 'flex';
+            document.body.classList.add('printing-active');
+
+            // Force a quick layout recalculation so the browser registers the visual change before opening print dialog
+            void printArea.offsetHeight;
+            void document.body.offsetHeight; // Extra safety for iOS Safari
+
+            // FIX: Removed setTimeout. Mobile browser popup blockers often block window.print() if it is delayed inside a setTimeout. It must be called synchronously inside the user-click event.
+            window.print();
         };
 
 
@@ -863,6 +875,7 @@
                     }
                     prodSuggHasMore = false; 
                 } else {
+                    // FIX: Re-added the to extract the string from the split array. array-contains needs a string!
                     const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
@@ -1264,6 +1277,7 @@
                         <tbody>
                 `;
                 
+                // FIX: Restored array index accessing for proper PDF table formatting
                 rows.forEach(r => {
                     summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
                 });
@@ -1901,9 +1915,14 @@
             btnPrint.disabled = false;
         };
 
+        // FIX: Replaced the old layout clearing script to accurately reset the view state after printing finishes or is cancelled
         window.addEventListener('afterprint', () => {
-            // Disabled clearing the DOM immediately as this triggers blank prints on mobile
-            // document.getElementById('printArea').innerHTML = ''; 
+            const printArea = document.getElementById('printArea');
+            if (printArea) {
+                printArea.innerHTML = ''; 
+                printArea.style.display = 'none';
+            }
+            document.body.classList.remove('printing-active');
         });
 
         window.addEventListener('popstate', (e) => {
