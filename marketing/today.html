@@ -128,51 +128,28 @@
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
         #printArea { display: none; }
-        
-        /* ADDED: Explicit JS-toggled printing mode classes to prevent blank pages on mobile */
-        body.printing-active > *:not(#printArea):not(script):not(style) { display: none !important; }
-        body.printing-active { background: white; color: black; }
-        body.printing-active #printArea { display: flex !important; position: relative !important; }
 
         @media print {
-            /* Force 1 page and remove browser headers/footers */
-            @page {
-                size: A4 portrait;
-                margin: 0mm; 
-            }
+            /* Force page size and remove browser headers/footers */
+            @page { size: A4 portrait; margin: 0mm; }
             
-            /* Hide the entire App UI */
-            body > *:not(#printArea):not(script):not(style) { display: none !important; }
-            body { 
-                background: white; color: black; 
-                margin: 0; padding: 0; 
-                font-family: 'Segoe UI', Arial, sans-serif; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-            }
+            /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
+            body > *:not(#printArea) { display: none !important; }
+            /* FIX: Ensure body is block (not flex) for pagination */
+            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
-            /* Show only the Print Area */
-            #printArea { 
-                display: flex !important; 
-                position: relative !important; /* Changed from absolute to relative to prevent clipping issues */
-                left: 0; top: 0; 
-                width: 100%; 
-                max-width: 210mm; 
-                margin: 0 auto; 
-                padding: 0; 
-                background: white; color: #000;
-                flex-direction: column;
-                box-sizing: border-box;
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important;
-                min-height: 295mm; /* Forces absolute footer to bottom */
-            }
+            /* FIX: Remove position: absolute to allow multiple pages to flow naturally */
+            #printArea { display: block !important; position: relative; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
 
-            /* Top Band Header (B&W replacement for yellow header) */
+            /* FIX: Slightly reduced min-height to prevent 1px overflow causing extra blank pages */
+            .print-page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; min-height: 295mm; }
+            .print-page:last-child { page-break-after: auto; }
+
+            /* Top Band Header */
             .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
             .print-header-left { width: 55%; }
             .print-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 25px; }
-            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;}
+            .print-brand h2 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: #d32f2f !important; line-height: 1;} 
             .print-brand p { margin: 0; font-size: 11px; font-weight: bold; color: #333; }
             
             .print-invoice-to { margin-top: 10px; }
@@ -185,7 +162,7 @@
             .qr-box { border: 2px solid #000; background-color: #fff !important; padding: 5px; display: inline-block; margin-bottom: 15px; }
             .qr-box span { font-size: 36px; color: #000; display: block; }
             
-            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;}
+            .invoice-title-text { font-size: 38px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: #d32f2f !important;} 
             .invoice-no-text { font-size: 14px; font-weight: bold; margin: 5px 0 15px 0; color: #000;}
             
             .invoice-date-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
@@ -206,7 +183,7 @@
             .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; }
             
             .print-left-footer-info { width: 45%; }
-            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;}
+            .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} 
             .thanks-box strong { display: block; font-size: 12px; margin-bottom: 4px; color: #000;}
             .thanks-box p { margin: 0; font-size: 9px; color: #444; line-height: 1.4; }
             
@@ -219,7 +196,7 @@
             .totals-grid .t-label { text-align: right; }
             .totals-grid .t-val { text-align: right; color: #000; }
             .totals-grid .t-grand-row { background-color: #cccccc !important; border-top: 2px solid #000;}
-            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; }
+            .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; } 
 
             /* Signature Area */
             .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; }
@@ -229,16 +206,9 @@
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
             /* Absolute Footer */
-            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; }
+            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: auto; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
-
-        /* --- NEW TIME BADGE & PRINT HOVER CSS --- */
-        .time-badge { font-weight: bold; padding: 4px 10px; border-radius: 6px; font-size: 0.9em; letter-spacing: 0.5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .time-am { background: linear-gradient(135deg, #ff9800, #e65100); color: white; border: 1px solid #bf360c; }
-        .time-pm { background: linear-gradient(135deg, #37474f, #1a232e); color: #81d4fa; border: 1px solid #000; }
-        .clickable-inv { cursor: pointer; text-decoration: underline dashed; text-underline-offset: 4px; color: var(--accent-color); transition: 0.2s; }
-        .clickable-inv:hover { color: var(--success-color); }
     </style>
 </head>
 <body>
@@ -372,6 +342,9 @@
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
 
         // 2. Firebase Imports 
+        // --- OLD IMPORT COMMENTED OUT TO INTRODUCE STARTAFTER PAGINATION ---
+        // import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
         import { db } from './config.js';
         import { collection, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -390,35 +363,44 @@
         const salesListEl = document.getElementById('salesList');
         const loaderEl = document.getElementById('loader');
         
-        const todayStr = new Date().toLocaleDateString('en-CA'); 
+        // FIXED DATE INITIALIZATION: Safely gets today's date in local YYYY-MM-DD format
+        const todayStr = new Date().toLocaleDateString('en-CA'); // 'en-CA' safely formats to YYYY-MM-DD
         dateFilterInput.value = todayStr;
 
-        dateFilterInput.addEventListener('change', () => { loadDailySales(dateFilterInput.value); });
-        paymentFilterInput.addEventListener('change', () => { loadDailySales(dateFilterInput.value); });
+        // Listen for Date Changes
+        dateFilterInput.addEventListener('change', () => {
+            loadDailySales(dateFilterInput.value);
+        });
 
-        // Global Registry for Quick Print Parsing
-        window.loadedInvoicesMap = {};
+        // Listen for Payment Filter Changes
+        paymentFilterInput.addEventListener('change', () => {
+            loadDailySales(dateFilterInput.value);
+        });
 
+        // Main Fetch Function
         async function loadDailySales(dateString) {
             if (!dateString) return;
 
             salesListEl.innerHTML = '';
             loaderEl.style.display = 'block';
             
+            // UI Reset
             document.getElementById('totalInvoices').innerText = '0';
             document.getElementById('totalSales').innerText = '₹0';
 
+            // FIXED TIMEZONE BOUNDS: Manually parse the year, month, day to prevent UTC shifting
             const [year, month, day] = dateString.split('-');
             const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
             const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
 
             try {
+                // Query Sellings Collection with Date Bounds & Safety Limit
                 const q = query(
                     collection(db, "sellings"),
                     where("date", ">=", startOfDay),
                     where("date", "<=", endOfDay),
                     orderBy("date", "desc"),
-                    limit(150)
+                    limit(150) // Firestore Read Limit to protect bandwidth
                 );
 
                 const snap = await getDocs(q);
@@ -441,20 +423,8 @@
                 
                 const selectedPayment = paymentFilterInput.value; 
 
-                // ADVANCED SORT & TIME BADGE LOGIC
-                // Collect into array first to guarantee accurate local time sorting vs the 5:30 bug
-                let docsArray = [];
-                snap.forEach(doc => { docsArray.push({id: doc.id, data: doc.data()}); });
-
-                docsArray.sort((a, b) => {
-                    const aTime = (a.data.createdAt || a.data.date)?.toDate()?.getTime() || 0;
-                    const bTime = (b.data.createdAt || b.data.date)?.toDate()?.getTime() || 0;
-                    return bTime - aTime; // Newest at top, Oldest at bottom
-                });
-
-                docsArray.forEach(docItem => {
-                    const data = docItem.data;
-                    const docId = docItem.id;
+                snap.forEach(doc => {
+                    const data = doc.data();
                     
                     // Filter Logic for Cash/Online
                     const paymentMode = data.paymentMethod || data.paymentMode || 'Cash'; 
@@ -462,30 +432,25 @@
                         return; 
                     }
 
-                    // Save data globally to fetch for Print
-                    window.loadedInvoicesMap[docId] = data;
-
                     invoiceCount++;
                     totalSalesSum += (data.totals?.grand || 0);
 
-                    // --- NEW ADVANCED TIME PROCESSING & BADGE ---
-                    let timeString = `<span class="time-badge" style="background:#444; color:white;">Unknown Time</span>`;
-                    const exactTimeStampObj = data.createdAt || data.date;
-                    
-                    if (exactTimeStampObj && exactTimeStampObj.toDate) {
-                        const d = exactTimeStampObj.toDate();
+                    // Format Time safely (Custom 12-hr Indian Time without AM/PM text)
+                    let timeString = "Unknown Time";
+                    if (data.date && data.date.toDate) {
+                        const d = data.date.toDate();
                         let hours = d.getHours();
                         let minutes = d.getMinutes();
-                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                        const isAM = hours < 12;
                         hours = hours % 12;
-                        hours = hours ? hours : 12; 
-                        const minsStr = minutes < 10 ? '0'+minutes : minutes;
-                        
-                        // NOTE: AM/PM text removed from UI, purely using style & icon.
-                        if(ampm === 'AM') {
-                            timeString = `<span class="time-badge time-am" title="Exact Save Time: ${hours}:${minsStr} AM"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">light_mode</span>${hours}:${minsStr}</span>`;
+                        hours = hours ? hours : 12; // the hour '0' should be '12'
+                        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                        const timeStr = hours + ':' + minutesStr;
+
+                        if (isAM) {
+                            timeString = `<span style="display:inline-block; background:var(--warning-color); color:#fff; padding:2px 8px; border-radius:6px; font-weight:bold; white-space:nowrap; border:1px solid #e68a00; font-size:0.95em; box-shadow:0 1px 2px rgba(0,0,0,0.5);" title="AM">${timeStr}</span>`;
                         } else {
-                            timeString = `<span class="time-badge time-pm" title="Exact Save Time: ${hours}:${minsStr} PM"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:3px;">dark_mode</span>${hours}:${minsStr}</span>`;
+                            timeString = `<span style="display:inline-block; background:#000; color:#fff; padding:2px 8px; border-radius:6px; font-weight:bold; white-space:nowrap; border:1px solid #444; font-size:0.95em; box-shadow:inset 0 1px 3px rgba(0,0,0,0.8);" title="PM">${timeStr}</span>`;
                         }
                     }
 
@@ -509,12 +474,12 @@
                         });
                     }
 
-                    // Build Card with Clickable Header Event attached
+                    // Build Card
                     htmlOutput += `
                         <div class="invoice-card">
                             <div class="inv-header">
                                 <div class="inv-meta">
-                                    <h3 onclick="window.printSingleInvoiceAction('${docId}')" title="Tap to Print"><span class="clickable-inv">${data.invoiceNo || 'INV-UNKNOWN'}</span> <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
+                                    <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
                                 </div>
                                 <div class="inv-time">${timeString}</div>
                             </div>
@@ -552,6 +517,7 @@
                     salesListEl.innerHTML = htmlOutput;
                 }
                 
+                // Update Top Stats
                 document.getElementById('totalInvoices').innerText = invoiceCount;
                 document.getElementById('totalSales').innerText = `₹${totalSalesSum.toLocaleString()}`;
 
@@ -563,184 +529,8 @@
             }
         }
 
+        // Trigger initial load for today
         loadDailySales(dateFilterInput.value);
-
-        // --- FIXED: INDIVIDUAL INVOICE PRINT TRIGGER FUNCTION ---
-        window.printSingleInvoiceAction = function(docId) {
-            // Vibrate quickly
-            if(navigator.vibrate) navigator.vibrate();
-
-            const data = window.loadedInvoicesMap[docId];
-            if(!data) {
-                return showToast("Error: Invoice data not found.");
-            }
-
-            // Extract Exact Print Date
-            let printDateStr = "N/A";
-            if (data.date && data.date.toDate) {
-                const dObj = data.date.toDate();
-                printDateStr = `${dObj.getDate().toString().padStart(2, '0')}-${(dObj.getMonth()+1).toString().padStart(2, '0')}-${dObj.getFullYear()}`;
-            }
-
-            // Generate Products Table html (5-column strict layout)
-            let trItems = '';
-            if(data.items && Array.isArray(data.items)) {
-                data.items.forEach((item, index) => {
-                    const num = (index + 1).toString().padStart(2, '0');
-                    const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
-                    const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
-                    
-                    const desc = `
-                        <strong style="font-size:13px; display:block; color:#000;">${item.name}</strong>
-                        <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
-                    `;
-                    
-                    const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
-
-                    trItems += `
-                        <tr>
-                            <td>${num}.</td>
-                            <td>${desc}</td>
-                            <td class="text-right">₹${uPrice.toFixed(2)}</td>
-                            <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
-                            <td class="text-right" style="font-weight:bold; color:#000;">₹${(item.finalTotal || 0).toFixed(2)}</td>
-                        </tr>
-                    `;
-                });
-            }
-
-            // Extract Totals
-            const sub = (data.totals?.sub || 0);
-            const gst = (data.totals?.gst || 0);
-            const halfGst = gst / 2;
-            const disc = (data.totals?.discount || 0);
-            const grand = (data.totals?.grand || 0);
-            const payMode = data.paymentMethod || data.paymentMode || 'Cash';
-
-            const discRowHtml = disc > 0 ? `
-                <tr>
-                    <td class="t-label" style="color: #d32f2f;">Discount</td>
-                    <td class="t-val" style="color: #d32f2f;">-₹${disc.toFixed(2)}</td>
-                </tr>
-            ` : '';
-
-            // Inject highly formatted html block into #printArea exactly matching bill.html format
-            const printArea = document.getElementById('printArea');
-            printArea.innerHTML = `
-                <div class="print-top-band">
-                    <div class="print-header-left">
-                        <div class="print-brand">
-                            <h2>Meena Marketing</h2>
-                            <p>Dealers in Premium Quality Products</p>
-                            <p style="font-weight: normal; margin-top: 4px; line-height: 1.3;">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
-                            <p style="font-weight: normal; margin-top: 2px;"><strong>Ph:</strong> 9444589733</p>
-                            <div style="margin-top: 8px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 4px 8px; border-radius: 4px; background-color: #f5f5f5; letter-spacing: 0.5px;">GSTIN: 33BUJPR3363M1Z5</span></div>
-                        </div>
-                        
-                        <div class="print-invoice-to">
-                            <p class="section-label">INVOICE TO</p>
-                            <h3>${data.customer?.name || 'Cash Customer'}</h3>
-                            <p><strong>PHONE :</strong> <span>${data.customer?.phone || 'N/A'}</span></p>
-                            <p><strong>ADDRESS :</strong> <span>${data.customer?.address || 'N/A'}</span></p>
-                        </div>
-                    </div>
-                    
-                    <div class="print-header-right">
-                        <div class="qr-box"><span class="material-symbols-outlined">qr_code_2</span></div>
-                        <h1 class="invoice-title-text">INVOICE</h1>
-                        <p class="invoice-no-text">No. <span>${data.invoiceNo || 'INV-XXX'}</span></p>
-                        
-                        <div class="invoice-date-box">
-                            <span class="material-symbols-outlined">calendar_month</span>
-                            <div>
-                                <span>Invoice Date</span>
-                                <strong>${printDateStr}</strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="print-table-container">
-                    <table class="print-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 5%;">No.</th>
-                                <th style="width: 50%;">Descriptions</th>
-                                <th style="width: 15%;" class="text-right">Unit Price</th>
-                                <th style="width: 10%;" class="text-center">Unit</th>
-                                <th style="width: 20%;" class="text-right">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${trItems}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="print-middle-section">
-                    <div class="print-left-footer-info">
-                        <div class="thanks-box">
-                            <strong>Thank you for your business!</strong>
-                            <p>We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
-                        </div>
-                        
-                        <div class="payment-methods">
-                            <p>Payment Mode:<br><span>${payMode}</span></p>
-                        </div>
-                    </div>
-                    
-                    <div class="print-totals-box">
-                        <table class="totals-grid">
-                            <tr>
-                                <td class="t-label">Sub Total</td>
-                                <td class="t-val">₹${sub.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                                <td class="t-label">CGST</td>
-                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                                <td class="t-label">SGST</td>
-                                <td class="t-val">₹${halfGst.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                                <td class="t-label">Total Tax (GST)</td>
-                                <td class="t-val">₹${gst.toFixed(2)}</td>
-                            </tr>
-                            ${discRowHtml}
-                            <tr class="t-grand-row">
-                                <td class="t-label">TOTAL :</td>
-                                <td class="t-val">₹${grand.toFixed(2)}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="print-signature-area">
-                    <div class="sign-box">
-                        <div class="sign-placeholder"></div>
-                        <h4>Authorized Signatory</h4>
-                        <p>For Meena Marketing</p>
-                    </div>
-                </div>
-
-                <div class="print-absolute-footer">
-                    <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
-                </div>
-            `;
-
-            // FIX: Add printing class immediately
-            document.body.classList.add('printing-active');
-
-            // FIX: Force browser to calculate DOM layout synchronously right away
-            // This prevents "blank page" issues without needing a setTimeout
-            void document.body.offsetHeight;
-
-            // FIX: Trigger print synchronously in the same thread as the user click 
-            // This stops iOS/Chrome mobile from blocking the print dialog
-            window.print();
-        };
-
 
         // ADDED: Search Modal Logic with Mobile Back Button Support
         window.openSearchModal = function() {
@@ -748,14 +538,18 @@
             const mainList = document.getElementById('salesList');
             const modalList = document.getElementById('searchModalResults');
             
+            // Copy current loaded invoices into the modal
             modalList.innerHTML = mainList.innerHTML; 
             
             modal.classList.add('active');
             document.getElementById('searchInput').focus();
+            
+            // Push state for mobile back button support
             history.pushState({ searchModalOpen: true }, "");
         };
 
         window.closeModalManual = function() {
+            // Triggering history.back() will inherently close it via popstate
             history.back(); 
         };
 
@@ -770,6 +564,7 @@
             const cards = document.getElementById('searchModalResults').getElementsByClassName('invoice-card');
             
             for (let i = 0; i < cards.length; i++) {
+                // The innerText contains customer name, invoice no, items, etc.
                 const textContent = cards[i].innerText.toLowerCase(); 
                 if (textContent.includes(query)) {
                     cards[i].style.display = 'block';
@@ -779,21 +574,28 @@
             }
         };
 
+        // --- ADVANCED SMART SORTING ALGORITHM FOR PAGINATION ---
         function advancedSort(items, searchTerm = '') {
             const term = searchTerm.toLowerCase().trim();
             return items.sort((a, b) => {
                 const aName = (a.name || '').toLowerCase();
                 const bName = (b.name || '').toLowerCase();
+
                 const isAOutOfStock = (a.qty || 0) === 0;
                 const isBOutOfStock = (b.qty || 0) === 0;
+
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
 
+                // 1. Out of stock always goes to the bottom
                 if (isAOutOfStock && !isBOutOfStock) return 1;
                 if (!isAOutOfStock && isBOutOfStock) return -1;
+                
+                // 2. Exact match always goes to the top
                 if (isAExact && !isBExact) return -1;
                 if (!isAExact && isBExact) return 1;
 
+                // 3. Smart partial match priority
                 if (term) {
                     const aStarts = aName.startsWith(term);
                     const bStarts = bName.startsWith(term);
@@ -805,6 +607,130 @@
             });
         }
 
+        // --- OLD PRODUCT/CUSTOMER SEARCH COMMENTED OUT SAFELY ---
+        /*
+        let prodSearchTimeout;
+        window.openProductSearchModal = function() {
+            const modal = document.getElementById('productSearchModal');
+            modal.classList.add('active');
+            document.getElementById('productSearchInput').focus();
+            history.pushState({ prodSearchModalOpen: true }, "");
+        };
+
+        window.closeProductSearchModalManual = function() {
+            history.back(); 
+        };
+
+        window.clearProductSearch = function() {
+            document.getElementById('productSearchInput').value = '';
+            document.getElementById('productSearchResults').innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
+            document.getElementById('productSearchInput').focus();
+        };
+
+        window.handleProductSearchDelay = function() {
+            clearTimeout(prodSearchTimeout);
+            prodSearchTimeout = setTimeout(() => {
+                window.executeProductSearch();
+            }, 600); // 600ms debounce
+        };
+
+        window.executeProductSearch = async function() {
+            const queryTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('productSearchResults');
+            
+            if (!queryTerm) {
+                resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div class="loader" style="display:block;">Searching records...</div>';
+
+            try {
+                // Fetch recent sales to search through (Limiting to 500 for performance)
+                const q = query(
+                    collection(db, "sellings"),
+                    orderBy("date", "desc"),
+                    limit(500)
+                );
+                
+                const snap = await getDocs(q);
+                let matches = [];
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.items && Array.isArray(data.items)) {
+                        const matchingItems = data.items.filter(item => (item.name || '').toLowerCase().includes(queryTerm));
+                        
+                        if (matchingItems.length > 0) {
+                            const customerName = data.customer?.name || 'Cash Customer';
+                            const customerPhone = data.customer?.phone || 'No Phone';
+                            const customerAddress = data.customer?.address || 'No Address';
+                            const invoiceNo = data.invoiceNo || 'N/A';
+                            
+                            let dateFmt = "N/A";
+                            if (data.date && data.date.toDate) {
+                                const d = data.date.toDate();
+                                dateFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+                            }
+
+                            matches.push({
+                                customerName,
+                                customerPhone,
+                                customerAddress,
+                                invoiceNo,
+                                dateFmt,
+                                products: matchingItems.map(i => `${i.name} (Qty: ${i.qty})`).join(', ')
+                            });
+                        }
+                    }
+                });
+
+                if (matches.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">search_off</span>
+                            <h3>No Customers Found</h3>
+                            <p>No recent sales found containing "${queryTerm}".</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let htmlOutput = `<div style="padding-bottom: 10px; border-bottom: 1px solid #333; margin-bottom: 15px; color: var(--success-color); font-weight: bold;">Found ${matches.length} purchase(s)</div>`;
+                
+                matches.forEach(match => {
+                    htmlOutput += `
+                        <div class="invoice-card" style="margin-bottom: 15px;">
+                            <div class="inv-header" style="background: #1a1a1a;">
+                                <div class="inv-meta">
+                                    <h3 style="color: var(--accent-color); margin: 0; font-size: 1.1em;">${match.customerName}</h3>
+                                </div>
+                                <div class="inv-time">${match.dateFmt}</div>
+                            </div>
+                            <div class="inv-body">
+                                <div class="customer-info" style="border: none; padding-bottom: 0; margin-bottom: 5px;">
+                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">phone</span> ${match.customerPhone}</p>
+                                    <p style="margin: 3px 0;"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">location_on</span> ${match.customerAddress}</p>
+                                </div>
+                                <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9em;">
+                                    <strong style="color: var(--text-secondary);">Invoice:</strong> ${match.invoiceNo}<br>
+                                    <strong style="color: var(--text-secondary);">Bought:</strong> <span style="color: white;">${match.products}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = htmlOutput;
+
+            } catch (err) {
+                console.error("Error searching products:", err);
+                resultsContainer.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error executing search. Please try again.</div>';
+            }
+        };
+        */
+
+        // --- NEW FULLY UPGRADED PAGINATED SEARCH ENGINE (INVENTORY -> BUYERS) ---
         let prodSearchTimeout;
         let prodSuggLastVisible = null;
         let prodSuggIsFetching = false;
@@ -841,11 +767,12 @@
             clearTimeout(prodSearchTimeout);
             prodSearchTimeout = setTimeout(() => {
                 prodSuggCurrentTerm = document.getElementById('productSearchInput').value.toLowerCase().trim();
-                currentTargetProduct = ''; 
+                currentTargetProduct = ''; // Reset buyer mode when typing new search
                 loadProductSuggestions(false);
-            }, 600); 
+            }, 600); // 600ms debounce
         };
 
+        // 1. Searches Inventory (with pagination & 0-qty sorting)
         window.loadProductSuggestions = async function(isLoadMore = false) {
             const resultsContainer = document.getElementById('productSearchResults');
             
@@ -873,10 +800,9 @@
                     if (!isLoadMore) {
                         newItems.push({ id: 'ns', name: 'Non-Stock Items (All)', model: 'N/A', isSpecial: true, qty: 999 });
                     }
-                    prodSuggHasMore = false; 
+                    prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    // FIX: Re-added to extract string, which properly fixes "Search returning empty results"
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
@@ -917,6 +843,7 @@
                     });
                 }
 
+                // Smoothly sort the new batch and append
                 newItems = advancedSort(newItems, prodSuggCurrentTerm);
                 prodSuggCache = prodSuggCache.concat(newItems);
 
@@ -959,6 +886,7 @@
             resultsContainer.insertAdjacentHTML('beforeend', htmlOutput);
         }
 
+        // 2. Searches Buyers using the NEW ARRAY SYSTEM + Pagination (Saves 2,000 reads!)
         window.showCustomersForProduct = async function(productName, isNonStock = false, isLoadMore = false) {
             const resultsContainer = document.getElementById('productSearchResults');
             
@@ -983,12 +911,15 @@
             try {
                 let q;
                 if (currentTargetIsNS) {
+                    // For "all non-stock", we just scan recent invoices chronologically.
                     if (isLoadMore && custLastVisible) {
                         q = query(collection(db, "sellings"), orderBy("date", "desc"), startAfter(custLastVisible), limit(25));
                     } else {
                         q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(25));
                     }
                 } else {
+                    // EFFICIENT ARRAY-CONTAINS QUERY: Costs near 0 reads. 
+                    // (Dropping orderBy to prevent crashing users without complex composite indexes)
                     if (isLoadMore && custLastVisible) {
                         q = query(collection(db, "sellings"), where("purchasedProductNames", "array-contains", currentTargetProduct), startAfter(custLastVisible), limit(15));
                     } else {
@@ -1060,6 +991,7 @@
                     }
                 });
 
+                // Manual date sort for safety
                 newMatches.sort((a, b) => b.rawDate - a.rawDate);
                 custMatchesCache = custMatchesCache.concat(newMatches);
 
@@ -1076,6 +1008,7 @@
                     renderCustomersAppend(newMatches);
                 }
 
+                // Auto-fetch if Non-Stock mode didn't find any in the first 25 scan
                 if (newMatches.length === 0 && currentTargetIsNS && custHasMore) {
                     custIsFetching = false; 
                     window.showCustomersForProduct(productName, isNonStock, true);
@@ -1118,19 +1051,24 @@
             resultsContainer.insertAdjacentHTML('beforeend', htmlOutput);
         }
 
+        // 3. The Infinite Scroll Hook
         document.getElementById('productSearchResults').addEventListener('scroll', (e) => {
             const element = e.target;
             if (element.scrollHeight - element.scrollTop <= element.clientHeight + 50) {
                 if (currentTargetProduct === '' && !currentTargetIsNS) {
-                    loadProductSuggestions(true); 
+                    loadProductSuggestions(true); // Paginate the inventory search
                 } else {
-                    showCustomersForProduct(currentTargetProduct, currentTargetIsNS, true); 
+                    showCustomersForProduct(currentTargetProduct, currentTargetIsNS, true); // Paginate the buyers
                 }
             }
         });
 
+
+        // ADDED: GST Filing Export Modal & PDF Generator Logic
         window.openGstModal = function() {
             const modal = document.getElementById('gstModal');
+            
+            // Set default dates to current month range
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA');
             const currentDay = today.toLocaleDateString('en-CA');
@@ -1139,6 +1077,8 @@
             document.getElementById('gstToDate').value = currentDay;
 
             modal.classList.add('active');
+            
+            // Push state for mobile back button support
             history.pushState({ gstModalOpen: true }, "");
         };
 
@@ -1156,6 +1096,7 @@
                 return;
             }
             
+            // Set accurate timezone bounds for the search
             const [fYear, fMonth, fDay] = fromDateStr.split('-');
             const startOfDay = new Date(fYear, fMonth - 1, fDay, 0, 0, 0, 0);
             
@@ -1172,6 +1113,7 @@
             btn.disabled = true;
             
             try {
+                // Query entire date range to find GST bills
                 const q = query(
                     collection(db, "sellings"),
                     where("date", ">=", startOfDay),
@@ -1185,10 +1127,12 @@
                 let totalSgst = 0;
                 let totalGrand = 0;
 
+                // Push valid records into array to SORT them sequentially
                 let matchedInvoices = [];
                 
                 snap.forEach(doc => {
                     const data = doc.data();
+                    // Filter explicitly for GST flagged invoices or bills with actual GST amounts
                     if(data.invoiceType === 'GST' || (data.totals && data.totals.gst > 0)) {
                         const invStr = String(data.invoiceNo || '');
                         const numMatch = invStr.match(/\d+/g);
@@ -1197,6 +1141,7 @@
                     }
                 });
 
+                // STRICT SORTING BY INVOICE NUMBER TO ENSURE CONTINUOUS SEQUENCE
                 matchedInvoices.sort((a, b) => a.num - b.num);
                 
                 const rows = [];
@@ -1213,7 +1158,7 @@
                     
                     const subTotal = (data.totals?.sub || 0);
                     const gstTotal = (data.totals?.gst || 0);
-                    const halfGst = gstTotal / 2; 
+                    const halfGst = gstTotal / 2; // Split into CGST and SGST
                     const grandTotal = (data.totals?.grand || 0);
                     
                     totalTaxable += subTotal;
@@ -1221,6 +1166,7 @@
                     totalSgst += halfGst;
                     totalGrand += grandTotal;
                     
+                    // Push standard row to PDF table
                     rows.push([
                         dateFmt,
                         invNo,
@@ -1239,6 +1185,7 @@
                     return;
                 }
                 
+                // Add bold total row at the bottom
                 rows.push([
                     "", "GRAND TOTALS", "", 
                     totalTaxable.toFixed(2), 
@@ -1247,6 +1194,35 @@
                     totalGrand.toFixed(2)
                 ]);
                 
+                /* --- ORIGINAL JSPDF CODE PRESERVED AND COMMENTED OUT AS REQUESTED ---
+                const docPdf = new jsPDF();
+                
+                docPdf.setFontSize(16);
+                docPdf.text("Meena Marketing - GST Sales Report", 14, 15);
+                docPdf.setFontSize(10);
+                docPdf.text(`Reporting Period: ${fromDateStr} to ${toDateStr}`, 14, 22);
+                
+                // Use autoTable plugin for clean columns
+                docPdf.autoTable({
+                    startY: 28,
+                    head: [['Date', 'Invoice No', 'Customer', 'Taxable Val (Rs)', 'CGST (Rs)', 'SGST (Rs)', 'Grand Total (Rs)']],
+                    body: rows,
+                    theme: 'grid',
+                    headStyles: { fillColor: [211, 47, 47] }, // Red theme to match Meena Marketing
+                    didParseCell: function(data) {
+                        // Apply special styling to the last "GRAND TOTALS" row
+                        if (data.row.index === rows.length - 1) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.textColor = [0, 0, 0];
+                            if(data.column.index === 1) data.cell.styles.halign = 'right';
+                        }
+                    }
+                });
+                
+                docPdf.save(`GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`);
+                */
+
+                // --- NEW HTML2PDF CODE FOR NATIVE TAMIL FONT SUPPORT ---
                 let summaryHtml = `
                 <style>
                     .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; padding: 20px; }
@@ -1278,7 +1254,7 @@
                 `;
                 
                 rows.forEach(r => {
-                    summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
+                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
                 });
                 
                 summaryHtml += `
@@ -1307,10 +1283,12 @@
                 showToast("Error generating PDF document.");
             }
             
+            // Reset Button State
             btn.innerHTML = `<span class="material-symbols-outlined">picture_as_pdf</span> Download Summary PDF`;
             btn.disabled = false;
         };
 
+        // ADDED LOGIC: Download Bills starting from a specific Invoice Number (Replaced Print option)
         window.downloadGstBillsFromInvoice = async function() {
             const fromDateStr = document.getElementById('gstFromDate').value;
             const toDateStr = document.getElementById('gstToDate').value;
@@ -1407,6 +1385,7 @@
                 `;
                 let matchCount = 0;
 
+                // Push valid records into array to SORT them sequentially
                 let matchedInvoices = [];
 
                 snap.forEach(doc => {
@@ -1419,6 +1398,7 @@
                     }
                 });
 
+                // STRICT SORTING BY INVOICE NUMBER TO ENSURE CONTINUOUS SEQUENCE
                 matchedInvoices.sort((a, b) => a.num - b.num);
 
                 let finalContinuousInvoices = [];
@@ -1433,6 +1413,7 @@
                             finalContinuousInvoices.push(item);
                             lastNum = currentNum;
                         } else {
+                            // If the cycle breaks (a jump of more than 100), stop collecting
                             if (currentNum - lastNum > 100) {
                                 break;
                             }
@@ -1442,6 +1423,7 @@
                     }
                 }
 
+                // Now loop through sorted and continuous invoices sequentially
                 finalContinuousInvoices.forEach(item => {
                     const data = item.data;
                     matchCount++;
@@ -1626,6 +1608,7 @@
             btnPrint.disabled = false;
         };
 
+        // Download FULL Bills directly to PDF via html2pdf
         window.downloadAllGstBillsFullPdf = async function() {
             const fromDateStr = document.getElementById('gstFromDate').value;
             const toDateStr = document.getElementById('gstToDate').value;
@@ -1716,6 +1699,7 @@
                 
                 let matchCount = 0;
 
+                // Push valid records into array to SORT them sequentially
                 let matchedInvoices = [];
 
                 snap.forEach(doc => {
@@ -1728,8 +1712,10 @@
                     }
                 });
 
+                // STRICT SORTING BY INVOICE NUMBER TO ENSURE CONTINUOUS SEQUENCE
                 matchedInvoices.sort((a, b) => a.num - b.num);
 
+                // Now loop through sorted invoices sequentially
                 matchedInvoices.forEach(item => {
                     const data = item.data;
                     matchCount++;
@@ -1889,6 +1875,7 @@
                 if(matchCount === 0) {
                     showToast("No GST bills found in this date range.");
                 } else {
+                    // Create an off-screen container for html2pdf to parse
                     const element = document.createElement('div');
                     element.innerHTML = fullPrintHtml;
                     
@@ -1914,13 +1901,11 @@
             btnPrint.disabled = false;
         };
 
-        // FIX: Clean up the UI instantly after the print window is closed/cancelled
         window.addEventListener('afterprint', () => {
-            const printArea = document.getElementById('printArea');
-            printArea.innerHTML = ''; 
-            document.body.classList.remove('printing-active');
+            document.getElementById('printArea').innerHTML = ''; // Clean up after print dialog closes
         });
 
+        // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
         window.addEventListener('popstate', (e) => {
             const searchModal = document.getElementById('searchModal');
             if (searchModal.classList.contains('active')) {
