@@ -446,7 +446,7 @@
 
                     // Real Timestamp extraction (Newest logic to extract 12hr time and AM/PM Badge correctly)
                     let timeString = "Unknown Time";
-                    let badgeHtml = "";
+                    let badgeHtml = ""; 
                     let d = null;
                     
                     if (data.createdAt && data.createdAt.toDate) {
@@ -463,14 +463,13 @@
                         hours = hours ? hours : 12; 
                         minutes = minutes < 10 ? '0' + minutes : minutes;
                         
-                        let timeVal = `${hours}:${minutes}`;
+                        let rawTime = `${hours}:${minutes}`;
                         if (isPM) {
-                            timeString = `<span style="background: #2a2a2a; color: #ffffff; padding: 4px 8px; border-radius: 6px; font-size: 0.9em; font-weight: bold; border: 1px solid #444; white-space: nowrap;">${timeVal}</span>`;
-                            badgeHtml = ``;
+                            timeString = `<span style="background: #2a2a2a; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; border: 1px solid #444; display: inline-block;">${rawTime}</span>`;
                         } else {
-                            timeString = `<span style="background: #ff9800; color: #121212; padding: 4px 8px; border-radius: 6px; font-size: 0.9em; font-weight: bold; white-space: nowrap;">${timeVal}</span>`;
-                            badgeHtml = ``;
+                            timeString = `<span style="background: #ff9800; color: #121212; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; display: inline-block;">${rawTime}</span>`;
                         }
+                        badgeHtml = ""; // Removed AM/PM text completely to keep layout tight and stop line breaks
                     }
 
                     // Build Items List
@@ -823,7 +822,7 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
@@ -1229,12 +1228,12 @@
                     head: [['Date', 'Invoice No', 'Customer', 'Taxable Val (Rs)', 'CGST (Rs)', 'SGST (Rs)', 'Grand Total (Rs)']],
                     body: rows,
                     theme: 'grid',
-                    headStyles: { fillColor: }, // Red theme to match Meena Marketing
+                    headStyles: { fillColor: [211, 47, 47] }, // Red theme to match Meena Marketing
                     didParseCell: function(data) {
                         // Apply special styling to the last "GRAND TOTALS" row
                         if (data.row.index === rows.length - 1) {
                             data.cell.styles.fontStyle = 'bold';
-                            data.cell.styles.textColor =;
+                            data.cell.styles.textColor = [0, 0, 0];
                             if(data.column.index === 1) data.cell.styles.halign = 'right';
                         }
                     }
@@ -1275,7 +1274,7 @@
                 `;
                 
                 rows.forEach(r => {
-                    summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
+                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
                 });
                 
                 summaryHtml += `
