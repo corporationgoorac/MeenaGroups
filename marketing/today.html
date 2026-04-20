@@ -133,10 +133,11 @@
             /* Force page size and remove browser headers/footers */
             @page { size: A4 portrait; margin: 0mm; }
             
+            /* FIX: Ensure html/body allow height to expand normally for print and remove overflow:hidden */
+            html, body { height: auto !important; min-height: 100% !important; overflow: visible !important; display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            
             /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
             body > *:not(#printArea) { display: none !important; }
-            /* FIX: Ensure body is block (not flex) for pagination */
-            body { display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
             /* FIX: Remove position: absolute to allow multiple pages to flow naturally */
             #printArea { display: block !important; position: relative; width: 100%; background: white; color: #000; margin: 0; padding: 0; }
@@ -1939,11 +1940,18 @@
             `;
 
             document.getElementById('printArea').innerHTML = printHtml;
-            window.print();
+            
+            // FIX: Allow DOM to fully update and paint before triggering the print spooler
+            setTimeout(() => {
+                window.print();
+            }, 300);
         };
 
         window.addEventListener('afterprint', () => {
-            document.getElementById('printArea').innerHTML = ''; // Clean up after print dialog closes
+            // FIX: Ensure the system doesn't wipe the HTML until slightly after the print dialog finishes
+            setTimeout(() => {
+                document.getElementById('printArea').innerHTML = ''; 
+            }, 500);
         });
 
         // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
