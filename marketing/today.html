@@ -417,15 +417,24 @@
                     return;
                 }
 
+                // Process docs into array so we can sort purely by real-time timestamp
+                let fetchedDocs = [];
+                snap.forEach(doc => fetchedDocs.push(doc.data()));
+
+                // Sort by real creation time, newest first, resolving accurate 12hr time display
+                fetchedDocs.sort((a, b) => {
+                    let timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.date && a.date.toDate ? a.date.toDate().getTime() : 0);
+                    let timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.date && b.date.toDate ? b.date.toDate().getTime() : 0);
+                    return timeB - timeA;
+                });
+
                 let totalSalesSum = 0;
                 let invoiceCount = 0;
                 let htmlOutput = '';
                 
                 const selectedPayment = paymentFilterInput.value; 
 
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    
+                fetchedDocs.forEach(data => {
                     // Filter Logic for Cash/Online
                     const paymentMode = data.paymentMethod || data.paymentMode || 'Cash'; 
                     if (selectedPayment !== 'All' && paymentMode.toLowerCase() !== selectedPayment.toLowerCase()) {
@@ -435,22 +444,30 @@
                     invoiceCount++;
                     totalSalesSum += (data.totals?.grand || 0);
 
-                    // Format Time safely (Custom 12-hr Indian Time without AM/PM text)
+                    // Real Timestamp extraction (Newest logic to extract 12hr time and AM/PM Badge correctly)
                     let timeString = "Unknown Time";
-                    if (data.date && data.date.toDate) {
-                        const d = data.date.toDate();
+                    let badgeHtml = "";
+                    let d = null;
+                    
+                    if (data.createdAt && data.createdAt.toDate) {
+                        d = data.createdAt.toDate();
+                    } else if (data.date && data.date.toDate) {
+                        d = data.date.toDate();
+                    }
+
+                    if (d) {
                         let hours = d.getHours();
                         let minutes = d.getMinutes();
-                        const isAM = hours < 12;
+                        let isPM = hours >= 12;
                         hours = hours % 12;
-                        hours = hours ? hours : 12; // the hour '0' should be '12'
-                        const minutesStr = minutes < 10 ? '0' + minutes : minutes;
-                        const timeStr = hours + ':' + minutesStr;
-
-                        if (isAM) {
-                            timeString = `<span style="display:inline-block; background:var(--warning-color); color:#fff; padding:2px 8px; border-radius:6px; font-weight:bold; white-space:nowrap; border:1px solid #e68a00; font-size:0.95em; box-shadow:0 1px 2px rgba(0,0,0,0.5);" title="AM">${timeStr}</span>`;
+                        hours = hours ? hours : 12; 
+                        minutes = minutes < 10 ? '0' + minutes : minutes;
+                        
+                        timeString = `${hours}:${minutes}`;
+                        if (isPM) {
+                            badgeHtml = `<span style="background: #2a2a2a; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 6px; border: 1px solid #444;">PM</span>`;
                         } else {
-                            timeString = `<span style="display:inline-block; background:#000; color:#fff; padding:2px 8px; border-radius:6px; font-weight:bold; white-space:nowrap; border:1px solid #444; font-size:0.95em; box-shadow:inset 0 1px 3px rgba(0,0,0,0.8);" title="PM">${timeStr}</span>`;
+                            badgeHtml = `<span style="background: #ff9800; color: #121212; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 6px;">AM</span>`;
                         }
                     }
 
@@ -481,7 +498,9 @@
                                 <div class="inv-meta">
                                     <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
                                 </div>
-                                <div class="inv-time">${timeString}</div>
+                                <div class="inv-time" style="display: flex; align-items: center; white-space: nowrap; font-size: 0.95em; color: var(--marketing-white); font-weight: bold;">
+                                    ${timeString}${badgeHtml}
+                                </div>
                             </div>
                             
                             <div class="inv-body">
