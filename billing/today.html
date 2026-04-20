@@ -417,15 +417,24 @@
                     return;
                 }
 
+                // Process docs into array so we can sort purely by real-time timestamp
+                let fetchedDocs = [];
+                snap.forEach(doc => fetchedDocs.push(doc.data()));
+
+                // Sort by real creation time, newest first, resolving accurate 12hr time display
+                fetchedDocs.sort((a, b) => {
+                    let timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.date && a.date.toDate ? a.date.toDate().getTime() : 0);
+                    let timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.date && b.date.toDate ? b.date.toDate().getTime() : 0);
+                    return timeB - timeA;
+                });
+
                 let totalSalesSum = 0;
                 let invoiceCount = 0;
                 let htmlOutput = '';
                 
                 const selectedPayment = paymentFilterInput.value; 
 
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    
+                fetchedDocs.forEach(data => {
                     // Filter Logic for Cash/Online
                     const paymentMode = data.paymentMethod || data.paymentMode || 'Cash'; 
                     if (selectedPayment !== 'All' && paymentMode.toLowerCase() !== selectedPayment.toLowerCase()) {
@@ -435,11 +444,32 @@
                     invoiceCount++;
                     totalSalesSum += (data.totals?.grand || 0);
 
-                    // Format Time safely
+                    // Real Timestamp extraction (Newest logic to extract 12hr time and AM/PM Badge correctly)
                     let timeString = "Unknown Time";
-                    if (data.date && data.date.toDate) {
-                        const d = data.date.toDate();
-                        timeString = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    let badgeHtml = ""; 
+                    let d = null;
+                    
+                    if (data.createdAt && data.createdAt.toDate) {
+                        d = data.createdAt.toDate();
+                    } else if (data.date && data.date.toDate) {
+                        d = data.date.toDate();
+                    }
+
+                    if (d) {
+                        let hours = d.getHours();
+                        let minutes = d.getMinutes();
+                        let isPM = hours >= 12;
+                        hours = hours % 12;
+                        hours = hours ? hours : 12; 
+                        minutes = minutes < 10 ? '0' + minutes : minutes;
+                        
+                        let rawTime = `${hours}:${minutes}`;
+                        if (isPM) {
+                            timeString = `<span style="background: #2a2a2a; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; border: 1px solid #444; display: inline-block;">${rawTime}</span>`;
+                        } else {
+                            timeString = `<span style="background: #ff9800; color: #121212; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; display: inline-block;">${rawTime}</span>`;
+                        }
+                        badgeHtml = ""; // Removed AM/PM text completely to keep layout tight and stop line breaks
                     }
 
                     // Build Items List
@@ -469,7 +499,9 @@
                                 <div class="inv-meta">
                                     <h3>${data.invoiceNo || 'INV-UNKNOWN'} <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
                                 </div>
-                                <div class="inv-time">${timeString}</div>
+                                <div class="inv-time" style="display: flex; align-items: center; white-space: nowrap; font-size: 0.95em; color: var(--marketing-white); font-weight: bold;">
+                                    ${timeString}${badgeHtml}
+                                </div>
                             </div>
                             
                             <div class="inv-body">
