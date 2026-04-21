@@ -134,10 +134,11 @@
             @page { size: A4 portrait; margin: 0mm; }
             
             /* FIX: Ensure html/body allow height to expand exactly to A4 for print */
-            html, body { width: 210mm !important; height: 297mm !important; overflow: hidden !important; display: block !important; background: white; color: black; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { width: 210mm !important; height: 297mm !important; overflow: hidden !important; display: block !important; background: white !important; color: black !important; margin: 0; padding: 0; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             
             /* FIX: Hide the entire App UI completely so it doesn't take up invisible space */
-            body > *:not(#printArea) { display: none !important; }
+            /* UPDATED: Added :not(#pdf-temp-wrapper):not(.html2pdf__container) so html2pdf elements don't get hidden and render pure black voids! */
+            body > *:not(#printArea):not(#pdf-temp-wrapper):not(.html2pdf__container) { display: none !important; }
             
             /* FIX: Set #printArea precisely to A4 dimensions */
             #printArea { display: block !important; position: relative; width: 210mm; height: 297mm; background: white; color: #000; margin: 0; padding: 0; overflow: hidden; }
@@ -1104,7 +1105,7 @@
                 // --- NEW HTML2PDF CODE FOR NATIVE TAMIL FONT SUPPORT ---
                 let summaryHtml = `
                 <style>
-                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; padding: 20px; }
+                    .pdf-export-wrapper { background: white !important; color: black !important; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; padding: 20px; display: block; }
                     .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
                     .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
                     .summary-table th { background-color: #d32f2f; color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1142,13 +1143,15 @@
                 </div>`;
                 
                 const element = document.createElement('div');
+                element.id = 'pdf-temp-wrapper';
+                element.style.backgroundColor = '#ffffff';
                 element.innerHTML = summaryHtml;
                 
                 const opt = {
                     margin:       10,
                     filename:     `GST_Report_Summary_${fromDateStr}_to_${toDateStr}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                    html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                     pagebreak:    { mode: ['css', 'legacy'] }
                 };
@@ -1209,8 +1212,8 @@
                 const snap = await getDocs(q);
                 let fullPrintHtml = `
                 <style>
-                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; }
-                    .print-page { width: 210mm; height: 297mm; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; overflow: hidden; }
+                    .pdf-export-wrapper { background: white !important; color: black !important; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; display: block; }
+                    .print-page { width: 210mm; height: 297mm; max-width: 210mm; margin: 0 auto; padding: 0; background: white !important; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; overflow: hidden; }
                     .print-page:last-child { page-break-after: auto; }
                     .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
                     .print-header-left { width: 55%; }
@@ -1463,13 +1466,15 @@
                     showToast(`No GST bills found from No. ${targetInvNum} in this date range.`);
                 } else {
                     const element = document.createElement('div');
+                    element.id = 'pdf-temp-wrapper';
+                    element.style.backgroundColor = '#ffffff';
                     element.innerHTML = fullPrintHtml;
                     
                     const opt = {
                         margin:       0,
                         filename:     `GST_Bills_From_INV_${targetInvNum}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak:    { mode: ['css', 'legacy'] }
                     };
@@ -1522,8 +1527,8 @@
                 const snap = await getDocs(q);
                 let fullPrintHtml = `
                 <style>
-                    .pdf-export-wrapper { background: white; color: black; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; }
-                    .print-page { width: 210mm; height: 297mm; max-width: 210mm; margin: 0 auto; padding: 0; background: white; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; overflow: hidden; }
+                    .pdf-export-wrapper { background: white !important; color: black !important; font-family: 'Segoe UI', 'Noto Sans Tamil', Arial, sans-serif; display: block; }
+                    .print-page { width: 210mm; height: 297mm; max-width: 210mm; margin: 0 auto; padding: 0; background: white !important; color: #000; display: flex; flex-direction: column; box-sizing: border-box; page-break-after: always; position: relative; overflow: hidden; }
                     .print-page:last-child { page-break-after: auto; }
                     .print-top-band { background-color: #cccccc !important; padding: 35px 40px; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #999; }
                     .print-header-left { width: 55%; }
@@ -1756,13 +1761,15 @@
                 } else {
                     // Create an off-screen container for html2pdf to parse
                     const element = document.createElement('div');
+                    element.id = 'pdf-temp-wrapper';
+                    element.style.backgroundColor = '#ffffff';
                     element.innerHTML = fullPrintHtml;
                     
                     const opt = {
                         margin:       0,
                         filename:     `Full_GST_Bills_${fromDateStr}_to_${toDateStr}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
-                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak:    { mode: ['css', 'legacy'] }
                     };
