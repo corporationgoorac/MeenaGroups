@@ -364,9 +364,6 @@
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
 
         // 2. Firebase Imports 
-        // --- OLD IMPORT COMMENTED OUT TO INTRODUCE STARTAFTER PAGINATION ---
-        // import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        
         import { db } from './config.js';
         import { collection, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -727,19 +724,21 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWords = prodSuggCurrentTerm.split(/[\s\-_]+/).filter(w => w !== '');
-                    if (searchWords.length === 0) {
+                    // FIX: Ensure searchWord is successfully extracted as a single string to work with "array-contains"
+                    const searchWordArr = prodSuggCurrentTerm.split(/[\s\-_]+/).filter(w => w.trim() !== '');
+                    const searchWord = searchWordArr.length > 0 ? searchWordArr : '';
+                    
+                    if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
                         return;
                     }
-                    const primarySearchTerm = searchWords;
 
                     let q;
                     if (isLoadMore && prodSuggLastVisible) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", primarySearchTerm), startAfter(prodSuggLastVisible), limit(15));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(prodSuggLastVisible), limit(15));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", primarySearchTerm), limit(15));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(15));
                     }
 
                     const snap = await getDocs(q);
@@ -1347,7 +1346,7 @@
                                 <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                             `;
                             
-                            const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
+                            const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
 
                             trItems += `
                                 <tr>
@@ -1639,7 +1638,7 @@
                                 <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                             `;
                             
-                            const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
+                            const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
 
                             trItems += `
                                 <tr>
@@ -1833,7 +1832,7 @@
                         <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                     `;
                     
-                    const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
+                    const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
 
                     trItems += `
                         <tr>
@@ -1967,24 +1966,19 @@
             const printAreaEl = document.getElementById('printArea');
             printAreaEl.innerHTML = printHtml;
             
-            // FIX: Mobile browsers block window.print() if it's delayed inside a setTimeout.
-            // It MUST be executed synchronously within the user's click interaction.
-            document.getElementById('printLoaderOverlay').classList.remove('active');
-            window.print();
-            
-            // Wait slightly for DOM to settle and fonts to render fallback
+            // FIX: Allow DOM to fully update and paint before triggering the print spooler
             setTimeout(() => {
                 document.getElementById('printLoaderOverlay').classList.remove('active');
-            }, 800); 
+                window.print();
+            }, 300);
         };
 
         window.addEventListener('afterprint', () => {
-            // Ensure the system gracefully dismisses the loader
-            document.getElementById('printLoaderOverlay').classList.remove('active');
-            
-            // CRITICAL FIX: We DO NOT clear printArea.innerHTML here. 
-            // Mobile print spoolers process asynchronously. If we clear the DOM now, 
-            // the spooler captures a blank white page!
+            // FIX: Ensure the system doesn't wipe the HTML until slightly after the print dialog finishes
+            setTimeout(() => {
+                document.getElementById('printLoaderOverlay').classList.remove('active');
+                document.getElementById('printArea').innerHTML = ''; 
+            }, 500);
         });
 
         // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
