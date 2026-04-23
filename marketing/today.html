@@ -364,6 +364,9 @@
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
 
         // 2. Firebase Imports 
+        // --- OLD IMPORT COMMENTED OUT TO INTRODUCE STARTAFTER PAGINATION ---
+        // import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
         import { db } from './config.js';
         import { collection, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -724,10 +727,7 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    // FIX: Ensure searchWord is successfully extracted as a single string to work with "array-contains"
-                    const searchWordArr = prodSuggCurrentTerm.split(/[\s\-_]+/).filter(w => w.trim() !== '');
-                    const searchWord = searchWordArr.length > 0 ? searchWordArr : '';
-                    
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
@@ -1154,7 +1154,7 @@
                 `;
                 
                 rows.forEach(r => {
-                    summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
+                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
                 });
                 
                 summaryHtml += `
@@ -1966,19 +1966,24 @@
             const printAreaEl = document.getElementById('printArea');
             printAreaEl.innerHTML = printHtml;
             
-            // FIX: Allow DOM to fully update and paint before triggering the print spooler
+            // FIX: Mobile browsers block window.print() if it's delayed inside a setTimeout.
+            // It MUST be executed synchronously within the user's click interaction.
+            document.getElementById('printLoaderOverlay').classList.remove('active');
+            window.print();
+            
+            // Wait slightly for DOM to settle and fonts to render fallback
             setTimeout(() => {
                 document.getElementById('printLoaderOverlay').classList.remove('active');
-                window.print();
-            }, 300);
+            }, 800); 
         };
 
         window.addEventListener('afterprint', () => {
-            // FIX: Ensure the system doesn't wipe the HTML until slightly after the print dialog finishes
-            setTimeout(() => {
-                document.getElementById('printLoaderOverlay').classList.remove('active');
-                document.getElementById('printArea').innerHTML = ''; 
-            }, 500);
+            // Ensure the system gracefully dismisses the loader
+            document.getElementById('printLoaderOverlay').classList.remove('active');
+            
+            // CRITICAL FIX: We DO NOT clear printArea.innerHTML here. 
+            // Mobile print spoolers process asynchronously. If we clear the DOM now, 
+            // the spooler captures a blank white page!
         });
 
         // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
