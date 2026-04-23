@@ -1940,16 +1940,39 @@
 
             document.getElementById('printArea').innerHTML = printHtml;
             
+            // FIX: Prevent Blank Page on First Print (Mobile)
+            // We force the browser to pre-render the element invisibly before calling print
+            const printAreaEl = document.getElementById('printArea');
+            printAreaEl.style.display = 'block';
+            printAreaEl.style.position = 'absolute';
+            printAreaEl.style.opacity = '0';
+            printAreaEl.style.zIndex = '-1';
+            
+            // Force DOM reflow to guarantee the browser paints the HTML layout
+            void printAreaEl.offsetHeight;
+
             // FIX: Allow DOM to fully update and paint before triggering the print spooler
             setTimeout(() => {
+                // Reset inline pre-render styles so the print stylesheet (@media print) takes over properly
+                printAreaEl.style.position = '';
+                printAreaEl.style.opacity = '';
+                printAreaEl.style.zIndex = '';
+                
                 window.print();
-            }, 300);
+                
+                // Fallback: Some mobile browsers fail to trigger 'afterprint', so we clean up after 3 seconds
+                setTimeout(() => {
+                    printAreaEl.innerHTML = '';
+                    printAreaEl.style.display = 'none';
+                }, 3000);
+            }, 600); // Increased from 300 to 600 to ensure slow mobiles finish rendering
         };
 
         window.addEventListener('afterprint', () => {
             // FIX: Ensure the system doesn't wipe the HTML until slightly after the print dialog finishes
             setTimeout(() => {
                 document.getElementById('printArea').innerHTML = ''; 
+                document.getElementById('printArea').style.display = 'none';
             }, 500);
         });
 
