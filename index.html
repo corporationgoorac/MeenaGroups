@@ -204,6 +204,9 @@
      * ==========================================
      */
     #dashboard-view { display: none; padding: 24px 16px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; width: 100%; }
+    
+    /* ADDED: Ensures the dashboard expands to push the footer down */
+    #dashboard-view { flex: 1; } 
 
     /* Profile & Top Balance Container */
     .meta-profile-container {
@@ -560,6 +563,7 @@
     async function loadDashboard(customer, custId) {
       document.getElementById("auth-section").style.display = "none";
       document.getElementById("dashboard-view").style.display = "block";
+      document.getElementById("dashboard-view").style.flex = "1"; // ADDED: Ensures footer stays correctly at the bottom
       
       document.getElementById("userName").innerText = customer.name;
       document.getElementById("userId").innerText = `Account ID: ${customer.id}`;
@@ -683,6 +687,30 @@
       // Update Grand Total Balance at top
       const grandBalEl = document.getElementById("grandTotalBal");
       if(grandBalEl) grandBalEl.innerText = "₹" + grandOutstanding.toLocaleString();
+    }
+
+    // --- ADDED: DYNAMIC URL AUTO-LOGIN LOGIC ---
+    const initAutoLogin = () => {
+      // Allows domain.com/A20 or domain.com/?id=A20 or domain.com/#A20
+      let pathSegments = window.location.pathname.split('/').filter(Boolean);
+      let pathId = pathSegments.length > 0 ? pathSegments.pop() : null;
+      if (pathId && pathId.toLowerCase().includes('.html')) pathId = null;
+      
+      const searchId = new URLSearchParams(window.location.search).get('id');
+      const hashId = window.location.hash.replace('#', '');
+      
+      const autoId = (pathId || searchId || hashId || '').trim().toUpperCase();
+      
+      if (autoId) {
+          document.getElementById("custId").value = autoId;
+          verifyAccess();
+      }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAutoLogin);
+    } else {
+        initAutoLogin();
     }
   </script>
 </body>
