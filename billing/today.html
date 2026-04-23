@@ -727,18 +727,19 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
-                    if (!searchWord) {
+                    const searchWords = prodSuggCurrentTerm.split(/[\s\-_]+/).filter(w => w !== '');
+                    if (searchWords.length === 0) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
                         return;
                     }
+                    const primarySearchTerm = searchWords;
 
                     let q;
                     if (isLoadMore && prodSuggLastVisible) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(prodSuggLastVisible), limit(15));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", primarySearchTerm), startAfter(prodSuggLastVisible), limit(15));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(15));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", primarySearchTerm), limit(15));
                     }
 
                     const snap = await getDocs(q);
@@ -1346,7 +1347,7 @@
                                 <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                             `;
                             
-                            const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
+                            const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
 
                             trItems += `
                                 <tr>
@@ -1638,7 +1639,7 @@
                                 <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                             `;
                             
-                            const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
+                            const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
 
                             trItems += `
                                 <tr>
@@ -1832,7 +1833,7 @@
                         <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                     `;
                     
-                    const uPrice = item.qty > 0 ? (item.baseTotal / item.qty) : 0;
+                    const uPrice = item.qty > 0 ? ((item.baseTotal || 0) / item.qty) : 0;
 
                     trItems += `
                         <tr>
