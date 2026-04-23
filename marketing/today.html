@@ -727,7 +727,7 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
+                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/);
                     if (!searchWord) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
@@ -1154,7 +1154,7 @@
                 `;
                 
                 rows.forEach(r => {
-                    summaryHtml += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
+                    summaryHtml += `<tr><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td><td>${r}</td></tr>`;
                 });
                 
                 summaryHtml += `
@@ -1966,10 +1966,14 @@
             const printAreaEl = document.getElementById('printArea');
             printAreaEl.innerHTML = printHtml;
             
-            // Wait slightly for DOM to settle and fonts to render
+            // FIX: Mobile browsers block window.print() if it's delayed inside a setTimeout.
+            // It MUST be executed synchronously within the user's click interaction.
+            document.getElementById('printLoaderOverlay').classList.remove('active');
+            window.print();
+            
+            // Wait slightly for DOM to settle and fonts to render fallback
             setTimeout(() => {
                 document.getElementById('printLoaderOverlay').classList.remove('active');
-                window.print();
             }, 800); 
         };
 
