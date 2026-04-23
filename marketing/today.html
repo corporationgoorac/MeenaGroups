@@ -1966,43 +1966,20 @@
             const printAreaEl = document.getElementById('printArea');
             printAreaEl.innerHTML = printHtml;
             
-            // FIX: Prevent Blank Page on First Print & Prevent Raw Text Flash (Mobile)
-            // We force the browser to pre-render the element completely off-screen
-            printAreaEl.style.display = 'block';
-            printAreaEl.style.position = 'absolute';
-            printAreaEl.style.left = '-9999px';
-            printAreaEl.style.top = '-9999px';
-            printAreaEl.style.visibility = 'hidden';
-            
-            // Force DOM reflow to guarantee the browser paints the HTML layout invisibly
-            void printAreaEl.offsetHeight;
-
-            // FIX: Wait exactly 1.5 seconds for complete render/image/font loading
+            // Wait slightly for DOM to settle and fonts to render
             setTimeout(() => {
-                // Reset inline pre-render styles so the print stylesheet (@media print) takes over properly
-                printAreaEl.style.position = '';
-                printAreaEl.style.left = '';
-                printAreaEl.style.top = '';
-                printAreaEl.style.visibility = '';
-                
+                document.getElementById('printLoaderOverlay').classList.remove('active');
                 window.print();
-                
-                // Fallback: Some mobile browsers fail to trigger 'afterprint', so we clean up after 3 seconds
-                setTimeout(() => {
-                    document.getElementById('printLoaderOverlay').classList.remove('active');
-                    printAreaEl.innerHTML = '';
-                    printAreaEl.style.display = 'none';
-                }, 3000);
-            }, 1500); 
+            }, 800); 
         };
 
         window.addEventListener('afterprint', () => {
-            // FIX: Ensure the system gracefully dismisses the loader and clears the HTML
-            setTimeout(() => {
-                document.getElementById('printLoaderOverlay').classList.remove('active');
-                document.getElementById('printArea').innerHTML = ''; 
-                document.getElementById('printArea').style.display = 'none';
-            }, 500);
+            // Ensure the system gracefully dismisses the loader
+            document.getElementById('printLoaderOverlay').classList.remove('active');
+            
+            // CRITICAL FIX: We DO NOT clear printArea.innerHTML here. 
+            // Mobile print spoolers process asynchronously. If we clear the DOM now, 
+            // the spooler captures a blank white page!
         });
 
         // Ensure popstate handles the closing of ALL modals including the new Product Search Modal
