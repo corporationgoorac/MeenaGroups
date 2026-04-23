@@ -63,7 +63,8 @@ module.exports = function(client) {
                     // 4. Send the Media
                     const media = new MessageMedia('image/png', imageBuffer.toString('base64'), `Statement_${input}_${product.name.replace(/\s+/g, '_')}.png`);
                     
-                    const caption = `👤 *Customer / வாடிக்கையாளர்:* ${customer.name}\n📦 *Product / பொருள்:* ${product.name}\n🆔 *Account / கணக்கு:* ${input}\n\n🌐 *View full payments details / முழு கட்டண விவரங்களை இங்கே காணவும்:*\nhttps://meena.goorac.biz/\n\n✨ _Goorac_`;
+                    // UPDATED LINE: Added the dynamic /#${input} to the URL for instant login
+                    const caption = `👤 *Customer / வாடிக்கையாளர்:* ${customer.name}\n📦 *Product / பொருள்:* ${product.name}\n🆔 *Account / கணக்கு:* ${input}\n\n🌐 *View full payments details / முழு கட்டண விவரங்களை இங்கே காணவும்:*\nhttps://meena.goorac.biz/#${input}\n\n✨ _Goorac_`;
 
                     await client.sendMessage(msg.from, media, { caption: caption });
                 }
