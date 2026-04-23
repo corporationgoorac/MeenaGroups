@@ -124,12 +124,28 @@
         /* FIXED: Prevents cards from squishing/overlapping in the modal */
         .search-results-container > * { flex-shrink: 0; }
 
+        /* Overlay Loader for Printing */
+        .print-loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 10000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .print-loader-overlay.active { display: flex; }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-color); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (B&W REPLICA) --- */
         /* ---------------------------------------------------- */
         #printArea { display: none; }
 
         @media print {
+            .print-loader-overlay { display: none !important; }
+
             /* Force page size and remove browser headers/footers */
             @page { size: A4 portrait; margin: 0mm; }
             
@@ -212,6 +228,12 @@
     </style>
 </head>
 <body>
+
+    <div class="print-loader-overlay" id="printLoaderOverlay">
+        <div class="spinner"></div>
+        <h2 style="color: white; font-size: 1.2em; margin: 0;">Processing Invoice...</h2>
+        <p style="color: var(--text-secondary); font-size: 0.9em; margin-top: 10px;">Please wait while we prepare the document.</p>
+    </div>
 
     <div class="toast-msg error" id="errorToast">
         <span class="material-symbols-outlined">error</span>
@@ -1789,6 +1811,9 @@
                 return;
             }
 
+            // SHOW LOADER OVERLAY
+            document.getElementById('printLoaderOverlay').classList.add('active');
+
             let dateFmt = "N/A";
             if (data.date && data.date.toDate) {
                 const d = data.date.toDate();
@@ -1938,39 +1963,43 @@
                 </div>
             `;
 
-            document.getElementById('printArea').innerHTML = printHtml;
-            
-            // FIX: Prevent Blank Page on First Print (Mobile)
-            // We force the browser to pre-render the element invisibly before calling print
             const printAreaEl = document.getElementById('printArea');
+            printAreaEl.innerHTML = printHtml;
+            
+            // FIX: Prevent Blank Page on First Print & Prevent Raw Text Flash (Mobile)
+            // We force the browser to pre-render the element completely off-screen
             printAreaEl.style.display = 'block';
             printAreaEl.style.position = 'absolute';
-            printAreaEl.style.opacity = '0';
-            printAreaEl.style.zIndex = '-1';
+            printAreaEl.style.left = '-9999px';
+            printAreaEl.style.top = '-9999px';
+            printAreaEl.style.visibility = 'hidden';
             
-            // Force DOM reflow to guarantee the browser paints the HTML layout
+            // Force DOM reflow to guarantee the browser paints the HTML layout invisibly
             void printAreaEl.offsetHeight;
 
-            // FIX: Allow DOM to fully update and paint before triggering the print spooler
+            // FIX: Wait exactly 1.5 seconds for complete render/image/font loading
             setTimeout(() => {
                 // Reset inline pre-render styles so the print stylesheet (@media print) takes over properly
                 printAreaEl.style.position = '';
-                printAreaEl.style.opacity = '';
-                printAreaEl.style.zIndex = '';
+                printAreaEl.style.left = '';
+                printAreaEl.style.top = '';
+                printAreaEl.style.visibility = '';
                 
                 window.print();
                 
                 // Fallback: Some mobile browsers fail to trigger 'afterprint', so we clean up after 3 seconds
                 setTimeout(() => {
+                    document.getElementById('printLoaderOverlay').classList.remove('active');
                     printAreaEl.innerHTML = '';
                     printAreaEl.style.display = 'none';
                 }, 3000);
-            }, 600); // Increased from 300 to 600 to ensure slow mobiles finish rendering
+            }, 1500); 
         };
 
         window.addEventListener('afterprint', () => {
-            // FIX: Ensure the system doesn't wipe the HTML until slightly after the print dialog finishes
+            // FIX: Ensure the system gracefully dismisses the loader and clears the HTML
             setTimeout(() => {
+                document.getElementById('printLoaderOverlay').classList.remove('active');
                 document.getElementById('printArea').innerHTML = ''; 
                 document.getElementById('printArea').style.display = 'none';
             }, 500);
