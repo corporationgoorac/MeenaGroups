@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <style>
+        /* Base Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .invoice-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* =========================================
+           HEADER BLEND EFFECT (THE CRITICAL PART)
+           ========================================= */
+        .invoice-header {
+            position: relative;
+            background-color: #c3cb2b; /* The exact yellow-green brand color */
+            padding: 40px;
+            display: flex;
+            justify-content: space-between;
+            color: #111;
+            overflow: hidden; /* Keeps the background image contained */
+        }
+
+        /* The Background Image overlay */
+        .invoice-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('header.png'); /* Your cover art image */
+            background-size: cover; /* Fits the cover art ratio perfectly */
+            background-position: center;
+            
+            /* These two properties create the perfect color blend and contrast */
+            mix-blend-mode: multiply; 
+            opacity: 0.35; 
+            
+            z-index: 1; /* Puts image behind text */
+        }
+
+        /* Ensures all text and content stays ABOVE the background image */
+        .header-left, .header-right {
+            position: relative;
+            z-index: 2; 
+        }
+
+        /* Header Typography & Layout */
+        .logo h1 {
+            font-size: 28px;
+            font-style: italic;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            font-size: 12px;
+            margin-bottom: 30px;
+        }
+
+        .bill-to h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .bill-to h2 {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .bill-to p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .contact-info p {
+            font-size: 12px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .header-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .qr-code {
+            width: 60px;
+            height: 60px;
+            background-color: #fff;
+            padding: 2px;
+            margin-bottom: 20px;
+        }
+
+        .invoice-title h1 {
+            font-size: 40px;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        .invoice-title p {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .invoice-date {
+            text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Table & Content Styles */
+        .invoice-body {
+            padding: 0;
+        }
+
+        .table-header {
+            display: flex;
+            background-color: #e2e2e2;
+            padding: 15px 40px;
+            font-size: 13px;
+            font-weight: 700;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .table-row {
+            display: flex;
+            padding: 20px 40px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .col-no { width: 10%; font-weight: 600; }
+        .col-desc { width: 50%; }
+        .col-price { width: 15%; text-align: center; }
+        .col-qty { width: 10%; text-align: center; }
+        .col-total { width: 15%; text-align: right; font-weight: 700; }
+
+        .desc-title {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        
+        .desc-sub {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="invoice-container">
+        <div class="invoice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <h1>Optimis</h1>
+                    <p>Tagline here</p>
+                </div>
+                <div class="bill-to">
+                    <h3>Invoice To</h3>
+                    <h2>Johnson Doe</h2>
+                    <p>your company name</p>
+                </div>
+                <div class="contact-info">
+                    <p><strong>PHONE:</strong> +012345678900</p>
+                    <p><strong>EMAIL:</strong> free@psdfreebies.com</p>
+                    <p><strong>ADDRESS:</strong> 123, Street, New York, USA 4567</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="qr-code">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=Invoice" alt="QR Code" width="100%">
+                </div>
+                <div class="invoice-title">
+                    <h1>Invoice</h1>
+                    <p>No. 789456123</p>
+                </div>
+                <div class="invoice-date">
+                    <p>Invoice Date</p>
+                    <p><strong>01-01-2022</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="invoice-body">
+            <div class="table-header">
+                <div class="col-no">No.</div>
+                <div class="col-desc">Descriptions</div>
+                <div class="col-price">Unit Price</div>
+                <div class="col-qty">Unit</div>
+                <div class="col-total">Price</div>
+            </div>
+
+            <div class="table-row">
+                <div class="col-no">01.</div>
+                <div class="col-desc">
+                    <div class="desc-title">Lorem ipsum dolor sit amet.</div>
+                    <div class="desc-sub">coniscing elit.Lorem ipsum dolor sit amet. coniscing elit.</div>
+                </div>
+                <div class="col-price">$5.00</div>
+                <div class="col-qty">05</div>
+                <div class="col-total">$25.00</div>
+            </div>
+
+            <div class="table-row">
+                <div class="col-no">02.</div>
+                <div class="col-desc">
+                    <div class="desc-title">Lorem ipsum dolor sit amet.</div>
+                    <div class="desc-sub">coniscing elit.Lorem ipsum dolor sit amet. coniscing elit.</div>
+                </div>
+                <div class="col-price">$20.00</div>
+                <div class="col-qty">10</div>
+                <div class="col-total">$200.00</div>
+            </div>
+
+            <div class="table-row">
+                <div class="col-no">03.</div>
+                <div class="col-desc">
+                    <div class="desc-title">Lorem ipsum dolor sit amet.</div>
+                    <div class="desc-sub">coniscing elit.Lorem ipsum dolor sit amet. coniscing elit.</div>
+                </div>
+                <div class="col-price">$40.00</div>
+                <div class="col-qty">02</div>
+                <div class="col-total">$80.00</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
