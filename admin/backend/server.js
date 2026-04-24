@@ -193,6 +193,27 @@ app.post('/api/users/update-phone', async (req, res) => {
   }
 });
 
+// POST: Delete Auth User
+app.post('/api/users/delete', async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({ success: false, error: "Missing uid" });
+  }
+
+  try {
+    await admin.auth().deleteUser(uid);
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "User account deleted successfully from Firebase Auth" 
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==========================================
 // 3. SERVER INITIALIZATION
 // ==========================================
