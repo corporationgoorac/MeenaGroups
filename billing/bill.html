@@ -124,15 +124,14 @@
         #printArea { display: none; }
 
         @media print {
-            /* Force natural document flow and remove browser headers/footers */
+            /* Force 1 page and remove browser headers/footers */
             @page {
                 size: A4 portrait;
-                margin: 10mm; 
+                margin: 0mm; 
             }
             
-            /* Hide the entire App UI perfectly without leaving empty invisible spaces */
-            body > *:not(#printArea) { display: none !important; }
-            
+            /* Hide the entire App UI */
+            body * { visibility: hidden; }
             body { 
                 background: white; color: black; 
                 margin: 0; padding: 0; 
@@ -141,15 +140,19 @@
                 print-color-adjust: exact !important; 
             }
             
-            /* Show only the Print Area in block flow (fixes multi-page clipping bug) */
+            /* Show only the Print Area */
+            #printArea, #printArea * { visibility: visible; }
             #printArea { 
-                display: block !important; 
-                position: relative !important; 
+                display: flex !important; 
+                position: absolute; 
+                left: 0; top: 0; 
                 width: 100%; 
-                max-width: 100%; 
+                max-width: 210mm; 
+                min-height: 100vh; /* Pushes layout to match full A4 physical page height */
                 margin: 0 auto; 
                 padding: 0; 
                 background: white; color: #000;
+                flex-direction: column;
                 box-sizing: border-box;
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important;
@@ -163,7 +166,6 @@
                 justify-content: space-between;
                 margin-bottom: 20px;
                 border-bottom: 1px solid #999;
-                page-break-inside: avoid;
             }
 
             /* Header Left Side */
@@ -193,16 +195,25 @@
             .invoice-date-box div strong { font-size: 12px; font-weight: bold; color: #000;}
 
             /* Table Layout */
-            .print-table-container { padding: 0 40px; min-height: 250px; } /* Min-height forces single items to format beautifully instead of floating the footer awkwardly */
-            .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; border-bottom: 1px solid #000; } /* Bottom border anchors the layout */
+            .print-table-container { padding: 0 40px; flex-grow: 1; display: flex; flex-direction: column; }
+            .print-table { width: 100%; border-collapse: collapse; margin-bottom: auto; } /* 'auto' forces all blank space beneath the items, pushing the footer strictly to the bottom */
             .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
             .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
-            .print-table tr { page-break-inside: avoid; } /* Fixes pagination from splitting single table rows */
+
+            /* --- Added Page Break Pagination Logic --- */
+            .print-table tbody tr:nth-child(5n):not(:last-child) {
+                page-break-after: always;
+                break-after: page;
+            }
+            .print-table tbody tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
 
             /* Middle Section (Totals & Thanks) */
-            .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; page-break-inside: avoid; }
+            .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; page-break-inside: avoid; break-inside: avoid; }
             
             .print-left-footer-info { width: 45%; }
             .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} /* RED BORDER */
@@ -221,14 +232,14 @@
             .totals-grid .t-grand-row td { font-size: 14px; font-weight: 900; color: #d32f2f !important; padding: 10px; } /* LAL (RED) */
 
             /* Signature Area */
-            .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; page-break-inside: avoid; }
+            .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; page-break-inside: avoid; break-inside: avoid; }
             .sign-box { text-align: center; width: 200px; }
             .sign-box div.sign-placeholder { border-bottom: 1px solid #000; height: 35px; margin-bottom: 5px; width: 100%; }
             .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: #000;}
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
             /* Absolute Footer (Powered By Goorac) */
-            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; page-break-inside: avoid; }
+            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; page-break-inside: avoid; break-inside: avoid; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
     </style>
