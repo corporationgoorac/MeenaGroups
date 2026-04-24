@@ -451,7 +451,12 @@
           <h3 class="sheet-title">Edit Master Auth Name</h3>
           <p class="sheet-subtitle" id="staffAuthEditUid" style="font-family:monospace;">UID: ...</p>
         </div>
-        <button class="btn-close" onclick="closeStaffAuthEditModal()">✕</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-close" style="color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);" onclick="confirmDeleteAuthUser()" title="Delete User">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+          <button class="btn-close" onclick="closeStaffAuthEditModal()">✕</button>
+        </div>
       </div>
       
       <div class="form-group">
@@ -469,6 +474,21 @@
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2z"></path></svg>
           Update System-Wide
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-overlay" id="deleteConfirmOverlay" style="z-index: 3500;">
+    <div class="dialog-box" style="border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 30px 60px -12px rgba(239, 68, 68, 0.2);">
+      <div style="width: 60px; height: 60px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+      </div>
+      <h3 style="color: #ef4444;">Delete Agent Account?</h3>
+      <p style="margin-bottom: 10px;">This action is permanent and cannot be undone. The user will lose access to the system immediately.</p>
+      <p style="font-size: 0.85rem; color: var(--warning); margin-bottom: 25px; font-family: monospace;" id="deleteConfirmUidText">UID: ...</p>
+      <div class="dialog-actions">
+        <button class="btn-dlg btn-dlg-cancel" style="display: block;" onclick="closeDeleteConfirmModal()">Cancel</button>
+        <button class="btn-dlg" id="btnExecuteDelete" style="background: #ef4444; color: #fff; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="executeDeleteAuthUser()">Yes, Delete User</button>
       </div>
     </div>
   </div>
@@ -598,7 +618,7 @@
 
     // --- 3. INFINITE SCROLL OBSERVER ---
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && displayedCount < filteredAgents.length) {
+      if (entries.isIntersecting && displayedCount < filteredAgents.length) {
         renderNextBatch();
       }
     }, { rootMargin: '100px' });
@@ -729,7 +749,7 @@
 
             if (draftsToSubmit.length > 0) await batch.commit();
             
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            if (navigator.vibrate) navigator.vibrate();
             
             showCustomAlert("Success", `Submitted ${currentAgentData.count} drafts to the pending queue successfully.`);
             closeAgentModal();
@@ -940,13 +960,76 @@
        }
     };
 
+    // --- NEW: DELETE USER API INTEGRATION ---
+    window.confirmDeleteAuthUser = () => {
+       if (navigator.vibrate) navigator.vibrate();
+       document.getElementById("deleteConfirmUidText").innerText = `Target UID: ${currentAuthEditUid}`;
+       const overlay = document.getElementById("deleteConfirmOverlay");
+       overlay.style.display = "flex";
+       setTimeout(() => overlay.classList.add("open"), 10);
+       history.pushState({ modalOpen: 'deleteConfirmModal' }, "");
+    };
+
+    window.closeDeleteConfirmModal = () => {
+       const overlay = document.getElementById("deleteConfirmOverlay");
+       overlay.classList.remove("open");
+       setTimeout(() => overlay.style.display = "none", 300);
+       if (history.state && history.state.modalOpen === 'deleteConfirmModal') {
+          history.back();
+       }
+    };
+
+    window.executeDeleteAuthUser = async () => {
+       if(!currentAuthEditUid) return;
+
+       const btn = document.getElementById("btnExecuteDelete");
+       const origText = btn.innerHTML;
+       btn.innerHTML = "Deleting...";
+       btn.disabled = true;
+
+       try {
+          const res = await fetch(`${HF_BACKEND_URL}/api/users/delete`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ uid: currentAuthEditUid })
+          });
+          const data = await res.json();
+          
+          if(data.success) {
+             // 1. Remove the specific card from the drawer instantly
+             const cardTitle = document.getElementById(`auth-name-${currentAuthEditUid}`);
+             if(cardTitle) {
+               const card = cardTitle.closest('.auth-user-card');
+               if(card) card.remove();
+             }
+             
+             // 2. Close modals
+             closeDeleteConfirmModal();
+             closeStaffAuthEditModal();
+             
+             // 3. Show success
+             setTimeout(() => {
+                showCustomAlert("Account Deleted", "The user has been permanently deleted from Firebase Authentication.");
+             }, 350);
+          } else {
+             showCustomAlert("Deletion Failed", data.error);
+          }
+       } catch(e) {
+          showCustomAlert("Network Error", "Could not reach the Hugging Face backend to delete the user.");
+       } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+       }
+    };
+
     window.addEventListener('popstate', (e) => {
       const activeModal = e.state ? e.state.modalOpen : null;
       const overlays = [
          { id: "agentModalOverlay", class: "open", name: "agentModal" },
          { id: "customDialogOverlay", class: "open", name: "customDialog" },
          { id: "staffManagerOverlay", class: "open", name: "staffManager" },
-         { id: "staffAuthEditModalOverlay", class: "open", name: "staffAuthEditModal" }
+         { id: "staffAuthEditModalOverlay", class: "open", name: "staffAuthEditModal" },
+         { id: "deleteConfirmOverlay", class: "open", name: "deleteConfirmModal" } // Added new modal to popstate tracker
       ];
       
       overlays.forEach(overlayInfo => {
