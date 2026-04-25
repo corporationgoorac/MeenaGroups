@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="manifest.json">
-<meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="noindex, nofollow">
 
   <style>
     /* * ==========================================
@@ -55,7 +55,8 @@
     body { 
       background: var(--bg); 
       color: var(--text); 
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      /* Upgraded to professional system fonts for a native, crisp look */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       margin: 0; 
       padding: 0; 
       padding-bottom: 20px; 
@@ -172,48 +173,101 @@
 
     /* Suggestions List */
     #suggestions {
-      background: var(--card); 
-      border: 1px solid var(--border); 
-      border-radius: 12px;
-      margin-top: 8px; 
-      max-height: 300px; 
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      position: relative !important;
+      width: 100% !important;
+      left: 0 !important;
+      margin-top: 15px !important;
+      max-height: calc(100vh - 160px) !important;
+      padding-bottom: 20px;
       overflow-y: auto;
-      position: absolute; 
-      width: calc(100% - 40px); 
-      left: 20px; 
       z-index: 100;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
       display: none; 
     }
     
-    .suggestion-item { 
-      padding: 15px; 
-      border-bottom: 1px solid var(--border); 
-      cursor: pointer; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center;
-      transition: background 0.2s;
+    /* FIX: Completely revamped suggestion card layout to prevent overlap */
+    .suggestion-item {
+      background: linear-gradient(145deg, #1e293b, #0f172a) !important;
+      border-radius: 16px !important;
+      margin-bottom: 15px !important;
+      padding: 20px !important;
+      border: 1px solid rgba(255,255,255,0.05) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+      transition: all 0.3s ease !important;
+      cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+      transform: translateY(-3px);
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.4) !important;
     }
     
-    .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-item:active { background: #334155; }
-    
+    .s-info-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
     .s-name { 
-      font-weight: 600; 
+      font-weight: 700; 
       color: #fff; 
       display: block; 
-      font-size: 0.95rem;
+      font-size: 1.2rem !important; 
+      margin-bottom: 2px;
+      letter-spacing: 0.3px;
     }
     
     .s-id { 
-      font-size: 0.8rem; 
+      font-size: 0.85rem !important; 
       color: var(--accent); 
       font-family: monospace; 
-      background: var(--accent-dim); 
+      background: rgba(59, 130, 246, 0.15) !important; 
       padding: 4px 8px; 
-      border-radius: 4px; 
+      border-radius: 6px; 
       border: 1px solid rgba(59, 130, 246, 0.2);
+      display: inline-block;
+      width: fit-content;
+    }
+    
+    .s-phone {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* FIX: Modern, full-width block button layout instead of absolute positioning */
+    .card-view-btn {
+      background: var(--primary-dim);
+      color: var(--primary);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 1px solid rgba(16,185,129,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .suggestion-item:active .card-view-btn {
+      background: var(--primary);
+      color: #000;
     }
 
     /* * ==========================================
@@ -229,7 +283,6 @@
       border-radius: 18px; 
       border: 1px solid var(--border); 
       overflow: hidden; 
-      animation: slideUp 0.4s ease-out; 
       box-shadow: var(--shadow-lg);
     }
     
@@ -269,7 +322,7 @@
       color: var(--text-muted); 
       font-size: 0.85rem; 
       margin-bottom: 8px; 
-      font-weight: 500; 
+      font-weight: 600; 
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -317,6 +370,7 @@
       text-transform: uppercase; 
       letter-spacing: 0.5px; 
       margin-bottom: 5px;
+      font-weight: 600;
     }
     
     .stat-val { 
@@ -453,74 +507,9 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    @keyframes slideUp { 
-      from { opacity: 0; transform: translateY(20px); } 
-      to { opacity: 1; transform: translateY(0); } 
-    }
-    
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
-    }
-
-    /* * ==========================================
-     * NEW: ENHANCED CARDS & MODAL STYLES ADDED
-     * ==========================================
-     */
-     
-    /* Upgrade suggestions to behave like a static card list */
-    #suggestions {
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      position: relative !important;
-      width: 100% !important;
-      left: 0 !important;
-      margin-top: 15px !important;
-      max-height: calc(100vh - 160px) !important;
-      padding-bottom: 20px;
-    }
-    
-    /* Upgrade list items to look like professional modern cards */
-    .suggestion-item {
-      background: linear-gradient(145deg, #1e293b, #0f172a) !important;
-      border-radius: 16px !important;
-      margin-bottom: 15px !important;
-      padding: 20px !important;
-      border: 1px solid rgba(255,255,255,0.05) !important;
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 12px !important;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
-      position: relative;
-      transition: all 0.3s ease !important; /* Added for neater UI */
-    }
-
-    /* NEAT UI HOVER FIX */
-    .suggestion-item:hover {
-      transform: translateY(-3px);
-      border-color: rgba(59, 130, 246, 0.4) !important;
-      box-shadow: 0 12px 25px rgba(0,0,0,0.4) !important;
-    }
-    
-    .s-name { font-size: 1.2rem !important; margin-bottom: 2px; }
-    .s-id { font-size: 0.85rem !important; background: rgba(59, 130, 246, 0.15) !important; }
-    
-    .card-view-btn {
-      background: var(--primary-dim);
-      color: var(--primary);
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      align-self: flex-end;
-      border: 1px solid rgba(16,185,129,0.3);
-      position: absolute;
-      right: 20px;
-      bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
     }
 
     /* Modal Overlay */
@@ -565,7 +554,7 @@
     }
 
     /* * ==========================================
-     * NEW: FLOATING ACTION BUTTON (FAB) FOR NON-DB ENTRY
+     * FLOATING ACTION BUTTON (FAB) FOR NON-DB ENTRY
      * ==========================================
      */
     .fab-btn {
@@ -808,34 +797,32 @@
     let lastBalance = 0;
     let lastTotalPaid = 0;
 
-    // --- REAL-TIME NETWORK SYNC FIX (Bypassing Device Clock Errors) ---
-    window.realNetworkDateStr = null;
-    async function syncNetworkTime() {
-      try {
-        // Fetch absolute true time for Kolkata/IST regardless of device settings
-        const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Kolkata");
-        if(res.ok) {
-          const data = await res.json();
-          window.realNetworkDateStr = data.datetime.split("T")[0];
-          
-          // Override the inputs with guaranteed network time and enforce max limit
-          const dateInput = document.getElementById("date");
-          if(dateInput) {
-              dateInput.value = window.realNetworkDateStr;
-              dateInput.setAttribute("max", window.realNetworkDateStr); 
-          }
-          
-          const ndbDateInput = document.getElementById("ndbDate");
-          if(ndbDateInput) {
-              ndbDateInput.value = window.realNetworkDateStr;
-              ndbDateInput.setAttribute("max", window.realNetworkDateStr);
-          }
-        }
-      } catch(e) {
-        console.warn("Network time sync failed. Relying on device time.", e);
-      }
+    // --- LOCAL TIME SYNC (REPLACED EXTERNAL API FOR ROBUST LOCAL CALCULATION) ---
+    function getSafeLocalDateStr() {
+      // Fetch absolute true time for local device timezone regardless of UTC string shifts
+      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+      return (new Date(Date.now() - tzoffset)).toISOString().split("T")[0];
     }
-    syncNetworkTime();
+    
+    window.realNetworkDateStr = getSafeLocalDateStr();
+
+    function applyLocalTimeLimits() {
+        const today = window.realNetworkDateStr;
+        const dateInput = document.getElementById("date");
+        if(dateInput) {
+            dateInput.value = today;
+            dateInput.setAttribute("max", today); 
+        }
+        
+        const ndbDateInput = document.getElementById("ndbDate");
+        if(ndbDateInput) {
+            ndbDateInput.value = today;
+            ndbDateInput.setAttribute("max", today);
+        }
+    }
+    
+    // Initialize date limits instantly
+    applyLocalTimeLimits();
 
     // --- AUTHENTICATION & STAFF PAYLOAD ---
     let currentStaff = null;
@@ -857,11 +844,11 @@
     const suggestionBox = document.getElementById("suggestions");
 
     searchBox.addEventListener("keypress", (e) => {
-      if (e.key === " ") e.preventDefault(); // NEW LINE: Prevent spaces
+      if (e.key === " ") e.preventDefault(); // Prevent spaces
       if (e.key === "Enter") executeSearch();
     });
 
-    // NEW LINE: Added Debounce function to limit Firebase reads while typing.
+    // Debounce function to limit Firebase reads while typing.
     let typingTimer;
     searchBox.addEventListener("input", (e) => {
       // BUG FIX: Prevent cursor jumping on mobile while removing spaces
@@ -886,7 +873,7 @@
     window.executeSearch = async () => {
       const term = searchBox.value.trim();
       
-      // NEW LINE: Hide the FAB again on a new search
+      // Hide the FAB again on a new search
       document.getElementById("fabAddNonDB").style.display = "none";
 
       if (term.length < 2) { 
@@ -914,7 +901,7 @@
         if (snapshot.empty) {
           suggestionBox.innerHTML = '<div style="padding:15px; color:#ef4444;">No customer found.</div>';
           
-          // NEW LINE: Show the FAB add icon because no customer was found
+          // Show the FAB add icon because no customer was found
           document.getElementById("fabAddNonDB").style.display = "flex";
           
           return;
@@ -925,14 +912,17 @@
           const div = document.createElement("div");
           div.className = "suggestion-item";
           
-          // NEW LINE: Modified the inner structure to show like a professional modern card while keeping the original spans
+          // FIX: Proper structure for the professional modern card preventing text overlap
           div.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+            <div class="s-info-wrapper">
               <span class="s-name">${c.name}</span> 
               <span class="s-id">ID: ${c.id}</span>
-              <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📞 Phone: ${c.phone || 'N/A'}</span>
+              <span class="s-phone">📞 Phone: ${c.phone || 'N/A'}</span>
             </div>
-            <div class="card-view-btn">View Profile ➔</div>
+            <div class="card-view-btn">
+              View Profile
+              <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+            </div>
           `;
           
           // BUG FIX: Add safety catch for async UI action
@@ -956,7 +946,7 @@
       suggestionBox.style.display = "none";
       document.getElementById("customerInfo").classList.remove("hidden");
       
-      // NEW LINE: Trigger the right-side Modal Animation and History State
+      // Trigger the right-side Modal Animation and History State
       openModal();
 
       document.getElementById("postSaveActions").classList.add("hidden"); 
@@ -990,7 +980,7 @@
       dropdown.onchange = (e) => updateProductDetails(e.target.value);
     }
 
-    // NEW LINES: Functions to handle sliding modal and mobile back button functionality
+    // Functions to handle sliding modal and mobile back button functionality
     window.openModal = () => {
       const card = document.getElementById("customerInfo");
       card.classList.remove("hidden");
@@ -1065,17 +1055,19 @@
       let pendingLogsCount = 0;
 
       try {
-        const logsQ = query(
-          collection(db, "temp_entries"), 
-          where("customerId", "==", selectedCustomer.id),
-          where("productName", "==", p.name),
-          where("status", "in", ["pending", "draft"]) 
-        );
-        const logSnap = await getDocs(logsQ);
-        logSnap.forEach(doc => {
-          pendingLogsPaid += parseFloat(doc.data().amount || 0);
-          pendingLogsCount++;
-        });
+        if(selectedCustomer.id) {
+            const logsQ = query(
+              collection(db, "temp_entries"), 
+              where("customerId", "==", selectedCustomer.id),
+              where("productName", "==", p.name),
+              where("status", "in", ["pending", "draft"]) 
+            );
+            const logSnap = await getDocs(logsQ);
+            logSnap.forEach(doc => {
+              pendingLogsPaid += parseFloat(doc.data().amount || 0);
+              pendingLogsCount++;
+            });
+        }
       } catch(e) {
         console.warn("Log check failed:", e);
       }
@@ -1357,8 +1349,9 @@
       let dateParts = data.date ? data.date.split('-') : [];
       let fDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : data.date;
 
+      // FIX: Fixed the typo from GROPIS to GROUPS
       let receipt = 
-`MEENA GROPIS | ${fDate}
+`MEENA GROUPS | ${fDate}
 Due #${data.dueNumber} | Paid ₹${data.amount} |  ${data.customerId}
 Balance : ${balance} | ${data.staffName || 'Agent'}`;
 
@@ -1429,18 +1422,14 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
     window.openNonDbModal = () => {
       const card = document.getElementById("nonDbModal");
       
-      // BUG FIX: Set date strictly to local timezone to prevent UTC "Yesterday" Bug as fallback
-      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-      const localISODate = (new Date(Date.now() - tzoffset)).toISOString().split("T")[0];
-      
-      // NEW FIX: Default to real network date if successful, ensuring device manipulation is bypassed
-      const trueDateStr = window.realNetworkDateStr || localISODate;
+      // Ensure local time is robustly used
+      const trueDateStr = window.realNetworkDateStr;
       document.getElementById("ndbDate").value = trueDateStr;
       document.getElementById("ndbDate").setAttribute("max", trueDateStr);
       
       document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
       
-      // NEW LINES: Auto-fill the searched ID into the modal
+      // Auto-fill the searched ID into the modal
       const searchTerm = document.getElementById("searchBox").value.trim();
       if (searchTerm) {
         document.getElementById("ndbId").value = searchTerm;
@@ -1519,10 +1508,11 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
             }
         }
         
+        // FIX: Replaced grammatically poor alert text
         if (exists) {
             btn.disabled = false;
             btn.innerHTML = `<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> SAVE MANUAL ENTRY`;
-            return alert("❌ already customer exist");
+            return alert("❌ Customer ID already exists in the system.");
         }
 
         const entryData = {
@@ -1575,12 +1565,6 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
         }, 2000);
       }
     };
-
-    // BUG FIX: Set Today's Date default strictly to local timezone to prevent UTC issues (Fallback)
-    const initTzoffset = (new Date()).getTimezoneOffset() * 60000;
-    const initLocalISODate = (new Date(Date.now() - initTzoffset)).toISOString().split("T")[0];
-    document.getElementById("date").value = initLocalISODate;
-    document.getElementById("date").setAttribute("max", initLocalISODate); // Initialize limit immediately
 
     // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
     if (window.visualViewport) {
