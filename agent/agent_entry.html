@@ -835,7 +835,16 @@
     // NEW LINE: Added Debounce function to limit Firebase reads while typing.
     let typingTimer;
     searchBox.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/\s+/g, ''); // NEW LINE: Also remove spaces on paste
+      // BUG FIX: Prevent cursor jumping on mobile while removing spaces
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const oldVal = e.target.value;
+      const newVal = oldVal.replace(/\s+/g, '');
+      if (oldVal !== newVal) {
+         e.target.value = newVal;
+         // Safely attempt to restore cursor position
+         try { e.target.setSelectionRange(start - (oldVal.length - newVal.length), end - (oldVal.length - newVal.length)); } catch(err){}
+      }
 
       clearTimeout(typingTimer);
       if (searchBox.value.trim().length >= 2) {
@@ -897,7 +906,8 @@
             <div class="card-view-btn">View Profile ➔</div>
           `;
           
-          div.onclick = () => loadCustomer(c);
+          // BUG FIX: Add safety catch for async UI action
+          div.onclick = () => loadCustomer(c).catch(console.error);
           suggestionBox.appendChild(div);
         });
       } catch (e) {
@@ -925,6 +935,21 @@
       const dropdown = document.getElementById("productDropdown");
       dropdown.innerHTML = "";
       
+      // BUG FIX: Ensure c.products exists and is not empty before looping
+      if (!c.products || c.products.length === 0) {
+        dropdown.innerHTML = "<option>No products available</option>";
+        dropdown.disabled = true;
+        document.getElementById("dispTotal").innerText = "-";
+        document.getElementById("dispPaid").innerText = "-";
+        document.getElementById("dispBal").innerText = "-";
+        document.getElementById("dispDue").innerText = "-";
+        document.getElementById("btnSave").disabled = true;
+        return;
+      } else {
+        dropdown.disabled = false;
+        document.getElementById("btnSave").disabled = false;
+      }
+
       c.products.forEach((p, idx) => {
         const option = document.createElement("option");
         option.value = idx;
@@ -958,10 +983,12 @@
         card.classList.add("hidden");
       }, 350); // Wait for CSS transition to finish
 
-      // If triggered by the X button instead of the native back button, go back manually
-      if (history.state && history.state.modalOpen) {
-        history.back();
-      }
+      // BUG FIX: Prevent history trapping. Only back if state exists and matches.
+      try {
+        if (history.state && history.state.modalOpen) {
+          history.back();
+        }
+      } catch(err) { console.warn("History back failed cleanly."); }
     };
 
     // Listen for the native mobile back button
@@ -992,6 +1019,11 @@
 
     // --- 3. CALCULATE STATS & PRE-FILL TARGET DUE ---
     async function updateProductDetails(index) {
+      // BUG FIX: Guard against empty products
+      if (!selectedCustomer || !selectedCustomer.products || selectedCustomer.products.length <= index) {
+        return;
+      }
+
       selectedProductIndex = parseInt(index);
       const p = selectedCustomer.products[index];
       
@@ -1041,8 +1073,9 @@
       const date = document.getElementById("date").value;
       const paymentMode = document.getElementById("paymentMode").value; // Capture Payment Mode
 
-      if (!amountInput || amountInput <= 0) return alert("❌ Enter valid amount");
-      if (!targetDueInput || targetDueInput < 1) return alert("❌ Check Due Number");
+      // BUG FIX: Add strictly > 0 constraint for validations
+      if (!amountInput || isNaN(amountInput) || amountInput <= 0) return alert("❌ Enter valid amount (>0)");
+      if (!targetDueInput || isNaN(targetDueInput) || targetDueInput < 1) return alert("❌ Check Due Number (>0)");
       if (!date) return alert("❌ Select date");
 
       // Validate Start vs Target
@@ -1195,7 +1228,7 @@
       y += gap;
       
       // Handle long names
-      let nameStr = data.customerName;
+      let nameStr = data.customerName || "";
       if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
       ctx.fillText(`Name : ${nameStr}`, xLeft, y);
       y += gap;
@@ -1218,7 +1251,7 @@
       // If user paid 5000 split into 5, this will show 1000. 
       // But the Balance reflects the full payment.
       ctx.font = "bold 50px Arial"; 
-      ctx.fillText(`₹${data.amount}`, width/2, y - 10);
+      ctx.fillText(`₹${data.amount || 0}`, width/2, y - 10);
       y += 15;
 
       // Divider
@@ -1298,11 +1331,17 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
     window.copyReceiptText = () => {
       if(!lastReceiptData) return alert("No receipt data");
       const smartText = generateSmartReceiptText(lastReceiptData, lastTotalPaid, lastBalance);
-      navigator.clipboard.writeText(smartText).then(() => {
-        showToast("Receipt Copied (Optimized)!");
-      }).catch(err => {
-        alert("Failed to copy text");
-      });
+      
+      // BUG FIX: Secure clipboard handling with fallback
+      if(navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(smartText).then(() => {
+          showToast("Receipt Copied (Optimized)!");
+        }).catch(err => {
+          alert("Failed to copy text");
+        });
+      } else {
+        alert("Clipboard access denied. Needs HTTPS.");
+      }
     };
 
     // --- 8. DOWNLOAD ACTION ---
@@ -1352,7 +1391,12 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
     // --- NEW: NON-DATABASE ENTRY LOGIC ---
     window.openNonDbModal = () => {
       const card = document.getElementById("nonDbModal");
-      document.getElementById("ndbDate").value = new Date().toISOString().split("T")[0]; // Auto-set today
+      
+      // BUG FIX: Set date strictly to local timezone to prevent UTC "Yesterday" Bug
+      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+      const localISODate = (new Date(Date.now() - tzoffset)).toISOString().split("T")[0];
+      document.getElementById("ndbDate").value = localISODate;
+      
       document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
       
       // NEW LINES: Auto-fill the searched ID into the modal
@@ -1380,9 +1424,12 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
         card.classList.add("hidden");
       }, 350);
 
-      if (history.state && history.state.nonDbModalOpen) {
-        history.back();
-      }
+      // BUG FIX: Safe history exit
+      try {
+        if (history.state && history.state.nonDbModalOpen) {
+          history.back();
+        }
+      } catch(err) { console.warn("History back failed cleanly."); }
     };
 
     window.saveNonDbEntry = async () => {
@@ -1395,11 +1442,11 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
       const mode = document.getElementById("ndbPaymentMode").value;
       const date = document.getElementById("ndbDate").value;
 
-      // Validation Checks - ALL MANDATORY
+      // Validation Checks - ALL MANDATORY (BUG FIX: Guarding against <= 0)
       if(!name) return alert("❌ Enter Customer Name");
       if(!id) return alert("❌ Enter Customer ID");
-      if(!dueStr || isNaN(due)) return alert("❌ Enter Due Number");
-      if(!amtStr || isNaN(amt) || amt <= 0) return alert("❌ Enter valid Amount");
+      if(!dueStr || isNaN(due) || due <= 0) return alert("❌ Enter valid Due Number (>0)");
+      if(!amtStr || isNaN(amt) || amt <= 0) return alert("❌ Enter valid Amount (>0)");
       if(!mode) return alert("❌ Select Payment Mode");
       if(!date) return alert("❌ Select Date");
 
@@ -1483,8 +1530,10 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
       }
     };
 
-    // Set Today's Date default on load
-    document.getElementById("date").value = new Date().toISOString().split("T")[0];
+    // BUG FIX: Set Today's Date default strictly to local timezone to prevent UTC issues
+    const initTzoffset = (new Date()).getTimezoneOffset() * 60000;
+    const initLocalISODate = (new Date(Date.now() - initTzoffset)).toISOString().split("T")[0];
+    document.getElementById("date").value = initLocalISODate;
 
     // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
     if (window.visualViewport) {
