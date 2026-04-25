@@ -9,7 +9,7 @@ let isInitialized = false;
  * 1. 30-Day Anti-Ban Drip Marketing Cycle (FIREBASE TRACKED)
  * 2. 1000+ Product Combinations & 500+ Template Variations
  * 3. On-Demand Generator Trigger (!generate image)
- * 4. 14-Hour Business Pacing Math (6:00 AM - 8:00 PM IST)
+ * 4. 16-Hour Business Pacing Math (6:00 AM - 10:00 PM IST)
  * 5. Unique Promo Code Generation & Time-Based Greetings
  * 6. 500+ Dynamic Agent Pitch Generator (Bilingual)
  * 7. Canvas Height Expansion (Fixed Overlap Bug)
@@ -17,6 +17,7 @@ let isInitialized = false;
  * 9. Opt-Out Blacklist & Dead Number Graveyard Processing
  * 10. ENTERPRISE CRON PACING: Database tracked delays, Server-crash proof
  * 11. SMART WEEKEND BOOSTER: Dynamically adjusts quota on Sundays
+ * 12. EXPANDED INVENTORY & MULTI-LAYOUT DESIGNS ADDED
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
@@ -226,9 +227,9 @@ module.exports = (client, db) => {
         const maxDailyMessages = (currentDayOfWeek === 0) ? 10 : 7; 
         let currentHour = new Date().getHours();
 
-        // 14-HOUR MATH: Ensure all daily messages finish strictly between 6 AM and 8 PM
-        if (currentHour < 6 || currentHour >= 20) {
-            console.log(`🌙 [Marketing] Outside business hours (6 AM - 8 PM). Resting...`);
+        // 16-HOUR MATH: Ensure all daily messages finish strictly between 6 AM and 10 PM
+        if (currentHour < 6 || currentHour >= 22) {
+            console.log(`🌙 [Marketing] Outside business hours (6 AM - 10 PM). Resting...`);
             isProcessing = false;
             return;
         }
@@ -269,7 +270,7 @@ module.exports = (client, db) => {
             await docRef.set(dbData);
             isProcessing = false;
             
-            // SMART QUICK-TRIGGER: Prevent waiting 5 mins for the interval if we just did a 6-second skip
+            // SMART QUICK-TRIGGER: Prevent waiting 30 mins for the interval if we just did a 6-second skip
             setTimeout(fetchAndPrepareBatch, 6000);
             return;
         }
@@ -361,7 +362,7 @@ module.exports = (client, db) => {
         isProcessing = false; 
 
         // SMART QUICK-TRIGGER: If we scheduled a fast 6-second retry, forcefully call the batch again 
-        // without waiting for the 5-minute global polling interval to catch up.
+        // without waiting for the 30-minute global polling interval to catch up.
         const timeToNext = dbData.nextAllowedTime - Date.now();
         if (timeToNext > 0 && timeToNext <= 60000) { // If wait time is under 1 minute (e.g. 6 seconds)
             setTimeout(fetchAndPrepareBatch, timeToNext);
@@ -421,38 +422,54 @@ module.exports = (client, db) => {
 
     // --- 3. DYNAMIC AD ENGINE (Millions of Combinations) ---
     const generateRandomAdData = () => {
-        const categories = ['Mobiles', 'Appliances', 'Furniture'];
+        // EXPANDED CATEGORIES
+        const categories = ['Mobiles', 'Appliances', 'Furniture', 'Smart Home & Electronics', 'Kitchenware'];
         const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
 
-        // Massive Database Simulation
+        // Massive Database Simulation (EXPANDED INVENTORY)
         const dbData = {
             Mobiles: {
-                brands: ['POCO', 'VIVO', 'Samsung', 'Apple', 'Redmi', 'Realme', 'Oppo', 'OnePlus', 'iQOO', 'Motorola'],
-                mainProducts: ['5G Smartphones', 'Flagship Killers', 'Premium Mobiles', 'Gaming Phones'],
-                subProducts: ['Bluetooth TWS Earbuds', 'Smartwatches', 'Fast Chargers', 'Power Banks', 'Premium Cases', 'Screen Protectors', 'Wired Earphones']
+                brands: ['POCO', 'VIVO', 'Samsung', 'Apple', 'Redmi', 'Realme', 'Oppo', 'OnePlus', 'iQOO', 'Motorola', 'Asus ROG', 'Nothing'],
+                mainProducts: ['5G Smartphones', 'Flagship Killers', 'Premium Mobiles', 'Gaming Phones', 'Foldable Phones', 'High-Performance Tablets'],
+                subProducts: ['Bluetooth TWS Earbuds', 'Smartwatches', 'Fast Chargers', 'Power Banks', 'Premium Cases', 'Screen Protectors', 'Wired Earphones', 'Mobile Gimbals', 'Car Mounts']
             },
             Appliances: {
-                brands: ['LG', 'Samsung', 'Whirlpool', 'Voltas', 'Haier', 'Godrej', 'Blue Star', 'Bosch', 'IFB', 'Lloyd'],
-                mainProducts: ['Front-Load Washing Machines', 'Double Door Refrigerators', 'Split Air Conditioners', '4K Smart LED TVs', 'OLED TVs'],
-                subProducts: ['Mixer Grinders', 'Microwave Ovens', 'Water Purifiers', 'Induction Stoves', 'Ceiling Fans', 'Iron Boxes', 'Geysers']
+                brands: ['LG', 'Samsung', 'Whirlpool', 'Voltas', 'Haier', 'Godrej', 'Blue Star', 'Bosch', 'IFB', 'Lloyd', 'Panasonic', 'Daikin', 'TCL'],
+                mainProducts: ['Front-Load Washing Machines', 'Double Door Refrigerators', 'Split Air Conditioners', '4K Smart LED TVs', 'OLED TVs', 'Inverter ACs', 'Top-Load Washers'],
+                subProducts: ['Mixer Grinders', 'Microwave Ovens', 'Water Purifiers', 'Induction Stoves', 'Ceiling Fans', 'Iron Boxes', 'Geysers', 'Voltage Stabilizers']
             },
             Furniture: {
-                brands: ['Premium Teak', 'Steel Strong', 'Royal Oak', 'Nilkamal', 'Custom Handcrafted', 'Zuari'],
-                mainProducts: ['King Size Wooden Cots', 'Heavy Steel Beeros', 'Teak Wood Beeros', 'L-Shape Sofa Sets', 'Glass Dining Tables'],
-                subProducts: ['Orthopedic Mattresses', 'Office Chairs', 'Recliners', 'Dressing Tables', 'Pooja Mandirs', 'Shoe Racks', 'Study Desks']
+                brands: ['Premium Teak', 'Steel Strong', 'Royal Oak', 'Nilkamal', 'Custom Handcrafted', 'Zuari', 'Wakefit', 'Urban Ladder Design', 'Godrej Interio'],
+                mainProducts: ['King Size Wooden Cots', 'Heavy Steel Beeros', 'Teak Wood Beeros', 'L-Shape Sofa Sets', 'Glass Dining Tables', 'Modular Wardrobes', 'Premium Recliners'],
+                subProducts: ['Orthopedic Mattresses', 'Office Chairs', 'Recliners', 'Dressing Tables', 'Pooja Mandirs', 'Shoe Racks', 'Study Desks', 'Bookshelves', 'Coffee Tables', 'Bedside Tables']
+            },
+            "Smart Home & Electronics": {
+                brands: ['Sony', 'Bose', 'JBL', 'Dell', 'HP', 'Lenovo', 'Philips', 'Acer', 'Apple'],
+                mainProducts: ['High-Performance Laptops', 'Home Theater Systems', 'Soundbars with Subwoofers', 'Gaming Monitors', 'Smart Displays', 'All-in-One Desktops'],
+                subProducts: ['Wireless Keyboards', 'Gaming Mice', 'Webcams', 'Smart Plugs', 'Security Cameras', 'Bluetooth Speakers', 'Wi-Fi Routers', 'External Hard Drives']
+            },
+            Kitchenware: {
+                brands: ['Prestige', 'Butterfly', 'Pigeon', 'Wonderchef', 'Milton', 'Bajaj', 'Havells', 'Cello'],
+                mainProducts: ['4-Burner Glass Gas Stoves', 'Premium Cookware Sets', 'Air Fryers', 'Electric Chimneys', 'Dishwashers', 'Cold Press Juicers'],
+                subProducts: ['Non-Stick Tawas', 'Pressure Cookers', 'Electric Kettles', 'Toasters', 'Choppers', 'Dinner Sets', 'Thermos Flasks', 'Spice Racks']
             }
         };
 
+        // EXPANDED OFFERS
         const offers = [
             { text: "Flat 20% OFF", taText: "20% நேரடி தள்ளுபடி" },
             { text: "Up to 30% OFF", taText: "30% வரை தள்ளுபடி" },
             { text: "Zero Down Payment", taText: "முன்பணம் தேவையில்லை" },
             { text: "Exchange Bonus ₹2000", taText: "பழைய பொருளுக்கு ₹2000 கூடுதல் மதிப்பு" },
             { text: "Save Up To ₹5000", taText: "₹5000 வரை சேமிக்கலாம்" },
-            { text: "Special Festival Combo Price", taText: "சிறப்பு பண்டிகை காம்போ ஆஃபர்" }
+            { text: "Special Festival Combo Price", taText: "சிறப்பு பண்டிகை காம்போ ஆஃபர்" },
+            { text: "Buy 1 Get 1 Free", taText: "ஒன்றை வாங்கினால் ஒன்று இலவசம்" },
+            { text: "Cashback Up To ₹1000", taText: "₹1000 வரை கேஷ்பேக்" },
+            { text: "Free Home Delivery", taText: "இலவச டோர் டெலிவரி" },
+            { text: "No Cost EMI Available", taText: "வட்டி இல்லா மாதத்தவணை" }
         ];
 
-        // 500+ DYNAMIC AGENT PHRASES (Combinatorics Math)
+        // 500+ DYNAMIC AGENT PHRASES (Combinatorics Math) - EXPANDED
         const agentHooksEn = [
             "We have handpicked these exclusive deals just for you!",
             "Don't miss our biggest price drop of the season.",
@@ -460,7 +477,10 @@ module.exports = (client, db) => {
             "Incredible savings are waiting for you this week.",
             "Your favorite brands are now at unbeatable prices.",
             "Experience top-tier quality at wholesale prices.",
-            "Transform your home with our latest arrivals."
+            "Transform your home with our latest arrivals.",
+            "You deserve the best! Check out these VIP offers.",
+            "Surprise! We unlocked special mega discounts for you.",
+            "Why pay more? Get top electronics and furniture at factory prices."
         ];
         const agentHooksTa = [
             "உங்களுக்காகவே பிரத்யேகமாக தேர்ந்தெடுக்கப்பட்ட சலுகைகள்!",
@@ -469,25 +489,33 @@ module.exports = (client, db) => {
             "இந்த வாரம் நம்பமுடியாத சேமிப்புகள் உங்களுக்காக காத்திருக்கின்றன.",
             "உங்களுக்குப் பிடித்த பிராண்டுகள் இப்போது தோற்கடிக்க முடியாத விலையில்.",
             "சிறந்த தரத்தை மொத்த விலையில் அனுபவியுங்கள்.",
-            "எங்களின் புதிய வரவுகள் மூலம் உங்கள் வீட்டை அழகுபடுத்துங்கள்."
+            "எங்களின் புதிய வரவுகள் மூலம் உங்கள் வீட்டை அழகுபடுத்துங்கள்.",
+            "நீங்கள் சிறந்ததை பெற தகுதியானவர்! இந்த VIP சலுகைகளை பாருங்கள்.",
+            "ஆச்சரியம்! உங்களுக்காக பிரத்யேக மெகா தள்ளுபடிகளை வழங்கியுள்ளோம்.",
+            "ஏன் அதிகம் செலுத்த வேண்டும்? சிறந்த பொருட்களை குறைவான விலையில் பெறுங்கள்."
         ];
 
+        // EXPANDED URGENCIES
         const urgenciesEn = [
             "Limited stock available. Hurry!",
             "Offer valid only until stocks last.",
             "Grab this deal before it expires.",
             "Walk in today to claim your discount.",
-            "Show this message at the counter to redeem."
+            "Show this message at the counter to redeem.",
+            "Flash sale alert! Prices drop for the next 24 hours only.",
+            "This is a one-time offer, don't let it slip away!"
         ];
         const urgenciesTa = [
             "குறைந்த அளவு ஸ்டாக் மட்டுமே! விரைந்து வாருங்கள்.",
             "ஸ்டாக் இருக்கும் வரை மட்டுமே இந்த சலுகை.",
             "இந்த சலுகை முடிவதற்குள் பெற்றுக்கொள்ளுங்கள்.",
             "உங்கள் தள்ளுபடியைப் பெற இன்றே வருகை தாருங்கள்.",
-            "சலுகையைப் பெற இந்த மெசேஜை கடையில் காண்பிக்கவும்."
+            "சலுகையைப் பெற இந்த மெசேஜை கடையில் காண்பிக்கவும்.",
+            "ஃபிளாஷ் சேல்! அடுத்த 24 மணி நேரத்திற்கு மட்டுமே இந்த விலை.",
+            "இது ஒரு முறை மட்டுமே வரும் சலுகை, நழுவ விடாதீர்கள்!"
         ];
 
-        // 500+ Template Engine (Themes X Layouts X Fonts)
+        // 500+ Template Engine (Themes X Layouts X Fonts) - EXPANDED
         const themes = [
             { bg: '#09090b', accent: '#ef4444', textCol: 'white' }, // Dark Ruby
             { bg: '#0f172a', accent: '#3b82f6', textCol: 'white' }, // Midnight Blue
@@ -496,10 +524,16 @@ module.exports = (client, db) => {
             { bg: '#171717', accent: '#eab308', textCol: 'white' }, // Premium Gold
             { bg: '#312e81', accent: '#c084fc', textCol: 'white' }, // Indigo Purple
             { bg: '#ffffff', accent: '#dc2626', textCol: '#111827' }, // Clean White / Red (Modern)
-            { bg: '#fef3c7', accent: '#b45309', textCol: '#451a03' }  // Festival Yellow
+            { bg: '#fef3c7', accent: '#b45309', textCol: '#451a03' },  // Festival Yellow
+            { bg: '#1a0b2e', accent: '#f0abfc', textCol: '#ffffff' }, // Neon Cyberpunk
+            { bg: '#f8fafc', accent: '#0ea5e9', textCol: '#0f172a' }, // Minimalist Pastel Blue
+            { bg: '#083344', accent: '#22d3ee', textCol: '#ffffff' }, // Ocean Blue
+            { bg: '#14532d', accent: '#4ade80', textCol: '#ffffff' }, // Festive Green
+            { bg: '#4c0519', accent: '#fda4af', textCol: '#ffffff' }  // Deep Burgundy
         ];
 
-        const layouts = ['center', 'left'];
+        // EXPANDED LAYOUTS
+        const layouts = ['center', 'left', 'right'];
 
         const catData = dbData[selectedCategory];
         
@@ -513,6 +547,10 @@ module.exports = (client, db) => {
         const randomOffer = offers[Math.floor(Math.random() * offers.length)];
         const randomTheme = themes[Math.floor(Math.random() * themes.length)];
         const randomLayout = layouts[Math.floor(Math.random() * layouts.length)];
+        
+        // Add Dynamic Flash Badges
+        const badges = ["🔥 Special Bundle Offer", "⚡ FLASH SALE ALERT", "🎉 VIP CUSTOMER DEAL", "🎁 MEGA DISCOUNT ACTIVATED"];
+        const randomBadge = badges[Math.floor(Math.random() * badges.length)];
 
         // Assemble Dynamic Agent Pitch
         const rHookIdx = Math.floor(Math.random() * agentHooksEn.length);
@@ -531,6 +569,7 @@ module.exports = (client, db) => {
             taPitch: `${agentHooksTa[rHookIdx]} ${urgenciesTa[rUrgIdx]}`,
             theme: randomTheme,
             layout: randomLayout,
+            badgeText: randomBadge,
             promoCode: generatePromoCode(),
             timeGreeting: getTimeGreeting()
         };
@@ -538,44 +577,60 @@ module.exports = (client, db) => {
 
     const generateAdImage = async (client, name, adData) => {
         let page;
+        // BUG FIX: Ensure browser is available before trying to open a page
+        if (!client.pupBrowser) {
+            console.log("⚠️ [Marketing] Puppeteer browser not completely initialized yet. Skipping image generation temporarily.");
+            throw new Error("Browser not ready");
+        }
         try {
             page = await client.pupBrowser.newPage();
             // Expanded height to 1400px to completely prevent overlap bugs
             await page.setViewport({ width: 850, height: 1400 }); 
 
-            const alignStyle = adData.layout === 'center' ? 'align-items: center; text-align: center;' : 'align-items: flex-start; text-align: left; padding-left: 60px;';
+            // ADDED DYNAMIC CSS FOR NEW 'RIGHT' LAYOUT WITHOUT BREAKING OLD LAYOUTS
+            let alignStyle = 'align-items: center; text-align: center;';
+            let cardPos = 'left: 50%; transform: translateX(-50%);';
+            
+            if (adData.layout === 'left') {
+                alignStyle = 'align-items: flex-start; text-align: left; padding-left: 60px;';
+                cardPos = 'left: 60px; transform: none;';
+            } else if (adData.layout === 'right') {
+                alignStyle = 'align-items: flex-end; text-align: right; padding-right: 60px;';
+                cardPos = 'right: 60px; left: auto; transform: none;';
+            }
 
             const html = `
             <html>
             <head>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-                    body { background:${adData.theme.bg}; color:${adData.theme.textCol}; font-family:'Inter', sans-serif; height:1400px; padding-bottom: 300px; display:flex; flex-direction:column; justify-content:center; margin:0; border:25px solid ${adData.theme.accent}; box-sizing: border-box; position: relative; ${alignStyle}}
+                    /* BUG FIX: Added max-width and word-wrap to prevent text from pushing layout off-screen */
+                    body { background:${adData.theme.bg}; color:${adData.theme.textCol}; font-family:'Inter', sans-serif; height:1400px; padding-bottom: 300px; display:flex; flex-direction:column; justify-content:center; margin:0; border:25px solid ${adData.theme.accent}; box-sizing: border-box; position: relative; max-width: 100%; overflow: hidden; ${alignStyle}}
                     
-                    .badge { background: ${adData.theme.accent}; color: ${adData.theme.bg}; font-weight: 900; padding: 12px 25px; border-radius: 50px; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; display: inline-block;}
-                    .greeting { font-size: 35px; opacity: 0.9; margin-bottom: 10px; font-weight: 700;}
-                    .headline { font-size: 70px; color: ${adData.theme.accent}; margin: 0; letter-spacing: -2px; font-weight: 900; line-height: 1.1; text-transform: uppercase;}
+                    .badge { background: ${adData.theme.accent}; color: ${adData.theme.bg}; font-weight: 900; padding: 12px 25px; border-radius: 50px; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; display: inline-block; max-width: 90%; word-wrap: break-word;}
+                    .greeting { font-size: 35px; opacity: 0.9; margin-bottom: 10px; font-weight: 700; max-width: 90%; word-wrap: break-word;}
+                    .headline { font-size: 70px; color: ${adData.theme.accent}; margin: 0; letter-spacing: -2px; font-weight: 900; line-height: 1.1; text-transform: uppercase; max-width: 95%; word-wrap: break-word;}
                     
-                    .product-highlight { font-size: 45px; font-weight: 900; margin-top: 30px; line-height: 1.2;}
+                    .product-highlight { font-size: 45px; font-weight: 900; margin-top: 30px; line-height: 1.2; max-width: 90%; word-wrap: break-word;}
                     .brand-highlight { color: ${adData.theme.accent}; font-style: italic; font-size: 55px;}
                     
-                    .offer-box { margin-top: 30px; background: ${adData.theme.accent}; color: ${adData.theme.bg}; padding: 20px 40px; border-radius: 15px; font-size: 38px; font-weight: 900; transform: rotate(-2deg); display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.3);}
+                    .offer-box { margin-top: 30px; background: ${adData.theme.accent}; color: ${adData.theme.bg}; padding: 20px 40px; border-radius: 15px; font-size: 38px; font-weight: 900; transform: rotate(-2deg); display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.3); max-width: 90%; word-wrap: break-word;}
                     
-                    .sub-items { margin-top: 35px; font-size: 22px; opacity: 0.9; font-weight: 700; line-height: 1.6; background: rgba(0,0,0,0.15); padding: 20px; border-radius: 15px; border-left: 5px solid ${adData.theme.accent}; display: inline-block;}
+                    .sub-items { margin-top: 35px; font-size: 22px; opacity: 0.9; font-weight: 700; line-height: 1.6; background: rgba(0,0,0,0.15); padding: 20px; border-radius: 15px; border-left: 5px solid ${adData.theme.accent}; display: inline-block; max-width: 90%; word-wrap: break-word;}
                     .sub-items span { color: ${adData.theme.accent}; font-size: 24px; }
 
                     .promo-code { margin-top: 25px; background: rgba(0,0,0,0.2); padding: 10px 20px; border-radius: 8px; font-family: monospace; font-size: 24px; border: 1px dashed ${adData.theme.accent}; display: inline-block;}
 
-                    .card { position: absolute; bottom: 140px; left: ${adData.layout === 'center' ? '50%' : '60px'}; transform: ${adData.layout === 'center' ? 'translateX(-50%)' : 'none'}; background: rgba(0,0,0,0.1); padding: 25px 40px; border-radius: 20px; border: 2px solid ${adData.theme.accent}; width: 80%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); backdrop-filter: blur(10px); text-align: center;}
-                    .shop-name { font-size: 32px; font-weight: 900; letter-spacing: 1px;}
-                    .shop-address { font-size: 16px; opacity: 0.8; margin-top: 8px;}
+                    .card { position: absolute; bottom: 140px; ${cardPos} background: rgba(0,0,0,0.1); padding: 25px 40px; border-radius: 20px; border: 2px solid ${adData.theme.accent}; width: 80%; max-width: 700px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); backdrop-filter: blur(10px); text-align: center; box-sizing: border-box;}
+                    .shop-name { font-size: 32px; font-weight: 900; letter-spacing: 1px; word-wrap: break-word;}
+                    .shop-address { font-size: 16px; opacity: 0.8; margin-top: 8px; word-wrap: break-word;}
                     .phone { font-size: 28px; font-weight: bold; color: ${adData.theme.accent}; margin-top: 8px;}
                     
-                    .emi-banner { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: #fbbf24; color: #000; font-weight: 900; font-size: 22px; padding: 15px 50px; border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); white-space: nowrap;}
+                    .emi-banner { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: #fbbf24; color: #000; font-weight: 900; font-size: 22px; padding: 15px 50px; border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); white-space: nowrap; max-width: 90%; word-wrap: break-word;}
                 </style>
             </head>
             <body>
-                <div class="badge">🔥 Special Bundle Offer</div>
+                <div class="badge">${adData.badgeText}</div>
                 <div class="greeting">${adData.timeGreeting.en}, ${name}!</div>
                 <div class="headline">MEGA ${adData.category} SALE</div>
                 
@@ -622,9 +677,9 @@ module.exports = (client, db) => {
     if (global.marketingBootTimeout) clearTimeout(global.marketingBootTimeout);
     global.marketingBootTimeout = setTimeout(fetchAndPrepareBatch, 10000);
 
-    // ENTERPRISE POLLING: Wakes up every 5 minutes to check the database timestamp. 
+    // ENTERPRISE POLLING: Wakes up every 30 minutes to check the database timestamp. 
     // Uses virtually zero memory/CPU compared to keeping a promise active in RAM.
     // ADDED: ClearInterval completely destroys overlapping polling loops
     if (global.marketingPollingInterval) clearInterval(global.marketingPollingInterval);
-    global.marketingPollingInterval = setInterval(fetchAndPrepareBatch, 5 * 60 * 1000);
+    global.marketingPollingInterval = setInterval(fetchAndPrepareBatch, 30 * 60 * 1000);
 };
