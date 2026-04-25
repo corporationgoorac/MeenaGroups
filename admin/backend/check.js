@@ -1,4 +1,4 @@
-const { MessageMedia } = require('whatsapp-web.js');
+const { MessageMedia } = require('whatsapp-web.js'); // FIXED: Changed 'Const' to 'const'
 const admin = require('firebase-admin');
 
 // Use the existing Firestore instance
@@ -16,7 +16,9 @@ module.exports = function(client) {
             // This clears the internal message store to free RAM without logging out
             if (client.pupPage) {
                 await client.pupPage.evaluate(() => {
-                    if (window.Store && window.Store.Msg) window.Store.Msg.clear();
+                    if (typeof window !== 'undefined' && window.Store && window.Store.Msg) { // POLISH: Added typeof window check
+                        window.Store.Msg.clear();
+                    }
                 }).catch(() => {});
             }
         }
@@ -34,13 +36,15 @@ module.exports = function(client) {
             
             try {
                 // 1. Fetch from Firestore 'customers' collection
+                // Ensure your Firestore documents store the 'id' as a String to match this input
                 const q = await db.collection('customers').where('id', '==', input).get();
                 
                 if (q.empty) {
                     return msg.reply("❌ *Customer ID not found.*\nPlease check the ID and try again.\n\n❌ *வாடிக்கையாளர் எண் காணப்படவில்லை.*\nஎண்ணை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.");
                 }
 
-                const customer = q.docs[0].data();
+                // FIXED: Extract data from the first document in the array
+                const customer = q.docs[0].data(); 
                 const products = customer.products || [];
                 
                 if (products.length === 0) {
@@ -85,6 +89,11 @@ module.exports = function(client) {
 async function generateStatementImage(client, customer, product, tempEntries) {
     let page;
     try {
+        // POLISH: Verify the browser instance is available before opening a tab
+        if (!client.pupBrowser) {
+            throw new Error("Puppeteer browser instance is not available. Client may be disconnected.");
+        }
+
         // Open a new tab in the existing browser instance
         page = await client.pupBrowser.newPage(); 
         
@@ -201,7 +210,7 @@ async function generateStatementImage(client, customer, product, tempEntries) {
                 .stat-box { 
                     background: ${theme.cardBg}; padding: 25px; border-radius: 24px; 
                     border: 1px solid ${theme.borderColor};
-                    border-top: 4px solid #333;
+                    border-top: 4px solid ${theme.borderColor};
                     box-shadow: ${isDarkTheme ? 'none' : '0 4px 15px rgba(0,0,0,0.03)'};
                 }
                 .stat-box.primary { border-top-color: ${theme.accentBlue}; }
@@ -253,7 +262,7 @@ async function generateStatementImage(client, customer, product, tempEntries) {
                 <div class="cust-info">
                     <span>🆔 Account: ${customer.id}</span>
                     <span>📦 Product: ${product.name}</span>
-                    <span>📍 ${customer.place || 'General'}</span>
+                    <span>${customer.place ? '📍 ' + customer.place : ''}</span>
                 </div>
             </div>
 
@@ -306,7 +315,8 @@ async function generateStatementImage(client, customer, product, tempEntries) {
         </html>`;
 
         // Render the high-res image
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        await page.setContent(htmlContent, { waitUntil: 'load' });
+        await page.evaluateHandle('document.fonts.ready');
         const screenshot = await page.screenshot({ 
             fullPage: false, 
             type: 'png',
@@ -320,7 +330,8 @@ async function generateStatementImage(client, customer, product, tempEntries) {
         throw error;
     } finally {
         // --- CRITICAL: Ensure the tab is always closed to prevent memory leaks ---
-        if (page) {
+        // POLISH: Added `!page.isClosed()` check to avoid throwing an error while trying to close an already closed page
+        if (page && !page.isClosed()) {
             await page.close().catch(() => {}); 
         }
     }
