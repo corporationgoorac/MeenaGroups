@@ -247,13 +247,13 @@
 
     /* FIX: Modern, full-width block button layout instead of absolute positioning */
     .card-view-btn {
-      background: var(--primary-dim);
-      color: var(--primary);
+      background: var(--danger-dim);
+      color: var(--danger);
       padding: 12px 20px;
       border-radius: 10px;
       font-weight: 700;
       font-size: 0.9rem;
-      border: 1px solid rgba(16,185,129,0.3);
+      border: 1px solid rgba(239, 68, 68, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -266,8 +266,17 @@
     }
 
     .suggestion-item:active .card-view-btn {
-      background: var(--primary);
-      color: #000;
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* Pagination loading indicator */
+    .loading-more {
+      text-align: center;
+      padding: 15px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.9rem;
     }
 
     /* * ==========================================
@@ -781,7 +790,7 @@
   <script type="module">
     import { db, auth } from "./config.js";
     import { 
-      collection, query, where, getDocs, limit, addDoc, serverTimestamp 
+      collection, query, where, getDocs, limit, addDoc, serverTimestamp, startAfter 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
@@ -796,6 +805,13 @@
     let lastReceiptData = null;
     let lastBalance = 0;
     let lastTotalPaid = 0;
+
+    // Pagination State
+    let lastVisibleSearchDoc = null;
+    let isFetchingMore = false;
+    let hasMoreSearchResults = true;
+    let currentSearchTypeForPagination = 'id';
+    let currentSearchTermForPagination = '';
 
     // --- LOCAL TIME SYNC (REPLACED EXTERNAL API FOR ROBUST LOCAL CALCULATION) ---
     function getSafeLocalDateStr() {
@@ -843,6 +859,18 @@
     const searchBox = document.getElementById("searchBox");
     const suggestionBox = document.getElementById("suggestions");
 
+    // Scroll listener for pagination
+    suggestionBox.addEventListener('scroll', async () => {
+      if (isFetchingMore || !hasMoreSearchResults) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = suggestionBox;
+      if (scrollTop + clientHeight >= scrollHeight - 20) {
+         isFetchingMore = true;
+         await loadMoreSearchResults();
+         isFetchingMore = false;
+      }
+    });
+
     searchBox.addEventListener("keypress", (e) => {
       if (e.key === " ") e.preventDefault(); // Prevent spaces
       if (e.key === "Enter") executeSearch();
@@ -884,16 +912,24 @@
       suggestionBox.innerHTML = '<div style="padding:15px; color:#aaa;">Searching Database...</div>';
       suggestionBox.style.display = "block";
 
+      // Reset pagination state
+      lastVisibleSearchDoc = null;
+      hasMoreSearchResults = true;
+      currentSearchTermForPagination = term;
+
       const colRef = collection(db, "customers");
       let snapshot;
 
       try {
-        const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
+        const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(10));
         snapshot = await getDocs(qId);
 
         if (snapshot.empty) {
-          const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
+          currentSearchTypeForPagination = 'name';
+          const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(10));
           snapshot = await getDocs(qName);
+        } else {
+          currentSearchTypeForPagination = 'id';
         }
 
         suggestionBox.innerHTML = "";
@@ -903,8 +939,14 @@
           
           // Show the FAB add icon because no customer was found
           document.getElementById("fabAddNonDB").style.display = "flex";
-          
+          hasMoreSearchResults = false;
           return;
+        }
+
+        // Set pagination doc
+        lastVisibleSearchDoc = snapshot.docs[snapshot.docs.length - 1];
+        if (snapshot.docs.length < 10) {
+            hasMoreSearchResults = false;
         }
 
         snapshot.forEach(docSnap => {
@@ -933,6 +975,63 @@
         suggestionBox.innerHTML = `<div style="padding:15px; color:red;">Error: ${e.message}</div>`;
       }
     };
+
+    // Load more function for pagination
+    async function loadMoreSearchResults() {
+      if (!lastVisibleSearchDoc) return;
+      
+      const colRef = collection(db, "customers");
+      let nextQuery;
+      const term = currentSearchTermForPagination;
+
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "loading-more";
+      loadingDiv.innerText = "Loading more...";
+      suggestionBox.appendChild(loadingDiv);
+
+      if (currentSearchTypeForPagination === 'id') {
+        nextQuery = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), startAfter(lastVisibleSearchDoc), limit(10));
+      } else {
+        nextQuery = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), startAfter(lastVisibleSearchDoc), limit(10));
+      }
+
+      try {
+         const snapshot = await getDocs(nextQuery);
+         suggestionBox.removeChild(loadingDiv);
+
+         if (snapshot.empty) {
+            hasMoreSearchResults = false;
+            return;
+         }
+         
+         lastVisibleSearchDoc = snapshot.docs[snapshot.docs.length - 1];
+         if (snapshot.docs.length < 10) {
+            hasMoreSearchResults = false;
+         }
+
+         snapshot.forEach(docSnap => {
+            const c = docSnap.data();
+            const div = document.createElement("div");
+            div.className = "suggestion-item";
+            div.innerHTML = `
+              <div class="s-info-wrapper">
+                <span class="s-name">${c.name}</span> 
+                <span class="s-id">ID: ${c.id}</span>
+                <span class="s-phone">📞 Phone: ${c.phone || 'N/A'}</span>
+              </div>
+              <div class="card-view-btn">
+                View Profile
+                <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+              </div>
+            `;
+            div.onclick = () => loadCustomer(c).catch(console.error);
+            suggestionBox.appendChild(div);
+         });
+      } catch (e) {
+         console.error("Pagination error:", e);
+         if (loadingDiv.parentNode) suggestionBox.removeChild(loadingDiv);
+      }
+    }
 
     // --- 2. LOAD CUSTOMER ---
     async function loadCustomer(c) {
