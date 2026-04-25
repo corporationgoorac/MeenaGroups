@@ -25,8 +25,8 @@ service cloud.firestore {
 
     // 2. TEMP ENTRIES (Agent Drafts & Admin Review)
     match /temp_entries/{entryId} {
-      // Only logged-in staff can see the temporary drafts
-      allow read: if isStaff();
+      // 🔓 OPEN: Anyone (logged in or out) can now read the temporary drafts
+      allow read: if true || isStaff();
       
       // 🔧 UPGRADED: Forces the agent to attach their own UID when creating a draft (Now strictly checks for 'staffUid' to match your frontend)
       allow create: if isStaff() && request.resource.data.staffUid == request.auth.uid;
