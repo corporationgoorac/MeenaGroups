@@ -85,6 +85,18 @@ module.exports = (client, db) => {
         return { en: 'Good Evening', ta: 'மாலை வணக்கம்' };
     };
 
+    // NEW UTILITY: Formats time exactly as requested (e.g. 5.30 Pm)
+    const formatTimeForLog = (timestamp) => {
+        const date = new Date(timestamp);
+        let hours = date.getHours();
+        let minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'Pm' : 'Am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        return `${hours}.${minutes} ${ampm}`;
+    };
+
     // --- 1. ON-DEMAND WHATSAPP AD GENERATOR & OPT-OUT HANDLER ---
     client.on('message', async (msg) => {
         const input = msg.body.trim().toLowerCase();
@@ -149,9 +161,21 @@ module.exports = (client, db) => {
             // ADVANCED PACING CHECK: Read timestamp from DB to see if we are allowed to send yet.
             if (dbData && dbData.nextAllowedTime && now < dbData.nextAllowedTime) {
                 const waitMins = Math.ceil((dbData.nextAllowedTime - now) / 60000);
+                const timeToWait = dbData.nextAllowedTime - now;
+
                 if (waitMins > 0) {
-                    console.log(`⏳ [Marketing] Pacing active. Next message scheduled in ${waitMins} minute(s).`);
+                    // NEW FIX: RAM Cache check to prevent log spam. Only logs once.
+                    if (global.lastLoggedNextTime !== dbData.nextAllowedTime) {
+                        const nextTimeStr = formatTimeForLog(dbData.nextAllowedTime);
+                        console.log(`⏳ [Marketing] Pacing active. The next marketing message in ${nextTimeStr}`);
+                        global.lastLoggedNextTime = dbData.nextAllowedTime;
+                    }
                 }
+                
+                // HYBRID ARCHITECTURE: Schedule exact dynamic wakeup, bypassing the 30-min heartbeat
+                if (global.marketingDynamicTimeout) clearTimeout(global.marketingDynamicTimeout);
+                global.marketingDynamicTimeout = setTimeout(fetchAndPrepareBatch, timeToWait);
+
                 isProcessing = false;
                 return; // Early exit prevents duplicate sending loops
             }
@@ -271,7 +295,8 @@ module.exports = (client, db) => {
             isProcessing = false;
             
             // SMART QUICK-TRIGGER: Prevent waiting 30 mins for the interval if we just did a 6-second skip
-            setTimeout(fetchAndPrepareBatch, 6000);
+            if (global.marketingDynamicTimeout) clearTimeout(global.marketingDynamicTimeout);
+            global.marketingDynamicTimeout = setTimeout(fetchAndPrepareBatch, 6000);
             return;
         }
 
@@ -335,8 +360,9 @@ module.exports = (client, db) => {
             const randomMinutes = Math.floor(Math.random() * 60) + 90; // Between 90 and 150 minutes
             dbData.nextAllowedTime = Date.now() + (randomMinutes * 60000);
             
-            const nextTimeStr = new Date(dbData.nextAllowedTime).toLocaleTimeString('en-IN');
-            console.log(`📅 [Marketing] Success. Next message is securely locked in database for ${nextTimeStr}`);
+            const nextTimeStr = formatTimeForLog(dbData.nextAllowedTime);
+            console.log(`📅 [Marketing] Success. The next marketing message in ${nextTimeStr}`);
+            global.lastLoggedNextTime = dbData.nextAllowedTime; // Mark as logged so it doesn't duplicate
             
         } else {
             // ADVANCED GRACEFUL FAIL-SAFE: If number was bad, skip and try next in 6 seconds (bypass 90 mins)
@@ -365,7 +391,8 @@ module.exports = (client, db) => {
         // without waiting for the 30-minute global polling interval to catch up.
         const timeToNext = dbData.nextAllowedTime - Date.now();
         if (timeToNext > 0 && timeToNext <= 60000) { // If wait time is under 1 minute (e.g. 6 seconds)
-            setTimeout(fetchAndPrepareBatch, timeToNext);
+            if (global.marketingDynamicTimeout) clearTimeout(global.marketingDynamicTimeout);
+            global.marketingDynamicTimeout = setTimeout(fetchAndPrepareBatch, timeToNext);
         }
     };
 
