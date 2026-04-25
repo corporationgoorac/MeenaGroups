@@ -684,7 +684,7 @@
         </div>
 
         <button id="btnSave" class="btn-save" onclick="saveToTempCollection()">
-          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           CONFIRM & SPLIT
         </button>
 
@@ -813,7 +813,7 @@
     onAuthStateChanged(auth, (user) => {
       if (user) {
         let fullName = user.displayName || "Agent";
-        let firstName = fullName.split(' '); // Get first name
+        let firstName = fullName.split(' ')[0]; // Get first name
         currentStaff = { uid: user.uid, name: firstName };
         // Optional: Update status indicator dynamically without removing HTML lines
         const statusEl = document.querySelector('.agent-status');
@@ -1257,7 +1257,7 @@
     // Helper for thermal style dashed lines
     function drawDashedLine(ctx, x1, y1, x2, y2) {
       ctx.beginPath();
-      ctx.setLineDash(); 
+      ctx.setLineDash([4, 4]); 
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.lineWidth = 1.5;
@@ -1284,31 +1284,13 @@
 
       const line = "-".repeat(WIDTH);
 
-      // let receipt = 
-// `${center("MEENA GROUPS")}
-// ${center("Payment Receipt")}
-// ${line}
-// ${spread("Date:", data.date)}
-// ${spread("ID:", data.customerId)}
-// ${spread("Due No:", "#" + data.dueNumber)}
-// Name: ${data.customerName.substring(0, 24)}
-// ${spread("Mode:", data.paymentMode || 'Cash')}
-// ${line}
-// ${center("RECEIVED AMOUNT")}
-// ${center("Rs. " + data.amount)}
-// ${line}
-// ${spread("Total Paid:", "Rs." + totalPaid)}
-// ${spread("Balance:", "Rs." + balance)}
-// ${line}
-// ${center("Thank You!")}
-// ${center("Visit meena.goorac.biz")}
-// ${center("to see your eCard")}`;
+      let dateParts = data.date ? data.date.split('-') : [];
+      let fDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : data.date;
 
-      // NEW 3-LINE PROFESSIONAL FORMAT:
       let receipt = 
-`MEENA GROUPS | ${data.date} | ${data.staffName || 'Admin'}
-ID: ${data.customerId} (${data.customerName.substring(0, 15)}) | Due: #${data.dueNumber}
-Paid: ₹${data.amount} (${data.paymentMode || 'Cash'}) | Balance: ₹${balance}`;
+`MEENA GROPIS | ${fDate}
+Due #${data.dueNumber} | Paid ₹${data.amount} |  ${data.customerId}
+Balance : ${balance} | ${data.staffName || 'Agent'}`;
 
       return receipt;
     };
@@ -1370,7 +1352,7 @@ Paid: ₹${data.amount} (${data.paymentMode || 'Cash'}) | Balance: ₹${balance}
     // --- NEW: NON-DATABASE ENTRY LOGIC ---
     window.openNonDbModal = () => {
       const card = document.getElementById("nonDbModal");
-      document.getElementById("ndbDate").value = new Date().toISOString().split("T"); // Auto-set today
+      document.getElementById("ndbDate").value = new Date().toISOString().split("T")[0]; // Auto-set today
       document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
       
       // NEW LINES: Auto-fill the searched ID into the modal
@@ -1502,7 +1484,7 @@ Paid: ₹${data.amount} (${data.paymentMode || 'Cash'}) | Balance: ₹${balance}
     };
 
     // Set Today's Date default on load
-    document.getElementById("date").value = new Date().toISOString().split("T");
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
     // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
     if (window.visualViewport) {
