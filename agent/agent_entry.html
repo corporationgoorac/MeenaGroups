@@ -808,6 +808,35 @@
     let lastBalance = 0;
     let lastTotalPaid = 0;
 
+    // --- REAL-TIME NETWORK SYNC FIX (Bypassing Device Clock Errors) ---
+    window.realNetworkDateStr = null;
+    async function syncNetworkTime() {
+      try {
+        // Fetch absolute true time for Kolkata/IST regardless of device settings
+        const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Kolkata");
+        if(res.ok) {
+          const data = await res.json();
+          window.realNetworkDateStr = data.datetime.split("T")[0];
+          
+          // Override the inputs with guaranteed network time and enforce max limit
+          const dateInput = document.getElementById("date");
+          if(dateInput) {
+              dateInput.value = window.realNetworkDateStr;
+              dateInput.setAttribute("max", window.realNetworkDateStr); 
+          }
+          
+          const ndbDateInput = document.getElementById("ndbDate");
+          if(ndbDateInput) {
+              ndbDateInput.value = window.realNetworkDateStr;
+              ndbDateInput.setAttribute("max", window.realNetworkDateStr);
+          }
+        }
+      } catch(e) {
+        console.warn("Network time sync failed. Relying on device time.", e);
+      }
+    }
+    syncNetworkTime();
+
     // --- AUTHENTICATION & STAFF PAYLOAD ---
     let currentStaff = null;
     onAuthStateChanged(auth, (user) => {
@@ -1010,10 +1039,13 @@
       }
     });
 
-    // --- ADDED SUPPORT FOR OVERLAY CLICK TO CLOSE NON-DB MODAL ---
+    // --- ADDED SUPPORT FOR OVERLAY CLICK TO CLOSE ALL MODALS SAFELY ---
     document.getElementById("modalOverlay").addEventListener("click", () => {
        if(document.getElementById("nonDbModal").classList.contains("active-modal")) {
            closeNonDbModal();
+       }
+       if(document.getElementById("customerInfo").classList.contains("active-modal")) {
+           closeModal();
        }
     });
 
@@ -1077,6 +1109,11 @@
       if (!amountInput || isNaN(amountInput) || amountInput <= 0) return alert("❌ Enter valid amount (>0)");
       if (!targetDueInput || isNaN(targetDueInput) || targetDueInput < 1) return alert("❌ Check Due Number (>0)");
       if (!date) return alert("❌ Select date");
+
+      // FIX: Prevent future dating securely using network time check
+      if (window.realNetworkDateStr && date > window.realNetworkDateStr) {
+          return alert("❌ Invalid Date! You cannot post-date entries into the future.");
+      }
 
       // Validate Start vs Target
       const startDue = calculatedNextDue;
@@ -1392,10 +1429,14 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
     window.openNonDbModal = () => {
       const card = document.getElementById("nonDbModal");
       
-      // BUG FIX: Set date strictly to local timezone to prevent UTC "Yesterday" Bug
+      // BUG FIX: Set date strictly to local timezone to prevent UTC "Yesterday" Bug as fallback
       const tzoffset = (new Date()).getTimezoneOffset() * 60000;
       const localISODate = (new Date(Date.now() - tzoffset)).toISOString().split("T")[0];
-      document.getElementById("ndbDate").value = localISODate;
+      
+      // NEW FIX: Default to real network date if successful, ensuring device manipulation is bypassed
+      const trueDateStr = window.realNetworkDateStr || localISODate;
+      document.getElementById("ndbDate").value = trueDateStr;
+      document.getElementById("ndbDate").setAttribute("max", trueDateStr);
       
       document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
       
@@ -1449,6 +1490,11 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
       if(!amtStr || isNaN(amt) || amt <= 0) return alert("❌ Enter valid Amount (>0)");
       if(!mode) return alert("❌ Select Payment Mode");
       if(!date) return alert("❌ Select Date");
+
+      // FIX: Prevent future dating securely using network time check
+      if (window.realNetworkDateStr && date > window.realNetworkDateStr) {
+          return alert("❌ Invalid Date! You cannot post-date entries into the future.");
+      }
 
       const btn = document.getElementById("btnSaveNdb");
       btn.disabled = true;
@@ -1530,10 +1576,11 @@ Balance : ${balance} | ${data.staffName || 'Agent'}`;
       }
     };
 
-    // BUG FIX: Set Today's Date default strictly to local timezone to prevent UTC issues
+    // BUG FIX: Set Today's Date default strictly to local timezone to prevent UTC issues (Fallback)
     const initTzoffset = (new Date()).getTimezoneOffset() * 60000;
     const initLocalISODate = (new Date(Date.now() - initTzoffset)).toISOString().split("T")[0];
     document.getElementById("date").value = initLocalISODate;
+    document.getElementById("date").setAttribute("max", initLocalISODate); // Initialize limit immediately
 
     // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
     if (window.visualViewport) {
