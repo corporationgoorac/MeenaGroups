@@ -521,16 +521,21 @@
         }
 
         // B. Check Live/Draft/Pending Payments (Agent Side)
-        const q = query(
-            collection(db, "temp_entries"),
-            where("customerId", "==", idInput)
-        );
-        const tempSnap = await getDocs(q);
-        tempSnap.forEach(doc => {
-            const t = doc.data();
-            const dNo = parseInt(t.dueNumber);
-            if(dNo > maxSystemDue) maxSystemDue = dNo;
-        });
+        // ADDED TRY/CATCH HERE: Prevents "Permission Denied" from halting the login for non-staff
+        try {
+            const q = query(
+                collection(db, "temp_entries"),
+                where("customerId", "==", idInput)
+            );
+            const tempSnap = await getDocs(q);
+            tempSnap.forEach(doc => {
+                const t = doc.data();
+                const dNo = parseInt(t.dueNumber);
+                if(dNo > maxSystemDue) maxSystemDue = dNo;
+            });
+        } catch (err) {
+            console.warn("Could not fetch temp_entries (expected if not logged in as staff). Proceeding.");
+        }
 
         // 3. COMPARE: Strict check for LATEST NUMBER only
         // Bypassed: This ensures users log in just by typing the account number.
