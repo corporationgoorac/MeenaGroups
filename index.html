@@ -98,6 +98,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0; padding: 0; 
       min-height: 100vh;
+      min-height: 100dvh; /* FIX: Added dvh to prevent mobile browser URL bar from hiding the footer */
       display: flex; flex-direction: column;
       -webkit-font-smoothing: antialiased;
     }
@@ -522,6 +523,8 @@
 
         // B. Check Live/Draft/Pending Payments (Agent Side)
         // ADDED TRY/CATCH HERE: Prevents "Permission Denied" from halting the login for non-staff
+        // FIX: Array created to capture data once, preventing multi-line reads later
+        let preFetchedTempEntries = []; 
         try {
             const q = query(
                 collection(db, "temp_entries"),
@@ -530,6 +533,7 @@
             const tempSnap = await getDocs(q);
             tempSnap.forEach(doc => {
                 const t = doc.data();
+                preFetchedTempEntries.push(t); // Capture the data immediately
                 const dNo = parseInt(t.dueNumber);
                 if(dNo > maxSystemDue) maxSystemDue = dNo;
             });
@@ -543,8 +547,8 @@
         //      throw "Incorrect Credentials";
         // }
 
-        // 4. Success: Load Data
-        await loadDashboard(data, idInput);
+        // 4. Success: Load Data - FIX: Now passing the preFetchedTempEntries
+        await loadDashboard(data, idInput, preFetchedTempEntries);
 
       } catch (e) {
         // Handle Errors Professionally
@@ -565,10 +569,11 @@
     };
 
     // --- LOAD DASHBOARD WITH LIVE STATUS ---
-    async function loadDashboard(customer, custId) {
+    // FIX: Function now accepts the pre-fetched entries array to save database reads
+    async function loadDashboard(customer, custId, preFetchedTempEntries = []) {
       document.getElementById("auth-section").style.display = "none";
       document.getElementById("dashboard-view").style.display = "block";
-      document.getElementById("dashboard-view").style.flex = "1"; // ADDED: Ensures footer stays correctly at the bottom
+      document.getElementById("dashboard-view").style.flex = "1"; // Ensures footer stays correctly at the bottom
       
       document.getElementById("userName").innerText = customer.name;
       document.getElementById("userId").innerText = `Account ID: ${customer.id}`;
@@ -577,12 +582,16 @@
       container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight: 500;">Loading live transactions...</div>`;
 
       // 5. Fetch Temporary Entries (Pending/Drafts)
-      let tempEntries = [];
+      // FIX: Database read cost slashed! Utilizing the array passed from verifyAccess instead.
+      let tempEntries = preFetchedTempEntries;
+      
+      /* COMMENTED OUT TO PREVENT DOUBLE-CHARGING FIRESTORE READS
       try {
         const q = query(collection(db, "temp_entries"), where("customerId", "==", custId));
         const tempSnap = await getDocs(q);
         tempSnap.forEach(doc => tempEntries.push(doc.data()));
       } catch(e) { console.error("Live fetch error", e); }
+      */
 
       container.innerHTML = ""; 
       
