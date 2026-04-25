@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent App - Collection Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="manifest.json">
+<meta name="robots" content="noindex, nofollow">
+
+  <style>
+    /* * ==========================================
+     * 1. CORE THEME & VARIABLES
+     * ==========================================
+     */
+    :root { 
+      /* Dark Mode Palette */
+      --bg: #020617; 
+      --surface: #0f172a; 
+      --card: #1e293b; 
+      --input: #1e293b;
+      
+      /* Neon Accents for High Visibility */
+      --primary: #10b981; /* Success Green */
+      --primary-dim: rgba(16, 185, 129, 0.1);
+      
+      --accent: #3b82f6;  /* Action Blue */
+      --accent-dim: rgba(59, 130, 246, 0.1);
+      
+      --danger: #ef4444;  /* Alert Red */
+      --danger-dim: rgba(239, 68, 68, 0.1);
+      
+      --warn: #f59e0b;    /* Warning Orange */
+      --warn-dim: rgba(245, 158, 11, 0.1);
+      
+      --secondary: #0ea5e9; /* Print Blue */
+
+      /* Typography */
+      --text: #f1f5f9; 
+      --text-muted: #64748b;
+      --border: #334155; 
+      
+      /* Shadows */
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      --glow-primary: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent; 
+      outline: none; 
+    }
+    
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      padding-bottom: 20px; 
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* * ==========================================
+     * 2. HEADER SECTION
+     * ==========================================
+     */
+    header {
+      background: rgba(15, 23, 42, 0.9); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 15px 20px; 
+      border-bottom: 1px solid var(--border);
+      position: sticky; 
+      top: 0; 
+      z-index: 50; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    header h1 { 
+      margin: 0; 
+      font-size: 1.1rem; 
+      font-weight: 700; 
+      color: #fff; 
+      letter-spacing: 0.5px; 
+      text-transform: uppercase;
+    }
+    
+    .agent-status { 
+      font-size: 0.75rem; 
+      color: var(--primary); 
+      background: var(--primary-dim); 
+      padding: 4px 12px; 
+      border-radius: 20px; 
+      font-weight: 600; 
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .status-dot {
+      width: 8px; height: 8px; background: var(--primary); border-radius: 50%;
+      box-shadow: 0 0 5px var(--primary);
+    }
+
+    /* * ==========================================
+     * 3. SEARCH SECTION
+     * ==========================================
+     */
+    .search-wrapper { 
+      padding: 20px 20px 10px 20px; 
+      position: relative; 
+      z-index: 40; 
+    }
+    
+    .input-group { 
+      position: relative; 
+      display: flex; 
+      align-items: center; 
+    }
+    
+    .search-input {
+      width: 100%; 
+      padding: 14px 50px 14px 15px; 
+      background: var(--card); 
+      border: 1px solid var(--border);
+      color: white; 
+      border-radius: 14px; 
+      font-size: 1rem;
+      transition: all 0.3s ease; 
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .search-input:focus { 
+      border-color: var(--accent); 
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); 
+    }
+    
+    .search-btn { 
+      position: absolute; 
+      right: 8px; 
+      top: 50%; 
+      transform: translateY(-50%); 
+      background: var(--accent); 
+      border: none; 
+      color: white;
+      width: 36px; 
+      height: 36px; 
+      border-radius: 10px; 
+      cursor: pointer;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); 
+      transition: all 0.2s;
+    }
+    
+    .search-btn:active { 
+      transform: translateY(-50%) scale(0.9); 
+    }
+    
+    .search-btn svg { 
+      width: 20px; 
+      height: 20px; 
+      fill: white; 
+    }
+
+    /* Suggestions List */
+    #suggestions {
+      background: var(--card); 
+      border: 1px solid var(--border); 
+      border-radius: 12px;
+      margin-top: 8px; 
+      max-height: 300px; 
+      overflow-y: auto;
+      position: absolute; 
+      width: calc(100% - 40px); 
+      left: 20px; 
+      z-index: 100;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
+      display: none; 
+    }
+    
+    .suggestion-item { 
+      padding: 15px; 
+      border-bottom: 1px solid var(--border); 
+      cursor: pointer; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      transition: background 0.2s;
+    }
+    
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:active { background: #334155; }
+    
+    .s-name { 
+      font-weight: 600; 
+      color: #fff; 
+      display: block; 
+      font-size: 0.95rem;
+    }
+    
+    .s-id { 
+      font-size: 0.8rem; 
+      color: var(--accent); 
+      font-family: monospace; 
+      background: var(--accent-dim); 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    /* * ==========================================
+     * 4. MAIN CONTENT (CUSTOMER CARD)
+     * ==========================================
+     */
+    .main-content { 
+      padding: 10px 20px; 
+    }
+    
+    .customer-card { 
+      background: var(--card); 
+      border-radius: 18px; 
+      border: 1px solid var(--border); 
+      overflow: hidden; 
+      animation: slideUp 0.4s ease-out; 
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .hidden { 
+      display: none !important; 
+    }
+
+    .card-header { 
+      padding: 20px; 
+      background: linear-gradient(to right, rgba(255,255,255,0.03), transparent); 
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .cust-name { 
+      margin: 0; 
+      font-size: 1.3rem; 
+      font-weight: 700; 
+      color: #fff; 
+    }
+    
+    .cust-meta { 
+      margin-top: 8px; 
+      font-size: 0.9rem; 
+      color: var(--text-muted); 
+      display: flex; 
+      gap: 15px; 
+      font-family: monospace;
+    }
+
+    .card-body { 
+      padding: 20px; 
+    }
+
+    /* Form Fields */
+    label { 
+      display: block; 
+      color: var(--text-muted); 
+      font-size: 0.85rem; 
+      margin-bottom: 8px; 
+      font-weight: 500; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .custom-select {
+      width: 100%; 
+      padding: 14px; 
+      background: #0f172a; 
+      border: 1px solid var(--border);
+      color: white; 
+      border-radius: 10px; 
+      font-size: 1rem; 
+      margin-bottom: 20px; 
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px top 50%;
+      background-size: 12px auto;
+    }
+    
+    .custom-select:focus { border-color: var(--accent); }
+
+    /* Info Grid */
+    .stats-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 12px; 
+      margin-bottom: 25px;
+    }
+    
+    .stat-box { 
+      background: #0f172a; 
+      padding: 15px; 
+      border-radius: 12px; 
+      border: 1px solid var(--border);
+      display: flex; 
+      flex-direction: column; 
+      align-items: center;
+      text-align: center;
+    }
+    
+    .stat-label { 
+      font-size: 0.7rem; 
+      color: var(--text-muted); 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 5px;
+    }
+    
+    .stat-val { 
+      font-size: 1.2rem; 
+      font-weight: 700; 
+      color: #fff; 
+      font-family: monospace;
+    }
+    
+    /* Dynamic Colors for Stats */
+    .val-due { color: var(--warn); text-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+    .val-bal { color: var(--danger); text-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+    .val-paid { color: var(--primary); text-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+
+    /* Input Row */
+    .input-row { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 15px; 
+      margin-bottom: 15px; 
+    }
+    
+    .input-field {
+      width: 100%; 
+      padding: 14px; 
+      background: #0f172a; 
+      border: 1px solid var(--border);
+      color: white; 
+      border-radius: 10px; 
+      font-size: 1.1rem; 
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    
+    .input-field:focus { 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); 
+    }
+
+    /* * ==========================================
+     * 5. BUTTONS & ACTIONS
+     * ==========================================
+     */
+    .btn-save {
+      width: 100%; 
+      padding: 16px; 
+      background: var(--primary); 
+      color: #000;
+      border: none; 
+      border-radius: 12px; 
+      font-weight: 800; 
+      font-size: 1rem;
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 10px;
+      box-shadow: var(--glow-primary); 
+      transition: transform 0.1s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-save:active { transform: scale(0.98); }
+    .btn-save:disabled { background: var(--text-muted); opacity: 0.5; box-shadow: none; }
+
+    /* Action Buttons Row */
+    .action-row { 
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr; /* UPDATED: 3 Columns for Copy, Print, Download */
+      gap: 10px; 
+      margin-top: 20px; 
+      padding-top: 20px;
+      border-top: 1px dashed var(--border);
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .btn-action { 
+      padding: 15px 5px; 
+      border-radius: 12px; 
+      border: none; 
+      font-weight: 700; 
+      cursor: pointer;
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
+      justify-content: center; 
+      gap: 5px; 
+      font-size: 0.8rem;
+      transition: 0.2s;
+      text-align: center;
+    }
+    
+    .btn-download { 
+      background: var(--surface); 
+      border: 1px solid var(--border); 
+      color: var(--text); 
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+    }
+    
+    .btn-print { 
+      background: var(--secondary);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-copy {
+      background: var(--warn);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    
+    .btn-download:active, .btn-copy:active, .btn-print:active { transform: translateY(2px); }
+
+    /* * ==========================================
+     * 7. UTILITIES & ANIMATIONS
+     * ==========================================
+     */
+    .toast {
+      position: fixed; 
+      bottom: 50px; 
+      left: 50%; 
+      transform: translateX(-50%) translateY(20px);
+      background: #10b981; 
+      color: #000; 
+      padding: 12px 24px; 
+      border-radius: 50px;
+      font-weight: bold; 
+      opacity: 0; 
+      pointer-events: none; 
+      transition: 0.3s; 
+      z-index: 2000; /* Increased z-index to show above modals */
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes slideUp { 
+      from { opacity: 0; transform: translateY(20px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* * ==========================================
+     * NEW: ENHANCED CARDS & MODAL STYLES ADDED
+     * ==========================================
+     */
+     
+    /* Upgrade suggestions to behave like a static card list */
+    #suggestions {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      position: relative !important;
+      width: 100% !important;
+      left: 0 !important;
+      margin-top: 15px !important;
+      max-height: calc(100vh - 160px) !important;
+      padding-bottom: 20px;
+    }
+    
+    /* Upgrade list items to look like professional modern cards */
+    .suggestion-item {
+      background: linear-gradient(145deg, #1e293b, #0f172a) !important;
+      border-radius: 16px !important;
+      margin-bottom: 15px !important;
+      padding: 20px !important;
+      border: 1px solid rgba(255,255,255,0.05) !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+      position: relative;
+      transition: all 0.3s ease !important; /* Added for neater UI */
+    }
+
+    /* NEAT UI HOVER FIX */
+    .suggestion-item:hover {
+      transform: translateY(-3px);
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.4) !important;
+    }
+    
+    .s-name { font-size: 1.2rem !important; margin-bottom: 2px; }
+    .s-id { font-size: 0.85rem !important; background: rgba(59, 130, 246, 0.15) !important; }
+    
+    .card-view-btn {
+      background: var(--primary-dim);
+      color: var(--primary);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      align-self: flex-end;
+      border: 1px solid rgba(16,185,129,0.3);
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%;
+      background: rgba(0,0,0,0.6); 
+      backdrop-filter: blur(4px);
+      z-index: 999; 
+      opacity: 0; 
+      pointer-events: none; 
+      transition: 0.3s;
+    }
+    .modal-overlay.active {
+      opacity: 1; 
+      pointer-events: auto;
+    }
+
+    /* Override `.customer-card` to act as a right-side sliding Modal */
+    .customer-card {
+      position: fixed !important;
+      top: 0 !important;
+      right: -100% !important; /* Start completely off-screen */
+      width: 100% !important;
+      max-width: 500px !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      z-index: 1000 !important;
+      margin: 0 !important;
+      transition: right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      overflow-y: auto !important;
+      display: flex;
+      flex-direction: column;
+      animation: none !important; /* Disable old slideUp */
+    }
+    .customer-card.active-modal {
+      right: 0 !important;
+      display: flex !important;
+    }
+
+    /* * ==========================================
+     * NEW: FLOATING ACTION BUTTON (FAB) FOR NON-DB ENTRY
+     * ==========================================
+     */
+    .fab-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 25px;
+      background: var(--warn); /* Distinguishing color for non-db */
+      color: #000;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      box-shadow: 0 10px 25px rgba(245, 158, 11, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      cursor: pointer;
+      z-index: 100;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .fab-btn:active {
+      transform: scale(0.9);
+    }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Collection Entry</h1>
+    <div class="agent-status">
+      <div class="status-dot"></div>
+      Online
+    </div>
+  </header>
+
+  <div class="search-wrapper">
+    <div class="input-group">
+      <input type="text" id="searchBox" class="search-input" placeholder="Search ID or Name..." autocomplete="off">
+      <button class="search-btn" onclick="executeSearch()">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
+    </div>
+    <div id="suggestions"></div>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <main class="main-content">
+    
+    <div id="customerInfo" class="customer-card hidden">
+      
+      <div class="card-header">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="color: var(--accent); font-weight: bold; font-size: 0.85rem; letter-spacing: 1px;">CUSTOMER PROFILE</span>
+          <button onclick="closeModal()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;">✕</button>
+        </div>
+
+        <h2 class="cust-name" id="custName">Customer Name</h2>
+        <div class="cust-meta">
+          <span id="custId">ID: --</span>
+          <span>•</span>
+          <span id="custPhone">Ph: --</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        
+        <label>Select Product / Loan</label>
+        <select id="productDropdown" class="custom-select"></select>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">Total Value</span>
+            <span class="stat-val" id="dispTotal">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Paid So Far</span>
+            <span class="stat-val val-paid" id="dispPaid">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Next Due #</span>
+            <span class="stat-val val-due" id="dispDue">-</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Balance</span>
+            <span class="stat-val val-bal" id="dispBal">-</span>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div>
+            <label>Amount (₹)</label>
+            <input type="number" id="amount" class="input-field" placeholder="0">
+          </div>
+          <div>
+            <label>Target Due #</label>
+            <input type="number" id="targetDue" class="input-field">
+          </div>
+        </div>
+        
+        <div class="input-row">
+          <div>
+            <label>Payment Mode</label>
+            <select id="paymentMode" class="custom-select" style="margin-bottom:0;">
+              <option value="Cash">CASH</option>
+              <option value="Online">ONLINE / UPI</option>
+            </select>
+          </div>
+          <div>
+            <label>Date</label>
+            <input type="date" id="date" class="input-field">
+          </div>
+        </div>
+
+        <button id="btnSave" class="btn-save" onclick="saveToTempCollection()">
+          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+          CONFIRM & SPLIT
+        </button>
+
+        <div id="postSaveActions" class="action-row hidden">
+          <button class="btn-action btn-copy" onclick="copyReceiptText()">
+             <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+             <span>Copy Txt</span>
+          </button>
+          
+          <button class="btn-action btn-print" onclick="printReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg>
+            <span>Print</span>
+          </button>
+
+          <button class="btn-action btn-download" onclick="downloadLastReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span>Download</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+    
+    <div id="nonDbModal" class="customer-card hidden">
+      <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="color: var(--warn); font-weight: bold; font-size: 0.85rem; letter-spacing: 1px;">NON-DATABASE ENTRY</span>
+          <button onclick="closeNonDbModal()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;">✕</button>
+        </div>
+        <h2 class="cust-name">Manual Collection</h2>
+        <div class="cust-meta">
+          <span>Out of System Custom Entry</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="input-row">
+          <div>
+            <label>Customer Name</label>
+            <input type="text" id="ndbName" class="input-field" placeholder="Enter Name">
+          </div>
+          <div>
+            <label>Customer ID</label>
+            <input type="text" id="ndbId" class="input-field" placeholder="Enter ID">
+          </div>
+        </div>
+        
+        <div class="input-row">
+          <div>
+            <label>Due Number</label>
+            <input type="number" id="ndbDue" class="input-field" placeholder="1">
+          </div>
+          <div>
+            <label>Amount (₹)</label>
+            <input type="number" id="ndbAmount" class="input-field" placeholder="0">
+          </div>
+        </div>
+        
+        <div class="input-row">
+          <div>
+            <label>Payment Mode</label>
+            <select id="ndbPaymentMode" class="custom-select" style="margin-bottom:0;">
+              <option value="Cash">CASH</option>
+              <option value="Online">ONLINE / UPI</option>
+            </select>
+          </div>
+          <div>
+            <label>Date</label>
+            <input type="date" id="ndbDate" class="input-field">
+          </div>
+        </div>
+
+        <button id="btnSaveNdb" class="btn-save" style="background: var(--warn);" onclick="saveNonDbEntry()">
+          <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          SAVE MANUAL ENTRY
+        </button>
+
+        <div id="ndbPostSaveActions" class="action-row hidden">
+          <button class="btn-action btn-copy" onclick="copyReceiptText()">
+             <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+             <span>Copy Txt</span>
+          </button>
+          
+          <button class="btn-action btn-print" onclick="printReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg>
+            <span>Print</span>
+          </button>
+
+          <button class="btn-action btn-download" onclick="downloadLastReceipt()">
+            <svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            <span>Download</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+  </main>
+
+  <button id="fabAddNonDB" class="fab-btn" onclick="openNonDbModal()" style="display: none;">+</button>
+
+  <div id="toast" class="toast">Entry Saved Successfully!</div>
+
+  <canvas id="downloadCanvas" style="display:none;"></canvas>
+
+  <script type="module">
+    import { db, auth } from "./config.js";
+    import { 
+      collection, query, where, getDocs, limit, addDoc, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    // --- STATE VARIABLES ---
+    let selectedCustomer = null;
+    let selectedProductIndex = 0;
+    let calculatedNextDue = 0;
+    let existingPaid = 0;
+    let pendingLogsPaid = 0;
+    
+    // Receipt Data
+    let lastReceiptData = null;
+    let lastBalance = 0;
+    let lastTotalPaid = 0;
+
+    // --- AUTHENTICATION & STAFF PAYLOAD ---
+    let currentStaff = null;
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        let fullName = user.displayName || "Agent";
+        let firstName = fullName.split(' '); // Get first name
+        currentStaff = { uid: user.uid, name: firstName };
+        // Optional: Update status indicator dynamically without removing HTML lines
+        const statusEl = document.querySelector('.agent-status');
+        if(statusEl) statusEl.innerHTML = `<div class="status-dot"></div> Online - ${firstName}`;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // --- 1. SMART SEARCH LOGIC ---
+    const searchBox = document.getElementById("searchBox");
+    const suggestionBox = document.getElementById("suggestions");
+
+    searchBox.addEventListener("keypress", (e) => {
+      if (e.key === " ") e.preventDefault(); // NEW LINE: Prevent spaces
+      if (e.key === "Enter") executeSearch();
+    });
+
+    // NEW LINE: Added Debounce function to limit Firebase reads while typing.
+    let typingTimer;
+    searchBox.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\s+/g, ''); // NEW LINE: Also remove spaces on paste
+
+      clearTimeout(typingTimer);
+      if (searchBox.value.trim().length >= 2) {
+        typingTimer = setTimeout(executeSearch, 600); // Wait 600ms after user stops typing to fetch
+      } else {
+        suggestionBox.style.display = "none";
+      }
+    });
+
+    window.executeSearch = async () => {
+      const term = searchBox.value.trim();
+      
+      // NEW LINE: Hide the FAB again on a new search
+      document.getElementById("fabAddNonDB").style.display = "none";
+
+      if (term.length < 2) { 
+        alert("Please enter at least 2 characters."); 
+        return; 
+      }
+
+      suggestionBox.innerHTML = '<div style="padding:15px; color:#aaa;">Searching Database...</div>';
+      suggestionBox.style.display = "block";
+
+      const colRef = collection(db, "customers");
+      let snapshot;
+
+      try {
+        const qId = query(colRef, where("id", ">=", term.toUpperCase()), where("id", "<=", term.toUpperCase() + '\uf8ff'), limit(5));
+        snapshot = await getDocs(qId);
+
+        if (snapshot.empty) {
+          const qName = query(colRef, where("name", ">=", term), where("name", "<=", term + '\uf8ff'), limit(5));
+          snapshot = await getDocs(qName);
+        }
+
+        suggestionBox.innerHTML = "";
+        
+        if (snapshot.empty) {
+          suggestionBox.innerHTML = '<div style="padding:15px; color:#ef4444;">No customer found.</div>';
+          
+          // NEW LINE: Show the FAB add icon because no customer was found
+          document.getElementById("fabAddNonDB").style.display = "flex";
+          
+          return;
+        }
+
+        snapshot.forEach(docSnap => {
+          const c = docSnap.data();
+          const div = document.createElement("div");
+          div.className = "suggestion-item";
+          
+          // NEW LINE: Modified the inner structure to show like a professional modern card while keeping the original spans
+          div.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+              <span class="s-name">${c.name}</span> 
+              <span class="s-id">ID: ${c.id}</span>
+              <span style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">📞 Phone: ${c.phone || 'N/A'}</span>
+            </div>
+            <div class="card-view-btn">View Profile ➔</div>
+          `;
+          
+          div.onclick = () => loadCustomer(c);
+          suggestionBox.appendChild(div);
+        });
+      } catch (e) {
+        suggestionBox.innerHTML = `<div style="padding:15px; color:red;">Error: ${e.message}</div>`;
+      }
+    };
+
+    // --- 2. LOAD CUSTOMER ---
+    async function loadCustomer(c) {
+      selectedCustomer = c;
+      
+      document.getElementById("custName").innerText = c.name;
+      document.getElementById("custId").innerText = `ID: ${c.id}`;
+      document.getElementById("custPhone").innerText = `Ph: ${c.phone || 'N/A'}`;
+      
+      searchBox.value = "";
+      suggestionBox.style.display = "none";
+      document.getElementById("customerInfo").classList.remove("hidden");
+      
+      // NEW LINE: Trigger the right-side Modal Animation and History State
+      openModal();
+
+      document.getElementById("postSaveActions").classList.add("hidden"); 
+
+      const dropdown = document.getElementById("productDropdown");
+      dropdown.innerHTML = "";
+      
+      c.products.forEach((p, idx) => {
+        const option = document.createElement("option");
+        option.value = idx;
+        option.text = p.name;
+        dropdown.appendChild(option);
+      });
+      
+      await updateProductDetails(0);
+      dropdown.onchange = (e) => updateProductDetails(e.target.value);
+    }
+
+    // NEW LINES: Functions to handle sliding modal and mobile back button functionality
+    window.openModal = () => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("hidden");
+      // Timeout needed to allow CSS display:flex to take over before triggering slide animation
+      setTimeout(() => {
+        card.classList.add("active-modal");
+        document.getElementById("modalOverlay").classList.add("active");
+      }, 10);
+      
+      // Push state into History for Mobile Back Button
+      history.pushState({ modalOpen: true }, "");
+    };
+
+    window.closeModal = () => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350); // Wait for CSS transition to finish
+
+      // If triggered by the X button instead of the native back button, go back manually
+      if (history.state && history.state.modalOpen) {
+        history.back();
+      }
+    };
+
+    // Listen for the native mobile back button
+    window.addEventListener('popstate', (e) => {
+      const card = document.getElementById("customerInfo");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350);
+
+      // --- ADDED SUPPORT FOR NON-DB MODAL CLOSING ---
+      const ndbCard = document.getElementById("nonDbModal");
+      if(ndbCard && ndbCard.classList.contains("active-modal")) {
+          ndbCard.classList.remove("active-modal");
+          setTimeout(() => {
+              ndbCard.classList.add("hidden");
+          }, 350);
+      }
+    });
+
+    // --- ADDED SUPPORT FOR OVERLAY CLICK TO CLOSE NON-DB MODAL ---
+    document.getElementById("modalOverlay").addEventListener("click", () => {
+       if(document.getElementById("nonDbModal").classList.contains("active-modal")) {
+           closeNonDbModal();
+       }
+    });
+
+    // --- 3. CALCULATE STATS & PRE-FILL TARGET DUE ---
+    async function updateProductDetails(index) {
+      selectedProductIndex = parseInt(index);
+      const p = selectedCustomer.products[index];
+      
+      const dbPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+      
+      pendingLogsPaid = 0;
+      let pendingLogsCount = 0;
+
+      try {
+        const logsQ = query(
+          collection(db, "temp_entries"), 
+          where("customerId", "==", selectedCustomer.id),
+          where("productName", "==", p.name),
+          where("status", "in", ["pending", "draft"]) 
+        );
+        const logSnap = await getDocs(logsQ);
+        logSnap.forEach(doc => {
+          pendingLogsPaid += parseFloat(doc.data().amount || 0);
+          pendingLogsCount++;
+        });
+      } catch(e) {
+        console.warn("Log check failed:", e);
+      }
+
+      existingPaid = dbPaid + pendingLogsPaid;
+      const balance = p.total - existingPaid;
+      
+      const dbMaxDue = (p.payments || []).length > 0 
+        ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
+        : 0;
+      
+      calculatedNextDue = dbMaxDue + pendingLogsCount + 1; 
+
+      document.getElementById("dispTotal").innerText = `₹${p.total}`;
+      document.getElementById("dispPaid").innerText = `₹${existingPaid}`;
+      document.getElementById("dispBal").innerText = `₹${balance}`;
+      document.getElementById("dispDue").innerText = `#${calculatedNextDue}`;
+      
+      // Auto-fill Target Due Input
+      document.getElementById("targetDue").value = calculatedNextDue;
+    }
+
+    // --- 4. SAVE ENTRY (WITH SPLIT LOGIC) ---
+    window.saveToTempCollection = async () => {
+      const amountInput = parseFloat(document.getElementById("amount").value);
+      const targetDueInput = parseInt(document.getElementById("targetDue").value);
+      const date = document.getElementById("date").value;
+      const paymentMode = document.getElementById("paymentMode").value; // Capture Payment Mode
+
+      if (!amountInput || amountInput <= 0) return alert("❌ Enter valid amount");
+      if (!targetDueInput || targetDueInput < 1) return alert("❌ Check Due Number");
+      if (!date) return alert("❌ Select date");
+
+      // Validate Start vs Target
+      const startDue = calculatedNextDue;
+      if (targetDueInput < startDue) {
+          return alert(`❌ Target Due (#${targetDueInput}) cannot be less than Next Due (#${startDue})`);
+      }
+
+      const btn = document.getElementById("btnSave");
+      btn.disabled = true;
+      btn.innerHTML = "Processing...";
+
+      try {
+        const p = selectedCustomer.products[selectedProductIndex];
+        
+        // --- CALCULATION FOR SPLIT ---
+        const numberOfDues = (targetDueInput - startDue) + 1;
+        const amountPerDue = amountInput / numberOfDues;
+        const roundedAmount = Math.floor(amountPerDue * 100) / 100;
+
+        // Loop to create entries
+        for(let i = 0; i < numberOfDues; i++) {
+           const currentDueNum = startDue + i;
+           
+           // Adjust last entry for remainder
+           let finalAmt = roundedAmount;
+           if(i === numberOfDues - 1) {
+              finalAmt = amountInput - (roundedAmount * (numberOfDues - 1));
+           }
+
+           const entryData = {
+             customerId: selectedCustomer.id,
+             customerName: selectedCustomer.name,
+             customerPhone: selectedCustomer.phone,
+             productName: p.name,
+             productIndex: selectedProductIndex, 
+             amount: parseFloat(finalAmt.toFixed(2)),
+             date: date,
+             dueNumber: currentDueNum, 
+             status: "draft", 
+             timestamp: serverTimestamp(), 
+             agentEntry: true,
+             paymentMode: paymentMode, // Save Mode to DB
+             splitInfo: numberOfDues > 1 ? `(${i+1}/${numberOfDues})` : "",
+             // NEW LINES ADDED FOR PAYLOAD:
+             staffUid: currentStaff ? currentStaff.uid : "unknown",
+             staffName: currentStaff ? currentStaff.name : "Agent"
+           };
+
+           await addDoc(collection(db, "temp_entries"), entryData);
+           
+           // Update Last Receipt Data (This ensures we print the LAST one)
+           lastReceiptData = entryData;
+        }
+
+        showToast(`Saved ${numberOfDues} Entries!`);
+        
+        // --- RECEIPT DATA (Cumulative for the whole split) ---
+        // We want the Receipt to show the FINAL status after ALL these splits are paid
+        lastTotalPaid = existingPaid + amountInput;
+        lastBalance = p.total - lastTotalPaid;
+        
+        // Voice Feedback (Total Amount)
+        speakAmount(amountInput);
+
+        document.getElementById("amount").value = "";
+        btn.innerHTML = "✅ SAVED";
+        
+        document.getElementById("postSaveActions").classList.remove("hidden");
+
+        await updateProductDetails(selectedProductIndex);
+
+      } catch (e) {
+        console.error(e);
+        alert("Error saving: " + e.message);
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M17 3H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            CONFIRM & SPLIT`;
+        }, 2000);
+      }
+    };
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // --- 5. TEXT-TO-SPEECH (TTS) FUNCTION ---
+    function speakAmount(amount) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const text = `Received amount, ${amount} rupees.`;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1; 
+        utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // --- 6. OPTIMIZED IMAGE GENERATION (FOR THERMAL PRINT) ---
+    function drawDownloadImage(data, balance, totalPaid) {
+      const canvas = document.getElementById('downloadCanvas');
+      const width = 384; 
+      const height = 485; 
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Background (White)
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Text Settings (Black, High Contrast)
+      ctx.fillStyle = "#000000";
+      
+      let y = 35; 
+
+      // --- HEADER ---
+      ctx.textAlign = "center";
+      ctx.font = "bold 28px Arial"; 
+      ctx.fillText("MEENA GROUPS", width/2, y);
+      y += 30; 
+      
+      ctx.font = "bold 16px Arial"; 
+      ctx.fillText("PAYMENT RECEIPT", width/2, y);
+      y += 20; 
+
+      // Divider
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
+
+      // --- DETAILS ---
+      ctx.textAlign = "left";
+      ctx.font = "bold 19px Courier New"; 
+      
+      const xLeft = 10;
+      const gap = 26; 
+
+      ctx.fillText(`Date : ${data.date}`, xLeft, y);
+      y += gap;
+      ctx.fillText(`ID   : ${data.customerId}`, xLeft, y);
+      y += gap;
+      ctx.fillText(`Due #: ${data.dueNumber}`, xLeft, y);
+      y += gap;
+      
+      // Handle long names
+      let nameStr = data.customerName;
+      if(nameStr.length > 18) nameStr = nameStr.substring(0,18) + "..";
+      ctx.fillText(`Name : ${nameStr}`, xLeft, y);
+      y += gap;
+      
+      // Display Payment Mode on Receipt for clarity
+      ctx.fillText(`Mode : ${data.paymentMode || 'Cash'}`, xLeft, y);
+      y += gap + 5;
+
+      // Divider
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
+
+      // --- AMOUNT (CENTERED) ---
+      ctx.textAlign = "center";
+      ctx.font = "bold 20px Arial"; 
+      ctx.fillText("RECEIVED AMOUNT", width/2, y);
+      y += 50; 
+      
+      // Note: We show the single entry amount here. 
+      // If user paid 5000 split into 5, this will show 1000. 
+      // But the Balance reflects the full payment.
+      ctx.font = "bold 50px Arial"; 
+      ctx.fillText(`₹${data.amount}`, width/2, y - 10);
+      y += 15;
+
+      // Divider
+      drawDashedLine(ctx, 5, y, width-5, y);
+      y += 25;
+
+      // --- SUMMARY ---
+      ctx.font = "bold 18px Courier New"; 
+      
+      // Line 1: Total Paid
+      ctx.textAlign = "left";
+      ctx.fillText("Total Paid:", xLeft, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹${totalPaid}`, width - 10, y);
+      y += gap;
+
+      // Line 2: Balance (Bold)
+      ctx.font = "bold 20px Courier New"; 
+      ctx.textAlign = "left";
+      ctx.fillText("Balance:", xLeft, y);
+      ctx.textAlign = "right";
+      ctx.fillText(`₹${balance}`, width - 10, y);
+      y += 40;
+
+      // --- FOOTER (Compact & No Italic) ---
+      ctx.textAlign = "center";
+      ctx.font = "bold 16px Arial"; 
+      ctx.fillText("Thank you!", width/2, y);
+      y += 20; 
+      ctx.font = "bold 14px Arial";
+      ctx.fillText("Visit meena.goorac.biz", width/2, y);
+      y += 15;
+      ctx.fillText("to see your eCard", width/2, y);
+    }
+
+    // Helper for thermal style dashed lines
+    function drawDashedLine(ctx, x1, y1, x2, y2) {
+      ctx.beginPath();
+      ctx.setLineDash(); 
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#000000";
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset
+    }
+
+    // --- 7. NEW: COMPACT & PROFESSIONAL RECEIPT TEXT (TEXT COPY) ---
+    window.generateSmartReceiptText = (data, totalPaid, balance) => {
+      // Formatted exactly to 3 professional lines including Brand, Date, Agent, Due, Amount, and Balance
+      let receipt = 
+`MEENA GROUPS | Date: ${data.date} | Agent: ${data.staffName || 'Admin'}
+ID: ${data.customerId} (${data.customerName.substring(0, 15)}) | Due: #${data.dueNumber}
+Paid: ₹${data.amount} (${data.paymentMode || 'Cash'}) | Balance: ₹${balance}`;
+
+      return receipt;
+    };
+
+    window.copyReceiptText = () => {
+      if(!lastReceiptData) return alert("No receipt data");
+      const smartText = generateSmartReceiptText(lastReceiptData, lastTotalPaid, lastBalance);
+      navigator.clipboard.writeText(smartText).then(() => {
+        showToast("Receipt Copied (Optimized)!");
+      }).catch(err => {
+        alert("Failed to copy text");
+      });
+    };
+
+    // --- 8. DOWNLOAD ACTION ---
+    window.downloadLastReceipt = () => {
+      if(!lastReceiptData) return;
+      drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
+      const canvas = document.getElementById('downloadCanvas');
+      const filename = `REC_${lastReceiptData.customerId}_${lastReceiptData.dueNumber}.png`;
+
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // --- 9. PRINT ACTION (MOBILE BLUETOOTH FRIENDLY) ---
+    window.printReceipt = () => {
+      if(!lastReceiptData) return alert("No receipt to print");
+      
+      drawDownloadImage(lastReceiptData, lastBalance, lastTotalPaid);
+      const canvas = document.getElementById('downloadCanvas');
+      const imgData = canvas.toDataURL("image/png");
+
+      const printWindow = window.open('', '', 'width=384,height=600');
+      if(!printWindow) return alert("Allow popups to print");
+
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Print Receipt</title>
+          <style>
+            @page { size: auto; margin: 0mm; }
+            body { margin: 0; padding: 0; display: flex; justify-content: center; background: #fff; }
+            img { width: 384px; max-width: 100%; height: auto; display: block; }
+          </style>
+        </head>
+        <body>
+          <img src="${imgData}" onload="window.print(); setTimeout(() => window.close(), 1000);" />
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    };
+
+    // --- NEW: NON-DATABASE ENTRY LOGIC ---
+    window.openNonDbModal = () => {
+      const card = document.getElementById("nonDbModal");
+      document.getElementById("ndbDate").value = new Date().toISOString().split("T"); // Auto-set today
+      document.getElementById("ndbPostSaveActions").classList.add("hidden"); // Reset UI
+      
+      // NEW LINES: Auto-fill the searched ID into the modal
+      const searchTerm = document.getElementById("searchBox").value.trim();
+      if (searchTerm) {
+        document.getElementById("ndbId").value = searchTerm;
+      } else {
+        document.getElementById("ndbId").value = "";
+      }
+      
+      card.classList.remove("hidden");
+      setTimeout(() => {
+        card.classList.add("active-modal");
+        document.getElementById("modalOverlay").classList.add("active");
+      }, 10);
+      
+      history.pushState({ nonDbModalOpen: true }, "");
+    };
+
+    window.closeNonDbModal = () => {
+      const card = document.getElementById("nonDbModal");
+      card.classList.remove("active-modal");
+      document.getElementById("modalOverlay").classList.remove("active");
+      setTimeout(() => {
+        card.classList.add("hidden");
+      }, 350);
+
+      if (history.state && history.state.nonDbModalOpen) {
+        history.back();
+      }
+    };
+
+    window.saveNonDbEntry = async () => {
+      const name = document.getElementById("ndbName").value.trim();
+      const id = document.getElementById("ndbId").value.trim();
+      const dueStr = document.getElementById("ndbDue").value;
+      const due = parseInt(dueStr);
+      const amtStr = document.getElementById("ndbAmount").value;
+      const amt = parseFloat(amtStr);
+      const mode = document.getElementById("ndbPaymentMode").value;
+      const date = document.getElementById("ndbDate").value;
+
+      // Validation Checks - ALL MANDATORY
+      if(!name) return alert("❌ Enter Customer Name");
+      if(!id) return alert("❌ Enter Customer ID");
+      if(!dueStr || isNaN(due)) return alert("❌ Enter Due Number");
+      if(!amtStr || isNaN(amt) || amt <= 0) return alert("❌ Enter valid Amount");
+      if(!mode) return alert("❌ Select Payment Mode");
+      if(!date) return alert("❌ Select Date");
+
+      const btn = document.getElementById("btnSaveNdb");
+      btn.disabled = true;
+      btn.innerHTML = "SAVING...";
+
+      try {
+        // ID Checking logic (Case insensitive, space insensitive)
+        const variations = [
+            id, 
+            id.replace(/\s+/g, ''), 
+            id.replace(/\s+/g, '').toLowerCase(), 
+            id.replace(/\s+/g, '').toUpperCase()
+        ];
+        
+        let exists = false;
+        for (const variant of variations) {
+            const checkQ = query(collection(db, "customers"), where("id", "==", variant), limit(1));
+            const checkSnap = await getDocs(checkQ);
+            if (!checkSnap.empty) {
+                exists = true;
+                break;
+            }
+        }
+        
+        if (exists) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> SAVE MANUAL ENTRY`;
+            return alert("❌ already customer exist");
+        }
+
+        const entryData = {
+          customerId: id, // Now strictly taking the provided ID
+          customerName: name,
+          customerPhone: "N/A",
+          productName: "Manual Custom Entry",
+          productIndex: -1,
+          amount: parseFloat(amt.toFixed(2)),
+          date: date,
+          dueNumber: due,
+          status: "draft",
+          timestamp: serverTimestamp(),
+          agentEntry: true,
+          paymentMode: mode,
+          isNonDatabase: true,  // <--- THE SPECIFIC MARKING ADDED HERE
+          // NEW LINES ADDED FOR PAYLOAD:
+          staffUid: currentStaff ? currentStaff.uid : "unknown",
+          staffName: currentStaff ? currentStaff.name : "Agent"
+        };
+
+        await addDoc(collection(db, "temp_entries"), entryData);
+        
+        showToast("Non-Database Entry Saved!");
+        speakAmount(amt);
+
+        // Prep data for exactly the same receipt mechanism
+        lastReceiptData = entryData;
+        lastTotalPaid = amt; 
+        lastBalance = "N/A"; // Balance is arbitrary for non-system logs
+
+        btn.innerHTML = "✅ SAVED";
+        
+        // Show actions for printing/copying
+        document.getElementById("ndbPostSaveActions").classList.remove("hidden");
+        
+        // Clear fields for next entry
+        document.getElementById("ndbName").value = "";
+        document.getElementById("ndbId").value = "";
+        document.getElementById("ndbAmount").value = "";
+        
+      } catch(e) {
+        alert("Error saving: " + e.message);
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            SAVE MANUAL ENTRY`;
+        }, 2000);
+      }
+    };
+
+    // Set Today's Date default on load
+    document.getElementById("date").value = new Date().toISOString().split("T");
+
+    // --- ENSURE FAB STAYS ABOVE MOBILE KEYBOARD ---
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        const fab = document.getElementById("fabAddNonDB");
+        if (fab) {
+          // Adjust bottom position based on keyboard height
+          const offset = window.innerHeight - window.visualViewport.height;
+          if (offset > 50) {
+            fab.style.bottom = (offset + 30) + "px";
+          } else {
+            fab.style.bottom = "30px";
+          }
+        }
+      });
+    }
+
+  </script>
+</body>
+</html>
