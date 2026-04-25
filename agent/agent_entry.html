@@ -1266,11 +1266,47 @@
       ctx.setLineDash([]); // Reset
     }
 
-    // --- 7. NEW: COMPACT & PROFESSIONAL RECEIPT TEXT (TEXT COPY) ---
+    // --- 7. NEW: MACHINE LEARNING SPACE CALCULATOR (TEXT COPY) ---
     window.generateSmartReceiptText = (data, totalPaid, balance) => {
-      // Formatted exactly to 3 professional lines including Brand, Date, Agent, Due, Amount, and Balance
+      const WIDTH = 32; 
+
+      const center = (txt) => {
+        let pad = Math.max(0, Math.floor((WIDTH - txt.length) / 2));
+        return " ".repeat(pad) + txt;
+      };
+
+      const spread = (label, value) => {
+        let valStr = String(value);
+        let labStr = String(label);
+        let spaces = Math.max(1, WIDTH - (labStr.length + valStr.length));
+        return labStr + " ".repeat(spaces) + valStr;
+      };
+
+      const line = "-".repeat(WIDTH);
+
+      // let receipt = 
+// `${center("MEENA GROUPS")}
+// ${center("Payment Receipt")}
+// ${line}
+// ${spread("Date:", data.date)}
+// ${spread("ID:", data.customerId)}
+// ${spread("Due No:", "#" + data.dueNumber)}
+// Name: ${data.customerName.substring(0, 24)}
+// ${spread("Mode:", data.paymentMode || 'Cash')}
+// ${line}
+// ${center("RECEIVED AMOUNT")}
+// ${center("Rs. " + data.amount)}
+// ${line}
+// ${spread("Total Paid:", "Rs." + totalPaid)}
+// ${spread("Balance:", "Rs." + balance)}
+// ${line}
+// ${center("Thank You!")}
+// ${center("Visit meena.goorac.biz")}
+// ${center("to see your eCard")}`;
+
+      // NEW 3-LINE PROFESSIONAL FORMAT:
       let receipt = 
-`MEENA GROUPS | Date: ${data.date} | Agent: ${data.staffName || 'Admin'}
+`MEENA GROUPS | ${data.date} | ${data.staffName || 'Admin'}
 ID: ${data.customerId} (${data.customerName.substring(0, 15)}) | Due: #${data.dueNumber}
 Paid: ₹${data.amount} (${data.paymentMode || 'Cash'}) | Balance: ₹${balance}`;
 
