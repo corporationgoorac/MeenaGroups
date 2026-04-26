@@ -20,6 +20,7 @@
       --brand-accent: #065fd4;
       --danger-color: #cc0000;
       --success-color: #0f9d58;
+      --modal-overlay: rgba(0, 0, 0, 0.4);
     }
 
     @media (prefers-color-scheme: dark) {
@@ -33,6 +34,7 @@
         --brand-accent: #3ea6ff;
         --danger-color: #ff4e45;
         --success-color: #34a853;
+        --modal-overlay: rgba(0, 0, 0, 0.7);
       }
     }
 
@@ -98,7 +100,7 @@
 
     .load-more-btn { width: 100%; background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
 
-    /* Side Modals */
+    /* Full Screen Side Modals */
     .modal {
       position: fixed; top: 0; right: 0; width: 100%; height: 100%;
       background-color: var(--bg-color); z-index: 100; transform: translateX(100%);
@@ -111,6 +113,29 @@
     .modal-title { font-size: 18px; font-weight: 600; margin-left: 12px; }
     .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
 
+    /* Mini Center Modal for Deletion */
+    .center-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: var(--modal-overlay); z-index: 200;
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      transform: none; /* Override sliding behavior */
+    }
+    .center-modal.active { opacity: 1; pointer-events: all; }
+    .mini-modal-content {
+      background-color: var(--surface-color); width: 90%; max-width: 340px;
+      border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 1px solid var(--border-color);
+    }
+    .center-modal.active .mini-modal-content { transform: scale(1); }
+    .mini-modal-title { font-size: 18px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-main); }
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 24px 0; line-height: 1.5; }
+    .mini-modal-actions { display: flex; gap: 12px; }
+    .mini-btn { flex: 1; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+    .mini-btn-cancel { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); }
+    .mini-btn-danger { background-color: var(--danger-color); color: #fff; }
+
     /* Forms */
     .input-group { margin-bottom: 20px; position: relative; }
     .input-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
@@ -120,22 +145,36 @@
     }
     .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); }
     
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } /* Mobile friendly grid */
+
     /* Validation Icon for Unique IDs */
     .validation-icon { position: absolute; right: 14px; bottom: 14px; font-size: 16px; }
     .valid { color: var(--success-color); }
     .invalid { color: var(--danger-color); }
     .loading-text { font-size: 11px; color: var(--brand-accent); position: absolute; right: 14px; top: 0; display: none; }
 
-    /* Schedule Builder */
-    .schedule-container { background: var(--surface-color); padding: 12px; border-radius: 12px; margin-bottom: 20px;}
-    .schedule-header { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; justify-content: space-between;}
-    .schedule-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .schedule-row input { padding: 10px; font-size: 14px; }
-    .add-tier-btn { background: none; border: 1px dashed var(--border-color); color: var(--text-main); width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;}
+    /* Highly Styled Mobile Schedule Builder */
+    .schedule-container { background: var(--bg-color); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 24px;}
+    .schedule-header { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; color: var(--brand-accent);}
+    
+    .schedule-row { 
+      display: grid; 
+      grid-template-columns: 2fr auto 2fr auto 3fr; /* Mo X to Y: Rs Z */
+      gap: 8px; align-items: center; margin-bottom: 12px; 
+      background: var(--surface-color); padding: 10px; border-radius: 10px;
+    }
+    .schedule-row input { 
+      width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); 
+      color: var(--text-main); padding: 10px 8px; border-radius: 6px; font-size: 14px; outline: none; text-align: center;
+    }
+    .schedule-row span { font-size: 13px; color: var(--text-muted); font-weight: 500; text-align: center; }
+    
+    .add-tier-btn { background: var(--surface-hover); border: 1px dashed var(--border-color); color: var(--text-main); width: 100%; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s;}
+    .add-tier-btn:active { transform: scale(0.98); }
 
     /* Togglable Section */
-    .toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px; }
-    .toggle-label { font-size: 14px; font-weight: 500; }
+    .toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px; background: var(--surface-color); }
+    .toggle-label { font-size: 14px; font-weight: 600; }
     .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
@@ -143,11 +182,12 @@
     input:checked + .slider { background-color: var(--brand-accent); }
     input:checked + .slider:before { transform: translateX(20px); }
 
-    .hidden-section { display: none; background: var(--surface-color); padding: 16px; border-radius: 12px; margin-bottom: 20px; }
+    .hidden-section { display: none; background: var(--bg-color); padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px; }
     .hidden-section.active { display: block; }
 
-    .submit-btn { background-color: var(--text-main); color: var(--bg-color); border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+    .submit-btn { background-color: var(--text-main); color: var(--bg-color); border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.2s;}
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -185,7 +225,7 @@
     <div class="modal-body">
       <form id="participant-form">
         <div class="input-group">
-          <label>Participant ID (Unique)</label>
+          <label>Participant ID (Unique Username)</label>
           <span class="loading-text" id="p-id-loading">Checking...</span>
           <input type="text" id="p-id" placeholder="e.g., rahul_101" required autocomplete="off">
           <span class="validation-icon" id="p-id-icon"></span>
@@ -207,7 +247,7 @@
         </div>
 
         <div class="toggle-container">
-          <span class="toggle-label">Mid-way Join (Log initial transaction)</span>
+          <span class="toggle-label">Mid-way Join / Initial Trans.</span>
           <label class="switch">
             <input type="checkbox" id="midway-toggle">
             <span class="slider"></span>
@@ -215,13 +255,15 @@
         </div>
 
         <div id="midway-section" class="hidden-section">
-          <div class="input-group">
-            <label>Joining Month (e.g., 5)</label>
-            <input type="number" id="p-join-month" placeholder="Month number">
-          </div>
-          <div class="input-group">
-            <label>Total Amount Paid Upfront (₹)</label>
-            <input type="number" id="p-join-amount" placeholder="Total initial payment">
+          <div class="grid-2">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Join Month</label>
+              <input type="number" id="p-join-month" placeholder="e.g., 5">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Amount (₹)</label>
+              <input type="number" id="p-join-amount" placeholder="Total Paid">
+            </div>
           </div>
         </div>
 
@@ -238,36 +280,39 @@
     <div class="modal-body">
       <form id="group-form">
         <div class="input-group">
-          <label>Group ID (Unique Username)</label>
+          <label>Group ID (Unique Identifier)</label>
           <span class="loading-text" id="g-id-loading">Checking...</span>
           <input type="text" id="g-id" placeholder="e.g., gold_50k_2026" required autocomplete="off">
           <span class="validation-icon" id="g-id-icon"></span>
         </div>
         <div class="input-group">
-          <label>Display Name (e.g., 50K Gold Scheme)</label>
-          <input type="text" id="g-name" required>
+          <label>Display Name</label>
+          <input type="text" id="g-name" placeholder="e.g., 50K Gold Scheme" required>
         </div>
-        <div style="display:flex; gap:10px;">
-          <div class="input-group" style="flex:1;">
+        
+        <div class="grid-2">
+          <div class="input-group">
             <label>Total Pot (₹)</label>
             <input type="number" id="g-value" required>
           </div>
-          <div class="input-group" style="flex:1;">
+          <div class="input-group">
             <label>Total Months</label>
             <input type="number" id="g-months" required>
           </div>
         </div>
 
         <div class="schedule-container">
-          <div class="schedule-header">Installment Schedule (Tiers)</div>
+          <div class="schedule-header">Installment Schedule</div>
           <div id="schedule-rows">
             <div class="schedule-row">
-              <input type="number" placeholder="Start Mo." class="s-start" required min="1">
-              <input type="number" placeholder="End Mo." class="s-end" required min="1">
-              <input type="number" placeholder="Amount (₹)" class="s-amt" required min="1">
+              <input type="number" placeholder="1" class="s-start" required min="1">
+              <span>to</span>
+              <input type="number" placeholder="10" class="s-end" required min="1">
+              <span>: ₹</span>
+              <input type="number" placeholder="Amount" class="s-amt" required min="1">
             </div>
           </div>
-          <button type="button" class="add-tier-btn" onclick="addScheduleRow()">+ Add Schedule Tier</button>
+          <button type="button" class="add-tier-btn" onclick="addScheduleRow()">+ Add Tier (e.g., Months 11-20)</button>
         </div>
 
         <button type="submit" class="submit-btn" id="g-submit-btn" disabled>Create Group</button>
@@ -275,34 +320,57 @@
     </div>
   </aside>
 
+  <aside id="delete-modal" class="center-modal">
+    <div class="mini-modal-content">
+      <h3 class="mini-modal-title">Delete Group</h3>
+      <p class="mini-modal-text">Are you sure you want to permanently delete this group? All associated ledger configurations will be lost.</p>
+      <div class="mini-modal-actions">
+        <button class="mini-btn mini-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="mini-btn mini-btn-danger" id="confirm-delete-btn">Delete Group</button>
+      </div>
+    </div>
+  </aside>
+
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, setDoc, doc, getDoc, deleteDoc, updateDoc, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, setDoc, doc, getDoc, deleteDoc, updateDoc, writeBatch, increment, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- Modal Navigation ---
+    // --- Global State for Deletion ---
+    let targetIdToDelete = null;
+
+    // --- Modal Navigation (History API Linked) ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
       history.pushState({ modalOpen: true }, '', `#${modalId}`);
     };
+    
     window.closeModal = function() {
       if(history.state && history.state.modalOpen) history.back(); 
       else closeAllModals();
     };
-    function closeAllModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+    
+    function closeAllModals() { 
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
+      targetIdToDelete = null; // Reset deletion target
+    }
+    
     window.addEventListener('popstate', closeAllModals);
 
-    // --- Schedule Builder Logic ---
+    // --- Schedule Builder Logic (Mobile UI) ---
     window.addScheduleRow = function() {
       const container = document.getElementById('schedule-rows');
       const row = document.createElement('div');
       row.className = 'schedule-row';
       row.innerHTML = `
-        <input type="number" placeholder="Start Mo." class="s-start" required min="1">
-        <input type="number" placeholder="End Mo." class="s-end" required min="1">
-        <input type="number" placeholder="Amount (₹)" class="s-amt" required min="1">
+        <input type="number" placeholder="Start" class="s-start" required min="1">
+        <span>to</span>
+        <input type="number" placeholder="End" class="s-end" required min="1">
+        <span>: ₹</span>
+        <input type="number" placeholder="Amount" class="s-amt" required min="1">
       `;
       container.appendChild(row);
     };
@@ -403,14 +471,16 @@
                   <span>₹${data.totalPot.toLocaleString()}</span>
                   <span>•</span>
                   <span>${data.totalMonths} Months</span>
+                  <span>•</span>
+                  <span>${data.participantCount || 0} Members</span>
                 </div>
-                <div class="group-meta" style="margin-top:4px; font-size:11px;">
-                  Schedule: [${schedulePreview}]
+                <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--brand-accent);">
+                  Sched: [${schedulePreview}]
                 </div>
               </div>
             </div>
             <div class="group-actions">
-              <button class="icon-btn delete" onclick="deleteGroup('${groupId}')">
+              <button class="icon-btn delete" onclick="initiateDelete('${groupId}')">
                 <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete
               </button>
             </div>
@@ -423,13 +493,12 @@
     }
     loadMoreBtn.addEventListener('click', () => loadGroups(true));
 
-    // --- Participant Modal Setup ---
+    // --- Participant Modal Setup (Dropdown) ---
     window.openParticipantModal = async function() {
-      // Fetch active groups for the dropdown
       const select = document.getElementById('p-group');
       select.innerHTML = '<option value="">-- Do not assign yet --</option>'; // Reset
       try {
-        const q = query(collection(db, "groups"), limit(50)); // Fetch up to 50 active groups
+        const q = query(collection(db, "groups"), limit(50)); 
         const snap = await getDocs(q);
         snap.forEach(doc => {
           const opt = document.createElement('option');
@@ -437,11 +506,11 @@
           opt.innerText = `${doc.data().groupName} (@${doc.id})`;
           select.appendChild(opt);
         });
-      } catch(e) { console.error("Error fetching groups for dropdown", e); }
+      } catch(e) { console.error("Dropdown error", e); }
       openModal('participant-modal');
     };
 
-    // --- Create Group Form Submission ---
+    // --- Create Group Form Submission (1-Read Architecture Ready) ---
     document.getElementById('group-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('g-submit-btn');
@@ -461,13 +530,15 @@
       btn.innerText = "Creating..."; btn.disabled = true;
 
       try {
-        // Use setDoc to use the custom Unique ID
+        // Core Logic: We include currentMonth and empty memberSnapshot for 1-read optimization
         await setDoc(doc(db, "groups", groupId), {
           groupName: document.getElementById('g-name').value,
           totalPot: Number(document.getElementById('g-value').value),
           totalMonths: Number(document.getElementById('g-months').value),
           installmentSchedule: installmentSchedule,
           participantCount: 0,
+          currentMonth: 1, 
+          memberSnapshot: [], 
           createdAt: serverTimestamp()
         });
         
@@ -475,9 +546,11 @@
         document.getElementById('g-id-icon').innerHTML = ''; // Clear icon
         document.getElementById('schedule-rows').innerHTML = `
           <div class="schedule-row">
-            <input type="number" placeholder="Start Mo." class="s-start" required min="1">
-            <input type="number" placeholder="End Mo." class="s-end" required min="1">
-            <input type="number" placeholder="Amount (₹)" class="s-amt" required min="1">
+            <input type="number" placeholder="1" class="s-start" required min="1">
+            <span>to</span>
+            <input type="number" placeholder="10" class="s-end" required min="1">
+            <span>: ₹</span>
+            <input type="number" placeholder="Amount" class="s-amt" required min="1">
           </div>`; // Reset schedule UI
         
         closeModal();
@@ -489,11 +562,12 @@
       }
     });
 
-    // --- Add Participant Form Submission (With Batched Writes) ---
+    // --- Add Participant Form Submission (Batched Writes + Snapshot arrayUnion) ---
     document.getElementById('participant-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('p-submit-btn');
       const userId = document.getElementById('p-id').value.trim();
+      const userName = document.getElementById('p-name').value;
       const selectedGroupId = document.getElementById('p-group').value;
       const isMidway = document.getElementById('midway-toggle').checked;
       
@@ -505,45 +579,55 @@
         // 1. Create User Document
         const userRef = doc(db, "users", userId);
         let userData = {
-          name: document.getElementById('p-name').value,
+          name: userName,
           phone: document.getElementById('p-phone').value,
           activeGroups: selectedGroupId ? [selectedGroupId] : [],
           joinedAt: serverTimestamp()
         };
         batch.set(userRef, userData);
 
-        // 2. If Assigned to a Group, increment group count
+        // 2. If Assigned to a Group, update group doc (count + 1-read snapshot)
         if (selectedGroupId) {
           const groupRef = doc(db, "groups", selectedGroupId);
-          batch.update(groupRef, { participantCount: increment(1) });
           
-          // 3. If Mid-way join, record the transaction
+          // Push user info into the array for instant loading later
+          batch.update(groupRef, { 
+            participantCount: increment(1),
+            memberSnapshot: arrayUnion({
+               id: userId,
+               name: userName,
+               monthsPaid: isMidway ? Number(document.getElementById('p-join-month').value) : 0,
+               balanceDue: 0,
+               hasAdvance: false
+            })
+          });
+          
+          // 3. If Mid-way join, record the initial transaction
           if (isMidway) {
             const joinMonth = Number(document.getElementById('p-join-month').value);
             const amountPaid = Number(document.getElementById('p-join-amount').value);
             
             if (joinMonth && amountPaid) {
-              const txRef = doc(collection(db, "transactions")); // Auto-ID for transaction
+              const txRef = doc(collection(db, "transactions")); 
               batch.set(txRef, {
                 subscriberId: userId,
                 groupId: selectedGroupId,
                 amount: amountPaid,
                 monthAttributed: joinMonth,
-                type: "Initial Catch-up Payment",
+                type: "Initial Setup / Catch-up",
                 date: serverTimestamp()
               });
             }
           }
         }
 
-        // Commit all changes atomically
         await batch.commit();
         
         e.target.reset();
-        document.getElementById('p-id-icon').innerHTML = ''; // Clear icon
+        document.getElementById('p-id-icon').innerHTML = ''; 
         document.getElementById('midway-section').classList.remove('active');
         closeModal();
-        alert("Participant added successfully!");
+        alert("Participant successfully added and assigned!");
 
       } catch (error) {
         alert("Error adding participant"); console.error(error);
@@ -552,17 +636,31 @@
       }
     });
 
-    // Global Delete Function
-    window.deleteGroup = async function(id) {
-      if (confirm(`Delete group @${id}? This action cannot be undone.`)) {
-        try {
-          await deleteDoc(doc(db, "groups", id));
-          loadGroups();
-        } catch(e) { console.error("Error deleting", e); }
-      }
+    // --- Custom Delete Modal Logic ---
+    window.initiateDelete = function(id) {
+      targetIdToDelete = id;
+      openModal('delete-modal');
     };
 
-    // Initialize
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+      if (!targetIdToDelete) return;
+      const btn = document.getElementById('confirm-delete-btn');
+      btn.innerText = "Deleting..."; btn.disabled = true;
+
+      try {
+        await deleteDoc(doc(db, "groups", targetIdToDelete));
+        closeModal();
+        loadGroups();
+      } catch(e) { 
+        console.error("Error deleting", e); 
+        alert("Failed to delete group.");
+      } finally {
+        btn.innerText = "Delete Group"; btn.disabled = false;
+        targetIdToDelete = null;
+      }
+    });
+
+    // Initialize Page Data
     loadGroups();
   </script>
 </body>
