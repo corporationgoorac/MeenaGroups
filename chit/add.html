@@ -79,9 +79,12 @@
     .action-btn:active { transform: scale(0.98); }
     .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-    /* List Container */
+    /* List Container & Advanced Search */
     .list-container { padding: 0 20px 80px; }
-    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 0; color: var(--text-muted); }
+    .search-input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-main); font-size: 13px; outline: none; width: 150px; transition: border-color 0.2s; }
+    .search-input:focus { border-color: var(--brand-accent); }
 
     /* Group Card */
     .group-card {
@@ -133,7 +136,7 @@
     
     .msg-icon { font-size: 40px; margin-bottom: 12px; }
     .mini-modal-title { font-size: 18px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 24px 0; line-height: 1.5; }
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 24px 0; line-height: 1.5; word-wrap: break-word; }
     .mini-modal-actions { display: flex; gap: 12px; }
     
     .mini-btn { flex: 1; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
@@ -222,7 +225,10 @@
     </div>
 
     <div class="list-container">
-      <div class="section-title">Active Groups</div>
+      <div class="section-header-row">
+        <div class="section-title">Active Groups</div>
+        <input type="text" id="group-search" class="search-input" placeholder="Search ID or Name...">
+      </div>
       <div id="groups-list">
         </div>
       <button id="load-more-btn" class="load-more-btn" style="display: none;">Load More</button>
@@ -383,10 +389,25 @@
     
     window.addEventListener('popstate', closeAllModals);
 
+    // --- Advanced Feature: Live Search Filter ---
+    document.getElementById('group-search').addEventListener('input', function(e) {
+      const term = e.target.value.toLowerCase();
+      const cards = document.querySelectorAll('.group-card');
+      cards.forEach(card => {
+        const name = card.querySelector('.group-name').innerText.toLowerCase();
+        const id = card.querySelector('.group-id-badge').innerText.toLowerCase();
+        if(name.includes(term) || id.includes(term)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+
     // --- Custom Universal Alert Replacement ---
     window.showMessage = function(title, body, type = 'success') {
       document.getElementById('msg-title').innerText = title;
-      document.getElementById('msg-body').innerHTML = body; // Changed to innerHTML to support links
+      document.getElementById('msg-body').innerHTML = body; 
       const icon = document.getElementById('msg-icon');
       
       if (type === 'success') {
@@ -477,7 +498,7 @@
     document.getElementById('g-id').addEventListener('input', () => validateUniqueId('groups', 'g-id', 'g-id-icon', 'g-id-loading', 'g-submit-btn'));
     document.getElementById('p-id').addEventListener('input', () => validateUniqueId('users', 'p-id', 'p-id-icon', 'p-id-loading', 'p-submit-btn'));
 
-    // --- Group Fetching & Pagination (WITH SMART ERROR HANDLING) ---
+    // --- Group Fetching & Pagination (WITH ADVANCED FAIL-SAFE FALLBACK) ---
     const groupsList = document.getElementById('groups-list');
     const loadMoreBtn = document.getElementById('load-more-btn');
     let lastVisibleDoc = null;
@@ -492,7 +513,18 @@
           q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(5));
         }
 
-        const querySnapshot = await getDocs(q);
+        let querySnapshot;
+        try {
+          querySnapshot = await getDocs(q);
+        } catch (firstErr) {
+          console.warn("Ordered query failed. Falling back to safe query...", firstErr);
+          // FALLBACK: If orderBy fails due to missing index or legacy missing fields, run a basic query.
+          const fallbackQ = (isLoadMore && lastVisibleDoc) 
+            ? query(collection(db, "groups"), startAfter(lastVisibleDoc), limit(5)) 
+            : query(collection(db, "groups"), limit(5));
+          querySnapshot = await getDocs(fallbackQ);
+        }
+
         if (querySnapshot.empty) {
           if(!isLoadMore) groupsList.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No active groups found. Create one above!</div>';
           loadMoreBtn.style.display = 'none';
@@ -547,21 +579,15 @@
 
         loadMoreBtn.style.display = querySnapshot.docs.length === 5 ? 'block' : 'none';
       } catch (error) { 
-        console.error("Fetch Groups Error:", error); 
+        console.error("Critical Fetch Error:", error); 
         
         if(!isLoadMore) {
-          let errorHTML = "Error loading data. Check internet connection.";
-          
-          // SMART ERROR DETECTION: Detect Firebase Indexing Missing Errors
-          if(error.message && error.message.includes("https://console.firebase.google.com")) {
-             const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-             const extractedUrl = error.message.match(urlRegex)[0];
-             errorHTML = `Database Index Missing. Firebase requires an index to sort groups by creation date.<br>
-                          <a href="${extractedUrl}" target="_blank" class="index-link">Click Here to Build Index</a>
-                          <br><br><span style="font-size:11px; color:var(--text-muted)">Click the link, log in, click 'Create Index' in the console, wait 3 minutes, then refresh this page.</span>`;
-          }
-
-          groupsList.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding: 20px; font-size:14px; word-break: break-word;"><b>System Alert</b><br><br>${errorHTML}</div>`;
+          // Renders the exact error message text to the UI for absolute debugging
+          groupsList.innerHTML = `
+            <div style="color:var(--danger-color); background:rgba(204,0,0,0.1); border-radius:12px; padding: 20px; font-size:13px; word-break: break-word;">
+              <b>Firebase Connection Error</b><br><br>
+              ${error.message || "Unknown error occurred while contacting database."}
+            </div>`;
         }
       }
     }
@@ -646,7 +672,7 @@
         
       } catch (error) {
         console.error(error);
-        showMessage("Creation Failed", "There was an error creating your group. Please try again.", "error");
+        showMessage("Creation Failed", `Error creating your group: <br><br> ${error.message}`, "error");
       } finally {
         btn.innerText = "Create Group";
       }
@@ -723,7 +749,7 @@
 
       } catch (error) {
         console.error(error);
-        showMessage("Registration Failed", "Could not save participant data.", "error");
+        showMessage("Registration Failed", `Could not save participant data: <br><br> ${error.message}`, "error");
       } finally {
         btn.innerText = "Save Participant";
       }
@@ -748,7 +774,7 @@
         setTimeout(() => showMessage("Group Deleted", "The group has been permanently removed.", "success"), 300);
       } catch(e) { 
         console.error("Error deleting", e); 
-        showMessage("Deletion Error", "Failed to delete the selected group.", "error");
+        showMessage("Deletion Error", `Failed to delete the selected group: <br><br> ${e.message}`, "error");
       } finally {
         btn.innerText = "Delete Group"; btn.disabled = false;
         targetIdToDelete = null;
