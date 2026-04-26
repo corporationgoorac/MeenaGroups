@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json">
+  <title>Manage - Meena Chitfunds</title>
+  
+  <style>
+    /* Theme Variables */
+    :root {
+      --bg-color: #ffffff;
+      --text-main: #0f0f0f;
+      --text-muted: #606060;
+      --surface-color: #f2f2f2;
+      --surface-hover: #e5e5e5;
+      --border-color: #e0e0e0;
+      --brand-accent: #065fd4;
+      --danger-color: #cc0000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0f0f0f;
+        --text-main: #f1f1f1;
+        --text-muted: #aaaaaa;
+        --surface-color: #272727;
+        --surface-hover: #3f3f3f;
+        --border-color: #3f3f3f;
+        --brand-accent: #3ea6ff;
+        --danger-color: #ff4e45;
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-titles h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .header-titles span {
+      font-size: 11px;
+      color: var(--brand-accent);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* Action Buttons */
+    .action-bar {
+      padding: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .action-btn {
+      flex: 1;
+      background-color: var(--surface-color);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .action-btn:active { transform: scale(0.98); }
+    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* List Container */
+    .list-container { padding: 0 20px 80px; }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    /* Group Card */
+    .group-card {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .group-name { font-size: 18px; font-weight: 600; margin: 0; }
+    .group-meta { font-size: 13px; color: var(--text-muted); display: flex; gap: 12px; margin-top: 4px; }
+    
+    .group-actions {
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    .icon-btn.edit:active { background-color: var(--surface-color); }
+    .icon-btn.delete { color: var(--danger-color); margin-left: auto; }
+    .icon-btn.delete:active { background-color: rgba(204, 0, 0, 0.1); }
+
+    .load-more-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    /* Side Modals */
+    .modal {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
+      z-index: 100;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal.active { transform: translateX(0); }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      padding: 8px;
+      margin-left: -8px;
+      cursor: pointer;
+      display: flex;
+    }
+    
+    .back-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+    .modal-title { font-size: 18px; font-weight: 600; margin-left: 12px; }
+
+    .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
+
+    .input-group { margin-bottom: 20px; }
+    .input-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    .input-group input {
+      width: 100%;
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+    }
+    .input-group input:focus { border-color: var(--brand-accent); }
+
+    .submit-btn {
+      background-color: var(--text-main);
+      color: var(--bg-color);
+      border: none;
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-titles">
+      <h1>Meena Chitfunds</h1>
+      <span>By Goorac</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="action-bar">
+      <button class="action-btn" onclick="openModal('participant-modal')">
+        <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Add Participant
+      </button>
+      <button class="action-btn" onclick="openModal('group-modal')">
+        <svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+        Create Group
+      </button>
+    </div>
+
+    <div class="list-container">
+      <div class="section-title">Active Groups</div>
+      <div id="groups-list">
+        </div>
+      <button id="load-more-btn" class="load-more-btn" style="display: none;">Load More</button>
+    </div>
+  </main>
+
+  <aside id="participant-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">New Participant</div>
+    </div>
+    <div class="modal-body">
+      <form id="participant-form">
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="p-name" required>
+        </div>
+        <div class="input-group">
+          <label>Phone Number</label>
+          <input type="tel" id="p-phone" required>
+        </div>
+        <div class="input-group">
+          <label>Location/Address</label>
+          <input type="text" id="p-location">
+        </div>
+        <button type="submit" class="submit-btn">Save Participant</button>
+      </form>
+    </div>
+  </aside>
+
+  <aside id="group-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">New Chit Group</div>
+    </div>
+    <div class="modal-body">
+      <form id="group-form">
+        <div class="input-group">
+          <label>Group Name (e.g., 50K Gold Scheme)</label>
+          <input type="text" id="g-name" required>
+        </div>
+        <div class="input-group">
+          <label>Total Value/Pot (₹)</label>
+          <input type="number" id="g-value" required>
+        </div>
+        <div class="input-group">
+          <label>Total Months</label>
+          <input type="number" id="g-months" required>
+        </div>
+        <button type="submit" class="submit-btn">Create Group</button>
+      </form>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { auth, db } from './config.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, addDoc, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+    // Security Check
+    onAuthStateChanged(auth, (user) => {
+      if (!user) window.location.replace('login.html');
+    });
+
+    // --- Modal & Hardware Back Button Logic ---
+    window.openModal = function(modalId) {
+      document.getElementById(modalId).classList.add('active');
+      // Push state to browser history so the physical back button works
+      history.pushState({ modalOpen: true }, '', `#${modalId}`);
+    };
+
+    window.closeModal = function() {
+      // Trigger a back navigation to properly clean up the history stack
+      if(history.state && history.state.modalOpen) {
+        history.back(); 
+      } else {
+        closeAllModals();
+      }
+    };
+
+    function closeAllModals() {
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+
+    // Listen for physical back button or gesture
+    window.addEventListener('popstate', () => {
+      closeAllModals();
+    });
+
+    // --- Firebase Logic: Pagination & Data ---
+    const groupsList = document.getElementById('groups-list');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    let lastVisibleDoc = null;
+
+    async function loadGroups(isLoadMore = false) {
+      try {
+        let q;
+        if (isLoadMore && lastVisibleDoc) {
+          q = query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(5));
+        } else {
+          groupsList.innerHTML = ''; // Clear list
+          q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(5));
+        }
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          if(!isLoadMore) groupsList.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No groups found.</div>';
+          loadMoreBtn.style.display = 'none';
+          return;
+        }
+
+        lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+        querySnapshot.forEach((document) => {
+          const data = document.data();
+          const groupId = document.id;
+          
+          const card = document.createElement('div');
+          card.className = 'group-card';
+          card.innerHTML = `
+            <div class="group-header">
+              <div>
+                <h3 class="group-name">${data.groupName}</h3>
+                <div class="group-meta">
+                  <span>₹${data.totalPot.toLocaleString()}</span>
+                  <span>•</span>
+                  <span>${data.totalMonths} Months</span>
+                  <span>•</span>
+                  <span>${data.participantCount || 0} Members</span>
+                </div>
+              </div>
+            </div>
+            <div class="group-actions">
+              <button class="icon-btn edit" onclick="editGroup('${groupId}', '${data.groupName}')">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit
+              </button>
+              <button class="icon-btn delete" onclick="deleteGroup('${groupId}')">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete
+              </button>
+            </div>
+          `;
+          groupsList.appendChild(card);
+        });
+
+        // Hide Load More if fewer than 5 docs returned
+        loadMoreBtn.style.display = querySnapshot.docs.length === 5 ? 'block' : 'none';
+
+      } catch (error) {
+        console.error("Error fetching groups: ", error);
+      }
+    }
+
+    loadMoreBtn.addEventListener('click', () => loadGroups(true));
+
+    // --- Create Group Logic ---
+    document.getElementById('group-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('.submit-btn');
+      btn.innerText = "Creating...";
+      btn.disabled = true;
+
+      try {
+        await addDoc(collection(db, "groups"), {
+          groupName: document.getElementById('g-name').value,
+          totalPot: Number(document.getElementById('g-value').value),
+          totalMonths: Number(document.getElementById('g-months').value),
+          participantCount: 0,
+          createdAt: serverTimestamp()
+        });
+        
+        e.target.reset();
+        closeModal();
+        loadGroups(); // Refresh list automatically
+      } catch (error) {
+        alert("Error creating group");
+        console.error(error);
+      } finally {
+        btn.innerText = "Create Group";
+        btn.disabled = false;
+      }
+    });
+
+    // --- Add Participant Logic ---
+    document.getElementById('participant-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('.submit-btn');
+      btn.innerText = "Saving...";
+      btn.disabled = true;
+
+      try {
+        await addDoc(collection(db, "users"), { // Saving to master user collection
+          name: document.getElementById('p-name').value,
+          phone: document.getElementById('p-phone').value,
+          location: document.getElementById('p-location').value,
+          activeGroups: [],
+          totalOutstandingBalance: 0,
+          totalAdvanceOwed: 0,
+          joinedAt: serverTimestamp()
+        });
+        
+        e.target.reset();
+        closeModal();
+        alert("Participant added to database successfully.");
+      } catch (error) {
+        alert("Error adding participant");
+        console.error(error);
+      } finally {
+        btn.innerText = "Save Participant";
+        btn.disabled = false;
+      }
+    });
+
+    // --- Edit & Delete Actions (Global scope for inline onclick) ---
+    window.editGroup = async function(id, currentName) {
+      const newName = prompt("Update group name:", currentName);
+      if (newName && newName !== currentName) {
+        try {
+          await updateDoc(doc(db, "groups", id), { groupName: newName });
+          loadGroups(); // Refresh UI
+        } catch(e) {
+          console.error("Error updating", e);
+        }
+      }
+    };
+
+    window.deleteGroup = async function(id) {
+      if (confirm("Are you sure you want to delete this group? This action cannot be undone.")) {
+        try {
+          await deleteDoc(doc(db, "groups", id));
+          loadGroups(); // Refresh UI
+        } catch(e) {
+          console.error("Error deleting", e);
+        }
+      }
+    };
+
+    // Initialize Page
+    loadGroups();
+  </script>
+</body>
+</html>
