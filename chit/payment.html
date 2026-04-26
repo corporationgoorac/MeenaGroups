@@ -121,6 +121,17 @@
     .modal-title { font-size: 18px; font-weight: 700; margin-left: 12px; }
     .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
 
+    /* Advanced Participant Search Cards */
+    .search-result-card {
+      background: var(--surface-color); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; cursor: pointer; transition: 0.2s;
+    }
+    .search-result-card:active { transform: scale(0.98); background: var(--surface-hover); }
+    .sr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .sr-name { font-size: 16px; font-weight: 800; color: var(--text-main); text-transform: uppercase; }
+    .sr-id { font-size: 11px; background: var(--brand-accent-light); color: var(--brand-accent); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-family: monospace; letter-spacing: 0.5px;}
+    .sr-bottom { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); font-weight: 500;}
+
     /* Forms & Inputs */
     .input-group { margin-bottom: 24px; position: relative; }
     .input-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
@@ -130,8 +141,7 @@
     }
     .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); }
     
-    /* ID Input Specifics */
-    #p-id { text-transform: uppercase; font-family: monospace; font-size: 18px; letter-spacing: 1px; }
+    #p-id { font-size: 16px; letter-spacing: 0px; } /* Resetting specific ID styles for general search */
     
     .validation-icon { position: absolute; right: 16px; bottom: 16px; font-size: 18px; }
     .valid { color: var(--success-color); }
@@ -139,14 +149,12 @@
     .loading-text { font-size: 11px; color: var(--brand-accent); position: absolute; right: 14px; top: 0; display: none; font-weight: 700; }
 
     /* Advanced Calculation Card */
-    .calc-card { background: var(--surface-color); padding: 20px; border-radius: 20px; margin-bottom: 24px; border: 1px solid var(--border-color); display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-    .calc-card.active { display: block; animation: slideUp 0.3s ease; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .calc-card { background: var(--bg-color); padding: 0px; border-radius: 0px; margin-bottom: 0px; border: none; display: block; box-shadow: none; }
     
-    .user-profile { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; }
+    .user-profile { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; }
     .profile-avatar { width: 50px; height: 50px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 800; }
     .profile-details { flex: 1; }
-    .user-name { font-size: 20px; font-weight: 800; margin: 0 0 4px 0; }
+    .user-name { font-size: 20px; font-weight: 800; margin: 0 0 4px 0; text-transform: uppercase;}
     .user-phone { font-size: 13px; color: var(--text-muted); font-weight: 500; }
     
     /* Chit Progress Bar */
@@ -156,13 +164,13 @@
     .progress-fill { height: 100%; background-color: var(--success-color); border-radius: 4px; transition: width 0.5s ease; }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-    .stat-box { background: var(--bg-color); padding: 14px; border-radius: 12px; text-align: left; }
+    .stat-box { background: var(--surface-color); padding: 14px; border-radius: 12px; text-align: left; border: 1px solid var(--border-color);}
     .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
     .stat-value { font-size: 18px; font-weight: 800; color: var(--text-main); }
     .stat-value.highlight { color: var(--brand-accent); }
 
     /* Neo-Banking Amount Display */
-    .due-section { background: var(--bg-color); padding: 24px; border-radius: 16px; text-align: center; border: 2px solid var(--brand-accent-light); position: relative; overflow: hidden;}
+    .due-section { background: var(--surface-color); padding: 24px; border-radius: 16px; text-align: center; border: 2px solid var(--brand-accent-light); position: relative; overflow: hidden;}
     .due-section::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--brand-accent); }
     .due-label { font-size: 14px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;}
     .due-calc-hint { font-size: 11px; color: var(--brand-accent); font-weight: 600; margin-bottom: 12px; background: var(--brand-accent-light); display: inline-block; padding: 4px 10px; border-radius: 20px;}
@@ -222,7 +230,7 @@
 
   <main>
     <div class="action-bar">
-      <button class="action-btn" onclick="openModal('payment-modal')">
+      <button class="action-btn" onclick="openPaymentSearchModal()">
         <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
         Record New Payment
       </button>
@@ -239,27 +247,41 @@
   <aside id="payment-modal" class="modal">
     <div class="modal-header">
       <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-      <div class="modal-title">Payment Portal</div>
+      <div class="modal-title">Search Participant</div>
+    </div>
+    <div class="modal-body" style="padding-bottom: 80px;">
+      
+      <div class="input-group" style="position: sticky; top: -24px; z-index: 5; background: var(--bg-color); padding-top: 24px; margin-top: -24px;">
+        <span class="loading-text" id="p-id-loading">Syncing Database...</span>
+        <input type="text" id="p-id" placeholder="Search Name, Phone, or ID..." autocomplete="off">
+        <span class="validation-icon" id="p-id-icon">🔍</span>
+      </div>
+
+      <div id="search-results-container">
+        </div>
+      <button id="search-load-more-btn" class="load-more-btn" style="display: none;" onclick="loadMoreSearchResults()">Load Next 10 Results</button>
+
+    </div>
+  </aside>
+
+  <aside id="calc-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">Payment Engine</div>
     </div>
     <div class="modal-body">
       
-      <div class="input-group">
-        <label>Participant ID (Search)</label>
-        <span class="loading-text" id="p-id-loading">Searching...</span>
-        <input type="text" id="p-id" placeholder="e.g., RAHUL_101" autocomplete="off">
-        <span class="validation-icon" id="p-id-icon"></span>
-      </div>
-
       <div id="calc-card" class="calc-card">
         <div class="user-profile">
           <div class="profile-avatar" id="u-avatar">?</div>
           <div class="profile-details">
             <h2 class="user-name" id="u-name">Loading...</h2>
             <div class="user-phone" id="u-phone">+91 XXXXX XXXXX</div>
+            <div style="font-size: 11px; font-family: monospace; color: var(--brand-accent); font-weight: 700; margin-top: 4px;" id="u-id-display"></div>
           </div>
         </div>
 
-        <div class="input-group" style="margin-bottom: 16px;">
+        <div class="input-group" style="margin-bottom: 24px;">
           <label>Select Active Group</label>
           <select id="u-group-select">
             <option value="">-- Choose a group --</option>
@@ -301,7 +323,7 @@
           <button type="button" class="submit-btn" id="confirm-payment-btn">Approve Transaction</button>
         </div>
       </div>
-      
+
     </div>
   </aside>
 
@@ -337,25 +359,33 @@
     // --- Modal Navigation ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
-      history.pushState({ modalOpen: true }, '', `#${modalId}`);
+      history.pushState({ modalOpen: true, id: modalId }, '', `#${modalId}`);
     };
     
     window.closeModal = function() {
-      if(history.state && history.state.modalOpen) history.back(); 
-      else closeAllModals();
+      if(history.state && history.state.modalOpen) {
+          history.back(); 
+      } else {
+          closeAllModals();
+      }
     };
     
     function closeAllModals() { 
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-      document.getElementById('calc-card').classList.remove('active');
-      document.getElementById('p-id').value = '';
-      document.getElementById('p-id-icon').innerHTML = '';
       document.getElementById('payment-details-view').style.display = 'none';
+      document.getElementById('p-id').value = '';
       activeGroupData = null;
       targetUserId = null;
     }
     
-    window.addEventListener('popstate', closeAllModals);
+    window.addEventListener('popstate', (e) => {
+       // If returning from Calc Modal to Payment Modal
+       if(e.state && e.state.id === 'payment-modal') {
+           document.getElementById('calc-modal').classList.remove('active');
+       } else {
+           closeAllModals();
+       }
+    });
 
     window.showMessage = function(title, body, type = 'error') {
       document.getElementById('msg-title').innerText = title;
@@ -374,72 +404,127 @@
     let currentCalcMonth = 0;
     let baselineLastAmount = 0;
 
-    // --- ENFORCED UPPERCASE & Debounced ID Fetching ---
-    let timeoutId;
-    document.getElementById('p-id').addEventListener('input', (e) => {
-      // Force Uppercase visually and logically
-      let inputVal = e.target.value.trim().toUpperCase();
-      e.target.value = inputVal;
+    // --- ADVANCED FEATURE: 0-READ CLIENT SIDE SEARCH ENGINE ---
+    let allUsersCache = [];
+    let filteredUsers = [];
+    let userSearchPage = 1;
+    const RESULTS_PER_PAGE = 10;
 
-      const icon = document.getElementById('p-id-icon');
-      const loader = document.getElementById('p-id-loading');
-      const card = document.getElementById('calc-card');
-
-      icon.innerHTML = '';
-      card.classList.remove('active');
-      document.getElementById('payment-details-view').style.display = 'none';
-      targetUserId = null;
-
-      if(inputVal.length < 3) return;
-
-      loader.style.display = 'block';
-      clearTimeout(timeoutId);
-      
-      timeoutId = setTimeout(async () => {
-        try {
-          const docSnap = await getDoc(doc(db, "users", inputVal));
-          loader.style.display = 'none';
-          
-          if (docSnap.exists()) {
-            icon.innerHTML = '✔';
-            icon.className = 'validation-icon valid';
-            
-            const userData = docSnap.data();
-            targetUserId = inputVal;
-            targetUserName = userData.name;
-            
-            document.getElementById('u-name').innerText = userData.name;
-            document.getElementById('u-phone').innerText = userData.phone || "No phone provided";
-            // Set Avatar Initial
-            document.getElementById('u-avatar').innerText = userData.name.charAt(0).toUpperCase();
-            
-            // Populate Groups Dropdown
-            const select = document.getElementById('u-group-select');
-            select.innerHTML = '<option value="">-- Choose a group --</option>';
-            
-            if(userData.activeGroups && userData.activeGroups.length > 0) {
-                userData.activeGroups.forEach(gId => {
-                    const opt = document.createElement('option');
-                    opt.value = gId;
-                    opt.innerText = `@${gId}`;
-                    select.appendChild(opt);
+    window.openPaymentSearchModal = async function() {
+        openModal('payment-modal');
+        const loader = document.getElementById('p-id-loading');
+        
+        // Fetch up to 500 users into memory once per session (Massive read savings)
+        if(allUsersCache.length === 0) {
+            loader.style.display = 'block';
+            try {
+                const q = query(collection(db, "users"), limit(500));
+                const snap = await getDocs(q);
+                snap.forEach(doc => {
+                    allUsersCache.push({ id: doc.id, ...doc.data() });
                 });
-            } else {
-                select.innerHTML = '<option value="">No active groups found</option>';
-            }
-
-            card.classList.add('active');
-
-          } else {
-            icon.innerHTML = '❌';
-            icon.className = 'validation-icon invalid';
-          }
-        } catch (err) {
-          console.error(err);
-          loader.style.display = 'none';
+            } catch(e) { console.error("Search cache fail:", e); }
+            loader.style.display = 'none';
         }
-      }, 600);
+        
+        // Render initial un-filtered list
+        document.getElementById('p-id').value = '';
+        triggerLocalSearch('');
+    };
+
+    document.getElementById('p-id').addEventListener('input', (e) => {
+        triggerLocalSearch(e.target.value);
     });
+
+    function triggerLocalSearch(searchTerm) {
+        const term = searchTerm.trim().toLowerCase();
+        userSearchPage = 1;
+        
+        if(term === '') {
+            filteredUsers = allUsersCache; // Show all by default
+        } else {
+            filteredUsers = allUsersCache.filter(u => {
+                const nameMatch = (u.name || "").toLowerCase().includes(term);
+                const phoneMatch = (u.phone || "").includes(term);
+                const idMatch = u.id.toLowerCase().includes(term);
+                return nameMatch || phoneMatch || idMatch;
+            });
+        }
+        
+        document.getElementById('search-results-container').innerHTML = '';
+        renderSearchResultsBatch();
+    }
+
+    window.loadMoreSearchResults = function() {
+        userSearchPage++;
+        renderSearchResultsBatch();
+    };
+
+    function renderSearchResultsBatch() {
+        const container = document.getElementById('search-results-container');
+        const loadMoreBtn = document.getElementById('search-load-more-btn');
+        
+        const startIndex = (userSearchPage - 1) * RESULTS_PER_PAGE;
+        const endIndex = startIndex + RESULTS_PER_PAGE;
+        const batchToRender = filteredUsers.slice(startIndex, endIndex);
+
+        if(filteredUsers.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:14px;">No participants found matching your search.</div>';
+            loadMoreBtn.style.display = 'none';
+            return;
+        }
+
+        batchToRender.forEach(user => {
+            const card = document.createElement('div');
+            card.className = 'search-result-card';
+            card.onclick = () => selectUserForPayment(user);
+            
+            const locText = user.location ? `📍 ${user.location}` : 'No Location';
+            const phoneText = user.phone ? `📞 ${user.phone}` : 'No Phone';
+            
+            card.innerHTML = `
+                <div class="sr-top">
+                    <span class="sr-name">${user.name || 'Unnamed'}</span>
+                    <span class="sr-id">@${user.id}</span>
+                </div>
+                <div class="sr-bottom">
+                    <span>${phoneText}</span>
+                    <span>${locText}</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        loadMoreBtn.style.display = endIndex < filteredUsers.length ? 'block' : 'none';
+    }
+
+    // --- STEP 2: OPENING THE CALCULATION MODAL ---
+    window.selectUserForPayment = function(userObj) {
+        targetUserId = userObj.id;
+        targetUserName = userObj.name;
+        
+        document.getElementById('u-name').innerText = userObj.name || "Unnamed";
+        document.getElementById('u-phone').innerText = userObj.phone || "No phone provided";
+        document.getElementById('u-id-display').innerText = `@${userObj.id}`;
+        document.getElementById('u-avatar').innerText = userObj.name ? userObj.name.charAt(0).toUpperCase() : '?';
+        
+        const select = document.getElementById('u-group-select');
+        select.innerHTML = '<option value="">-- Choose a group --</option>';
+        
+        if(userObj.activeGroups && userObj.activeGroups.length > 0) {
+            userObj.activeGroups.forEach(gId => {
+                const opt = document.createElement('option');
+                opt.value = gId;
+                opt.innerText = `@${gId}`;
+                select.appendChild(opt);
+            });
+        } else {
+            select.innerHTML = '<option value="">No active groups found</option>';
+        }
+
+        document.getElementById('payment-details-view').style.display = 'none';
+        openModal('calc-modal');
+    };
 
     // --- ADVANCED CALCULATION ENGINE (Last Payment + Scheduled Increment) ---
     document.getElementById('u-group-select').addEventListener('change', async (e) => {
@@ -551,10 +636,11 @@
         try {
             const batch = writeBatch(db);
 
-            // 1. Create Transaction Ledger Entry
+            // 1. Create Transaction Ledger Entry (Now saving Name too!)
             const newTxRef = doc(collection(db, "transactions"));
             batch.set(newTxRef, {
                 subscriberId: targetUserId,
+                subscriberName: targetUserName, // Saves name for history UI
                 groupId: groupId,
                 amount: amountToPay,
                 monthAttributed: currentCalcMonth,
@@ -594,7 +680,7 @@
             // Clean up and close after animation
             setTimeout(() => {
                 overlay.classList.remove('active');
-                closeModal();
+                closeAllModals(); // Close both calc and search modal
                 loadTransactions(); // Refresh list immediately
                 btn.innerText = "Approve Transaction"; btn.disabled = false;
             }, 2500);
@@ -649,8 +735,9 @@
               displayDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
           }
 
-          // Initial extraction for Avatar
-          const userInitial = data.subscriberId ? data.subscriberId.charAt(0).toUpperCase() : '?';
+          // Uses the newly added Name, falls back to ID if it's an old transaction
+          const displayName = data.subscriberName || `@${data.subscriberId}`;
+          const userInitial = displayName.charAt(0).toUpperCase();
 
           const card = document.createElement('div');
           card.className = 'txn-card';
@@ -658,7 +745,7 @@
             <div class="txn-left">
               <div class="txn-icon">${userInitial}</div>
               <div class="txn-info">
-                <h3>@${data.subscriberId}</h3>
+                <h3>${displayName}</h3>
                 <div class="txn-meta">
                   Grp: ${data.groupId} • Mo. ${data.monthAttributed}
                 </div>
