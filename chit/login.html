@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+  
+  <link rel="manifest" href="manifest.json">
+  <title>Login - Meena Chitfunds</title>
+  
+  <style>
+    /* Base Light Theme */
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #0f0f0f;
+      --surface-color: #f2f2f2;
+      --border-color: #e5e5e5;
+      --accent-blue: #065fd4;
+    }
+
+    /* Dark Mode Theme */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0f0f0f;
+        --text-color: #f1f1f1;
+        --surface-color: #272727;
+        --border-color: #3f3f3f;
+        --accent-blue: #3ea6ff;
+      }
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .login-container {
+      background-color: var(--surface-color);
+      padding: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+      width: 100%;
+      max-width: 350px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .branding h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .parent-company {
+      font-size: 13px;
+      color: var(--accent-blue);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: block;
+      margin-top: 4px;
+      margin-bottom: 32px;
+    }
+
+    .google-btn {
+      background-color: var(--accent-blue);
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.2s;
+    }
+
+    .google-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* A simple loading spinner */
+    .loader {
+      display: none;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 3px solid #fff;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <div class="branding">
+      <h1>Meena Chitfunds</h1>
+      <span class="parent-company">by Goorac</span>
+    </div>
+    
+    <button id="google-login-btn" class="google-btn">
+      <span id="btn-text">Sign in with Google</span>
+      <div id="loader" class="loader"></div>
+    </button>
+  </div>
+
+  <script type="module">
+    // 1. Import your Auth instance from config.js
+    import { auth } from './config.js';
+    
+    // 2. Import Google Auth Provider functions directly from Firebase v12.12.1
+    import { 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+
+    const provider = new GoogleAuthProvider();
+    const loginBtn = document.getElementById('google-login-btn');
+    const btnText = document.getElementById('btn-text');
+    const loader = document.getElementById('loader');
+
+    // 3. Security Check: If already logged in, redirect immediately to home.html
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.replace('home.html');
+      }
+    });
+
+    // 4. Handle the Login Click
+    loginBtn.addEventListener('click', async () => {
+      // Show loading state
+      btnText.style.display = 'none';
+      loader.style.display = 'block';
+      loginBtn.disabled = true;
+
+      try {
+        // Trigger Google Sign-In Popup
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        
+        console.log("Welcome,", user.displayName);
+        
+        // Success! Redirect to dashboard
+        window.location.replace('home.html');
+
+      } catch (error) {
+        console.error("Login Error:", error.message);
+        alert("Failed to sign in: " + error.message);
+        
+        // Reset button state
+        btnText.style.display = 'block';
+        loader.style.display = 'none';
+        loginBtn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
