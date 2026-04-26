@@ -10,22 +10,22 @@
   
   <style>
     :root {
-      --bg-color: #f9f9f9;
-      --text-color: #0f0f0f;
-      --surface-color: #ffffff;
-      --border-color: #e5e5e5;
-      --accent-blue: #065fd4;
-      --sub-text: #606060;
+      --bg-color: #ffffff;
+      --text-main: #000000;
+      --text-muted: #606060;
+      --btn-bg: #f2f2f2;
+      --btn-hover: #e5e5e5;
+      --brand-accent: #065fd4;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
         --bg-color: #0f0f0f;
-        --text-color: #f1f1f1;
-        --surface-color: #1e1e1e;
-        --border-color: #3f3f3f;
-        --accent-blue: #3ea6ff;
-        --sub-text: #aaaaaa;
+        --text-main: #ffffff;
+        --text-muted: #aaaaaa;
+        --btn-bg: #272727;
+        --btn-hover: #3f3f3f;
+        --brand-accent: #3ea6ff;
       }
     }
 
@@ -33,91 +33,97 @@
 
     body {
       background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: "Roboto", -apple-system, sans-serif;
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .login-card {
-      background-color: var(--surface-color);
-      padding: 48px 40px;
-      border-radius: 24px;
-      border: 1px solid var(--border-color);
+    /* No box, just a seamless content wrapper */
+    .content-wrapper {
+      width: 100%;
+      max-width: 360px;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
     }
 
-    .logo-area { margin-bottom: 40px; }
-
-    .logo-area h1 {
-      margin: 0;
-      font-size: 28px;
+    .brand-title {
+      font-size: 32px;
       font-weight: 700;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.8px;
+      margin: 0;
     }
 
-    .logo-area p {
-      margin: 8px 0 0;
-      font-size: 14px;
-      color: var(--accent-blue);
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--brand-accent);
       text-transform: uppercase;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-    }
-
-    .welcome-text {
-      margin-bottom: 32px;
-    }
-
-    .welcome-text h2 {
-      font-size: 22px;
-      margin: 0;
-      font-weight: 500;
-    }
-
-    .welcome-text span {
-      font-size: 14px;
-      color: var(--sub-text);
-    }
-
-    /* Professional Google Button */
-    .google-btn {
-      background-color: var(--text-color); /* Contrastive background */
-      color: var(--bg-color);
-      border: none;
-      padding: 12px 24px;
-      font-size: 15px;
       font-weight: 600;
-      border-radius: 50px; /* Modern pill shape */
+      letter-spacing: 2px;
+      margin-top: 6px;
+      margin-bottom: 48px;
+    }
+
+    .login-prompt {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      font-weight: 400;
+    }
+
+    /* Minimalist Google Button */
+    .google-btn {
+      background-color: var(--btn-bg);
+      color: var(--text-main);
+      border: none;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 12px;
       cursor: pointer;
       width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 12px;
-      transition: transform 0.2s, opacity 0.2s;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .google-btn:hover {
+      background-color: var(--btn-hover);
     }
 
     .google-btn:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
 
     .google-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
     }
 
-    .footer-text {
-      margin-top: 40px;
+    .secure-note {
+      margin-top: 48px;
       font-size: 12px;
-      color: var(--sub-text);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .secure-note svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
     }
 
     /* Loader */
@@ -136,15 +142,13 @@
 </head>
 <body>
 
-  <div class="login-card">
-    <div class="logo-area">
-      <h1>Meena Chitfunds</h1>
-      <p>Goorac</p>
-    </div>
+  <div class="content-wrapper">
+    
+    <h1 class="brand-title">Meena Chitfunds</h1>
+    <div class="brand-subtitle">By Goorac</div>
 
-    <div class="welcome-text">
-      <h2>Sign in</h2>
-      <span>Use your Google Account to continue</span>
+    <div class="login-prompt">
+      Sign in to manage your workspace
     </div>
     
     <button id="google-login-btn" class="google-btn">
@@ -158,9 +162,13 @@
       <div id="loader" class="loader"></div>
     </button>
 
-    <div class="footer-text">
-      Secure portal managed by Goorac Systems
+    <div class="secure-note">
+      <svg viewBox="0 0 24 24">
+        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+      </svg>
+      End-to-end encrypted portal
     </div>
+
   </div>
 
   <script type="module">
@@ -177,6 +185,7 @@
     const loader = document.getElementById('loader');
     const googleIcon = document.getElementById('google-icon');
 
+    // Redirect if already logged in
     onAuthStateChanged(auth, (user) => {
       if (user) window.location.replace('home.html');
     });
