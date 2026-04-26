@@ -316,7 +316,15 @@ async function generateStatementImage(client, customer, product, tempEntries) {
 
         // Render the high-res image
         await page.setContent(htmlContent, { waitUntil: 'load' });
-        await page.evaluateHandle('document.fonts.ready');
+        
+        // -------------------------------------------------------------
+        // NEW ADDITION: 600ms Timeout for Google Fonts fallback
+        // -------------------------------------------------------------
+        await Promise.race([
+            page.evaluateHandle('document.fonts.ready'),
+            new Promise(resolve => setTimeout(resolve, 600))
+        ]);
+
         const screenshot = await page.screenshot({ 
             fullPage: false, 
             type: 'png',
