@@ -151,6 +151,10 @@
       width: 100%; background-color: var(--surface-color); border: 1px solid var(--border-color);
       color: var(--text-main); padding: 14px; border-radius: 10px; font-size: 16px; outline: none; appearance: none;
     }
+    
+    /* Ensure the Date input takes full width properly on iOS */
+    input[type="date"] { font-family: -apple-system, sans-serif; }
+    
     .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); }
     
     /* Enforce visual uppercase for IDs */
@@ -321,6 +325,11 @@
             <input type="number" id="g-months" required>
           </div>
         </div>
+        
+        <div class="input-group">
+          <label>Group Start Date</label>
+          <input type="date" id="g-start-date" required>
+        </div>
 
         <div class="schedule-container">
           <div class="schedule-header">Installment Schedule</div>
@@ -373,15 +382,29 @@
     // --- Global State for Deletion ---
     let targetIdToDelete = null;
 
-    // --- Modal Navigation (History API Linked) ---
+    // --- FLAWLESS MODAL NAVIGATION (Fixed Back Button Bug) ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
-      history.pushState({ modalOpen: true }, '', `#${modalId}`);
+      
+      // Auto-set the Date Picker to Today's date when opening the group modal
+      if(modalId === 'group-modal' && !document.getElementById('g-start-date').value) {
+          const today = new Date().toISOString().split('T')[0];
+          document.getElementById('g-start-date').value = today;
+      }
+      
+      // Push state ONLY if we aren't already on this hash (prevents stack buildup)
+      if (window.location.hash !== `#${modalId}`) {
+          history.pushState({ modalOpen: true, id: modalId }, '', `#${modalId}`);
+      }
     };
     
     window.closeModal = function() {
-      if(history.state && history.state.modalOpen) history.back(); 
-      else closeAllModals();
+      // If there's a hash, let the browser's back function handle the closing naturally
+      if (window.location.hash) {
+          history.back(); 
+      } else {
+          closeAllModals();
+      }
     };
     
     function closeAllModals() { 
@@ -390,7 +413,16 @@
       targetIdToDelete = null; // Reset deletion target
     }
     
-    window.addEventListener('popstate', closeAllModals);
+    window.addEventListener('popstate', (e) => {
+       // Close everything first to ensure a clean slate
+       closeAllModals();
+       
+       // If the user went BACK to a state where a modal was open, reopen it instantly
+       if(e.state && e.state.id) {
+           const modalToReopen = document.getElementById(e.state.id);
+           if(modalToReopen) modalToReopen.classList.add('active');
+       }
+    });
 
     // --- Advanced Feature: Live Search Filter ---
     document.getElementById('group-search').addEventListener('input', function(e) {
@@ -542,7 +574,6 @@
 
         lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-        // FIX: renamed loop parameter from 'document' to 'docSnap' to prevent variable shadowing of HTML window.document
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           const groupId = docSnap.id;
@@ -555,6 +586,9 @@
 
           // Safely extract pot with Indian currency fallback
           const safePot = data.totalPot ? Number(data.totalPot).toLocaleString('en-IN') : '0';
+          
+          // Display the Selected Start Date if it exists
+          const displayDate = data.startDate ? `<br><span style="color:var(--brand-accent)">Started: ${data.startDate}</span>` : "";
 
           const card = document.createElement('div');
           card.className = 'group-card';
@@ -570,8 +604,8 @@
                   <span>•</span>
                   <span>${data.participantCount || 0} Members</span>
                 </div>
-                <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--brand-accent);">
-                  Sched: [${schedulePreview}]
+                <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--text-muted); display:block;">
+                  Sched: [${schedulePreview}] ${displayDate}
                 </div>
               </div>
             </div>
@@ -636,6 +670,7 @@
       e.preventDefault();
       const btn = document.getElementById('g-submit-btn');
       const groupId = document.getElementById('g-id').value.trim().toUpperCase();
+      const startDatePicked = document.getElementById('g-start-date').value;
       
       // Build Schedule Array
       const scheduleRows = document.querySelectorAll('.schedule-row');
@@ -656,11 +691,12 @@
           groupName: document.getElementById('g-name').value,
           totalPot: Number(document.getElementById('g-value').value),
           totalMonths: Number(document.getElementById('g-months').value),
+          startDate: startDatePicked, // Exact Date the user picked
           installmentSchedule: installmentSchedule,
           participantCount: 0,
           currentMonth: 1, 
           memberSnapshot: [], 
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp() // We keep this for strict system sorting
         });
         
         e.target.reset();
