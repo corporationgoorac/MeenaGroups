@@ -153,6 +153,9 @@
     }
     .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); }
     
+    /* Enforce visual uppercase for IDs */
+    #g-id, #p-id { text-transform: uppercase; font-family: monospace; letter-spacing: 1px; }
+
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } /* Mobile friendly grid */
 
     /* Validation Icon for Unique IDs */
@@ -245,7 +248,7 @@
         <div class="input-group">
           <label>Participant ID (Unique Username)</label>
           <span class="loading-text" id="p-id-loading">Checking...</span>
-          <input type="text" id="p-id" placeholder="e.g., rahul_101" required autocomplete="off">
+          <input type="text" id="p-id" placeholder="e.g., RAHUL_101" required autocomplete="off">
           <span class="validation-icon" id="p-id-icon"></span>
         </div>
         <div class="input-group">
@@ -300,7 +303,7 @@
         <div class="input-group">
           <label>Group ID (Unique Identifier)</label>
           <span class="loading-text" id="g-id-loading">Checking...</span>
-          <input type="text" id="g-id" placeholder="e.g., gold_50k_2026" required autocomplete="off">
+          <input type="text" id="g-id" placeholder="e.g., GOLD_50K_2026" required autocomplete="off">
           <span class="validation-icon" id="g-id-icon"></span>
         </div>
         <div class="input-group">
@@ -456,10 +459,10 @@
       }
     });
 
-    // --- Live ID Validation (Debounced) ---
+    // --- Live ID Validation (Debounced & Uppercase Enforced) ---
     let timeoutId;
     async function validateUniqueId(collectionName, inputId, iconElementId, loadingElementId, submitBtnId) {
-      const inputVal = document.getElementById(inputId).value.trim();
+      const inputVal = document.getElementById(inputId).value.trim().toUpperCase();
       const icon = document.getElementById(iconElementId);
       const loader = document.getElementById(loadingElementId);
       const btn = document.getElementById(submitBtnId);
@@ -495,8 +498,14 @@
       }, 500); // 500ms debounce
     }
 
-    document.getElementById('g-id').addEventListener('input', () => validateUniqueId('groups', 'g-id', 'g-id-icon', 'g-id-loading', 'g-submit-btn'));
-    document.getElementById('p-id').addEventListener('input', () => validateUniqueId('users', 'p-id', 'p-id-icon', 'p-id-loading', 'p-submit-btn'));
+    document.getElementById('g-id').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+      validateUniqueId('groups', 'g-id', 'g-id-icon', 'g-id-loading', 'g-submit-btn');
+    });
+    document.getElementById('p-id').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+      validateUniqueId('users', 'p-id', 'p-id-icon', 'p-id-loading', 'p-submit-btn');
+    });
 
     // --- Group Fetching & Pagination (WITH ADVANCED FAIL-SAFE FALLBACK) ---
     const groupsList = document.getElementById('groups-list');
@@ -626,7 +635,7 @@
     document.getElementById('group-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('g-submit-btn');
-      const groupId = document.getElementById('g-id').value.trim();
+      const groupId = document.getElementById('g-id').value.trim().toUpperCase();
       
       // Build Schedule Array
       const scheduleRows = document.querySelectorAll('.schedule-row');
@@ -683,7 +692,7 @@
     document.getElementById('participant-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('p-submit-btn');
-      const userId = document.getElementById('p-id').value.trim();
+      const userId = document.getElementById('p-id').value.trim().toUpperCase();
       const userName = document.getElementById('p-name').value;
       const selectedGroupId = document.getElementById('p-group').value;
       const isMidway = document.getElementById('midway-toggle').checked;
