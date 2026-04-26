@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json">
+  <title>Payments - Meena Chitfunds</title>
+  
+  <style>
+    /* Theme Variables */
+    :root {
+      --bg-color: #ffffff;
+      --text-main: #0f0f0f;
+      --text-muted: #606060;
+      --surface-color: #f2f2f2;
+      --surface-hover: #e5e5e5;
+      --border-color: #e0e0e0;
+      --brand-accent: #065fd4;
+      --danger-color: #cc0000;
+      --success-color: #0f9d58;
+      --modal-overlay: rgba(0, 0, 0, 0.4);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0f0f0f;
+        --text-main: #f1f1f1;
+        --text-muted: #aaaaaa;
+        --surface-color: #272727;
+        --surface-hover: #3f3f3f;
+        --border-color: #3f3f3f;
+        --brand-accent: #3ea6ff;
+        --danger-color: #ff4e45;
+        --success-color: #34a853;
+        --modal-overlay: rgba(0, 0, 0, 0.7);
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-titles h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* Action Buttons */
+    .action-bar { padding: 20px; display: flex; gap: 12px; }
+    .action-btn {
+      flex: 1; background-color: var(--text-main); color: var(--bg-color);
+      border: none; padding: 16px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer; display: flex;
+      justify-content: center; align-items: center; gap: 8px; transition: 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .action-btn:active { transform: scale(0.98); }
+    .action-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* List Container */
+    .list-container { padding: 0 20px 80px; }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+
+    /* Transaction Card */
+    .txn-card {
+      background-color: var(--bg-color); border: 1px solid var(--border-color);
+      border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .txn-info h3 { margin: 0 0 4px 0; font-size: 16px; font-weight: 600; }
+    .txn-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap;}
+    .txn-amount { font-size: 18px; font-weight: 700; color: var(--success-color); text-align: right;}
+    .txn-type { font-size: 11px; color: var(--text-muted); background: var(--surface-color); padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block;}
+
+    .load-more-btn { width: 100%; background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+    /* Full Screen Side Modals */
+    .modal {
+      position: fixed; top: 0; right: 0; width: 100%; height: 100%;
+      background-color: var(--bg-color); z-index: 100; transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column;
+    }
+    .modal.active { transform: translateX(0); }
+    .modal-header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+    .back-btn { background: none; border: none; color: var(--text-main); padding: 8px; margin-left: -8px; cursor: pointer; }
+    .back-btn svg { width: 24px; height: 24px; fill: currentColor; }
+    .modal-title { font-size: 18px; font-weight: 600; margin-left: 12px; }
+    .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
+
+    /* Forms & Inputs */
+    .input-group { margin-bottom: 20px; position: relative; }
+    .input-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+    .input-group input, .input-group select {
+      width: 100%; background-color: var(--surface-color); border: 1px solid var(--border-color);
+      color: var(--text-main); padding: 14px; border-radius: 10px; font-size: 16px; outline: none; appearance: none;
+    }
+    .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); }
+    .validation-icon { position: absolute; right: 14px; bottom: 14px; font-size: 16px; }
+    .valid { color: var(--success-color); }
+    .invalid { color: var(--danger-color); }
+    .loading-text { font-size: 11px; color: var(--brand-accent); position: absolute; right: 14px; top: 0; display: none; }
+
+    /* User Details & Calculation Card */
+    .calc-card { background: var(--surface-color); padding: 16px; border-radius: 16px; margin-bottom: 24px; border: 1px solid var(--border-color); display: none; }
+    .calc-card.active { display: block; }
+    .user-profile { border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px; }
+    .user-name { font-size: 18px; font-weight: 700; margin: 0 0 4px 0; }
+    .user-phone { font-size: 13px; color: var(--text-muted); }
+    
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-box { background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); text-align: center; }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+    .stat-value { font-size: 16px; font-weight: 700; color: var(--text-main); }
+
+    .due-section { background: var(--bg-color); padding: 16px; border-radius: 10px; border: 2px solid var(--brand-accent); text-align: center; }
+    .due-label { font-size: 14px; color: var(--brand-accent); font-weight: 600; margin-bottom: 4px;}
+    .due-amount { font-size: 32px; font-weight: 800; color: var(--text-main); }
+    .due-amount-input { width: 100%; font-size: 28px; font-weight: 800; color: var(--text-main); text-align: center; background: none; border: none; outline: none; margin-top: 4px; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;}
+
+    .submit-btn { background-color: var(--text-main); color: var(--bg-color); border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.2s;}
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.98); }
+
+    /* GPay Style Overlay */
+    .gpay-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: var(--bg-color); z-index: 300; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out;
+    }
+    .gpay-overlay.active { opacity: 1; pointer-events: all; }
+    
+    .gpay-circle {
+      width: 100px; height: 100px; border-radius: 50%; background-color: #e5f4eb;
+      display: flex; justify-content: center; align-items: center; margin-bottom: 24px;
+      transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .gpay-overlay.active .gpay-circle { transform: scale(1); }
+    
+    .gpay-check { width: 50px; height: 50px; fill: none; stroke: var(--success-color); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+    .gpay-overlay.active .gpay-check { animation: drawCheck 0.6s ease forwards 0.3s; }
+    @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+
+    .gpay-title { font-size: 24px; font-weight: 700; color: var(--text-main); margin: 0 0 8px 0; opacity: 0; transform: translateY(10px); transition: 0.4s ease 0.5s; }
+    .gpay-amount { font-size: 40px; font-weight: 800; color: var(--text-main); margin: 0 0 32px 0; opacity: 0; transform: translateY(10px); transition: 0.4s ease 0.6s; }
+    .gpay-overlay.active .gpay-title, .gpay-overlay.active .gpay-amount, .gpay-overlay.active .gpay-footer { opacity: 1; transform: translateY(0); }
+
+    .gpay-footer { position: absolute; bottom: 32px; font-size: 12px; color: var(--brand-accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: 0; transition: 0.4s ease 0.8s;}
+
+    /* System Alert Modals */
+    .center-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-overlay); z-index: 200; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .center-modal.active { opacity: 1; pointer-events: all; }
+    .mini-modal-content { background-color: var(--surface-color); width: 90%; max-width: 340px; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); border: 1px solid var(--border-color); text-align: center; }
+    .center-modal.active .mini-modal-content { transform: scale(1); }
+    .msg-icon { font-size: 40px; margin-bottom: 12px; }
+    .mini-modal-title { font-size: 18px; font-weight: 700; margin: 0 0 12px 0; color: var(--text-main); }
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 24px 0; line-height: 1.5; }
+    .mini-btn { flex: 1; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-titles">
+      <h1>Meena Chitfunds</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="action-bar">
+      <button class="action-btn" onclick="openModal('payment-modal')">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        Make Payment
+      </button>
+    </div>
+
+    <div class="list-container">
+      <div class="section-title">Recent Transactions</div>
+      <div id="txn-list">
+        </div>
+      <button id="load-more-btn" class="load-more-btn" style="display: none;">Load More Transactions</button>
+    </div>
+  </main>
+
+  <aside id="payment-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">Record Payment</div>
+    </div>
+    <div class="modal-body">
+      
+      <div class="input-group">
+        <label>Participant ID (Search)</label>
+        <span class="loading-text" id="p-id-loading">Searching...</span>
+        <input type="text" id="p-id" placeholder="e.g., rahul_101" autocomplete="off">
+        <span class="validation-icon" id="p-id-icon"></span>
+      </div>
+
+      <div id="calc-card" class="calc-card">
+        <div class="user-profile">
+          <h2 class="user-name" id="u-name">Loading...</h2>
+          <div class="user-phone" id="u-phone">+91 XXXXX XXXXX</div>
+        </div>
+
+        <div class="input-group">
+          <label>Select Active Group</label>
+          <select id="u-group-select">
+            <option value="">-- Choose a group --</option>
+          </select>
+        </div>
+
+        <div id="payment-details-view" style="display: none;">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Last Paid</div>
+              <div class="stat-value" id="d-last-paid">₹0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Total Collected</div>
+              <div class="stat-value" id="d-total-paid">₹0</div>
+            </div>
+          </div>
+
+          <div class="due-section">
+            <div class="due-label" id="d-month-label">Paying for Month: --</div>
+            <div>₹<input type="number" id="d-amount-due" class="due-amount-input"></div>
+          </div>
+
+          <button type="button" class="submit-btn" id="confirm-payment-btn" style="margin-top: 24px;">Confirm Payment</button>
+        </div>
+      </div>
+      
+    </div>
+  </aside>
+
+  <div id="gpay-overlay" class="gpay-overlay">
+    <div class="gpay-circle">
+      <svg class="gpay-check" viewBox="0 0 24 24">
+        <path d="M4 12 l5 5 l11 -11" />
+      </svg>
+    </div>
+    <div class="gpay-title">Payment Successful</div>
+    <div class="gpay-amount" id="gpay-amount-text">₹0</div>
+    <div class="gpay-footer">Secure portal managed by Goorac Systems</div>
+  </div>
+
+  <aside id="message-modal" class="center-modal">
+    <div class="mini-modal-content">
+      <div id="msg-icon" class="msg-icon">⚠️</div>
+      <h3 class="mini-modal-title" id="msg-title">Error</h3>
+      <p class="mini-modal-text" id="msg-body">Something went wrong.</p>
+      <div class="mini-modal-actions">
+        <button class="mini-btn mini-btn-primary" onclick="closeMessageModal()">OK</button>
+      </div>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { auth, db } from './config.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, writeBatch, increment, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+    onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
+
+    // --- Modal Navigation ---
+    window.openModal = function(modalId) {
+      document.getElementById(modalId).classList.add('active');
+      history.pushState({ modalOpen: true }, '', `#${modalId}`);
+    };
+    
+    window.closeModal = function() {
+      if(history.state && history.state.modalOpen) history.back(); 
+      else closeAllModals();
+    };
+    
+    function closeAllModals() { 
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+      // Reset payment form UI on close
+      document.getElementById('calc-card').classList.remove('active');
+      document.getElementById('p-id').value = '';
+      document.getElementById('p-id-icon').innerHTML = '';
+      document.getElementById('payment-details-view').style.display = 'none';
+      activeGroupData = null;
+      targetUserId = null;
+    }
+    
+    window.addEventListener('popstate', closeAllModals);
+
+    window.showMessage = function(title, body) {
+      document.getElementById('msg-title').innerText = title;
+      document.getElementById('msg-body').innerHTML = body; 
+      document.getElementById('message-modal').classList.add('active');
+    };
+    window.closeMessageModal = function() {
+      document.getElementById('message-modal').classList.remove('active');
+    };
+
+    // --- Global State for Calculation Engine ---
+    let targetUserId = null;
+    let targetUserName = "";
+    let activeGroupData = null; 
+    let currentCalcMonth = 0;
+
+    // --- ID Validation & Data Fetching (Debounced) ---
+    let timeoutId;
+    document.getElementById('p-id').addEventListener('input', (e) => {
+      const inputVal = e.target.value.trim();
+      const icon = document.getElementById('p-id-icon');
+      const loader = document.getElementById('p-id-loading');
+      const card = document.getElementById('calc-card');
+
+      icon.innerHTML = '';
+      card.classList.remove('active');
+      document.getElementById('payment-details-view').style.display = 'none';
+      targetUserId = null;
+
+      if(inputVal.length < 3) return;
+
+      loader.style.display = 'block';
+      clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(async () => {
+        try {
+          const docSnap = await getDoc(doc(db, "users", inputVal));
+          loader.style.display = 'none';
+          
+          if (docSnap.exists()) {
+            icon.innerHTML = '✔';
+            icon.className = 'validation-icon valid';
+            
+            const userData = docSnap.data();
+            targetUserId = inputVal;
+            targetUserName = userData.name;
+            
+            document.getElementById('u-name').innerText = userData.name;
+            document.getElementById('u-phone').innerText = userData.phone;
+            
+            // Populate Groups Dropdown
+            const select = document.getElementById('u-group-select');
+            select.innerHTML = '<option value="">-- Choose a group --</option>';
+            
+            if(userData.activeGroups && userData.activeGroups.length > 0) {
+                // To save reads, we could fetch full group details later. For now, just list IDs.
+                // In production, you might store {id, name} in activeGroups array to save a read here.
+                userData.activeGroups.forEach(gId => {
+                    const opt = document.createElement('option');
+                    opt.value = gId;
+                    opt.innerText = `@${gId}`;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = '<option value="">No active groups found</option>';
+            }
+
+            card.classList.add('active');
+
+          } else {
+            icon.innerHTML = '❌';
+            icon.className = 'validation-icon invalid';
+          }
+        } catch (err) {
+          console.error(err);
+          loader.style.display = 'none';
+        }
+      }, 600);
+    });
+
+    // --- The Calculation Engine (When Group is Selected) ---
+    document.getElementById('u-group-select').addEventListener('change', async (e) => {
+        const groupId = e.target.value;
+        const detailsView = document.getElementById('payment-details-view');
+        
+        if(!groupId) {
+            detailsView.style.display = 'none';
+            return;
+        }
+
+        detailsView.style.display = 'none'; // Hide while calculating
+        
+        try {
+            // 1. Fetch Group Settings (1 Read)
+            const groupSnap = await getDoc(doc(db, "groups", groupId));
+            if(!groupSnap.exists()) {
+                showMessage("Error", "Group data missing."); return;
+            }
+            activeGroupData = groupSnap.data();
+
+            // 2. Fetch User's Past Transactions for THIS Group
+            const qTxn = query(collection(db, "transactions"), 
+                where("subscriberId", "==", targetUserId),
+                where("groupId", "==", groupId)
+            );
+            
+            const txnSnap = await getDocs(qTxn);
+            let totalPaid = 0;
+            let maxMonthPaid = 0;
+            let lastAmountPaid = 0;
+
+            txnSnap.forEach(tDoc => {
+                let tData = tDoc.data();
+                totalPaid += tData.amount;
+                if(tData.monthAttributed > maxMonthPaid) {
+                    maxMonthPaid = tData.monthAttributed;
+                    lastAmountPaid = tData.amount;
+                }
+            });
+
+            // 3. Determine Next Month
+            currentCalcMonth = maxMonthPaid + 1;
+
+            if(currentCalcMonth > activeGroupData.totalMonths) {
+                showMessage("Chit Complete", "This user has completed all installments for this group!");
+                return;
+            }
+
+            // 4. Calculate Scheduled Amount Due (The "Increment" Logic)
+            let amountDue = 0;
+            let schedule = activeGroupData.installmentSchedule || [];
+            
+            for(let tier of schedule) {
+                if(currentCalcMonth >= tier.start && currentCalcMonth <= tier.end) {
+                    amountDue = tier.amount;
+                    break;
+                }
+            }
+
+            // If schedule mapping fails, default to last amount paid as a safety net
+            if(amountDue === 0 && lastAmountPaid > 0) amountDue = lastAmountPaid;
+
+            // 5. Update UI
+            document.getElementById('d-last-paid').innerText = `₹${Number(lastAmountPaid).toLocaleString('en-IN')}`;
+            document.getElementById('d-total-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
+            document.getElementById('d-month-label').innerText = `Paying for Month: ${currentCalcMonth} of ${activeGroupData.totalMonths}`;
+            document.getElementById('d-amount-due').value = amountDue; // Input field so Admin can manually override if needed
+
+            detailsView.style.display = 'block';
+
+        } catch (err) {
+            console.error("Calculation Error:", err);
+            showMessage("Calculation Error", "Failed to retrieve ledger math.");
+        }
+    });
+
+    // --- Submit Payment Logic & GPay Animation ---
+    document.getElementById('confirm-payment-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('confirm-payment-btn');
+        const amountToPay = Number(document.getElementById('d-amount-due').value);
+        const groupId = document.getElementById('u-group-select').value;
+
+        if(!amountToPay || amountToPay <= 0) {
+            alert("Please enter a valid amount."); return;
+        }
+
+        btn.innerText = "Processing..."; btn.disabled = true;
+
+        try {
+            const batch = writeBatch(db);
+
+            // 1. Create Transaction Ledger Entry
+            const newTxRef = doc(collection(db, "transactions"));
+            batch.set(newTxRef, {
+                subscriberId: targetUserId,
+                groupId: groupId,
+                amount: amountToPay,
+                monthAttributed: currentCalcMonth,
+                type: "Monthly Installment",
+                date: serverTimestamp()
+            });
+
+            // 2. Update Group Document Snapshot (For 1-Read Dashboard Loading later)
+            const groupRef = doc(db, "groups", groupId);
+            
+            // To update the snapshot array, we must rewrite it entirely because array update syntax is rigid.
+            // Since we fetched activeGroupData earlier, we modify local array and send it back.
+            let snapshotArray = activeGroupData.memberSnapshot || [];
+            let userSnapIndex = snapshotArray.findIndex(m => m.id === targetUserId);
+            
+            if(userSnapIndex > -1) {
+                snapshotArray[userSnapIndex].monthsPaid = currentCalcMonth;
+            } else {
+                // Failsafe if they weren't in snapshot
+                snapshotArray.push({
+                    id: targetUserId, name: targetUserName, monthsPaid: currentCalcMonth, balanceDue: 0, hasAdvance: false
+                });
+            }
+            batch.update(groupRef, { 
+                memberSnapshot: snapshotArray,
+                totalPotCollected: increment(amountToPay) // Track running total for the group
+            });
+
+            // 3. Update Master System Dashboard (Optional, if collection exists)
+            // batch.set(doc(db, "system", "dashboard_stats"), { totalCollections: increment(amountToPay) }, { merge: true });
+
+            // Execute Database writes
+            await batch.commit();
+
+            // --- Trigger GPay Success Flow ---
+            
+            // Vibrate phone (Haptic Feedback)
+            if ("vibrate" in navigator) { navigator.vibrate([100, 50, 100]); }
+
+            document.getElementById('gpay-amount-text').innerText = `₹${amountToPay.toLocaleString('en-IN')}`;
+            const overlay = document.getElementById('gpay-overlay');
+            overlay.classList.add('active');
+
+            // Clean up and close after 2.5 seconds
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                closeModal();
+                loadTransactions(); // Refresh list
+                btn.innerText = "Confirm Payment"; btn.disabled = false;
+            }, 2500);
+
+        } catch (err) {
+            console.error("Payment failed", err);
+            showMessage("Payment Failed", "Network error while saving transaction.");
+            btn.innerText = "Confirm Payment"; btn.disabled = false;
+        }
+    });
+
+    // --- Fetch Transaction History & Pagination ---
+    const txnList = document.getElementById('txn-list');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    let lastVisibleTxn = null;
+
+    async function loadTransactions(isLoadMore = false) {
+      try {
+        let q;
+        if (isLoadMore && lastVisibleTxn) {
+          q = query(collection(db, "transactions"), orderBy("date", "desc"), startAfter(lastVisibleTxn), limit(10));
+        } else {
+          txnList.innerHTML = ''; 
+          q = query(collection(db, "transactions"), orderBy("date", "desc"), limit(10));
+        }
+
+        let querySnapshot;
+        try {
+          querySnapshot = await getDocs(q);
+        } catch (err) {
+          console.warn("Index missing for date sort. Falling back to basic fetch.");
+          const fallbackQ = (isLoadMore && lastVisibleTxn) 
+            ? query(collection(db, "transactions"), startAfter(lastVisibleTxn), limit(10)) 
+            : query(collection(db, "transactions"), limit(10));
+          querySnapshot = await getDocs(fallbackQ);
+        }
+
+        if (querySnapshot.empty) {
+          if(!isLoadMore) txnList.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No recent transactions.</div>';
+          loadMoreBtn.style.display = 'none';
+          return;
+        }
+
+        lastVisibleTxn = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          
+          let displayDate = "Just now";
+          if(data.date) {
+              const d = data.date.toDate();
+              displayDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+
+          const card = document.createElement('div');
+          card.className = 'txn-card';
+          card.innerHTML = `
+            <div class="txn-info">
+              <h3>@${data.subscriberId}</h3>
+              <div class="txn-meta">
+                <span>Grp: ${data.groupId}</span> • <span>Mo. ${data.monthAttributed}</span>
+              </div>
+              <span class="txn-type">${data.type}</span>
+            </div>
+            <div>
+              <div class="txn-amount">₹${Number(data.amount).toLocaleString('en-IN')}</div>
+              <div style="font-size:11px; color:var(--text-muted); text-align:right; margin-top:4px;">${displayDate}</div>
+            </div>
+          `;
+          txnList.appendChild(card);
+        });
+
+        loadMoreBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+      } catch (error) { 
+        console.error(error); 
+        if(!isLoadMore) txnList.innerHTML = `<div style="color:var(--danger-color); text-align:center;">Error loading ledger.</div>`;
+      }
+    }
+    
+    loadMoreBtn.addEventListener('click', () => loadTransactions(true));
+
+    // Initialize Page
+    loadTransactions();
+  </script>
+</body>
+</html>
