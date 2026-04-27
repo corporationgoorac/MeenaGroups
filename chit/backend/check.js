@@ -94,7 +94,7 @@ module.exports = function(client) {
                     const media = new MessageMedia('image/png', imageBuffer.toString('base64'), `Ledger_${input}_${groupId}.png`);
                     
                     // UPDATED SECURE LINK
-                    const caption = `👤 *Participant / பங்கேற்பாளர்:* ${user.name}\n👥 *Group / குழு:* ${groupData.groupName}\n🆔 *ID:* @${input}\n\n🌐 *View full ledger / முழு கணக்கு விவரங்களை காண:*\nhttps://meena.goorac.biz/chit/#${input}\n\n✨ _Secured by Goorac_`;
+                    const caption = `👤 *Participant / பங்கேற்பாளர்:* ${user.name}\n👥 *Group / குழு:* ${groupData.groupName}\n🆔 *ID:* @${input}\n\n🌐 *View full ledger / முழு கணக்கு விவரங்களை காண:*\nhttps://meena.goorac.biz/chit#${input}\n\n✨ _Secured by Goorac_`;
 
                     await client.sendMessage(msg.from, media, { caption: caption });
                 }
