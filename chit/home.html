@@ -462,13 +462,15 @@
             // 4. Sum Total Vault (Collected Payments, Excluding Payouts) (Costs exactly 1 Read!)
             let totalWallet = 0;
             try {
-                const walletQ = query(collection(db, "transactions"), where("type", "!=", "Auction Payout"));
-                const walletAggregate = await getAggregateFromServer(walletQ, {
+                // FIX: Since we moved payouts to the 'auctions' collection, 
+                // the 'transactions' collection is now PURE incoming revenue.
+                // We sum the entire collection directly. No index required!
+                const walletAggregate = await getAggregateFromServer(collection(db, "transactions"), {
                     totalWallet: sum('amount')
                 });
                 totalWallet = walletAggregate.data().totalWallet || 0;
             } catch(e) {
-                console.warn("Transaction aggregate index missing. Trying group fallback...");
+                console.warn("Transaction aggregate failed. Trying group fallback...");
                 try {
                     const fallbackAgg = await getAggregateFromServer(collection(db, "groups"), {
                         totalWallet: sum('totalPotCollected')
