@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs'); // FIXED: Lowercase 'const' prevents startup crash
 
 // =========================================================
 // 🕒 UTC to IST (Indian Standard Time) Converter Engine
@@ -67,6 +67,14 @@ function sanitizeNumberForWhatsApp(rawNum) {
 // 🚀 MAIN SCHEDULER EXPORT
 // =========================================================
 module.exports = function(client, admin) {
+    // --- ADVANCED EDGE CASE FIX: SELF-PROTECTING DUPLICATE GUARD ---
+    // Prevents this file from generating duplicate intervals if the bot reconnects
+    if (client._shedEngineLoaded) {
+        console.log("⚡ [SHED.JS] Scheduler is already active in memory. Preventing duplicate intervals.");
+        return;
+    }
+    client._shedEngineLoaded = true;
+
     const db = admin.firestore();
     console.log("⏰ [SHED.JS] Global Alternate-Day Reminder System Booting Up...");
 

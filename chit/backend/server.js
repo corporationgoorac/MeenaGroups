@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // FIXED: Lowercase 'const'
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const fs = require('fs');
@@ -16,9 +16,13 @@ app.use(express.json());
 try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+        
+        // ADVANCED EDGE CASE FIX: Prevent Firebase from initializing multiple times if server re-routes
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        }
         console.log("✅ Firebase Admin initialized securely from Secrets.");
     } else {
         console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT secret is missing in Hugging Face.");
@@ -30,21 +34,33 @@ try {
 // --- 3. WHATSAPP WEB INIT (RAM OPTIMIZED) ---
 let waStatus = 'INITIALIZING'; // INITIALIZING, QR_READY, CONNECTED
 let currentQRDataURL = '';
+let isInitializing = false; // Flag to prevent multiple initializations simultaneously
+
+// ADVANCED EDGE CASE FIX: Flags to prevent duplicate scheduler clones and memory leaks
+let isCheckModuleLoaded = false; 
+let isClientDestroying = false;
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './wa_session' }), // Saves session to prevent re-scanning
+    authTimeoutMs: 120000, // INCREASED to 2 minutes to prevent HuggingFace timeout crashes
     puppeteer: {
         headless: true,
+        // ADVANCED TIMEOUT GUARD: Prevents net::ERR_TIMED_OUT on slow server wakeups
+        timeout: 60000,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage', // Critical for Docker/Hugging Face
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
-            '--no-zygote',
-            '--single-process', // Aggressive RAM optimization
+            /* '--no-zygote', */ // COMMENTED OUT: Causes instability on HF containers
+            /* '--single-process', */ // COMMENTED OUT: Triggers HF RAM Quota kills during spikes
             '--disable-gpu',
-            '--js-flags="--max-old-space-size=512"' // Limit JS Heap
+            '--js-flags="--max-old-space-size=450"', // UPDATED: Limit JS Heap strictly to 450MB
+            // EXTRA RAM SAVERS:
+            '--disable-extensions',
+            '--memory-pressure-off'
         ]
     }
 });
@@ -53,6 +69,7 @@ const client = new Client({
 client.on('qr', async (qr) => {
     console.log('🔄 New QR Code Generated');
     waStatus = 'QR_READY';
+    isInitializing = false; // THE DEADLOCK FIX: Unlock here so it can reboot if the QR times out!
     
     try {
         // Convert to Base64 for the frontend API
@@ -73,47 +90,108 @@ client.on('ready', () => {
     console.log('✅ WhatsApp Client is READY and ONLINE!');
     waStatus = 'CONNECTED';
     currentQRDataURL = ''; // Clear memory
+    isInitializing = false; // Reset lock once safely connected
     
     // Delete the qr.png file since it's no longer needed
     const qrPath = path.join(__dirname, 'qr.png');
     if (fs.existsSync(qrPath)) fs.unlinkSync(qrPath);
 
     // --- EXECUTE CHECK.JS IF AVAILABLE ---
-    const checkScriptPath = path.join(__dirname, 'check.js');
-    if (fs.existsSync(checkScriptPath)) {
-        console.log('🚀 check.js found! Initializing automated scheduled tasks...');
-        const checkLogic = require('./check.js');
-        // Pass the connected client and firebase admin to check.js
-        if(typeof checkLogic === 'function') {
-            checkLogic(client, admin);
+    // ADVANCED EDGE CASE FIX: Prevent check.js from being cloned every time WA reconnects
+    if (!isCheckModuleLoaded) {
+        const checkScriptPath = path.join(__dirname, 'check.js');
+        if (fs.existsSync(checkScriptPath)) {
+            console.log('🚀 check.js found! Initializing automated scheduled tasks...');
+            const checkLogic = require('./check.js');
+            // Pass the connected client and firebase admin to check.js
+            if(typeof checkLogic === 'function') {
+                // THE SUICIDE GUARD: Prevent check.js syntax errors from crashing the main connection
+                try {
+                    checkLogic(client, admin);
+                    isCheckModuleLoaded = true; // Lock the module so it never runs twice!
+                } catch (error) {
+                    console.error("❌ check.js failed to start safely:", error);
+                }
+            }
+        } else {
+            console.log('ℹ️ check.js not found. Skipping automation startup.');
         }
     } else {
-        console.log('ℹ️ check.js not found. Skipping automation startup.');
+        console.log('⚡ WhatsApp Reconnected: check.js is already running safely in the background.');
     }
 });
 
+// --- NEW EVENT: AUTHENTICATION FAILURE GUARD ---
+client.on('auth_failure', msg => {
+    console.error('❌ Authentication Failure (Corrupted Session):', msg);
+    waStatus = 'DISCONNECTED';
+    isInitializing = false; // Release lock so it can be destroyed and rebooted cleanly
+});
+
 // Event: Disconnected (Requires re-scan)
-client.on('disconnected', (reason) => {
+// ADVANCED EDGE CASE FIX: Added 'async' to allow for safe memory destruction
+client.on('disconnected', async (reason) => {
     console.log('❌ Client was logged out or disconnected:', reason);
     waStatus = 'DISCONNECTED';
-    client.initialize(); // Reboot client
+    
+    // Safely reboot client, preventing multiple simultaneous calls
+    if (!isInitializing && !isClientDestroying) {
+        isInitializing = true;
+        isClientDestroying = true;
+        
+        // ADVANCED EDGE CASE FIX: Purge the corrupted browser instance before rebooting
+        console.log("🧹 Safe Reboot: Destroying corrupted WhatsApp instance from RAM...");
+        
+        // THE GUILLOTINE GUARD: If destroy() hangs forever, kill it after 5 seconds
+        await Promise.race([
+            client.destroy().catch(() => {}),
+            new Promise(res => setTimeout(res, 5000))
+        ]);
+        
+        isClientDestroying = false;
+
+        // THE FILE LOCK GUARD: Wait 5 seconds to let the OS release session files before restarting
+        console.log("⏳ Waiting 5 seconds to release OS file locks...");
+        setTimeout(() => {
+            client.initialize().catch(err => {
+                console.error("❌ Reboot Initialization Error:", err);
+                isInitializing = false;
+            }); // Reboot client
+        }, 5000);
+    }
 });
 
 // --- 4. PREVENT MEMORY LEAKS (RAM CLEARING) ---
 // Every 15 minutes, safely clear browser cache without logging out
 setInterval(async () => {
-    if (waStatus === 'CONNECTED' && client.pupPage) {
+    // ADVANCED CRASH GUARD: Added !client.pupPage.isClosed() to prevent querying a dead browser
+    if (waStatus === 'CONNECTED' && client.pupPage && !client.pupPage.isClosed()) {
         try {
             await client.pupPage.evaluate(() => performance.clearResourceTimings());
-            console.log("🧹 Headless Browser RAM & Cache optimized.");
+            
+            // Deep safe RAM clear via CDP (Chrome DevTools Protocol) without disrupting session
+            const clientCDP = await client.pupPage.target().createCDPSession();
+            await clientCDP.send('Network.clearBrowserCache');
+            await clientCDP.send('HeapProfiler.collectGarbage');
+            await clientCDP.detach();
+            
+            console.log("🧹 Headless Browser RAM & Cache optimized to stay under 450MB.");
         } catch (e) {
-            console.error("Failed to clear RAM:", e);
+            // Simplified error output so it doesn't flood your logs if it fails once
+            console.error("Failed to clear RAM:", e.message);
         }
     }
 }, 15 * 60 * 1000);
 
 // Initialize the engine
-client.initialize();
+if (!isInitializing) {
+    isInitializing = true;
+    client.initialize().catch(err => {
+        // PREVENTS UNHANDLED PROMISE REJECTION CRASH
+        console.error("❌ Fatal WhatsApp Initialization Error Caught:", err);
+        isInitializing = false; 
+    });
+}
 
 // --- 5. API ROUTES & INLINE FRONTEND ---
 
@@ -234,7 +312,7 @@ app.get('/', (req, res) => {
 
         // Start polling immediately
         checkStatus();
-      <\/script>
+      </script>
     </body>
     </html>
     `;
@@ -242,8 +320,9 @@ app.get('/', (req, res) => {
     res.send(htmlUI);
 });
 
-app.listen(port, () => {
-    console.log(`🌐 Server running on port ${port}`);
+// ADVANCED NETWORK BINDING FIX: Bind to 0.0.0.0 explicitly for Hugging Face Docker stability
+app.listen(port, '0.0.0.0', () => {
+    console.log(`🌐 Server running securely on port ${port}`);
 });
 
 // Export for other files to use

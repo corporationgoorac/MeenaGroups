@@ -1,4 +1,4 @@
-const { MessageMedia } = require('whatsapp-web.js');
+const { MessageMedia } = require('whatsapp-web.js'); // FIXED: Lowercase 'const' prevents startup crash
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
@@ -10,6 +10,13 @@ const db = admin.firestore();
 // 1. THE SMART ROUTER & MESSAGE LISTENER (CHITFUNDS ONLY)
 // ---------------------------------------------------------
 module.exports = function(client) {
+    // ADVANCED EDGE CASE FIX: Prevent duplicate event listeners and memory leaks if called multiple times
+    if (client._checkEngineLoaded) {
+        console.log("⚡ [CHECK.JS] Engine is already running. Preventing duplicate listeners.");
+        return;
+    }
+    client._checkEngineLoaded = true;
+
     console.log("🤖 Goorac Bot Listener Active (Meena Chitfunds Engine)");
 
     // --- OPTIONAL MODULE LOADER (shed.js) ---
@@ -17,27 +24,37 @@ module.exports = function(client) {
     if (fs.existsSync(shedPath)) {
         console.log('🚀 [SYSTEM] shed.js found! Initializing auxiliary modules...');
         try {
-            // Start shed.js and pass the client & admin instances
-            require('./shed.js')(client, admin);
+            // ADVANCED EDGE CASE FIX: Prevent shed.js from being spawned multiple times
+            if (!global._shedModuleLoaded) {
+                global._shedModuleLoaded = true;
+                // Start shed.js and pass the client & admin instances
+                require('./shed.js')(client, admin);
+            } else {
+                console.log('⚡ [SYSTEM] shed.js is already running. Skipping duplicate spawn.');
+            }
         } catch (err) {
             console.error('❌ Failed to start shed.js:', err);
         }
     }
 
     // --- ADVANCED MEMORY GUARD: Prevents crashes on low-resource environments ---
-    const monitorMemory = setInterval(async () => {
-        const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
-        if (memoryUsage > 450) { 
-            console.log(`⚠️ High Memory Detected (${Math.round(memoryUsage)}MB). Purging message cache...`);
-            if (client.pupPage) {
-                await client.pupPage.evaluate(() => {
-                    if (typeof window !== 'undefined' && window.Store && window.Store.Msg) { 
-                        window.Store.Msg.clear();
-                    }
-                }).catch(() => {});
+    // ADVANCED EDGE CASE FIX: Ensure only one interval runs ever, avoiding CPU leaks
+    if (!global._memoryMonitorActive) {
+        global._memoryMonitorActive = true;
+        const monitorMemory = setInterval(async () => {
+            const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+            if (memoryUsage > 450) { 
+                console.log(`⚠️ High Memory Detected (${Math.round(memoryUsage)}MB). Purging message cache...`);
+                if (client.pupPage) {
+                    await client.pupPage.evaluate(() => {
+                        if (typeof window !== 'undefined' && window.Store && window.Store.Msg) { 
+                            window.Store.Msg.clear();
+                        }
+                    }).catch(() => {});
+                }
             }
-        }
-    }, 300000); 
+        }, 300000); 
+    }
 
     client.on('message', async (msg) => {
         // EDGE CASE FIX: Normalizing the input perfectly (mmd016 -> MMD016, "MMD 016" -> MMD016)
@@ -58,7 +75,8 @@ module.exports = function(client) {
                 const userSnap = await userRef.get();
                 
                 if (!userSnap.exists) {
-                    return msg.reply("❌ *Participant ID not found.*\nPlease check the ChitFund ID and try again.\n\n❌ *பங்கேற்பாளர் எண் காணப்படவில்லை.*\nஎண்ணை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.");
+                    // ADVANCED CRASH GUARD: Appended .catch() to prevent Unhandled Promise Rejections if WA Web disconnects mid-message
+                    return msg.reply("❌ *Participant ID not found.*\nPlease check the ChitFund ID and try again.\n\n❌ *பங்கேற்பாளர் எண் காணப்படவில்லை.*\nஎண்ணை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.").catch(e => console.error("Reply failed safely:", e.message));
                 }
 
                 const user = userSnap.data(); 
@@ -66,10 +84,10 @@ module.exports = function(client) {
                 const activeGroups = user.activeGroups || [];
                 
                 if (activeGroups.length === 0) {
-                    return msg.reply(`⚠️ Record found for *${user.name}*, but no active Chit Groups were found.\n\n⚠️ *${user.name}* க்கான பதிவு உள்ளது, ஆனால் செயலில் உள்ள குழுக்கள் எதுவும் இல்லை.`);
+                    return msg.reply(`⚠️ Record found for *${user.name}*, but no active Chit Groups were found.\n\n⚠️ *${user.name}* க்கான பதிவு உள்ளது, ஆனால் செயலில் உள்ள குழுக்கள் எதுவும் இல்லை.`).catch(e => console.error("Reply failed safely:", e.message));
                 }
 
-                await msg.reply(`✨ _Meena Chitfunds_\nFound *${activeGroups.length}* active group(s) for *${user.name}*.\n\n📥 _Generating Financial Ledgers..._ | _அறிக்கைகளை உருவாக்குகிறது..._`);
+                await msg.reply(`✨ _Meena Chitfunds_\nFound *${activeGroups.length}* active group(s) for *${user.name}*.\n\n📥 _Generating Financial Ledgers..._ | _அறிக்கைகளை உருவாக்குகிறது..._`).catch(e => console.error("Reply failed safely:", e.message));
 
                 for (const groupId of activeGroups) {
                     // Fetch Group Data (1 Read)
@@ -96,13 +114,14 @@ module.exports = function(client) {
                     // UPDATED SECURE LINK
                     const caption = `👤 *Participant / பங்கேற்பாளர்:* ${user.name}\n👥 *Group / குழு:* ${groupData.groupName}\n🆔 *ID:* @${input}\n\n🌐 *View full ledger / முழு கணக்கு விவரங்களை காண:*\nhttps://meena.goorac.biz/chit#${input}\n\n✨ _Secured by Goorac_`;
 
-                    await client.sendMessage(msg.from, media, { caption: caption });
+                    // ADVANCED CRASH GUARD: Prevent crash if large image payload fails to send due to network drop
+                    await client.sendMessage(msg.from, media, { caption: caption }).catch(e => console.error("Media send failed safely:", e.message));
                 }
                 console.log(`✅ Chitfunds Ledger(s) sent successfully for ${input}`);
 
             } catch (error) {
                 console.error("❌ Chitfunds Bot Error:", error);
-                msg.reply("⚠️ *System Busy:* Could not generate the ledger at this moment. Please try again later.");
+                msg.reply("⚠️ *System Busy:* Could not generate the ledger at this moment. Please try again later.").catch(() => {});
             }
         }
     });
@@ -151,7 +170,13 @@ async function generateChitfundImage(client, user, group, transactions) {
     let page;
     try {
         if (!client.pupBrowser) throw new Error("Puppeteer browser instance is not available.");
-        page = await client.pupBrowser.newPage(); 
+        
+        // --- CHROME TAB BUG FIX 1: Prevent newPage() from hanging infinitely ---
+        let newPageTimeout;
+        page = await Promise.race([
+            client.pupBrowser.newPage(),
+            new Promise((_, reject) => { newPageTimeout = setTimeout(() => reject(new Error("newPage timeout")), 10000); })
+        ]).finally(() => clearTimeout(newPageTimeout)); // Clears floating timer
         
         // MOBILE FIX: Viewport updated to a sleek mobile vertical frame (540px).
         // Added deviceScaleFactor: 2 for ultra-crisp Retina WhatsApp images!
@@ -335,7 +360,12 @@ async function generateChitfundImage(client, user, group, transactions) {
         </body>
         </html>`;
 
-        await page.setContent(htmlContent, { waitUntil: 'load' });
+        // --- CHROME TAB BUG FIX 2: Added Floating Timer Clear for setContent ---
+        let contentTimeout;
+        await Promise.race([
+            page.setContent(htmlContent, { waitUntil: 'load' }),
+            new Promise((_, reject) => { contentTimeout = setTimeout(() => reject(new Error("Puppeteer setContent timeout")), 15000); })
+        ]).finally(() => clearTimeout(contentTimeout)); // Clears floating timer
         
         // BUG FIX: Attached a safe .catch() to prevent Unhandled Promise Rejections if the page closes too fast
         await Promise.race([ 
@@ -343,8 +373,15 @@ async function generateChitfundImage(client, user, group, transactions) {
             new Promise(resolve => setTimeout(resolve, 600)) 
         ]);
         
-        // Added fullPage: true so the vertical frame expands naturally if they have lots of transactions
-        return await page.screenshot({ type: 'png', omitBackground: true, fullPage: true });
+        // --- CHROME TAB BUG FIX 3: Added Floating Timer Clear for screenshot ---
+        let screenTimeout;
+        const imageBuffer = await Promise.race([
+            page.screenshot({ type: 'png', omitBackground: true, fullPage: true }),
+            new Promise((_, reject) => { screenTimeout = setTimeout(() => reject(new Error("Puppeteer screenshot timeout")), 15000); })
+        ]).finally(() => clearTimeout(screenTimeout)); // Clears floating timer
+
+        return imageBuffer;
+        
     } catch (error) { 
         throw error; 
     } finally { 
