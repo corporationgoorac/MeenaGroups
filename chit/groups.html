@@ -123,10 +123,10 @@
     }
     .modal.active { transform: translateX(0); }
     
-    /* Ensure Modals stack correctly on top of each other */
+    /* Ensure Modals stack correctly */
     #group-detail-modal { z-index: 105; }
     #participants-modal { z-index: 110; }
-    #pending-modal { z-index: 110; } 
+    #pending-modal { z-index: 110; } /* Same level, mutually exclusive view */
     
     .modal-header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background-color: var(--surface-color); }
     .back-btn { background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 50%; color: var(--text-main); padding: 8px; margin-left: -4px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
@@ -161,18 +161,16 @@
     /* Participant User Cards */
     .user-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--card-shadow); }
     .u-left { display: flex; align-items: center; gap: 14px; width: 100%;}
-    .u-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
-    .u-info { flex: 1; }
+    .u-avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; }
     .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
-    .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;}
-    .u-loc { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;}
+    .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;}
     
     /* Defaulter / Pending Specific Styling */
     .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); }
     .d-amount { font-size: 18px; font-weight: 800; color: var(--danger-color); text-align: right; }
     .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; text-align: right; margin-top: 4px; }
     
-    .call-btn { background: var(--success-color); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s; flex-shrink: 0;}
+    .call-btn { background: var(--success-color); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s;}
     .call-btn:active { transform: scale(0.9); }
     .call-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
@@ -185,6 +183,27 @@
     /* Loading Spinner */
     .loader { border: 3px solid var(--border-color); border-top: 3px solid var(--brand-accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Mini Center Modal (For Alerts) */
+    .center-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: var(--modal-overlay); z-index: 200;
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      transform: none; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    }
+    .center-modal.active { opacity: 1; pointer-events: all; }
+    .mini-modal-content {
+      background-color: var(--surface-color); width: 90%; max-width: 340px;
+      border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      transform: scale(0.95); transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 1px solid var(--border-color); text-align: center;
+    }
+    .center-modal.active .mini-modal-content { transform: scale(1); }
+    .msg-icon { font-size: 48px; margin-bottom: 16px; }
+    .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
+    .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
 
   </style>
 </head>
@@ -302,10 +321,9 @@
   <aside id="message-modal" class="center-modal">
     <div class="mini-modal-content">
       <div id="msg-icon" class="msg-icon">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-      </div>
-      <h3 class="mini-modal-title" id="msg-title">Success</h3>
-      <p class="mini-modal-text" id="msg-body">Operation completed successfully.</p>
+          </div>
+      <h3 class="mini-modal-title" id="msg-title">Alert</h3>
+      <p class="mini-modal-text" id="msg-body">Operation completed.</p>
       <div class="mini-modal-actions">
         <button class="mini-btn" onclick="closeMessageModal()">OK</button>
       </div>
@@ -315,7 +333,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -379,7 +397,7 @@
     let currentSearchPage = 1;
     const GROUPS_PER_PAGE = 10;
 
-    let activeLoadedGroup = null; // Stores data for the currently viewed Group Modal
+    let activeGroupData = null; // Stores data for the currently viewed Group Modal
     let activeLoadedGroupCurrentMonth = 1; // Stored engine calculation
     let activeLoadedGroupUsers = []; // Stores fetched user profiles to save reads
 
@@ -390,8 +408,15 @@
         
         try {
             // Fetch up to 500 groups into memory to allow instant 0-read searching
-            const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
-            const snap = await getDocs(q);
+            let snap;
+            try {
+                const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
+                snap = await getDocs(q);
+            } catch (err) {
+                console.warn("Ordered query failed. Falling back to safe query...", err);
+                const fallbackQ = query(collection(db, "groups"), limit(500));
+                snap = await getDocs(fallbackQ);
+            }
             
             allGroupsCache = [];
             snap.forEach(docSnap => {
@@ -403,8 +428,8 @@
         } catch (e) {
             console.error("Init Error", e);
             document.getElementById('main-groups-list').innerHTML = `
-            <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700;">
-              Database Connection Error. Try refreshing.
+            <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700; word-break: break-word;">
+              Database Connection Error: ${e.message}
             </div>`;
             loader.style.display = 'none';
         }
@@ -598,7 +623,9 @@
     window.shareGroupSummary = function() {
         if(!activeGroupData) return;
         
-        const summary = `*${activeGroupData.groupName.toUpperCase()}*\nID: @${activeGroupData.id}\n\n` +
+        const safeName = (activeGroupData.groupName || 'Group').toUpperCase();
+        
+        const summary = `*${safeName}*\nID: @${activeGroupData.id}\n\n` +
                         `Current Timeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n` +
                         `Total Participants: ${activeGroupData.participantCount || 0}\n` +
                         `*This Month's Due: ${document.getElementById('md-g-ongoing-due').innerText.split(': ')[1]}*\n\n` +
@@ -606,7 +633,7 @@
 
         if (navigator.share) {
             navigator.share({
-                title: activeGroupData.groupName,
+                title: safeName,
                 text: summary
             }).catch(console.error);
         } else {
