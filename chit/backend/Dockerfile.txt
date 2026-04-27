@@ -1,0 +1,47 @@
+# Use a lightweight Node.js 18 image as the base
+FROM node:18-bullseye-slim
+
+# --- 1. INSTALL CHROMIUM & DEPENDENCIES ---
+# Install native Chromium and necessary fonts/libraries to prevent headless Chrome from crashing
+RUN apt-get update \
+    && apt-get install -y wget gnupg \
+    && apt-get install -y chromium \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- 2. CONFIGURE PUPPETEER ---
+# Tell Puppeteer to use the installed native Chromium instead of downloading its own
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# --- 3. HUGGING FACE SECURITY REQUIREMENTS ---
+# Hugging Face Spaces strictly require the app to run as a non-root user (uid 1000)
+# The 'node' base image already has a user named 'node' with UID 1000.
+# We will use that existing user instead of creating a new one.
+ENV HOME=/home/node
+WORKDIR $HOME/app
+
+# Ensure the node user owns the working directory before we switch to it
+RUN chown -R node:node $HOME
+
+# Switch to the secure non-root user
+USER node
+
+# --- 4. INSTALL APP DEPENDENCIES ---
+# Copy package files first to leverage Docker layer caching
+COPY --chown=node:node package.json package-lock.json* ./
+
+# Install packages
+RUN npm install
+
+# --- 5. COPY THE REST OF THE APP ---
+# Copy server.js, check.js, etc. giving ownership to our secure node user
+COPY --chown=node:node . .
+
+# --- 6. EXPOSE PORT & START ---
+# Hugging Face routes external traffic to port 7860 by default
+EXPOSE 7860
+
+# Start the Express server
+CMD ["node", "server.js"]
