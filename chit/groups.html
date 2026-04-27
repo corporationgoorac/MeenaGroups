@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json">
+  <title>Groups - Meena Chitfunds</title>
+  
+  <style>
+    /* Premium Theme Variables */
+    :root {
+      --bg-color: #f4f7f6;
+      --text-main: #111111;
+      --text-muted: #6b7280;
+      --surface-color: #ffffff;
+      --surface-hover: #f9fafb;
+      --border-color: #e5e7eb;
+      --brand-accent: #065fd4;
+      --brand-accent-light: #e6f0fa;
+      --danger-color: #dc3545;
+      --danger-light: #fde8e8;
+      --warning-color: #f59e0b;
+      --warning-light: #fef3c7;
+      --success-color: #0f9d58;
+      --success-light: #e6f4ea;
+      --modal-overlay: rgba(0, 0, 0, 0.6);
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0a0a0a;
+        --text-main: #f8f9fa;
+        --text-muted: #9ca3af;
+        --surface-color: #141414;
+        --surface-hover: #1f1f1f;
+        --border-color: #2d2d2d;
+        --brand-accent: #3ea6ff;
+        --brand-accent-light: rgba(62, 166, 255, 0.15);
+        --danger-color: #ff4e45;
+        --danger-light: rgba(255, 78, 69, 0.15);
+        --warning-color: #fbbf24;
+        --warning-light: rgba(251, 191, 36, 0.15);
+        --success-color: #34a853;
+        --success-light: rgba(52, 168, 83, 0.15);
+        --modal-overlay: rgba(0, 0, 0, 0.85);
+        --card-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Premium Header */
+    header {
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    @media (prefers-color-scheme: dark) { header { background-color: rgba(20, 20, 20, 0.85); } }
+
+    .header-titles h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    /* List Container & Advanced Search */
+    .list-container { padding: 24px 20px 80px; }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .section-title { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 0; color: var(--text-muted); }
+    
+    .search-wrapper { position: relative; width: 100%; margin-bottom: 20px;}
+    .search-input { width: 100%; padding: 14px 14px 14px 44px; border-radius: 14px; border: 2px solid var(--border-color); background: var(--surface-color); color: var(--text-main); font-size: 15px; font-weight: 600; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: var(--card-shadow);}
+    .search-input:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-light); }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); }
+
+    /* Group Card */
+    .group-card {
+      background-color: var(--surface-color); border: 1px solid var(--border-color);
+      border-radius: 16px; padding: 20px; margin-bottom: 16px; display: flex; flex-direction: column; cursor: pointer; transition: 0.2s;
+      box-shadow: var(--card-shadow);
+    }
+    .group-card:active { transform: scale(0.98); background-color: var(--surface-hover); border-color: var(--brand-accent); }
+    
+    .group-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;}
+    .group-name { font-size: 18px; font-weight: 800; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: -0.5px;}
+    .group-id-badge { font-size: 11px; background: var(--brand-accent-light); color: var(--brand-accent); padding: 4px 8px; border-radius: 6px; font-weight: 800; font-family: monospace; letter-spacing: 0.5px;}
+    
+    .g-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .g-stat { display: flex; flex-direction: column; gap: 4px; }
+    .g-stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;}
+    .g-stat-val { font-size: 15px; font-weight: 800; color: var(--text-main); }
+    .g-stat-val.highlight { color: var(--success-color); }
+
+    .load-more-btn { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; box-shadow: var(--card-shadow); }
+    .load-more-btn:active { background: var(--surface-hover); transform: scale(0.98);}
+
+    /* Full Screen Side Modals */
+    .modal {
+      position: fixed; top: 0; right: 0; width: 100%; height: 100%;
+      background-color: var(--bg-color); z-index: 100; transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column;
+    }
+    .modal.active { transform: translateX(0); }
+    
+    /* Ensure Modals stack correctly */
+    #group-detail-modal { z-index: 105; }
+    #participants-modal { z-index: 110; }
+    #pending-modal { z-index: 110; } /* Same level, mutually exclusive view */
+    
+    .modal-header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background-color: var(--surface-color); }
+    .back-btn { background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 50%; color: var(--text-main); padding: 8px; margin-left: -4px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+    .back-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-left: 14px; letter-spacing: -0.5px;}
+    .modal-subtitle { font-size: 11px; color: var(--brand-accent); font-weight: 700; margin-left: 14px; font-family: monospace;}
+    .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
+
+    /* Advanced Engine Detail Card */
+    .detail-card { background: var(--surface-color); padding: 24px; border-radius: 20px; margin-bottom: 24px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow); }
+    
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; background: var(--success-light); color: var(--success-color);}
+    .status-badge.warning { background: var(--warning-light); color: var(--warning-color); }
+
+    .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .engine-box { background: var(--bg-color); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); }
+    .e-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;}
+    .e-val { font-size: 22px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px;}
+    
+    .financial-box { background: var(--brand-accent-light); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid rgba(6, 95, 212, 0.2); margin-bottom: 24px;}
+    .f-label { font-size: 13px; color: var(--brand-accent); font-weight: 800; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;}
+    .f-val { font-size: 36px; font-weight: 800; color: var(--brand-accent); letter-spacing: -1px;}
+    .f-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 8px;}
+
+    /* Modal Action Buttons */
+    .btn-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .m-btn { width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 10px; border: none;}
+    .m-btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--danger-color), #a00000); color: #ffffff; box-shadow: 0 8px 20px rgba(220, 53, 69, 0.25); }
+    .btn-secondary { background: var(--surface-hover); color: var(--text-main); border: 2px solid var(--border-color); }
+
+    /* Participant User Cards */
+    .user-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--card-shadow); }
+    .u-left { display: flex; align-items: center; gap: 14px; }
+    .u-avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; }
+    .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
+    .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;}
+    
+    /* Defaulter / Pending Specific Styling */
+    .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); }
+    .d-amount { font-size: 18px; font-weight: 800; color: var(--danger-color); text-align: right; }
+    .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; text-align: right; margin-top: 4px; }
+    
+    .call-btn { background: var(--success-color); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s;}
+    .call-btn:active { transform: scale(0.9); }
+    .call-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* Empty States */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 64px; height: 64px; fill: var(--border-color); margin-bottom: 16px;}
+    .empty-state h3 { font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-main); }
+    .empty-state p { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.5; }
+
+    /* Loading Spinner */
+    .loader { border: 3px solid var(--border-color); border-top: 3px solid var(--brand-accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-titles">
+      <h1>Meena Chitfunds</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="list-container">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="master-search" class="search-input" placeholder="Search Groups by ID or Name...">
+      </div>
+      
+      <div class="section-header-row">
+        <div class="section-title">All Active Groups</div>
+      </div>
+      
+      <div id="main-groups-list">
+        <div class="loader" id="main-loader"></div>
+      </div>
+      <button id="main-load-more-btn" class="load-more-btn" style="display: none;" onclick="loadMoreGroups()">Load More Groups</button>
+    </div>
+  </main>
+
+  <aside id="group-detail-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div>
+        <div class="modal-title" id="md-g-name">Loading...</div>
+        <div class="modal-subtitle" id="md-g-id">@LOADING</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      
+      <div class="detail-card">
+        <div class="status-badge" id="md-g-status">Analyzing Ledger...</div>
+        
+        <div class="engine-grid">
+          <div class="engine-box">
+            <div class="e-label">Start Date</div>
+            <div class="e-val" id="md-g-start">--/--/----</div>
+          </div>
+          <div class="engine-box">
+            <div class="e-label">Total Duration</div>
+            <div class="e-val" id="md-g-months">-- Mo</div>
+          </div>
+          <div class="engine-box">
+            <div class="e-label">Start Amount</div>
+            <div class="e-val">₹<span id="md-g-start-amt">--</span></div>
+          </div>
+          <div class="engine-box">
+            <div class="e-label">Participants</div>
+            <div class="e-val" id="md-g-members">--</div>
+          </div>
+        </div>
+
+        <div class="financial-box">
+          <div class="f-label">Current Timeline</div>
+          <div class="f-val">Month <span id="md-g-current-month">--</span></div>
+          <div class="f-sub" id="md-g-ongoing-due">This Month's Due: Calculating...</div>
+        </div>
+        
+        <div class="financial-box" style="background: var(--surface-color); border: 2px dashed var(--border-color); margin-bottom: 32px;">
+          <div class="f-label" style="color: var(--text-main);">Total Target Value Reached</div>
+          <div class="f-val" style="color: var(--text-main); font-size: 28px;">₹<span id="md-g-cumulative">--</span></div>
+          <div class="f-sub">Sum of all monthly targets from Month 1 to Now</div>
+        </div>
+
+        <div class="btn-grid">
+          <button class="m-btn btn-primary" onclick="openPendingModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Pending Payments
+          </button>
+          <button class="m-btn btn-secondary" onclick="openParticipantsModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            All Participants Directory
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </aside>
+
+  <aside id="participants-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">Participants Directory</div>
+    </div>
+    <div class="modal-body" id="participants-list-container">
+        </div>
+  </aside>
+
+  <aside id="pending-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title" style="color: var(--danger-color);">Pending Dues</div>
+    </div>
+    <div class="modal-body" id="pending-list-container">
+        </div>
+  </aside>
+
+  <script type="module">
+    import { auth, db } from './config.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+    onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
+
+    // --- FLAWLESS MODAL NAVIGATION (Fixed Back Button) ---
+    window.openModal = function(modalId) {
+      document.getElementById(modalId).classList.add('active');
+      if (window.location.hash !== `#${modalId}`) {
+          history.pushState({ id: modalId }, '', `#${modalId}`);
+      }
+    };
+    
+    window.closeModal = function() {
+      if (window.location.hash) {
+          history.back(); 
+      } else {
+          closeAllModals();
+      }
+    };
+    
+    function closeAllModals() { 
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+    
+    window.addEventListener('popstate', (e) => {
+       closeAllModals();
+       if(e.state && e.state.id) {
+           const targetModal = document.getElementById(e.state.id);
+           if(targetModal) targetModal.classList.add('active');
+       }
+    });
+
+    // --- GLOBAL CACHE & SEARCH ENGINE ---
+    let allGroupsCache = [];
+    let filteredGroups = [];
+    let currentSearchPage = 1;
+    const GROUPS_PER_PAGE = 10;
+
+    let activeLoadedGroup = null; // Stores data for the currently viewed Group Modal
+    let activeLoadedGroupCurrentMonth = 1; // Stored engine calculation
+    let activeLoadedGroupUsers = []; // Stores fetched user profiles to save reads
+
+    // 1. Initial Load of Groups (0-Read Search Architecture)
+    async function initializeGroups() {
+        const loader = document.getElementById('main-loader');
+        loader.style.display = 'block';
+        
+        try {
+            // Fetch up to 500 groups into memory to allow instant 0-read searching
+            const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
+            const snap = await getDocs(q);
+            
+            allGroupsCache = [];
+            snap.forEach(docSnap => {
+                allGroupsCache.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            
+            loader.style.display = 'none';
+            triggerLocalSearch(''); // Initial Render
+        } catch (e) {
+            console.error("Init Error", e);
+            document.getElementById('main-groups-list').innerHTML = `
+            <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700;">
+              Database Connection Error. Try refreshing.
+            </div>`;
+            loader.style.display = 'none';
+        }
+    }
+
+    document.getElementById('master-search').addEventListener('input', (e) => {
+        triggerLocalSearch(e.target.value);
+    });
+
+    function triggerLocalSearch(searchTerm) {
+        const term = searchTerm.trim().toLowerCase();
+        currentSearchPage = 1;
+        
+        if(term === '') {
+            filteredGroups = allGroupsCache;
+        } else {
+            filteredGroups = allGroupsCache.filter(g => {
+                const nameMatch = (g.groupName || "").toLowerCase().includes(term);
+                const idMatch = g.id.toLowerCase().includes(term);
+                return nameMatch || idMatch;
+            });
+        }
+        
+        document.getElementById('main-groups-list').innerHTML = '';
+        renderGroupsBatch();
+    }
+
+    window.loadMoreGroups = function() {
+        currentSearchPage++;
+        renderGroupsBatch();
+    };
+
+    function renderGroupsBatch() {
+        const container = document.getElementById('main-groups-list');
+        const loadMoreBtn = document.getElementById('main-load-more-btn');
+        
+        const startIndex = (currentSearchPage - 1) * GROUPS_PER_PAGE;
+        const endIndex = startIndex + GROUPS_PER_PAGE;
+        const batchToRender = filteredGroups.slice(startIndex, endIndex);
+
+        if(filteredGroups.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    <h3>No Groups Found</h3>
+                    <p>We couldn't find any chit groups matching that search.</p>
+                </div>`;
+            loadMoreBtn.style.display = 'none';
+            return;
+        }
+
+        batchToRender.forEach(group => {
+            const scheduleCount = group.installmentSchedule ? group.installmentSchedule.length : 0;
+            const safePot = group.totalPot ? Number(group.totalPot).toLocaleString('en-IN') : '0';
+            
+            const card = document.createElement('div');
+            card.className = 'group-card';
+            card.onclick = () => openGroupDetail(group);
+            
+            card.innerHTML = `
+                <div class="group-header">
+                    <div>
+                        <h3 class="group-name">${group.groupName || 'Unnamed'}</h3>
+                        <span class="group-id-badge">@${group.id}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: 800; color: var(--success-color);">₹${safePot}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 4px; text-transform: uppercase;">Target Pot</div>
+                    </div>
+                </div>
+                <div class="g-stats-row">
+                    <div class="g-stat">
+                        <span class="g-stat-label">Members</span>
+                        <span class="g-stat-val">${group.participantCount || 0}</span>
+                    </div>
+                    <div class="g-stat">
+                        <span class="g-stat-label">Months</span>
+                        <span class="g-stat-val">${group.totalMonths || 0}</span>
+                    </div>
+                    <div class="g-stat">
+                        <span class="g-stat-label">Tiers</span>
+                        <span class="g-stat-val highlight">${scheduleCount} active</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        loadMoreBtn.style.display = endIndex < filteredGroups.length ? 'block' : 'none';
+    }
+
+    // --- CORE ENGINE LOGIC (Calculations) ---
+
+    // 1. Calculate the Target Month strictly by Date Math
+    function calculateCurrentMonth(startDateStr) {
+        if(!startDateStr) return 1; // Failsafe
+        const start = new Date(startDateStr);
+        const now = new Date();
+        
+        let months = (now.getFullYear() - start.getFullYear()) * 12;
+        months -= start.getMonth();
+        months += now.getMonth();
+        
+        // If created in the future or same month, it's Month 1
+        return months <= 0 ? 1 : months + 1; 
+    }
+
+    // 2. Calculate the exact Due Amount for ANY given target month using Increments
+    function calculateDueForMonth(targetMonth, startAmount, schedule) {
+        if (targetMonth <= 1) return startAmount;
+        
+        let currentAmount = startAmount;
+        for (let m = 2; m <= targetMonth; m++) {
+            let increment = 0;
+            // Find the increment for month 'm'
+            for (let tier of schedule) {
+                if (m >= tier.start && m <= tier.end) {
+                    increment = tier.amount;
+                    break;
+                }
+            }
+            currentAmount += increment;
+        }
+        return currentAmount;
+    }
+
+    // --- MODAL VIEWS ---
+
+    window.openGroupDetail = function(group) {
+        activeGroupData = group;
+        activeLoadedGroupUsers = []; // Clear user cache for the new group
+        
+        // Set Header
+        document.getElementById('md-g-name').innerText = group.groupName || 'Unnamed Group';
+        document.getElementById('md-g-id').innerText = `@${group.id}`;
+        
+        // Quick Stats
+        const startAmt = group.startAmount || 0;
+        document.getElementById('md-g-start').innerText = group.startDate ? new Date(group.startDate).toLocaleDateString('en-IN') : 'N/A';
+        document.getElementById('md-g-months').innerText = `${group.totalMonths || 0} Mo`;
+        document.getElementById('md-g-start-amt').innerText = Number(startAmt).toLocaleString('en-IN');
+        document.getElementById('md-g-members').innerText = group.participantCount || 0;
+
+        // Execute Temporal Engine
+        const schedule = group.installmentSchedule || [];
+        let calcMonth = calculateCurrentMonth(group.startDate);
+        
+        // Cap the month to totalMonths
+        if(calcMonth > group.totalMonths) {
+            calcMonth = group.totalMonths;
+            const badge = document.getElementById('md-g-status');
+            badge.innerText = "Chit Complete";
+            badge.className = "status-badge"; // Green
+        } else {
+            const badge = document.getElementById('md-g-status');
+            badge.innerText = "Active • Ongoing";
+            badge.className = "status-badge warning"; // Orange
+        }
+        
+        activeLoadedGroupCurrentMonth = calcMonth;
+        document.getElementById('md-g-current-month').innerText = calcMonth;
+
+        // Calculate Due for THIS specific month
+        const thisMonthDue = calculateDueForMonth(calcMonth, startAmt, schedule);
+        document.getElementById('md-g-ongoing-due').innerText = `This Month's Installment: ₹${Number(thisMonthDue).toLocaleString('en-IN')}`;
+
+        // Calculate Cumulative Target Value (Sum of all months up to now)
+        let cumulativeTotal = 0;
+        for(let m = 1; m <= calcMonth; m++) {
+            cumulativeTotal += calculateDueForMonth(m, startAmt, schedule);
+        }
+        document.getElementById('md-g-cumulative').innerText = Number(cumulativeTotal).toLocaleString('en-IN');
+
+        openModal('group-detail-modal');
+    };
+
+    // --- FETCH FULL PARTICIPANT PROFILES ---
+    // We fetch the full docs to get phone numbers for the dialer button. (1 Read per user)
+    async function fetchGroupUsers() {
+        if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; // Use cache if already loaded this session
+        
+        const q = query(collection(db, "users"), where("activeGroups", "array-contains", activeGroupData.id));
+        const snap = await getDocs(q);
+        
+        let users = [];
+        snap.forEach(doc => {
+            users.push({ id: doc.id, ...doc.data() });
+        });
+        
+        activeLoadedGroupUsers = users;
+        return users;
+    }
+
+    window.openParticipantsModal = async function() {
+        openModal('participants-modal');
+        const container = document.getElementById('participants-list-container');
+        container.innerHTML = '<div class="loader"></div><div style="text-align:center; font-size:12px; color:var(--text-muted); font-weight:700;">Fetching Database...</div>';
+        
+        try {
+            const users = await fetchGroupUsers();
+            container.innerHTML = '';
+            
+            if(users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        <h3>No Participants</h3>
+                        <p>No one is assigned to this group yet.</p>
+                    </div>`;
+                return;
+            }
+
+            // To show 'monthsPaid', we match the full user object with the group's internal memberSnapshot
+            const snapshotMap = new Map();
+            if(activeGroupData.memberSnapshot) {
+                activeGroupData.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
+            }
+
+            users.forEach(u => {
+                const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
+                const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
+                const phoneText = u.phone ? `📞 ${u.phone}` : 'No Phone';
+                
+                // Card UI
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div class="u-left">
+                        <div class="u-avatar">${initial}</div>
+                        <div class="u-info">
+                            <h3>${u.name || 'Unnamed'}</h3>
+                            <div class="u-meta">@${u.id} • ${phoneText}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-main);">${snapData.monthsPaid} / ${activeLoadedGroupCurrentMonth}</div>
+                        <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Mo. Paid</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = '<div style="color:var(--danger-color); text-align:center; padding:20px; font-weight:700;">Error fetching participants.</div>';
+        }
+    };
+
+    window.openPendingModal = async function() {
+        openModal('pending-modal');
+        const container = document.getElementById('pending-list-container');
+        container.innerHTML = '<div class="loader" style="border-top-color: var(--danger-color);"></div><div style="text-align:center; font-size:12px; color:var(--text-muted); font-weight:700;">Analyzing Defaulters...</div>';
+        
+        try {
+            const users = await fetchGroupUsers();
+            container.innerHTML = '';
+            
+            const snapshotMap = new Map();
+            if(activeGroupData.memberSnapshot) {
+                activeGroupData.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
+            }
+
+            let hasPending = false;
+            const startAmt = activeGroupData.startAmount || 0;
+            const schedule = activeGroupData.installmentSchedule || [];
+
+            users.forEach(u => {
+                const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
+                
+                // LOGIC: If they have paid less months than the engine's current calculated month
+                if(snapData.monthsPaid < activeLoadedGroupCurrentMonth) {
+                    hasPending = true;
+                    
+                    // Complex Math: Calculate total exactly owed based on missed months
+                    let totalOwed = 0;
+                    for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
+                        totalOwed += calculateDueForMonth(m, startAmt, schedule);
+                    }
+
+                    const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
+                    const missedCount = activeLoadedGroupCurrentMonth - snapData.monthsPaid;
+                    
+                    const callButtonHTML = u.phone 
+                        ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
+                        : ``;
+
+                    const card = document.createElement('div');
+                    card.className = 'user-card defaulter-card';
+                    card.innerHTML = `
+                        <div class="u-left" style="width: 100%;">
+                            <div class="u-avatar" style="background: var(--danger-color); box-shadow: none;">${initial}</div>
+                            <div class="u-info" style="flex: 1;">
+                                <h3 style="color: var(--danger-color);">${u.name || 'Unnamed'}</h3>
+                                <div class="u-meta">@${u.id}</div>
+                                <div class="d-months">${missedCount} Month(s) Behind</div>
+                            </div>
+                            <div style="text-align: right; margin-right: 12px;">
+                                <div class="d-amount">₹${Number(totalOwed).toLocaleString('en-IN')}</div>
+                                <div style="font-size: 10px; font-weight: 800; color: var(--danger-color); text-transform: uppercase; margin-top: 4px;">Total Due</div>
+                            </div>
+                            ${callButtonHTML}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
+            });
+
+            if(!hasPending) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        <h3 style="color: var(--success-color);">All Clear!</h3>
+                        <p>Every participant in this group is up to date.</p>
+                    </div>`;
+            }
+            
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = '<div style="color:var(--danger-color); text-align:center; padding:20px; font-weight:700;">Error fetching pending data.</div>';
+        }
+    };
+
+    // Execute Initial Data Load
+    initializeGroups();
+
+  </script>
+</body>
+</html>
