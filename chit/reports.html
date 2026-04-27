@@ -677,10 +677,8 @@
             
             let txns = [];
             try {
-                const qTxn = query(collection(db, "transactions"), 
-                    where("subscriberId", "==", activeViewedUser.id),
-                    where("groupId", "==", groupId),
-                    orderBy("date", "desc")
+                const qTxn = query(collection(db, "transactions"), where("subscriberId", "==", activeViewedUser.id), where("groupId", "==", groupId), where("type", "==", "Installment Payment"), orderBy("date", "desc"));
+              
                 );
                 const txnSnap = await getDocs(qTxn);
                 txnSnap.forEach(tDoc => txns.push(tDoc.data()));
