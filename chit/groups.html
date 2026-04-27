@@ -192,7 +192,7 @@
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
 
   </style>
@@ -323,7 +323,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -390,8 +390,29 @@
         
         try {
             // Fetch up to 500 groups into memory to allow instant 0-read searching
-            const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
-            const snap = await getDocs(q);
+            let snap;
+            try {
+                const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
+                snap = await getDocs(q);
+            } catch (err) {
+                console.warn("Ordered query failed. Falling back to safe query...", err);
+                
+                // --- INJECTED INDEX LINK EXTRACTOR ---
+                if(err.message && err.message.includes("https://console.firebase.google.com")) {
+                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                    const match = err.message.match(urlRegex);
+                    if(match && match[0]) {
+                        const extractedUrl = match[0];
+                        setTimeout(() => {
+                            showMessage("Database Index Missing", `Please click the link below to build the required Firebase Index to speed up loading.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+                // -------------------------------------
+
+                const fallbackQ = query(collection(db, "groups"), limit(500));
+                snap = await getDocs(fallbackQ);
+            }
             
             allGroupsCache = [];
             snap.forEach(docSnap => {
@@ -401,37 +422,12 @@
             loader.style.display = 'none';
             triggerLocalSearch(''); // Initial Render
         } catch (e) {
-            console.warn("Init Error. Attempting Fallback", e);
-            
-            // --- INDEX FALLBACK LOGIC ---
-            try {
-                const fallbackQ = query(collection(db, "groups"), limit(500));
-                const snap = await getDocs(fallbackQ);
-                allGroupsCache = [];
-                snap.forEach(docSnap => {
-                    allGroupsCache.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                loader.style.display = 'none';
-                triggerLocalSearch(''); 
-                
-                // Show index error link if present in the error payload
-                if(e.message && e.message.includes("https://console.firebase.google.com")) {
-                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-                    const match = e.message.match(urlRegex);
-                    if(match && match[0]) {
-                        setTimeout(() => {
-                            showMessage("System Alert", `Please build the required Firebase Index to enable proper sorting.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
-                        }, 1000);
-                    }
-                }
-                
-            } catch(fallbackErr) {
-                document.getElementById('main-groups-list').innerHTML = `
-                <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700; word-break: break-word;">
-                  Database Connection Error: ${fallbackErr.message}
-                </div>`;
-                loader.style.display = 'none';
-            }
+            console.error("Init Error", e);
+            document.getElementById('main-groups-list').innerHTML = `
+            <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700; word-break: break-word;">
+              Database Connection Error: ${e.message}
+            </div>`;
+            loader.style.display = 'none';
         }
     }
 
@@ -755,8 +751,12 @@
                     
                     // Complex Math: Calculate total exactly owed based on missed months
                     let totalOwed = 0;
+                    let pendingMonthsList = []; // NEW: Array to hold breakdown exactly like reports.html
+                    
                     for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
-                        totalOwed += calculateDueForMonth(m, startAmt, schedule);
+                        let dueAmount = calculateDueForMonth(m, startAmt, schedule);
+                        totalOwed += dueAmount;
+                        pendingMonthsList.push({ month: m, amount: dueAmount });
                     }
 
                     const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
@@ -766,10 +766,21 @@
                         ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
                         : ``;
 
-                    // NEW FEATURE: WhatsApp Quick Link
-                    const waButtonHTML = u.phone 
-                        ? `<a href="https://wa.me/${u.phone.replace(/\D/g,'')}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`
-                        : ``;
+                    // NEW FEATURE: WhatsApp Quick Link with exact mathematical breakdown payload
+                    let waButtonHTML = ``;
+                    if (u.phone) {
+                        let breakdownText = "";
+                        pendingMonthsList.forEach(pm => {
+                            breakdownText += `- Month ${pm.month}: ₹${pm.amount}\n`;
+                        });
+
+                        const msg = `*Meena Chitfunds*\nGroup: ${activeGroupData.groupName.toUpperCase()} (@${activeGroupData.id})\nTimeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n\nDear ${(u.name || 'Participant').toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${totalOwed}*\n\nKindly clear your dues at the earliest.`;
+                        
+                        const safePhone = u.phone.replace(/\D/g,'');
+                        const waLink = `https://wa.me/${safePhone}?text=${encodeURIComponent(msg)}`;
+                        
+                        waButtonHTML = `<a href="${waLink}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`;
+                    }
 
                     // MOBILE CRASH FIX: Allow vertical stacking of content inside block container so action row stays below text cleanly
                     const card = document.createElement('div');
