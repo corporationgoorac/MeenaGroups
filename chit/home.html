@@ -135,15 +135,21 @@
     .metric-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; box-shadow: var(--card-shadow); display: flex; flex-direction: column; justify-content: space-between;}
     .metric-card.full-width { grid-column: span 2; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; border: none; box-shadow: 0 8px 24px rgba(6, 95, 212, 0.3);}
     @media (prefers-color-scheme: dark) { .metric-card.full-width { background: linear-gradient(135deg, #3ea6ff, #065fd4); box-shadow: 0 8px 24px rgba(6, 95, 212, 0.4);} }
+    .metric-card.full-width .m-icon { background: rgba(255,255,255,0.2); color: white; }
+    .metric-card.full-width .m-label { color: rgba(255,255,255,0.8); }
+
+    /* New Wallet Card Styles */
+    .metric-card.wallet-card { grid-column: span 2; background: linear-gradient(135deg, var(--success-color), #0a703e); color: white; border: none; box-shadow: 0 8px 24px rgba(15, 157, 88, 0.3);}
+    @media (prefers-color-scheme: dark) { .metric-card.wallet-card { background: linear-gradient(135deg, #34a853, #0f9d58); box-shadow: 0 8px 24px rgba(15, 157, 88, 0.2);} }
+    .metric-card.wallet-card .m-icon { background: rgba(255,255,255,0.2); color: white; }
+    .metric-card.wallet-card .m-label { color: rgba(255,255,255,0.8); }
     
     .m-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--brand-accent-light); color: var(--brand-accent); display: flex; justify-content: center; align-items: center; margin-bottom: 16px; }
-    .metric-card.full-width .m-icon { background: rgba(255,255,255,0.2); color: white; }
     .m-icon svg { width: 20px; height: 20px; fill: currentColor; }
     
     .m-val { font-size: 28px; font-weight: 800; margin: 0 0 4px 0; letter-spacing: -1px; }
     .m-val.skeleton { height: 32px; width: 80%; margin-bottom: 8px;}
     .m-label { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .metric-card.full-width .m-label { color: rgba(255,255,255,0.8); }
 
     /* Quick Actions */
     .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -241,6 +247,14 @@
           </div>
           <div class="m-val skeleton" id="metric-pot"></div>
           <div class="m-label">Total Reg. Target Value</div>
+        </div>
+
+        <div class="metric-card wallet-card">
+          <div class="m-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          </div>
+          <div class="m-val skeleton" id="metric-wallet"></div>
+          <div class="m-label">Total Vault (Collected)</div>
         </div>
 
         <div class="metric-card">
@@ -348,7 +362,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, getDocs, getCountFromServer, getAggregateFromServer, sum } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, getDocs, getCountFromServer, getAggregateFromServer, sum, query, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     // --- 1. Auth & LocalStorage Profile Sync (0ms Load) ---
     const CACHE_PROFILE_KEY = 'mc_profile_data';
@@ -409,7 +423,7 @@
     // Load skeleton cache instantly
     const cachedMetrics = JSON.parse(localStorage.getItem(CACHE_METRICS_KEY));
     if (cachedMetrics) {
-        updateMetricsUI(cachedMetrics.pot, cachedMetrics.groups, cachedMetrics.users);
+        updateMetricsUI(cachedMetrics.pot, cachedMetrics.groups, cachedMetrics.users, cachedMetrics.wallet || 0);
     }
 
     async function syncDatabaseMetrics() {
@@ -428,28 +442,51 @@
             });
             let totalPot = potAggregate.data().totalPot || 0;
 
+            // 4. Sum Total Vault (Collected Payments, Excluding Payouts) (Costs exactly 1 Read!)
+            let totalWallet = 0;
+            try {
+                const walletQ = query(collection(db, "transactions"), where("type", "!=", "Auction Payout"));
+                const walletAggregate = await getAggregateFromServer(walletQ, {
+                    totalWallet: sum('amount')
+                });
+                totalWallet = walletAggregate.data().totalWallet || 0;
+            } catch(e) {
+                console.warn("Transaction aggregate index missing. Trying group fallback...");
+                try {
+                    const fallbackAgg = await getAggregateFromServer(collection(db, "groups"), {
+                        totalWallet: sum('totalPotCollected')
+                    });
+                    totalWallet = fallbackAgg.data().totalWallet || 0;
+                } catch(err) {
+                    console.error("Wallet aggregate failed.", err);
+                }
+            }
+
             // Save to Cache and Update UI
-            const metrics = { pot: totalPot, groups: groupCount, users: userCount };
+            const metrics = { pot: totalPot, groups: groupCount, users: userCount, wallet: totalWallet };
             localStorage.setItem(CACHE_METRICS_KEY, JSON.stringify(metrics));
             
-            updateMetricsUI(totalPot, groupCount, userCount);
+            updateMetricsUI(totalPot, groupCount, userCount, totalWallet);
         } catch (e) {
             console.error("Failed to sync metrics", e);
         }
     }
 
-    function updateMetricsUI(pot, groups, users) {
+    function updateMetricsUI(pot, groups, users, wallet) {
         const elPot = document.getElementById('metric-pot');
         const elGroups = document.getElementById('metric-groups');
         const elUsers = document.getElementById('metric-users');
+        const elWallet = document.getElementById('metric-wallet');
 
         elPot.classList.remove('skeleton');
         elGroups.classList.remove('skeleton');
         elUsers.classList.remove('skeleton');
+        elWallet.classList.remove('skeleton');
 
         elPot.innerText = `₹${Number(pot).toLocaleString('en-IN')}`;
         elGroups.innerText = groups;
         elUsers.innerText = users;
+        elWallet.innerText = `₹${Number(wallet).toLocaleString('en-IN')}`;
     }
 
     // Trigger background sync
