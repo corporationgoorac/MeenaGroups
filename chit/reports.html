@@ -104,6 +104,15 @@
     .u-meta { font-size: 12px; color: var(--brand-accent); font-weight: 800; font-family: monospace; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; background: var(--brand-accent-light); padding: 2px 6px; border-radius: 6px; display: inline-block; margin-bottom: 4px;}
     .u-loc { font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 4px;}
 
+    /* Added Styles for Card Actions (Edit, Delete, Select) */
+    .user-card-actions { display: flex; gap: 12px; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 16px; width: 100%; justify-content: flex-end; }
+    .u-action-btn { background: none; border: none; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 14px; border-radius: 10px; color: var(--text-muted); transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;}
+    .u-action-btn:active { transform: scale(0.95); }
+    .u-action-btn.delete { color: var(--danger-color); background: var(--danger-light); }
+    .u-action-btn.edit { color: var(--brand-accent); background: var(--brand-accent-light); }
+    .u-action-btn.select { color: var(--success-color); background: var(--success-light); }
+    .u-action-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
     .load-more-btn { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; box-shadow: var(--card-shadow); }
     .load-more-btn:active { background: var(--surface-hover); transform: scale(0.98);}
 
@@ -139,11 +148,11 @@
     /* Forms & Inputs */
     .input-group { margin-bottom: 24px; position: relative; }
     .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;}
-    .input-group select {
-      width: 100%; background-color: var(--bg-color); border: 2px solid var(--border-color);
+    .input-group input, .input-group select {
+      width: 100%; background-color: var(--surface-color); border: 2px solid var(--border-color);
       color: var(--text-main); padding: 16px; border-radius: 14px; font-size: 16px; outline: none; appearance: none; font-weight: 700; transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .input-group select:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-light); }
+    .input-group input:focus, .input-group select:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-light); }
 
     /* Transaction Ledger List */
     .history-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
@@ -178,6 +187,9 @@
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
     .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
+    
+    .mini-btn-cancel { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 10px; }
+    .mini-btn-danger { background-color: var(--danger-color); color: #fff; }
 
   </style>
 </head>
@@ -261,6 +273,41 @@
     </div>
   </aside>
 
+  <aside id="edit-participant-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div class="modal-title">Edit Participant</div>
+    </div>
+    <div class="modal-body">
+      <form id="edit-participant-form">
+        <input type="hidden" id="edit-p-id">
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="edit-p-name" required>
+        </div>
+        <div class="input-group">
+          <label>Phone Number</label>
+          <input type="tel" id="edit-p-phone" required>
+        </div>
+        <button type="submit" class="m-btn btn-primary" id="edit-p-submit-btn" style="background: var(--brand-accent); box-shadow: 0 8px 20px rgba(6, 95, 212, 0.25);">Save Changes</button>
+      </form>
+    </div>
+  </aside>
+
+  <aside id="delete-participant-modal" class="center-modal">
+    <div class="mini-modal-content">
+      <div class="msg-icon">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--danger-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      </div>
+      <h3 class="mini-modal-title">Delete Participant</h3>
+      <p class="mini-modal-text">Are you sure you want to permanently remove this participant from the system? This action cannot be undone.</p>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+          <button class="mini-btn mini-btn-danger" id="confirm-delete-participant-btn">Delete Permanently</button>
+          <button class="mini-btn mini-btn-cancel" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </aside>
+
   <aside id="message-modal" class="center-modal">
     <div class="mini-modal-content">
       <div id="msg-icon" class="msg-icon">
@@ -269,7 +316,7 @@
       <h3 class="mini-modal-title" id="msg-title">Alert</h3>
       <p class="mini-modal-text" id="msg-body">Operation completed.</p>
       <div class="mini-modal-actions">
-        <button class="mini-btn" onclick="closeMessageModal()">OK</button>
+        <button class="mini-btn" onclick="closeMessageModal()" style="background: var(--brand-accent);">OK</button>
       </div>
     </div>
   </aside>
@@ -277,7 +324,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -303,6 +350,7 @@
     
     function closeAllModals() { 
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
     }
     
     window.addEventListener('popstate', (e) => {
@@ -338,15 +386,20 @@
     const phoneIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
     const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
-    // --- PAGINATION & SEARCH LOGIC FOR USERS ---
-    const usersList = document.getElementById('main-user-list');
-    const loadMoreBtn = document.getElementById('main-load-more-btn');
+    // --- GLOBAL CACHE & SEARCH ENGINE ---
+    let allUsersCache = [];
+    let filteredUsers = [];
+    let userSearchPage = 1;
+    const RESULTS_PER_PAGE = 10;
     let lastVisibleUser = null;
     let isSearching = false;
     let currentSearchTerm = "";
 
     // 1. FireBase Direct Search & Pagination Logic
-    async function loadUsers(isLoadMore = false) {
+    window.loadUsers = async function(isLoadMore = false) {
+        const usersList = document.getElementById('main-user-list');
+        const loadMoreBtn = document.getElementById('main-load-more-btn');
+        
         if (!isLoadMore) {
             usersList.innerHTML = '';
             lastVisibleUser = null;
@@ -355,7 +408,6 @@
         try {
             let q;
             if (isSearching && currentSearchTerm !== "") {
-                // Direct Firebase Prefix Search on ID
                 if (isLoadMore && lastVisibleUser) {
                     q = query(collection(db, "users"), 
                         where("id", ">=", currentSearchTerm), 
@@ -368,7 +420,6 @@
                         orderBy("id"), limit(10));
                 }
             } else {
-                // Default List (OrderBy Joined Date)
                 if (isLoadMore && lastVisibleUser) {
                     q = query(collection(db, "users"), orderBy("joinedAt", "desc"), startAfter(lastVisibleUser), limit(10));
                 } else {
@@ -380,11 +431,10 @@
             try {
                 querySnapshot = await getDocs(q);
             } catch (err) {
-                // Fallback if index missing
                 console.warn("Index missing. Falling back...", err);
                 let fallbackQ;
                 if(isSearching) {
-                    fallbackQ = query(collection(db, "users"), limit(100)); // Limits massive read on fallback
+                    fallbackQ = query(collection(db, "users"), limit(100));
                 } else {
                     fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
                 }
@@ -408,9 +458,13 @@
 
             querySnapshot.forEach((docSnap) => {
                 const user = docSnap.data();
-                // Ensure ID is injected if missing from data payload
                 user.id = docSnap.id; 
                 
+                // Add to cache for quick edits
+                if(!allUsersCache.some(u => u.id === user.id)) {
+                    allUsersCache.push(user);
+                }
+
                 const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
                 const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : 'No Phone';
                 const locText = user.location ? `${locIconSVG} ${user.location}` : '';
@@ -418,25 +472,39 @@
 
                 const card = document.createElement('div');
                 card.className = 'user-card';
-                card.onclick = () => openUserDetail(user);
+                card.style.flexDirection = 'column';
+                card.onclick = () => openUserDetailById(user.id);
+                
                 card.innerHTML = `
-                    <div class="u-left">
-                        <div class="u-avatar">${initial}</div>
-                        <div class="u-info">
-                            <h3>${user.name || 'Unnamed'}</h3>
-                            <div class="u-meta" style="background: none; padding: 0; margin-bottom: 2px;">
-                                <span class="u-meta">@${user.id}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <div class="u-left">
+                            <div class="u-avatar">${initial}</div>
+                            <div class="u-info">
+                                <h3>${user.name || 'Unnamed'}</h3>
+                                <div class="u-meta" style="background: none; padding: 0; margin-bottom: 2px;">
+                                    <span class="u-meta">@${user.id}</span>
+                                </div>
+                                <div class="u-loc">${phoneText} &nbsp;&nbsp; ${locText}</div>
                             </div>
-                            <div class="u-loc">${phoneText} &nbsp;&nbsp; ${locText}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 16px; font-weight: 800; color: var(--brand-accent);">${groupsCount}</div>
+                            <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Groups</div>
                         </div>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 16px; font-weight: 800; color: var(--brand-accent);">${groupsCount}</div>
-                        <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Groups</div>
+                    <div class="user-card-actions">
+                        <button class="u-action-btn select" onclick="event.stopPropagation(); this.closest('.user-card').click();">
+                            <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg> Select
+                        </button>
+                        <button class="u-action-btn edit" onclick="event.stopPropagation(); openEditParticipant('${user.id}')">
+                            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit
+                        </button>
+                        <button class="u-action-btn delete" onclick="event.stopPropagation(); initiateParticipantDelete('${user.id}')">
+                            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete
+                        </button>
                     </div>
                 `;
                 
-                // If it was a manual fallback filter, we do client side matching
                 if(isSearching && currentSearchTerm !== "" && !user.id.toUpperCase().startsWith(currentSearchTerm)) {
                      // skip rendering if using fallback
                 } else {
@@ -491,6 +559,11 @@
 
     // --- MODAL & REPORTING LOGIC ---
     let activeViewedUser = null;
+
+    window.openUserDetailById = function(id) {
+        const u = allUsersCache.find(x => x.id === id);
+        if(u) openUserDetail(u);
+    };
 
     window.openUserDetail = function(user) {
         activeViewedUser = user;
@@ -650,6 +723,80 @@
             showMessage("Engine Error", "Failed to sync ledger.", "error");
         }
     }
+
+    // --- USER EDIT LOGIC ---
+    window.openEditParticipant = async function(userId) {
+        let userToEdit = allUsersCache.find(u => u.id === userId);
+        if (!userToEdit) {
+            const docSnap = await getDoc(doc(db, "users", userId));
+            if (docSnap.exists()) userToEdit = { id: docSnap.id, ...docSnap.data() };
+        }
+        if(!userToEdit) return;
+
+        document.getElementById('edit-p-id').value = userToEdit.id;
+        document.getElementById('edit-p-name').value = userToEdit.name || '';
+        document.getElementById('edit-p-phone').value = userToEdit.phone || '';
+        
+        openModal('edit-participant-modal');
+    };
+
+    document.getElementById('edit-participant-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('edit-p-submit-btn');
+        btn.innerText = "Saving..."; btn.disabled = true;
+        try {
+            const userId = document.getElementById('edit-p-id').value;
+            const newName = document.getElementById('edit-p-name').value;
+            const newPhone = document.getElementById('edit-p-phone').value;
+            
+            await updateDoc(doc(db, "users", userId), {
+                name: newName,
+                phone: newPhone
+            });
+            
+            const userIndex = allUsersCache.findIndex(u => u.id === userId);
+            if(userIndex > -1) {
+                allUsersCache[userIndex].name = newName;
+                allUsersCache[userIndex].phone = newPhone;
+            }
+            
+            loadUsers(false);
+            
+            closeModal();
+            showMessage("Updated", "Participant details saved successfully.", "success");
+        } catch(err) {
+            showMessage("Error", err.message, "error");
+        } finally {
+            btn.innerText = "Save Changes"; btn.disabled = false;
+        }
+    });
+
+    // --- USER DELETE LOGIC ---
+    let targetParticipantIdToDelete = null;
+    window.initiateParticipantDelete = function(userId) {
+        targetParticipantIdToDelete = userId;
+        openModal('delete-participant-modal');
+    };
+
+    document.getElementById('confirm-delete-participant-btn').addEventListener('click', async () => {
+        if(!targetParticipantIdToDelete) return;
+        const btn = document.getElementById('confirm-delete-participant-btn');
+        btn.innerText = "Deleting..."; btn.disabled = true;
+
+        try {
+            await deleteDoc(doc(db, "users", targetParticipantIdToDelete));
+            allUsersCache = allUsersCache.filter(u => u.id !== targetParticipantIdToDelete);
+            loadUsers(false);
+            closeModal();
+            showMessage("Deleted", "Participant permanently removed.", "success");
+        } catch(e) { 
+            console.error("Error deleting", e); 
+            showMessage("Deletion Error", `Failed to delete participant: <br><br> ${e.message}`, "error");
+        } finally {
+            btn.innerText = "Delete Permanently"; btn.disabled = false;
+            targetParticipantIdToDelete = null;
+        }
+    });
 
     // Execute Initial Load
     window.onload = () => loadUsers(false);
