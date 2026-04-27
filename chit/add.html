@@ -326,9 +326,15 @@
           </div>
         </div>
         
-        <div class="input-group">
-          <label>Group Start Date</label>
-          <input type="date" id="g-start-date" required>
+        <div class="grid-2">
+          <div class="input-group">
+            <label>Start Date</label>
+            <input type="date" id="g-start-date" required>
+          </div>
+          <div class="input-group">
+            <label>Start Amount (₹)</label>
+            <input type="number" id="g-start-amount" placeholder="e.g. 5000" required min="0">
+          </div>
         </div>
 
         <div class="schedule-container">
@@ -672,6 +678,7 @@
       const btn = document.getElementById('g-submit-btn');
       const groupId = document.getElementById('g-id').value.trim().toUpperCase();
       const startDatePicked = document.getElementById('g-start-date').value;
+      const startAmountVal = Number(document.getElementById('g-start-amount').value);
       
       // Build Schedule Array
       const scheduleRows = document.querySelectorAll('.schedule-row');
@@ -693,6 +700,7 @@
           totalPot: Number(document.getElementById('g-value').value),
           totalMonths: Number(document.getElementById('g-months').value),
           startDate: startDatePicked, // Exact Date the user picked
+          startAmount: startAmountVal, // EXACT Starting Amount for the new Group
           installmentSchedule: installmentSchedule,
           participantCount: 0,
           currentMonth: 1, 
@@ -802,27 +810,7 @@
       }
     });
 
-    // --- ADVANCED BATCHED DELETION (Handles 500+ documents without crashing) ---
-    async function deleteTransactionsInBatches(groupId) {
-        let deletedCount = 0;
-        const batchLimit = 450; // Staying under the 500 hard limit
-        
-        while (true) {
-            const q = query(collection(db, "transactions"), where("groupId", "==", groupId), limit(batchLimit));
-            const snap = await getDocs(q);
-            
-            if (snap.empty) break;
-            
-            const batch = writeBatch(db);
-            snap.forEach(tDoc => batch.delete(tDoc.ref));
-            await batch.commit();
-            deletedCount += snap.size;
-            console.log(`Intermediate Batch: Deleted ${snap.size} transactions...`);
-        }
-        return deletedCount;
-    }
-
-    // --- Custom Delete Modal Logic ---
+    // --- Custom Delete Modal Logic (Advanced Batched Deletion) ---
     window.initiateDelete = function(id) {
       targetIdToDelete = id;
       openModal('delete-modal');
@@ -834,16 +822,25 @@
       btn.innerText = "Deleting All Records..."; btn.disabled = true;
 
       try {
-        // Step 1: Recursively delete all transactions in batches (500 limit fix)
-        const totalTxnsDeleted = await deleteTransactionsInBatches(targetIdToDelete);
+        const batch = writeBatch(db);
         
-        // Step 2: Delete the Group Document itself
-        await deleteDoc(doc(db, "groups", targetIdToDelete));
+        // Complete Delete: Remove the group document
+        batch.delete(doc(db, "groups", targetIdToDelete));
+        
+        // Complete Delete: Find and remove all associated ledger transactions
+        const txnQ = query(collection(db, "transactions"), where("groupId", "==", targetIdToDelete));
+        const txnSnap = await getDocs(txnQ);
+        txnSnap.forEach((tDoc) => {
+            batch.delete(tDoc.ref);
+        });
+        
+        // Commit the complete deletion atomically
+        await batch.commit();
 
         closeModal();
         loadGroups();
         
-        setTimeout(() => showMessage("Complete Wipe Successful", `Group and all ${totalTxnsDeleted} associated transactions have been removed.`, "success"), 300);
+        setTimeout(() => showMessage("Complete Wipe Successful", `Group and all ${txnSnap.size} associated transactions have been removed.`, "success"), 300);
       } catch(e) { 
         console.error("Error wiping records:", e); 
         showMessage("Wipe Failed", `Failed to complete deletion: <br><br> ${e.message}`, "error");
