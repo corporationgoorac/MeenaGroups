@@ -961,8 +961,19 @@
                         subscriberName: newName
                     }));
                 });
+
+                // 5. Secure Auctions Collection Migration
+                const aucsQ = query(collection(db, "auctions"), where("subscriberId", "==", originalId));
+                const aucsSnap = await getDocs(aucsQ);
                 
-                // Execute transactions parallel to avoid batch limits, then commit batch
+                aucsSnap.forEach(aDoc => {
+                    txnUpdatePromises.push(updateDoc(aDoc.ref, { 
+                        subscriberId: newId,
+                        subscriberName: newName
+                    }));
+                });
+                
+                // Execute all document updates parallel to avoid batch limits, then commit batch
                 await Promise.all(txnUpdatePromises);
                 await batch.commit();
 
@@ -1023,7 +1034,40 @@
         }
     });
 
-    // --- USER DELETE LOGIC (Batched Engine) ---
+    // --- ADVANCED BATCHED DELETION ENGINES (Handles 500+ documents without crashing) ---
+    async function deleteUserTransactionsInBatches(userId) {
+        let deletedCount = 0;
+        const batchLimit = 450; // Staying safely under the 500 hard limit
+        while (true) {
+            const q = query(collection(db, "transactions"), where("subscriberId", "==", userId), limit(batchLimit));
+            const snap = await getDocs(q);
+            if (snap.empty) break;
+            
+            const batch = writeBatch(db);
+            snap.forEach(tDoc => batch.delete(tDoc.ref));
+            await batch.commit();
+            deletedCount += snap.size;
+        }
+        return deletedCount;
+    }
+
+    async function deleteUserAuctionsInBatches(userId) {
+        let deletedCount = 0;
+        const batchLimit = 450;
+        while (true) {
+            const q = query(collection(db, "auctions"), where("subscriberId", "==", userId), limit(batchLimit));
+            const snap = await getDocs(q);
+            if (snap.empty) break;
+            
+            const batch = writeBatch(db);
+            snap.forEach(aDoc => batch.delete(aDoc.ref));
+            await batch.commit();
+            deletedCount += snap.size;
+        }
+        return deletedCount;
+    }
+
+    // --- USER DELETE LOGIC (Deep Wipe) ---
     let targetParticipantIdToDelete = null;
     window.initiateParticipantDelete = function(userId) {
         targetParticipantIdToDelete = userId;
@@ -1039,8 +1083,13 @@
             const userToDelete = allUsersCache.find(u => u.id === targetParticipantIdToDelete);
             if (!userToDelete) throw new Error("User data not found.");
 
+            // 1. Safely destroy all related transactions and auction payouts
+            const txnsDeleted = await deleteUserTransactionsInBatches(targetParticipantIdToDelete);
+            const auctionsDeleted = await deleteUserAuctionsInBatches(targetParticipantIdToDelete);
+
             const batch = writeBatch(db);
 
+            // 2. Clean up group snapshots
             if (userToDelete.activeGroups && userToDelete.activeGroups.length > 0) {
                 for (const groupId of userToDelete.activeGroups) {
                     const groupRef = doc(db, "groups", groupId);
@@ -1062,6 +1111,7 @@
                 }
             }
 
+            // 3. Delete user document
             const userRef = doc(db, "users", targetParticipantIdToDelete);
             batch.delete(userRef);
 
@@ -1070,7 +1120,7 @@
             allUsersCache = allUsersCache.filter(u => u.id !== targetParticipantIdToDelete);
             loadUsers(false);
             closeModal();
-            showMessage("Deleted & Synced", "Participant removed and all group counts updated.", "success");
+            showMessage("Deep Wipe Successful", `Participant removed.<br><br>Deleted <b>${txnsDeleted}</b> payments and <b>${auctionsDeleted}</b> payouts.`, "success");
             
         } catch(e) { 
             console.error("Error deleting", e); 
