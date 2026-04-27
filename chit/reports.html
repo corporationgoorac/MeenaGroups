@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json">
+  <title>Reports - Meena Chitfunds</title>
+  
+  <style>
+    /* Premium Theme Variables */
+    :root {
+      --bg-color: #f4f7f6;
+      --text-main: #111111;
+      --text-muted: #6b7280;
+      --surface-color: #ffffff;
+      --surface-hover: #f9fafb;
+      --border-color: #e5e7eb;
+      --brand-accent: #065fd4;
+      --brand-accent-light: #e6f0fa;
+      --danger-color: #dc3545;
+      --danger-light: #fde8e8;
+      --warning-color: #f59e0b;
+      --warning-light: #fef3c7;
+      --success-color: #0f9d58;
+      --success-light: #e6f4ea;
+      --modal-overlay: rgba(0, 0, 0, 0.6);
+      --card-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0a0a0a;
+        --text-main: #f8f9fa;
+        --text-muted: #9ca3af;
+        --surface-color: #141414;
+        --surface-hover: #1f1f1f;
+        --border-color: #2d2d2d;
+        --brand-accent: #3ea6ff;
+        --brand-accent-light: rgba(62, 166, 255, 0.15);
+        --danger-color: #ff4e45;
+        --danger-light: rgba(255, 78, 69, 0.15);
+        --warning-color: #fbbf24;
+        --warning-light: rgba(251, 191, 36, 0.15);
+        --success-color: #34a853;
+        --success-light: rgba(52, 168, 83, 0.15);
+        --modal-overlay: rgba(0, 0, 0, 0.85);
+        --card-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Premium Header */
+    header {
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    @media (prefers-color-scheme: dark) { header { background-color: rgba(20, 20, 20, 0.85); } }
+
+    .header-titles h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    /* List Container & Advanced Search */
+    .list-container { padding: 24px 20px 80px; }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .section-title { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 0; color: var(--text-muted); }
+    
+    .search-wrapper { position: relative; width: 100%; margin-bottom: 20px;}
+    .search-input { width: 100%; padding: 14px 14px 14px 44px; border-radius: 14px; border: 2px solid var(--border-color); background: var(--surface-color); color: var(--text-main); font-size: 15px; font-weight: 600; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: var(--card-shadow); text-transform: uppercase;}
+    .search-input:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-light); }
+    .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+
+    /* Participant User Cards */
+    .user-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--card-shadow); cursor: pointer; transition: 0.2s;}
+    .user-card:active { transform: scale(0.98); background-color: var(--surface-hover); border-color: var(--brand-accent); }
+    .u-left { display: flex; align-items: center; gap: 14px; width: 100%;}
+    .u-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
+    .u-info { flex: 1; }
+    .u-info h3 { margin: 0 0 4px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px;}
+    .u-meta { font-size: 12px; color: var(--brand-accent); font-weight: 800; font-family: monospace; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; background: var(--brand-accent-light); padding: 2px 6px; border-radius: 6px; display: inline-block; margin-bottom: 4px;}
+    .u-loc { font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 4px;}
+
+    .load-more-btn { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; box-shadow: var(--card-shadow); }
+    .load-more-btn:active { background: var(--surface-hover); transform: scale(0.98);}
+
+    /* Full Screen Side Modals */
+    .modal {
+      position: fixed; top: 0; right: 0; width: 100%; height: 100%;
+      background-color: var(--bg-color); z-index: 100; transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column;
+    }
+    .modal.active { transform: translateX(0); }
+    
+    .modal-header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background-color: var(--surface-color); }
+    .back-btn { background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 50%; color: var(--text-main); padding: 8px; margin-left: -4px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+    .back-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-left: 14px; letter-spacing: -0.5px;}
+    .modal-subtitle { font-size: 11px; color: var(--brand-accent); font-weight: 700; margin-left: 14px; font-family: monospace;}
+    .modal-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
+
+    /* Advanced Engine Detail Card */
+    .detail-card { background: var(--surface-color); padding: 24px; border-radius: 20px; margin-bottom: 24px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow); }
+    
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; background: var(--success-light); color: var(--success-color);}
+    .status-badge.warning { background: var(--warning-light); color: var(--warning-color); }
+    .status-badge.danger { background: var(--danger-light); color: var(--danger-color); }
+
+    .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .engine-box { background: var(--bg-color); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); }
+    .e-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;}
+    .e-val { font-size: 20px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px;}
+    .e-val.danger { color: var(--danger-color); }
+    .e-val.success { color: var(--success-color); }
+
+    /* Forms & Inputs */
+    .input-group { margin-bottom: 24px; position: relative; }
+    .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;}
+    .input-group select {
+      width: 100%; background-color: var(--bg-color); border: 2px solid var(--border-color);
+      color: var(--text-main); padding: 16px; border-radius: 14px; font-size: 16px; outline: none; appearance: none; font-weight: 700; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-group select:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-light); }
+
+    /* Transaction Ledger List */
+    .history-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
+    .h-month { font-size: 14px; font-weight: 800; color: var(--text-main); }
+    .h-date { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+    .h-amount { font-size: 16px; font-weight: 800; color: var(--success-color); }
+    
+    .section-divider { margin: 24px 0 16px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
+
+    /* Modal Action Buttons */
+    .btn-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 24px;}
+    .m-btn { width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 10px; border: none;}
+    .m-btn:active { transform: scale(0.97); }
+    .btn-whatsapp { background: #25D366; color: #ffffff; box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3); }
+
+    /* Empty States */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 64px; height: 64px; fill: var(--border-color); margin-bottom: 16px;}
+    .empty-state h3 { font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text-main); }
+    .empty-state p { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.5; }
+
+    /* Loading Spinner */
+    .loader { border: 3px solid var(--border-color); border-top: 3px solid var(--brand-accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* System Alert Modals */
+    .center-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-overlay); z-index: 200; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);}
+    .center-modal.active { opacity: 1; pointer-events: all; }
+    .mini-modal-content { background-color: var(--surface-color); width: 90%; max-width: 340px; border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); border: 1px solid var(--border-color); text-align: center; }
+    .center-modal.active .mini-modal-content { transform: scale(1); }
+    .msg-icon { font-size: 48px; margin-bottom: 16px; }
+    .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
+    .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-titles">
+      <h1>Meena Chitfunds</h1>
+    </div>
+  </header>
+
+  <main>
+    <div class="list-container">
+      <div class="search-wrapper">
+        <span class="search-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </span>
+        <input type="text" id="master-search" class="search-input" placeholder="Search Participant ID...">
+      </div>
+      
+      <div class="section-header-row">
+        <div class="section-title">Participant Directory</div>
+      </div>
+      
+      <div id="main-user-list">
+        <div class="loader" id="main-loader"></div>
+      </div>
+      <button id="main-load-more-btn" class="load-more-btn" style="display: none;" onclick="loadMoreUsers()">Load More Users</button>
+    </div>
+  </main>
+
+  <aside id="user-detail-modal" class="modal">
+    <div class="modal-header">
+      <button class="back-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <div>
+        <div class="modal-title" id="md-u-name">Loading...</div>
+        <div class="modal-subtitle" id="md-u-id">@LOADING</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      
+      <div class="input-group">
+        <label>Analyzing Ledger For Group:</label>
+        <select id="u-group-select">
+          <option value="">-- Choose a group --</option>
+        </select>
+      </div>
+
+      <div id="ledger-view" style="display: none;">
+        <div class="detail-card">
+          <div class="status-badge" id="md-u-status">Calculating...</div>
+          
+          <div class="engine-grid">
+            <div class="engine-box">
+              <div class="e-label">Total Paid</div>
+              <div class="e-val success" id="md-u-paid">₹0</div>
+            </div>
+            <div class="engine-box">
+              <div class="e-label">Pending Dues</div>
+              <div class="e-val danger" id="md-u-pending">₹0</div>
+            </div>
+            <div class="engine-box">
+              <div class="e-label">Current Mo.</div>
+              <div class="e-val" id="md-u-current-mo">--</div>
+            </div>
+            <div class="engine-box">
+              <div class="e-label">Months Paid</div>
+              <div class="e-val" id="md-u-months-paid">--</div>
+            </div>
+          </div>
+          
+          <div class="btn-grid" id="whatsapp-container" style="display: none;">
+              </div>
+        </div>
+
+        <div class="section-divider">Transaction History</div>
+        <div id="txn-history-list">
+            </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <aside id="message-modal" class="center-modal">
+    <div class="mini-modal-content">
+      <div id="msg-icon" class="msg-icon">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <h3 class="mini-modal-title" id="msg-title">Alert</h3>
+      <p class="mini-modal-text" id="msg-body">Operation completed.</p>
+      <div class="mini-modal-actions">
+        <button class="mini-btn" onclick="closeMessageModal()">OK</button>
+      </div>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { auth, db } from './config.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+    onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
+
+    // --- FLAWLESS MODAL NAVIGATION (Hash Based Fallback for File Protocol) ---
+    window.openModal = function(modalId) {
+      document.getElementById(modalId).classList.add('active');
+      try {
+          if (window.location.hash !== `#${modalId}`) {
+              history.pushState({ id: modalId }, '', `#${modalId}`);
+          }
+      } catch(e) {
+          window.location.hash = modalId; 
+      }
+    };
+    
+    window.closeModal = function() {
+      if (window.location.hash) {
+          history.back(); 
+      } else {
+          closeAllModals();
+      }
+    };
+    
+    function closeAllModals() { 
+      document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    }
+    
+    window.addEventListener('popstate', (e) => {
+       closeAllModals();
+       if(e.state && e.state.id) {
+           const targetModal = document.getElementById(e.state.id);
+           if(targetModal) targetModal.classList.add('active');
+       } else if (window.location.hash) {
+           const targetModal = document.querySelector(window.location.hash);
+           if(targetModal) targetModal.classList.add('active');
+       }
+    });
+
+    // --- CUSTOM UI ALERTS ---
+    window.showMessage = function(title, body, type = 'success') {
+      document.getElementById('msg-title').innerText = title;
+      document.getElementById('msg-body').innerHTML = body; 
+      const iconContainer = document.getElementById('msg-icon');
+      
+      if (type === 'success') {
+        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      } else {
+        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
+      }
+      
+      document.getElementById('message-modal').classList.add('active');
+    };
+    window.closeMessageModal = function() {
+      document.getElementById('message-modal').classList.remove('active');
+    };
+
+    // --- HELPER ICONS ---
+    const phoneIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
+    const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+
+    // --- PAGINATION & SEARCH LOGIC FOR USERS ---
+    const usersList = document.getElementById('main-user-list');
+    const loadMoreBtn = document.getElementById('main-load-more-btn');
+    let lastVisibleUser = null;
+    let isSearching = false;
+    let currentSearchTerm = "";
+
+    // 1. FireBase Direct Search & Pagination Logic
+    async function loadUsers(isLoadMore = false) {
+        if (!isLoadMore) {
+            usersList.innerHTML = '';
+            lastVisibleUser = null;
+        }
+
+        try {
+            let q;
+            if (isSearching && currentSearchTerm !== "") {
+                // Direct Firebase Prefix Search on ID
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), 
+                        where("id", ">=", currentSearchTerm), 
+                        where("id", "<=", currentSearchTerm + "\uf8ff"), 
+                        orderBy("id"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), 
+                        where("id", ">=", currentSearchTerm), 
+                        where("id", "<=", currentSearchTerm + "\uf8ff"), 
+                        orderBy("id"), limit(10));
+                }
+            } else {
+                // Default List (OrderBy Joined Date)
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), orderBy("joinedAt", "desc"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), orderBy("joinedAt", "desc"), limit(10));
+                }
+            }
+
+            let querySnapshot;
+            try {
+                querySnapshot = await getDocs(q);
+            } catch (err) {
+                // Fallback if index missing
+                console.warn("Index missing. Falling back...", err);
+                let fallbackQ;
+                if(isSearching) {
+                    fallbackQ = query(collection(db, "users"), limit(100)); // Limits massive read on fallback
+                } else {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
+                }
+                querySnapshot = await getDocs(fallbackQ);
+            }
+
+            if (querySnapshot.empty) {
+                if (!isLoadMore) {
+                    usersList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                            <h3>No Participants</h3>
+                            <p>No records found matching your query.</p>
+                        </div>`;
+                }
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+
+            lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            querySnapshot.forEach((docSnap) => {
+                const user = docSnap.data();
+                // Ensure ID is injected if missing from data payload
+                user.id = docSnap.id; 
+                
+                const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
+                const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : 'No Phone';
+                const locText = user.location ? `${locIconSVG} ${user.location}` : '';
+                const groupsCount = user.activeGroups ? user.activeGroups.length : 0;
+
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.onclick = () => openUserDetail(user);
+                card.innerHTML = `
+                    <div class="u-left">
+                        <div class="u-avatar">${initial}</div>
+                        <div class="u-info">
+                            <h3>${user.name || 'Unnamed'}</h3>
+                            <div class="u-meta" style="background: none; padding: 0; margin-bottom: 2px;">
+                                <span class="u-meta">@${user.id}</span>
+                            </div>
+                            <div class="u-loc">${phoneText} &nbsp;&nbsp; ${locText}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 16px; font-weight: 800; color: var(--brand-accent);">${groupsCount}</div>
+                        <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Groups</div>
+                    </div>
+                `;
+                
+                // If it was a manual fallback filter, we do client side matching
+                if(isSearching && currentSearchTerm !== "" && !user.id.toUpperCase().startsWith(currentSearchTerm)) {
+                     // skip rendering if using fallback
+                } else {
+                     usersList.appendChild(card);
+                }
+            });
+
+            loadMoreBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+
+        } catch (e) {
+            console.error("Fetch Error:", e);
+            usersList.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding: 20px; font-weight:700;">Error Loading Directory</div>`;
+        }
+    }
+
+    let searchDebounce;
+    document.getElementById('master-search').addEventListener('input', (e) => {
+        clearTimeout(searchDebounce);
+        const val = e.target.value.trim().toUpperCase();
+        searchDebounce = setTimeout(() => {
+            currentSearchTerm = val;
+            isSearching = val.length > 0;
+            loadUsers(false);
+        }, 500);
+    });
+
+    // --- CORE ENGINE LOGIC (Calculations recycled from groups.html) ---
+    function calculateCurrentMonth(startDateStr) {
+        if(!startDateStr) return 1;
+        const start = new Date(startDateStr);
+        const now = new Date();
+        let months = (now.getFullYear() - start.getFullYear()) * 12;
+        months -= start.getMonth();
+        months += now.getMonth();
+        return months <= 0 ? 1 : months + 1; 
+    }
+
+    function calculateDueForMonth(targetMonth, startAmount, schedule) {
+        if (targetMonth <= 1) return startAmount;
+        let currentAmount = startAmount;
+        for (let m = 2; m <= targetMonth; m++) {
+            let increment = 0;
+            for (let tier of schedule) {
+                if (m >= tier.start && m <= tier.end) {
+                    increment = tier.amount; break;
+                }
+            }
+            currentAmount += increment;
+        }
+        return currentAmount;
+    }
+
+    // --- MODAL & REPORTING LOGIC ---
+    let activeViewedUser = null;
+
+    window.openUserDetail = function(user) {
+        activeViewedUser = user;
+        
+        document.getElementById('md-u-name').innerText = user.name || "Unnamed";
+        document.getElementById('md-u-id').innerText = `@${user.id}`;
+        
+        const select = document.getElementById('u-group-select');
+        select.innerHTML = '<option value="">-- Select Group to Analyze --</option>';
+        
+        if(user.activeGroups && user.activeGroups.length > 0) {
+            user.activeGroups.forEach(gId => {
+                const opt = document.createElement('option');
+                opt.value = gId;
+                opt.innerText = `@${gId}`;
+                select.appendChild(opt);
+            });
+            
+            // Auto-select if only 1 group
+            if(user.activeGroups.length === 1) {
+                select.value = user.activeGroups[0];
+                analyzeUserLedger(user.activeGroups[0]);
+            }
+        } else {
+            select.innerHTML = '<option value="">Not in any active groups</option>';
+        }
+        
+        document.getElementById('ledger-view').style.display = user.activeGroups?.length === 1 ? 'block' : 'none';
+        document.getElementById('whatsapp-container').style.display = 'none';
+
+        openModal('user-detail-modal');
+    };
+
+    document.getElementById('u-group-select').addEventListener('change', (e) => {
+        if(e.target.value) analyzeUserLedger(e.target.value);
+        else document.getElementById('ledger-view').style.display = 'none';
+    });
+
+    async function analyzeUserLedger(groupId) {
+        const view = document.getElementById('ledger-view');
+        view.style.display = 'block';
+        
+        document.getElementById('md-u-status').innerText = "Syncing Engine...";
+        document.getElementById('md-u-status').className = "status-badge";
+        document.getElementById('whatsapp-container').style.display = 'none';
+        
+        try {
+            // 1. Fetch Group Details
+            const groupSnap = await getDoc(doc(db, "groups", groupId));
+            if(!groupSnap.exists()) throw new Error("Group missing");
+            const groupData = groupSnap.data();
+            
+            // 2. Fetch User Transactions
+            const qTxn = query(collection(db, "transactions"), 
+                where("subscriberId", "==", activeViewedUser.id),
+                where("groupId", "==", groupId),
+                orderBy("date", "desc")
+            );
+            const txnSnap = await getDocs(qTxn);
+            
+            let totalPaid = 0;
+            let maxMonthPaid = 0;
+            const historyList = document.getElementById('txn-history-list');
+            historyList.innerHTML = '';
+            
+            if(txnSnap.empty) {
+                historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
+            }
+
+            txnSnap.forEach(tDoc => {
+                const tData = tDoc.data();
+                totalPaid += tData.amount;
+                if(tData.monthAttributed > maxMonthPaid) maxMonthPaid = tData.monthAttributed;
+                
+                let dDate = "N/A";
+                if(tData.date) dDate = tData.date.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                
+                const hc = document.createElement('div');
+                hc.className = 'history-card';
+                hc.innerHTML = `
+                    <div>
+                        <div class="h-month">Month ${tData.monthAttributed}</div>
+                        <div class="h-date">${dDate}</div>
+                    </div>
+                    <div class="h-amount">₹${Number(tData.amount).toLocaleString('en-IN')}</div>
+                `;
+                historyList.appendChild(hc);
+            });
+
+            // 3. Mathematical Engine Assessment
+            const currentMonth = calculateCurrentMonth(groupData.startDate);
+            const startAmt = groupData.startAmount || 0;
+            const schedule = groupData.installmentSchedule || [];
+            const totalGroupMonths = groupData.totalMonths || 0;
+            
+            let pendingTotal = 0;
+            let pendingMonthsList = [];
+            
+            // Cap calculations to total duration
+            let evalMonth = currentMonth > totalGroupMonths ? totalGroupMonths : currentMonth;
+            
+            // Calculate exactly what they missed
+            if (maxMonthPaid < evalMonth) {
+                for (let m = maxMonthPaid + 1; m <= evalMonth; m++) {
+                    const dueForM = calculateDueForMonth(m, startAmt, schedule);
+                    pendingTotal += dueForM;
+                    pendingMonthsList.push({ month: m, amount: dueForM });
+                }
+            }
+
+            // 4. Update UI
+            document.getElementById('md-u-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
+            document.getElementById('md-u-current-mo').innerText = evalMonth;
+            document.getElementById('md-u-months-paid').innerText = maxMonthPaid;
+            
+            const pendingUI = document.getElementById('md-u-pending');
+            const statusUI = document.getElementById('md-u-status');
+            
+            pendingUI.innerText = `₹${Number(pendingTotal).toLocaleString('en-IN')}`;
+            
+            if (pendingTotal > 0) {
+                pendingUI.className = "e-val danger";
+                statusUI.innerText = "Payment Overdue";
+                statusUI.className = "status-badge danger";
+                
+                // GENERATE WHATSAPP PAYLOAD
+                if (activeViewedUser.phone) {
+                    const waContainer = document.getElementById('whatsapp-container');
+                    
+                    let breakdownText = "";
+                    pendingMonthsList.forEach(pm => {
+                        breakdownText += `- Month ${pm.month}: ₹${pm.amount}\n`;
+                    });
+
+                    const msg = `*Meena Chitfunds*\nGroup: ${groupData.groupName.toUpperCase()} (@${groupId})\nTimeline: Month ${evalMonth} of ${totalGroupMonths}\n\nDear ${activeViewedUser.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${pendingTotal}*\n\nKindly clear your dues at the earliest.`;
+                    
+                    const safePhone = activeViewedUser.phone.replace(/\D/g,'');
+                    const waLink = `https://wa.me/${safePhone}?text=${encodeURIComponent(msg)}`;
+                    
+                    waContainer.innerHTML = `
+                        <a href="${waLink}" target="_blank" class="m-btn btn-whatsapp" style="text-decoration: none;">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg>
+                            Send Reminder via WhatsApp
+                        </a>
+                    `;
+                    waContainer.style.display = 'grid';
+                }
+                
+            } else {
+                pendingUI.className = "e-val success";
+                statusUI.innerText = "All Clear";
+                statusUI.className = "status-badge";
+            }
+
+        } catch (err) {
+            console.error(err);
+            showMessage("Engine Error", "Failed to sync ledger.", "error");
+        }
+    }
+
+    // Execute Initial Load
+    window.onload = () => loadUsers(false);
+
+  </script>
+</body>
+</html>
