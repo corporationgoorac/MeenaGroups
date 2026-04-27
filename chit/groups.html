@@ -161,20 +161,20 @@
     /* Participant User Cards */
     .user-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--card-shadow); }
     .u-left { display: flex; align-items: center; gap: 14px; width: 100%;}
-    .u-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
+    .u-avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
     .u-info { flex: 1; }
     .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
     .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;}
     .u-loc { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;}
     
     /* Defaulter / Pending Specific Styling */
-    .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); }
+    .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); display: flex; flex-direction: column; gap: 16px;}
     .d-amount { font-size: 18px; font-weight: 800; color: var(--danger-color); text-align: right; }
-    .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; text-align: right; margin-top: 4px; }
+    .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; margin-top: 4px; }
     
-    .call-btn { background: var(--success-color); color: white; border: none; width: 48px; height: 48px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s; flex-shrink: 0;}
-    .call-btn:active { transform: scale(0.9); }
-    .call-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .call-btn { background: var(--success-color); color: white; border: none; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s;}
+    .call-btn:active { transform: scale(0.95); }
+    .call-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
     /* Empty States */
     .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
@@ -193,8 +193,9 @@
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
+
   </style>
 </head>
 <body>
@@ -323,15 +324,20 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- FLAWLESS MODAL NAVIGATION (Hash Based) ---
+    // --- FLAWLESS MODAL NAVIGATION (Hash Based Fallback for File Protocol) ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
-      if (window.location.hash !== `#${modalId}`) {
-          history.pushState({ id: modalId }, '', `#${modalId}`);
+      try {
+          if (window.location.hash !== `#${modalId}`) {
+              history.pushState({ id: modalId }, '', `#${modalId}`);
+          }
+      } catch(e) {
+          // Fallback for local file:// execution blocks
+          window.location.hash = modalId; 
       }
     };
     
@@ -351,6 +357,9 @@
        closeAllModals();
        if(e.state && e.state.id) {
            const targetModal = document.getElementById(e.state.id);
+           if(targetModal) targetModal.classList.add('active');
+       } else if (window.location.hash) {
+           const targetModal = document.querySelector(window.location.hash);
            if(targetModal) targetModal.classList.add('active');
        }
     });
@@ -379,7 +388,7 @@
     let currentSearchPage = 1;
     const GROUPS_PER_PAGE = 10;
 
-    let activeGroupData = null; // Stores data for the currently viewed Group Modal
+    let activeLoadedGroup = null; // Stores data for the currently viewed Group Modal
     let activeLoadedGroupCurrentMonth = 1; // Stored engine calculation
     let activeLoadedGroupUsers = []; // Stores fetched user profiles to save reads
 
@@ -519,8 +528,9 @@
 
     // --- CORE ENGINE LOGIC (Calculations) ---
 
+    // 1. Calculate the Target Month strictly by Date Math
     function calculateCurrentMonth(startDateStr) {
-        if(!startDateStr) return 1; 
+        if(!startDateStr) return 1; // Failsafe
         const start = new Date(startDateStr);
         const now = new Date();
         
@@ -528,15 +538,18 @@
         months -= start.getMonth();
         months += now.getMonth();
         
+        // If created in the future or same month, it's Month 1
         return months <= 0 ? 1 : months + 1; 
     }
 
+    // 2. Calculate the exact Due Amount for ANY given target month using Increments
     function calculateDueForMonth(targetMonth, startAmount, schedule) {
         if (targetMonth <= 1) return startAmount;
         
         let currentAmount = startAmount;
         for (let m = 2; m <= targetMonth; m++) {
             let increment = 0;
+            // Find the increment for month 'm'
             for (let tier of schedule) {
                 if (m >= tier.start && m <= tier.end) {
                     increment = tier.amount;
@@ -553,12 +566,16 @@
     window.openGroupDetail = function(group) {
       try {
         activeGroupData = group;
-        activeLoadedGroupUsers = []; 
+        activeLoadedGroupUsers = []; // Clear user cache for the new group
         
+        // Set Header
         document.getElementById('md-g-name').innerText = group.groupName || 'Unnamed Group';
         document.getElementById('md-g-id').innerText = `@${group.id}`;
         
+        // Quick Stats
         const startAmt = group.startAmount || 0;
+        
+        // Handle Date Display safely
         let displayStartDate = 'N/A';
         if(group.startDate) {
             const dateObj = new Date(group.startDate);
@@ -570,26 +587,30 @@
         document.getElementById('md-g-start-amt').innerText = Number(startAmt).toLocaleString('en-IN');
         document.getElementById('md-g-members').innerText = group.participantCount || 0;
 
+        // Execute Temporal Engine
         const schedule = group.installmentSchedule || [];
         let calcMonth = calculateCurrentMonth(group.startDate);
         
+        // Cap the month to totalMonths
         if(calcMonth > group.totalMonths) {
             calcMonth = group.totalMonths;
             const badge = document.getElementById('md-g-status');
             badge.innerText = "Chit Complete";
-            badge.className = "status-badge";
+            badge.className = "status-badge"; // Green
         } else {
             const badge = document.getElementById('md-g-status');
             badge.innerText = "Active • Ongoing";
-            badge.className = "status-badge warning"; 
+            badge.className = "status-badge warning"; // Orange
         }
         
         activeLoadedGroupCurrentMonth = calcMonth;
         document.getElementById('md-g-current-month').innerText = calcMonth;
 
+        // Calculate Due for THIS specific month
         const thisMonthDue = calculateDueForMonth(calcMonth, startAmt, schedule);
         document.getElementById('md-g-ongoing-due').innerText = `Installment Amount: ₹${Number(thisMonthDue).toLocaleString('en-IN')}`;
 
+        // Calculate Cumulative Target Value (Sum of all months up to now)
         let cumulativeTotal = 0;
         for(let m = 1; m <= calcMonth; m++) {
             cumulativeTotal += calculateDueForMonth(m, startAmt, schedule);
@@ -603,6 +624,7 @@
       }
     };
 
+    // --- NEW FEATURE: Share Group Summary ---
     window.shareGroupSummary = function() {
         if(!activeGroupData) return;
         
@@ -626,8 +648,10 @@
         }
     };
 
+    // --- FETCH FULL PARTICIPANT PROFILES ---
+    // We fetch the full docs to get phone numbers for the dialer button. (1 Read per user)
     async function fetchGroupUsers() {
-        if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; 
+        if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; // Use cache if already loaded this session
         
         const q = query(collection(db, "users"), where("activeGroups", "array-contains", activeGroupData.id));
         const snap = await getDocs(q);
@@ -641,6 +665,7 @@
         return users;
     }
 
+    // --- HELPER FOR ICONS ---
     const phoneIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
     const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
@@ -663,6 +688,7 @@
                 return;
             }
 
+            // To show 'monthsPaid', we match the full user object with the group's internal memberSnapshot
             const snapshotMap = new Map();
             if(activeGroupData.memberSnapshot) {
                 activeGroupData.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
@@ -674,6 +700,7 @@
                 const phoneText = u.phone ? `${phoneIconSVG} ${u.phone}` : 'No Phone';
                 const locText = u.location ? `${locIconSVG} ${u.location}` : 'No Location';
                 
+                // Card UI
                 const card = document.createElement('div');
                 card.className = 'user-card';
                 card.innerHTML = `
@@ -720,9 +747,11 @@
             users.forEach(u => {
                 const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
                 
+                // LOGIC: If they have paid less months than the engine's current calculated month
                 if(snapData.monthsPaid < activeLoadedGroupCurrentMonth) {
                     hasPending = true;
                     
+                    // Complex Math: Calculate total exactly owed based on missed months
                     let totalOwed = 0;
                     for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
                         totalOwed += calculateDueForMonth(m, startAmt, schedule);
@@ -732,31 +761,43 @@
                     const missedCount = activeLoadedGroupCurrentMonth - snapData.monthsPaid;
                     
                     const callButtonHTML = u.phone 
-                        ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
+                        ? `<a href="tel:${u.phone}" class="call-btn" style="flex: 1; width: 100%; border-radius: 10px; font-size: 13px; font-weight: 800; gap: 6px;"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg> CALL</a>`
                         : ``;
 
+                    // WhatsApp Quick Link with dynamic message
+                    let breakdownText = "";
+                    for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
+                        breakdownText += `- Month ${m}: ₹${calculateDueForMonth(m, startAmt, schedule)}\n`;
+                    }
+                    const msg = `*Meena Chitfunds*\nGroup: ${activeGroupData.groupName.toUpperCase()} (@${activeGroupData.id})\nTimeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n\nDear ${u.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${totalOwed}*\n\nKindly clear your dues at the earliest.`;
+
                     const waButtonHTML = u.phone 
-                        ? `<a href="https://wa.me/${u.phone.replace(/\D/g,'')}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`
+                        ? `<a href="https://wa.me/${u.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}" target="_blank" class="call-btn" style="background:#25D366; flex: 1; width: 100%; border-radius: 10px; font-size: 13px; font-weight: 800; gap: 6px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg> MESSAGE</a>`
                         : ``;
 
                     const card = document.createElement('div');
                     card.className = 'user-card defaulter-card';
                     card.innerHTML = `
-                        <div class="u-left" style="width: 100%;">
-                            <div class="u-avatar" style="background: var(--danger-color); box-shadow: none;">${initial}</div>
-                            <div class="u-info" style="flex: 1;">
-                                <h3 style="color: var(--danger-color);">${u.name || 'Unnamed'}</h3>
-                                <div class="u-meta">@${u.id}</div>
-                                <div class="d-months">${missedCount} Month(s) Behind</div>
+                        <div style="display: flex; flex-direction: column; width: 100%; gap: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div class="u-left" style="width: auto; flex: 1;">
+                                    <div class="u-avatar" style="background: var(--danger-color); box-shadow: none;">${initial}</div>
+                                    <div class="u-info">
+                                        <h3 style="color: var(--danger-color); margin:0 0 4px 0;">${u.name || 'Unnamed'}</h3>
+                                        <div class="u-meta" style="margin:0;">@${u.id}</div>
+                                        <div class="d-months">${missedCount} Month(s) Behind</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; flex-shrink: 0; padding-left: 8px;">
+                                    <div class="d-amount">₹${Number(totalOwed).toLocaleString('en-IN')}</div>
+                                    <div style="font-size: 10px; font-weight: 800; color: var(--danger-color); text-transform: uppercase; margin-top: 4px;">Total Due</div>
+                                </div>
                             </div>
-                            <div style="text-align: right; margin-right: 12px;">
-                                <div class="d-amount">₹${Number(totalOwed).toLocaleString('en-IN')}</div>
-                                <div style="font-size: 10px; font-weight: 800; color: var(--danger-color); text-transform: uppercase; margin-top: 4px;">Total Due</div>
-                            </div>
-                            <div style="display:flex;">
+                            ${(waButtonHTML || callButtonHTML) ? `
+                            <div style="display: flex; gap: 10px; width: 100%; border-top: 1px dashed rgba(220, 53, 69, 0.2); padding-top: 14px;">
                                 ${waButtonHTML}
                                 ${callButtonHTML}
-                            </div>
+                            </div>` : ''}
                         </div>
                     `;
                     container.appendChild(card);
