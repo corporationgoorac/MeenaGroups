@@ -209,6 +209,10 @@
       display: inline-block; background-color: var(--brand-accent); color: white !important;
       padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 12px; font-size: 13px;
     }
+    
+    /* Loading Spinner */
+    .loader { border: 3px solid var(--border-color); border-top: 3px solid var(--brand-accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -382,31 +386,32 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, setDoc, doc, getDoc, deleteDoc, updateDoc, writeBatch, increment, serverTimestamp, arrayUnion, arrayRemove, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, setDoc, doc, getDoc, deleteDoc, updateDoc, writeBatch, increment, serverTimestamp, arrayUnion, arrayRemove, where, documentId } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- Global State for Deletion ---
+    // --- Global State ---
     let targetIdToDelete = null;
+    let cachedGroupsForModal = {}; 
+    let lastVisibleDoc = null;
+    let isSearching = false;
+    let currentSearchTerm = "";
+    let lastSearchType = "default";
+    let searchDebounce;
 
-    // --- FLAWLESS MODAL NAVIGATION (Fixed Back Button Bug) ---
+    // --- FLAWLESS MODAL NAVIGATION ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
-      
-      // Auto-set the Date Picker to Today's date when opening the group modal
       if(modalId === 'group-modal' && !document.getElementById('g-start-date').value) {
           const today = new Date().toISOString().split('T')[0];
           document.getElementById('g-start-date').value = today;
       }
-      
-      // Push state ONLY if we aren't already on this hash (prevents stack buildup)
       if (window.location.hash !== `#${modalId}`) {
           history.pushState({ modalOpen: true, id: modalId }, '', `#${modalId}`);
       }
     };
     
     window.closeModal = function() {
-      // If there's a hash, let the browser's back function handle the closing naturally
       if (window.location.hash) {
           history.back(); 
       } else {
@@ -431,22 +436,7 @@
        }
     });
 
-    // --- Advanced Feature: Live Search Filter ---
-    document.getElementById('group-search').addEventListener('input', function(e) {
-      const term = e.target.value.toLowerCase();
-      const cards = document.querySelectorAll('.group-card');
-      cards.forEach(card => {
-        const name = card.querySelector('.group-name').innerText.toLowerCase();
-        const id = card.querySelector('.group-id-badge').innerText.toLowerCase();
-        if(name.includes(term) || id.includes(term)) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    });
-
-    // --- Custom Universal Alert Replacement ---
+    // --- CUSTOM UI ALERTS ---
     window.showMessage = function(title, body, type = 'success') {
       document.getElementById('msg-title').innerText = title;
       document.getElementById('msg-body').innerHTML = body; 
@@ -463,7 +453,6 @@
       openModal('message-modal');
     };
 
-    // --- Utility: Copy to Clipboard ---
     window.copyToClipboard = function(text) {
       navigator.clipboard.writeText(text).then(() => {
         showMessage("Copied!", `ID <b>@${text}</b> has been copied to your clipboard.`, "success");
@@ -471,6 +460,184 @@
         console.error('Failed to copy', err);
       });
     };
+
+    // --- 1. ADVANCED SERVER-SIDE SEARCH FOR GROUPS ---
+    async function loadGroups(isLoadMore = false) {
+      const container = document.getElementById('groups-list');
+      const loadBtn = document.getElementById('load-more-btn');
+      
+      if (!isLoadMore) {
+        container.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="loader" style="margin:0 auto;"></div></div>';
+        lastVisibleDoc = null;
+      } else {
+        loadBtn.innerText = "Loading...";
+      }
+
+      try {
+        let q;
+        const term = currentSearchTerm;
+        const termUpper = term.toUpperCase();
+        const termTitle = term.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+        if (term === "") {
+            lastSearchType = "default";
+            q = (isLoadMore && lastVisibleDoc) 
+                ? query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(5)) 
+                : query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(5));
+        } else {
+            if (isLoadMore && lastVisibleDoc) {
+                if (lastSearchType === "id") {
+                    q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleDoc), limit(5));
+                } else if (lastSearchType === "name_title") {
+                    q = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleDoc), limit(5));
+                } else if (lastSearchType === "name_upper") {
+                    q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleDoc), limit(5));
+                } else {
+                    q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleDoc), limit(5));
+                }
+            } else {
+                // Try ID Match first
+                q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(5));
+                lastSearchType = "id";
+            }
+        }
+
+        let querySnapshot;
+        try {
+            querySnapshot = await getDocs(q);
+            
+            // Name Fallback Logic
+            if (!isLoadMore && term !== "" && querySnapshot.empty) {
+                q = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), limit(5));
+                querySnapshot = await getDocs(q);
+                lastSearchType = "name_title";
+                
+                if(querySnapshot.empty) {
+                    q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), limit(5));
+                    querySnapshot = await getDocs(q);
+                    lastSearchType = "name_upper";
+                }
+
+                if(querySnapshot.empty) {
+                    q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), limit(5));
+                    querySnapshot = await getDocs(q);
+                    lastSearchType = "name_exact";
+                }
+            }
+        } catch (idxErr) {
+            console.warn("Index missing. Falling back...", idxErr);
+            // Fallback
+            let fallbackQ;
+            if (term === "") {
+                fallbackQ = (isLoadMore && lastVisibleDoc) ? query(collection(db, "groups"), startAfter(lastVisibleDoc), limit(5)) : query(collection(db, "groups"), limit(5));
+            } else {
+                fallbackQ = (isLoadMore && lastVisibleDoc) ? query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleDoc), limit(5)) : query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(5));
+            }
+            querySnapshot = await getDocs(fallbackQ);
+            
+            if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
+                if(match && match[0]) {
+                    if (!isLoadMore) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding: 20px;">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)" style="margin-bottom:12px;"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                <h3 style="margin:0 0 8px 0; font-size:16px; color:var(--text-main);">Database Index Required</h3>
+                                <a href="${match[0]}" target="_blank" class="index-link">Build Secure Index</a>
+                            </div>`;
+                        loadBtn.style.display = 'none';
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (!isLoadMore) container.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            if (!isLoadMore) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+                        <svg viewBox="0 0 24 24" width="64" height="64" fill="var(--border-color)" style="margin-bottom:16px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        <h3 style="font-size:18px; font-weight:800; color:var(--text-main); margin:0 0 8px 0;">No Groups Found</h3>
+                        <p style="margin:0; font-size:14px;">We couldn't find any chit groups matching "${term}".</p>
+                    </div>`;
+            }
+            loadBtn.style.display = 'none';
+            return;
+        }
+
+        lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const groupId = docSnap.id;
+            
+            let schedulePreview = "Fixed Rate";
+            if (data.installmentSchedule && Array.isArray(data.installmentSchedule)) {
+                schedulePreview = data.installmentSchedule.map(s => `${s.start}-${s.end}M:₹${s.amount}`).join(', ');
+            }
+
+            const safePot = data.totalPot ? Number(data.totalPot).toLocaleString('en-IN') : '0';
+            
+            const card = document.createElement('div');
+            card.className = 'group-card';
+            
+            card.innerHTML = `
+                <div class="group-header">
+                    <div>
+                        <h3 class="group-name">${data.groupName || 'Unnamed Group'}</h3>
+                        <span class="group-id-badge">@${groupId}</span>
+                        <div class="group-meta">
+                            <span>₹${safePot}</span>
+                            <span>•</span>
+                            <span>${data.totalMonths || 0} Months</span>
+                            <span>•</span>
+                            <span>${data.participantCount || 0} Members</span>
+                        </div>
+                        <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--text-muted); display:block;">
+                            Sched: [${schedulePreview}]
+                        </div>
+                    </div>
+                </div>
+                <div class="group-actions">
+                    <button class="icon-btn" onclick="copyToClipboard('${groupId}')">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy ID
+                    </button>
+                    <button class="icon-btn delete" onclick="initiateDelete('${groupId}')">
+                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete
+                    </button>
+                </div>`;
+            container.appendChild(card);
+        });
+
+        loadBtn.style.display = querySnapshot.docs.length === 5 ? 'block' : 'none';
+        loadBtn.innerText = "Load More Groups";
+
+      } catch (error) { 
+        console.error("Critical Fetch Error:", error); 
+        if(!isLoadMore) {
+          container.innerHTML = `
+            <div style="color:var(--danger-color); background:rgba(204,0,0,0.1); border-radius:12px; padding: 20px; font-size:13px; word-break: break-word;">
+              <b>Firebase Connection Error</b><br><br>
+              ${error.message || "Unknown error occurred while contacting database."}
+            </div>`;
+        }
+      }
+    }
+
+    document.getElementById('load-more-btn').addEventListener('click', () => loadGroups(true));
+
+    document.getElementById('group-search').addEventListener('input', (e) => {
+        clearTimeout(searchDebounce);
+        const val = e.target.value.trim(); 
+        searchDebounce = setTimeout(() => {
+            currentSearchTerm = val;
+            isSearching = val.length > 0;
+            lastSearchType = "default";
+            loadGroups(false);
+        }, 500);
+    });
 
     // --- CORE ENGINE LOGIC (Mathematical Ledger) ---
     function calculateDueForMonth(targetMonth, startAmount, schedule) {
@@ -607,106 +774,6 @@
       e.target.value = e.target.value.toUpperCase();
       validateUniqueId('users', 'p-id', 'p-id-icon', 'p-id-loading', 'p-submit-btn');
     });
-
-    // --- Group Fetching & Pagination (WITH ADVANCED FAIL-SAFE FALLBACK) ---
-    const groupsList = document.getElementById('groups-list');
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    let lastVisibleDoc = null;
-    let cachedGroupsForModal = {}; // Memory cache for real-time calculations
-
-    async function loadGroups(isLoadMore = false) {
-      try {
-        let q;
-        if (isLoadMore && lastVisibleDoc) {
-          q = query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(5));
-        } else {
-          groupsList.innerHTML = ''; 
-          q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(5));
-        }
-
-        let querySnapshot;
-        try {
-          querySnapshot = await getDocs(q);
-        } catch (firstErr) {
-          console.warn("Ordered query failed. Falling back to safe query...", firstErr);
-          // FALLBACK: If orderBy fails due to missing index or legacy missing fields, run a basic query.
-          const fallbackQ = (isLoadMore && lastVisibleDoc) 
-            ? query(collection(db, "groups"), startAfter(lastVisibleDoc), limit(5)) 
-            : query(collection(db, "groups"), limit(5));
-          querySnapshot = await getDocs(fallbackQ);
-        }
-
-        if (querySnapshot.empty) {
-          if(!isLoadMore) groupsList.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No active groups found. Create one above!</div>';
-          loadMoreBtn.style.display = 'none';
-          return;
-        }
-
-        lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-        // FIX: renamed loop parameter from 'document' to 'docSnap' to prevent variable shadowing of HTML window.document
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const groupId = docSnap.id;
-          
-          // Safely map schedule with fallback to prevent rendering crash
-          let schedulePreview = "Fixed Rate";
-          if (data.installmentSchedule && Array.isArray(data.installmentSchedule)) {
-            schedulePreview = data.installmentSchedule.map(s => `${s.start}-${s.end}M:₹${s.amount}`).join(', ');
-          }
-
-          // Safely extract pot with Indian currency fallback
-          const safePot = data.totalPot ? Number(data.totalPot).toLocaleString('en-IN') : '0';
-          
-          // Display the Selected Start Date if it exists
-          const displayDate = data.startDate ? `<br><span style="color:var(--brand-accent)">Started: ${data.startDate}</span>` : "";
-
-          const card = document.createElement('div');
-          card.className = 'group-card';
-          card.innerHTML = `
-            <div class="group-header">
-              <div>
-                <h3 class="group-name">${data.groupName || 'Unnamed Group'}</h3>
-                <span class="group-id-badge">@${groupId}</span>
-                <div class="group-meta">
-                  <span>₹${safePot}</span>
-                  <span>•</span>
-                  <span>${data.totalMonths || 0} Months</span>
-                  <span>•</span>
-                  <span>${data.participantCount || 0} Members</span>
-                </div>
-                <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--text-muted); display:block;">
-                  Sched: [${schedulePreview}] ${displayDate}
-                </div>
-              </div>
-            </div>
-            <div class="group-actions">
-              <button class="icon-btn" onclick="copyToClipboard('${groupId}')">
-                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy ID
-              </button>
-              <button class="icon-btn delete" onclick="initiateDelete('${groupId}')">
-                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete
-              </button>
-            </div>
-          `;
-          groupsList.appendChild(card);
-        });
-
-        loadMoreBtn.style.display = querySnapshot.docs.length === 5 ? 'block' : 'none';
-      } catch (error) { 
-        console.error("Critical Fetch Error:", error); 
-        
-        if(!isLoadMore) {
-          // Renders the exact error message text to the UI for absolute debugging
-          groupsList.innerHTML = `
-            <div style="color:var(--danger-color); background:rgba(204,0,0,0.1); border-radius:12px; padding: 20px; font-size:13px; word-break: break-word;">
-              <b>Firebase Connection Error</b><br><br>
-              ${error.message || "Unknown error occurred while contacting database."}
-            </div>`;
-        }
-      }
-    }
-    loadMoreBtn.addEventListener('click', () => loadGroups(true));
 
     // --- Participant Modal Setup (Now Caches Group Engine Data) ---
     window.openParticipantModal = async function() {
