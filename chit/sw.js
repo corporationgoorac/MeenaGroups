@@ -3,15 +3,18 @@
 const CACHE_NAME = 'meena-chits-v1';
 
 // The essential files your app needs to load offline
+// FIXED: Using relative paths (./) prevents 404 installation crashes on local servers and subdirectories
 const ASSETS_TO_CACHE = [
-  '/',
-  '/login.html',
-  '/home.html',
-  '/config.js',
-  '/manifest.json',
-  // Add your image paths here once you create them
-  // '/assets/icon-192.png',
-  // '/assets/icon-512.png'
+  './',
+  './login.html',
+  './home.html',
+  './add.html',
+  './groups.html',
+  './payment.html',
+  './reports.html',
+  './auction.html',
+  './config.js',
+  './manifest.json'
 ];
 
 // 1. INSTALL EVENT: Caches the app shell
@@ -21,6 +24,8 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Opened cache and caching assets');
       return cache.addAll(ASSETS_TO_CACHE);
+    }).catch(err => {
+      console.error('Failed to cache assets during install:', err);
     })
   );
 });
@@ -46,6 +51,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // We only want to handle GET requests (Firebase handles its own POST/database syncing)
   if (event.request.method !== 'GET') return;
+  
+  // FIXED: Do not attempt to cache Chrome extensions or external Firebase API sockets
+  if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)
