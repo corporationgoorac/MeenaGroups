@@ -185,7 +185,7 @@
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
     
     .mini-btn-cancel { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 10px; }
@@ -432,6 +432,20 @@
                 querySnapshot = await getDocs(q);
             } catch (err) {
                 console.warn("Index missing. Falling back...", err);
+                
+                // --- INJECTED INDEX LINK EXTRACTOR ---
+                if(err.message && err.message.includes("https://console.firebase.google.com")) {
+                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                    const match = err.message.match(urlRegex);
+                    if(match && match[0]) {
+                        const extractedUrl = match[0];
+                        setTimeout(() => {
+                            showMessage("Database Index Missing", `Please click the link below to build the required Firebase Index to speed up loading.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+                // -------------------------------------
+
                 let fallbackQ;
                 if(isSearching) {
                     fallbackQ = query(collection(db, "users"), limit(100));
@@ -616,30 +630,64 @@
             if(!groupSnap.exists()) throw new Error("Group missing");
             const groupData = groupSnap.data();
             
-            // 2. Fetch User Transactions
-            const qTxn = query(collection(db, "transactions"), 
-                where("subscriberId", "==", activeViewedUser.id),
-                where("groupId", "==", groupId),
-                orderBy("date", "desc")
-            );
-            const txnSnap = await getDocs(qTxn);
+            // 2. Fetch User Transactions (With Missing Index Fallback)
+            let txns = [];
+            try {
+                const qTxn = query(collection(db, "transactions"), 
+                    where("subscriberId", "==", activeViewedUser.id),
+                    where("groupId", "==", groupId),
+                    orderBy("date", "desc")
+                );
+                const txnSnap = await getDocs(qTxn);
+                txnSnap.forEach(tDoc => txns.push(tDoc.data()));
+            } catch (idxErr) {
+                console.warn("Index missing. Using client-side sort fallback...", idxErr);
+                
+                // --- INJECTED INDEX LINK EXTRACTOR ---
+                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                    const match = idxErr.message.match(urlRegex);
+                    if(match && match[0]) {
+                        const extractedUrl = match[0];
+                        setTimeout(() => {
+                            showMessage("Ledger Index Missing", `Please click the link below to build the required Firebase Composite Index.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+                // -------------------------------------
+
+                const fallbackQTxn = query(collection(db, "transactions"), 
+                    where("subscriberId", "==", activeViewedUser.id),
+                    where("groupId", "==", groupId)
+                );
+                const fallbackSnap = await getDocs(fallbackQTxn);
+                fallbackSnap.forEach(tDoc => txns.push(tDoc.data()));
+                
+                // Sort descending by date in memory
+                txns.sort((a, b) => {
+                    const timeA = a.date ? (typeof a.date.toMillis === 'function' ? a.date.toMillis() : 0) : 0;
+                    const timeB = b.date ? (typeof b.date.toMillis === 'function' ? b.date.toMillis() : 0) : 0;
+                    return timeB - timeA;
+                });
+            }
             
             let totalPaid = 0;
             let maxMonthPaid = 0;
             const historyList = document.getElementById('txn-history-list');
             historyList.innerHTML = '';
             
-            if(txnSnap.empty) {
+            if(txns.length === 0) {
                 historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
             }
 
-            txnSnap.forEach(tDoc => {
-                const tData = tDoc.data();
+            txns.forEach(tData => {
                 totalPaid += tData.amount;
                 if(tData.monthAttributed > maxMonthPaid) maxMonthPaid = tData.monthAttributed;
                 
                 let dDate = "N/A";
-                if(tData.date) dDate = tData.date.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                if(tData.date && typeof tData.date.toDate === 'function') {
+                    dDate = tData.date.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
                 
                 const hc = document.createElement('div');
                 hc.className = 'history-card';
@@ -720,7 +768,7 @@
 
         } catch (err) {
             console.error(err);
-            showMessage("Engine Error", "Failed to sync ledger.", "error");
+            showMessage("Engine Error", `Failed to sync ledger: ${err.message}`, "error");
         }
     }
 
