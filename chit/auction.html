@@ -756,3 +756,187 @@
                         querySnapshot = await getDocs(q);
                         lastGrpSearchType = "name_exact";
                     }
+                }
+            } catch (idxErr) {
+                console.warn("Index missing for Group Search.", idxErr);
+                // Safe Fallback
+                let fallbackQ;
+                if (term === "") {
+                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), limit(10));
+                } else {
+                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(10));
+                }
+                querySnapshot = await getDocs(fallbackQ);
+            }
+
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                if (!isLoadMore) container.innerHTML = '<div class="empty-state"><p>No groups found.</p></div>';
+                loadBtn.style.display = 'none';
+                return;
+            }
+
+            lastVisibleGroup = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            querySnapshot.forEach(docSnap => {
+                const group = docSnap.data();
+                group.id = docSnap.id;
+
+                const card = document.createElement('div');
+                card.className = 'data-card';
+                card.onclick = () => window.openGroupPayoutsModal(group);
+                card.innerHTML = `
+                    <div class="c-left">
+                        <div class="c-info">
+                            <h3>${group.groupName || 'Unnamed'}</h3>
+                            <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${group.id}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            loadBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+            loadBtn.innerText = "Load More";
+
+        } catch (e) {
+            console.error("Group Search Error:", e);
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-color);">Search Error.</div>';
+        }
+    };
+
+
+    // --- LEND ACTION LOGIC ---
+    let targetLendUser = null;
+
+    window.openLendActionModal = function(user) {
+        targetLendUser = user;
+        document.getElementById('action-u-name').innerText = user.name || "Unnamed";
+        document.getElementById('action-u-id').innerText = `@${user.id}`;
+        
+        const select = document.getElementById('action-group-select');
+        select.innerHTML = '<option value="">-- Choose a group --</option>';
+        
+        if(user.activeGroups && user.activeGroups.length > 0) {
+            user.activeGroups.forEach(gId => {
+                const opt = document.createElement('option');
+                opt.value = gId;
+                opt.innerText = `@${gId}`;
+                select.appendChild(opt);
+            });
+            if(user.activeGroups.length === 1) select.value = user.activeGroups[0];
+        } else {
+            select.innerHTML = '<option value="">User not in any active groups</option>';
+        }
+        
+        document.getElementById('action-amount-input').value = '';
+        openModal('action-modal');
+    };
+
+    window.submitLendRecord = async function() {
+        const btn = document.getElementById('confirm-lend-btn');
+        const groupId = document.getElementById('action-group-select').value;
+        const amount = Number(document.getElementById('action-amount-input').value);
+        
+        if(!groupId) return showMessage("Error", "Please select a group.", "error");
+        if(!amount || amount <= 0) return showMessage("Error", "Please enter a valid amount.", "error");
+        
+        btn.innerText = "Securing Payout..."; btn.disabled = true;
+
+        try {
+            const batch = writeBatch(db);
+            const newTxRef = doc(collection(db, "auctions"));
+            
+            // KEY ARCHITECTURE: Saves with type "Auction Payout". 
+            // So if add.html deletes the group, these are automatically wiped!
+            batch.set(newTxRef, {
+                subscriberId: targetLendUser.id,
+                subscriberName: targetLendUser.name,
+                groupId: groupId,
+                amount: amount,
+                type: "Auction Payout",
+                date: serverTimestamp()
+            });
+
+            await batch.commit();
+
+            if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+
+            document.getElementById('gpay-amount-text').innerText = `₹${amount.toLocaleString('en-IN')}`;
+            const overlay = document.getElementById('gpay-overlay');
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                if (modalStackCount > 0) {
+                    history.go(-modalStackCount);
+                    modalStackCount = 0;
+                }
+                closeAllModals();
+                loadRecentLends(false); // Refresh UI
+                btn.innerText = "Disburse Funds"; btn.disabled = false;
+            }, 2500);
+
+        } catch (err) {
+            console.error(err);
+            showMessage("Transaction Failed", err.message, "error");
+            btn.innerText = "Disburse Funds"; btn.disabled = false;
+        }
+    };
+
+
+    // --- VIEW SPECIFIC GROUP PAYOUTS ---
+    window.openGroupPayoutsModal = async function(group) {
+        document.getElementById('gp-name').innerText = group.groupName || "Unnamed";
+        document.getElementById('gp-id').innerText = `@${group.id}`;
+        
+        openModal('group-payouts-modal');
+        const container = document.getElementById('group-payouts-list');
+        container.innerHTML = '<div class="loader" style="border-top-color:var(--auction-color);"></div>';
+        
+        try {
+            let txns = [];
+            try {
+                const q = query(collection(db, "auctions"), 
+                    where("groupId", "==", group.id), 
+                    orderBy("date", "desc")
+                );
+                const snap = await getDocs(q);
+                snap.forEach(d => txns.push(d.data()));
+            } catch(idxErr) {
+                console.warn("Index missing. Client side fallback...");
+                const fQ = query(collection(db, "auctions"), 
+                    where("groupId", "==", group.id)
+                );
+                const snap = await getDocs(fQ);
+                snap.forEach(d => txns.push(d.data()));
+                txns.sort((a,b) => {
+                    const tA = a.date && typeof a.date.toMillis === 'function' ? a.date.toMillis() : 0;
+                    const tB = b.date && typeof b.date.toMillis === 'function' ? b.date.toMillis() : 0;
+                    return tB - tA;
+                });
+            }
+
+            container.innerHTML = '';
+            if(txns.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No payouts recorded for this group yet.</p></div>';
+                return;
+            }
+
+            txns.forEach(t => renderLendCard(t, container));
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = '<div style="color:var(--danger-color); text-align:center; padding:20px; font-weight:700;">Error Loading Group Data</div>';
+        }
+    };
+
+    // Init
+    window.onload = () => loadRecentLends(false);
+
+  </script>
+</body>
+</html>
