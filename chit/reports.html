@@ -138,6 +138,9 @@
     .status-badge.warning { background: var(--warning-light); color: var(--warning-color); }
     .status-badge.danger { background: var(--danger-light); color: var(--danger-color); }
 
+    /* NEW ARREARS BANNER */
+    .arrears-banner { background: var(--danger-light); color: var(--danger-color); padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 800; text-align: center; margin-bottom: 20px; display: none; border: 1px solid rgba(220, 53, 69, 0.2); letter-spacing: 0.5px; text-transform: uppercase;}
+
     .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
     .engine-box { background: var(--bg-color); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); }
     .e-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;}
@@ -242,6 +245,8 @@
         <div class="detail-card">
           <div class="status-badge" id="md-u-status">Calculating...</div>
           
+          <div id="arrears-warning" class="arrears-banner"></div>
+
           <div class="engine-grid">
             <div class="engine-box">
               <div class="e-label">Total Paid</div>
@@ -324,7 +329,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -433,7 +438,6 @@
             } catch (err) {
                 console.warn("Index missing. Falling back...", err);
                 
-                // --- INJECTED INDEX LINK EXTRACTOR ---
                 if(err.message && err.message.includes("https://console.firebase.google.com")) {
                     const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                     const match = err.message.match(urlRegex);
@@ -444,7 +448,6 @@
                         }, 500);
                     }
                 }
-                // -------------------------------------
 
                 let fallbackQ;
                 if(isSearching) {
@@ -474,7 +477,6 @@
                 const user = docSnap.data();
                 user.id = docSnap.id; 
                 
-                // Add to cache for quick edits
                 if(!allUsersCache.some(u => u.id === user.id)) {
                     allUsersCache.push(user);
                 }
@@ -545,7 +547,7 @@
         }, 500);
     });
 
-    // --- CORE ENGINE LOGIC (Calculations recycled from groups.html) ---
+    // --- CORE ENGINE LOGIC ---
     function calculateCurrentMonth(startDateStr) {
         if(!startDateStr) return 1;
         const start = new Date(startDateStr);
@@ -596,7 +598,6 @@
                 select.appendChild(opt);
             });
             
-            // Auto-select if only 1 group
             if(user.activeGroups.length === 1) {
                 select.value = user.activeGroups[0];
                 analyzeUserLedger(user.activeGroups[0]);
@@ -625,12 +626,10 @@
         document.getElementById('whatsapp-container').style.display = 'none';
         
         try {
-            // 1. Fetch Group Details
             const groupSnap = await getDoc(doc(db, "groups", groupId));
             if(!groupSnap.exists()) throw new Error("Group missing");
             const groupData = groupSnap.data();
             
-            // 2. Fetch User Transactions (With Missing Index Fallback)
             let txns = [];
             try {
                 const qTxn = query(collection(db, "transactions"), 
@@ -643,7 +642,6 @@
             } catch (idxErr) {
                 console.warn("Index missing. Using client-side sort fallback...", idxErr);
                 
-                // --- INJECTED INDEX LINK EXTRACTOR ---
                 if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
                     const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                     const match = idxErr.message.match(urlRegex);
@@ -654,7 +652,6 @@
                         }, 500);
                     }
                 }
-                // -------------------------------------
 
                 const fallbackQTxn = query(collection(db, "transactions"), 
                     where("subscriberId", "==", activeViewedUser.id),
@@ -663,7 +660,6 @@
                 const fallbackSnap = await getDocs(fallbackQTxn);
                 fallbackSnap.forEach(tDoc => txns.push(tDoc.data()));
                 
-                // Sort descending by date in memory
                 txns.sort((a, b) => {
                     const timeA = a.date ? (typeof a.date.toMillis === 'function' ? a.date.toMillis() : 0) : 0;
                     const timeB = b.date ? (typeof b.date.toMillis === 'function' ? b.date.toMillis() : 0) : 0;
@@ -701,7 +697,6 @@
                 historyList.appendChild(hc);
             });
 
-            // 3. Mathematical Engine Assessment
             const currentMonth = calculateCurrentMonth(groupData.startDate);
             const startAmt = groupData.startAmount || 0;
             const schedule = groupData.installmentSchedule || [];
@@ -710,10 +705,8 @@
             let pendingTotal = 0;
             let pendingMonthsList = [];
             
-            // Cap calculations to total duration
             let evalMonth = currentMonth > totalGroupMonths ? totalGroupMonths : currentMonth;
             
-            // Calculate exactly what they missed
             if (maxMonthPaid < evalMonth) {
                 for (let m = maxMonthPaid + 1; m <= evalMonth; m++) {
                     const dueForM = calculateDueForMonth(m, startAmt, schedule);
@@ -722,7 +715,16 @@
                 }
             }
 
-            // 4. Update UI
+            // Arrears Engine Integration
+            const arrears = evalMonth - maxMonthPaid;
+            const arrearsWarning = document.getElementById('arrears-warning');
+            if (arrears > 0) {
+                arrearsWarning.style.display = 'block';
+                arrearsWarning.innerText = `⚠️ Participant is ${arrears} month(s) behind schedule.`;
+            } else {
+                arrearsWarning.style.display = 'none';
+            }
+
             document.getElementById('md-u-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
             document.getElementById('md-u-current-mo').innerText = evalMonth;
             document.getElementById('md-u-months-paid').innerText = maxMonthPaid;
@@ -737,7 +739,6 @@
                 statusUI.innerText = "Payment Overdue";
                 statusUI.className = "status-badge danger";
                 
-                // GENERATE WHATSAPP PAYLOAD
                 if (activeViewedUser.phone) {
                     const waContainer = document.getElementById('whatsapp-container');
                     
@@ -819,7 +820,7 @@
         }
     });
 
-    // --- USER DELETE LOGIC ---
+    // --- USER DELETE LOGIC (Batched Engine) ---
     let targetParticipantIdToDelete = null;
     window.initiateParticipantDelete = function(userId) {
         targetParticipantIdToDelete = userId;
@@ -829,14 +830,45 @@
     document.getElementById('confirm-delete-participant-btn').addEventListener('click', async () => {
         if(!targetParticipantIdToDelete) return;
         const btn = document.getElementById('confirm-delete-participant-btn');
-        btn.innerText = "Deleting..."; btn.disabled = true;
+        btn.innerText = "Deleting & Syncing..."; btn.disabled = true;
 
         try {
-            await deleteDoc(doc(db, "users", targetParticipantIdToDelete));
+            const userToDelete = allUsersCache.find(u => u.id === targetParticipantIdToDelete);
+            if (!userToDelete) throw new Error("User data not found.");
+
+            const batch = writeBatch(db);
+
+            if (userToDelete.activeGroups && userToDelete.activeGroups.length > 0) {
+                for (const groupId of userToDelete.activeGroups) {
+                    const groupRef = doc(db, "groups", groupId);
+                    const groupSnap = await getDoc(groupRef);
+                    
+                    if (groupSnap.exists()) {
+                        const groupData = groupSnap.data();
+                        
+                        let updatedSnapshot = [];
+                        if (groupData.memberSnapshot) {
+                            updatedSnapshot = groupData.memberSnapshot.filter(member => member.id !== targetParticipantIdToDelete);
+                        }
+
+                        batch.update(groupRef, {
+                            participantCount: increment(-1),
+                            memberSnapshot: updatedSnapshot
+                        });
+                    }
+                }
+            }
+
+            const userRef = doc(db, "users", targetParticipantIdToDelete);
+            batch.delete(userRef);
+
+            await batch.commit();
+
             allUsersCache = allUsersCache.filter(u => u.id !== targetParticipantIdToDelete);
             loadUsers(false);
             closeModal();
-            showMessage("Deleted", "Participant permanently removed.", "success");
+            showMessage("Deleted & Synced", "Participant removed and all group counts updated.", "success");
+            
         } catch(e) { 
             console.error("Error deleting", e); 
             showMessage("Deletion Error", `Failed to delete participant: <br><br> ${e.message}`, "error");
