@@ -479,6 +479,15 @@
                 const scheduleCount = group.installmentSchedule ? group.installmentSchedule.length : 0;
                 const safePot = group.totalPot ? Number(group.totalPot).toLocaleString('en-IN') : '0';
                 
+                // --- NEW CALCULATION (0 EXTRA READS) ---
+                const calcMonth = calculateCurrentMonth(group.startDate);
+                const cappedMonth = group.totalMonths ? Math.min(calcMonth, group.totalMonths) : calcMonth;
+                const currentDue = calculateDueForMonth(cappedMonth, group.startAmount || 0, group.installmentSchedule || []);
+                const members = group.participantCount || 0;
+                const auctionAmount = currentDue * members;
+                const safeAuctionAmount = auctionAmount.toLocaleString('en-IN');
+                // ---------------------------------------
+                
                 const card = document.createElement('div');
                 card.className = 'group-card';
                 card.onclick = () => openGroupDetail(group);
@@ -508,6 +517,16 @@
                             <span class="g-stat-val highlight">${scheduleCount} active</span>
                         </div>
                     </div>
+                    <div style="margin-top: 14px; padding: 12px 16px; background: var(--brand-accent-light); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(6, 95, 212, 0.1);">
+                        <div>
+                            <div style="font-size: 10px; color: var(--brand-accent); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Month ${cappedMonth} Auction Value</div>
+                            <div style="font-size: 18px; font-weight: 800; color: var(--brand-accent); margin-top: 2px;">₹${safeAuctionAmount}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 10px; font-weight: 800; color: var(--brand-accent); opacity: 0.8; text-transform: uppercase;">Current Due</div>
+                            <div style="font-size: 14px; font-weight: 800; color: var(--brand-accent);">₹${currentDue.toLocaleString('en-IN')} <span style="font-size:11px; opacity:0.8;">× ${members}</span></div>
+                        </div>
+                    </div>
                 `;
                 container.appendChild(card);
             });
@@ -515,14 +534,14 @@
             loadMoreBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
             loadMoreBtn.innerText = "Load More Groups";
 
-        } catch (e) {
-            console.error("Fetch Error:", e);
+        } catch (err) {
+            console.error("Fetch Error:", err);
             if (loader) loader.style.display = 'none';
             
             // Check for index error and render professional button
-            if(e.message && e.message.includes("https://console.firebase.google.com")) {
+            if(err.message && err.message.includes("https://console.firebase.google.com")) {
                 const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-                const match = e.message.match(urlRegex);
+                const match = err.message.match(urlRegex);
                 if(match && match[0]) {
                     if (!isLoadMore) {
                         container.innerHTML = `
@@ -551,6 +570,7 @@
         searchDebounce = setTimeout(() => {
             currentSearchTerm = val;
             isSearching = val.length > 0;
+            lastSearchType = "default";
             loadGroupsFromServer(false);
         }, 500);
     });
