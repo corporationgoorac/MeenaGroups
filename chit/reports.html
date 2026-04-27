@@ -210,7 +210,7 @@
         <span class="search-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </span>
-        <input type="text" id="master-search" class="search-input" placeholder="Search Participant ID or Phone...">
+        <input type="text" id="master-search" class="search-input" placeholder="Search ID, Name, or Phone...">
       </div>
       
       <div class="section-header-row">
@@ -329,7 +329,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where, updateDoc, deleteDoc, writeBatch, increment, documentId } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -395,8 +395,10 @@
     let allUsersCache = [];
     let lastVisibleUser = null;
     let isSearching = false;
-    let isNumericSearch = false;
     let currentSearchTerm = "";
+    let isNumericSearch = false;
+    let lastSearchType = "default";
+    let searchDebounce;
 
     // 1. FireBase Direct Live Search & Pagination Logic
     window.loadUsers = async function(isLoadMore = false) {
@@ -410,56 +412,81 @@
 
         try {
             let q;
-            if (isSearching && currentSearchTerm !== "") {
-                if (isNumericSearch) {
-                    if (isLoadMore && lastVisibleUser) {
-                        q = query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), orderBy("phone"), startAfter(lastVisibleUser), limit(10));
-                    } else {
-                        q = query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), orderBy("phone"), limit(10));
-                    }
-                } else {
-                    const termUpper = currentSearchTerm.toUpperCase();
-                    if (isLoadMore && lastVisibleUser) {
-                        q = query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), orderBy("id"), startAfter(lastVisibleUser), limit(10));
-                    } else {
-                        q = query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), orderBy("id"), limit(10));
-                    }
-                }
-            } else {
+            const term = currentSearchTerm;
+            const termUpper = term.toUpperCase();
+            const termName = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
+
+            // Set up queries
+            if (term === "") {
+                lastSearchType = "default";
                 if (isLoadMore && lastVisibleUser) {
                     q = query(collection(db, "users"), orderBy("joinedAt", "desc"), startAfter(lastVisibleUser), limit(10));
                 } else {
                     q = query(collection(db, "users"), orderBy("joinedAt", "desc"), limit(10));
+                }
+            } else if (isNumericSearch) {
+                lastSearchType = "phone";
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), orderBy("phone"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), orderBy("phone"), limit(10));
+                }
+            } else {
+                // Alphanumeric Search
+                if (isLoadMore && lastVisibleUser) {
+                    if (lastSearchType === "id") {
+                        q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleUser), limit(10));
+                    } else if (lastSearchType === "name") {
+                        q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), orderBy("name"), startAfter(lastVisibleUser), limit(10));
+                    } else {
+                        q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), startAfter(lastVisibleUser), limit(10));
+                    }
+                } else {
+                    // Try ID first
+                    q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
+                    lastSearchType = "id";
                 }
             }
 
             let querySnapshot;
             try {
                 querySnapshot = await getDocs(q);
-            } catch (err) {
-                console.warn("Index missing. Falling back...", err);
                 
-                if(err.message && err.message.includes("https://console.firebase.google.com")) {
-                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-                    const match = err.message.match(urlRegex);
+                // Smart Fallback for Alphanumeric searches if ID yields nothing
+                if (!isLoadMore && term !== "" && !isNumericSearch && querySnapshot.empty) {
+                    // Try Capitalized Name Search
+                    q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), orderBy("name"), limit(10));
+                    querySnapshot = await getDocs(q);
+                    lastSearchType = "name";
+                    
+                    // If still empty, try Exact Name Search
+                    if(querySnapshot.empty) {
+                        q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), limit(10));
+                        querySnapshot = await getDocs(q);
+                        lastSearchType = "name_exact";
+                    }
+                }
+
+            } catch (idxErr) {
+                console.warn("Index missing for search. Attempting safe fallback...", idxErr);
+                
+                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                    const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
                     if(match && match[0]) {
-                        const extractedUrl = match[0];
                         setTimeout(() => {
-                            showMessage("Database Index Missing", `Please click the link below to build the required Firebase Index to speed up loading.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
                         }, 500);
                     }
                 }
 
+                // Fallback queries without orderBy if index is completely missing
                 let fallbackQ;
-                if (isSearching && currentSearchTerm !== "") {
-                    if (isNumericSearch) {
-                        fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), limit(10));
-                    } else {
-                        const termUpper = currentSearchTerm.toUpperCase();
-                        fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), limit(10));
-                    }
-                } else {
+                if (term === "") {
                     fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
+                } else if (isNumericSearch) {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), limit(10));
+                } else {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(10));
                 }
                 querySnapshot = await getDocs(fallbackQ);
             }
@@ -541,7 +568,6 @@
         }
     }
 
-    let searchDebounce;
     document.getElementById('master-search').addEventListener('input', (e) => {
         clearTimeout(searchDebounce);
         const val = e.target.value.trim();
@@ -549,6 +575,7 @@
             currentSearchTerm = val;
             isSearching = val.length > 0;
             isNumericSearch = /^\d+$/.test(val);
+            lastSearchType = "default"; // Reset search type on new input
             loadUsers(false);
         }, 500);
     });
