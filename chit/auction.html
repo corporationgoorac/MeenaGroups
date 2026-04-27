@@ -162,6 +162,8 @@
       color: var(--text-main); padding: 16px; border-radius: 14px; font-size: 16px; outline: none; appearance: none; font-weight: 700; transition: border-color 0.2s, box-shadow 0.2s;
     }
     .input-group input:focus, .input-group select:focus { border-color: var(--auction-color); box-shadow: 0 0 0 4px var(--auction-light); }
+    
+    .loading-text { font-size: 11px; color: var(--auction-color); position: absolute; right: 14px; top: 0; display: none; font-weight: 800; text-transform: uppercase;}
 
     /* Neo-Banking Amount Display */
     .due-section { background: var(--surface-color); padding: 24px; border-radius: 16px; text-align: center; border: 2px solid var(--auction-light); position: relative; overflow: hidden; margin-top: 24px;}
@@ -219,6 +221,9 @@
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
     .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--auction-color); color: #fff;}
+    
+    /* Styled Link for Indexing Errors */
+    .index-link { display: inline-block; background-color: var(--auction-color); color: white !important; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 12px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -256,13 +261,14 @@
     </div>
     <div class="modal-body" style="padding-bottom: 80px;">
       <div class="search-wrapper">
+        <span class="loading-text" id="user-search-loading">Searching...</span>
         <span class="search-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </span>
-        <input type="text" id="user-search-input" class="search-input" placeholder="Search Participant ID...">
+        <input type="text" id="user-search-input" class="search-input" placeholder="Search ID, Name, or Phone...">
       </div>
       <div id="user-search-results"></div>
-      <button id="load-more-users-btn" class="load-more-btn" style="display: none;" onclick="renderUsersBatch()">Load More</button>
+      <button id="load-more-users-btn" class="load-more-btn" style="display: none;" onclick="loadUsersFromServer(true)">Load More</button>
     </div>
   </aside>
 
@@ -301,13 +307,14 @@
     </div>
     <div class="modal-body" style="padding-bottom: 80px;">
       <div class="search-wrapper">
+        <span class="loading-text" id="group-search-loading">Searching...</span>
         <span class="search-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </span>
-        <input type="text" id="group-search-input" class="search-input" placeholder="Search Group ID...">
+        <input type="text" id="group-search-input" class="search-input" placeholder="Search Group ID or Name...">
       </div>
       <div id="group-search-results"></div>
-      <button id="load-more-groups-btn" class="load-more-btn" style="display: none;" onclick="renderGroupsBatch()">Load More</button>
+      <button id="load-more-groups-btn" class="load-more-btn" style="display: none;" onclick="loadGroupsFromServer(true)">Load More</button>
     </div>
   </aside>
 
@@ -348,7 +355,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, writeBatch, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, writeBatch, serverTimestamp, where, documentId } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -410,7 +417,7 @@
       document.getElementById('message-modal').classList.remove('active');
     };
 
-    // --- RECENT PAYOUTS ENGINE ---
+    // --- RECENT PAYOUTS ENGINE (Dashboard List) ---
     let lastVisibleLend = null;
     
     window.loadRecentLends = async function(isLoadMore = false) {
@@ -420,10 +427,11 @@
         if(!isLoadMore) {
             container.innerHTML = '<div class="loader"></div>';
             lastVisibleLend = null;
+        } else {
+            loadBtn.innerText = "Loading...";
         }
 
         try {
-            // Query where type == "Auction Payout"
             let qTxn;
             try {
                 if (isLoadMore && lastVisibleLend) {
@@ -447,6 +455,7 @@
                 });
                 
                 loadBtn.style.display = snap.docs.length === 10 ? 'block' : 'none';
+                loadBtn.innerText = "Load Older Lends";
                 
             } catch (idxErr) {
                 console.warn("Index missing for type + date sort. Using client-side fallback...");
@@ -516,81 +525,289 @@
         container.appendChild(card);
     }
 
-    // --- SEARCH USERS (For Lending) ---
-    let allUsersCache = [];
-    let filteredUsers = [];
-    let userSearchPage = 1;
-    let currentSearchTerm = "";
+    // --- SMART SERVER-SIDE SEARCH (USERS) ---
+    let lastVisibleUser = null;
+    let currentUserSearchTerm = "";
+    let isNumericUserSearch = false;
+    let lastUserSearchType = "default";
+    let userSearchDebounce;
 
-    window.openLendSearchModal = async function() {
+    window.openLendSearchModal = function() {
         openModal('search-user-modal');
-        document.getElementById('user-search-results').innerHTML = '<div class="loader"></div>';
-        
-        if(allUsersCache.length === 0) {
-            try {
-                let snap;
-                try {
-                    const q = query(collection(db, "users"), orderBy("joinedAt", "desc"), limit(300));
-                    snap = await getDocs(q);
-                } catch(e) {
-                    const fQ = query(collection(db, "users"), limit(300));
-                    snap = await getDocs(fQ);
-                }
-                snap.forEach(doc => allUsersCache.push({ id: doc.id, ...doc.data() }));
-            } catch(e) { console.error(e); }
-        }
-        
         document.getElementById('user-search-input').value = '';
-        triggerUserSearch('');
+        currentUserSearchTerm = '';
+        isNumericUserSearch = false;
+        lastUserSearchType = "default";
+        window.loadUsersFromServer(false);
     };
 
     document.getElementById('user-search-input').addEventListener('input', (e) => {
-        triggerUserSearch(e.target.value);
+        clearTimeout(userSearchDebounce);
+        const val = e.target.value.trim();
+        userSearchDebounce = setTimeout(() => {
+            currentUserSearchTerm = val;
+            isNumericUserSearch = /^\d+$/.test(val);
+            window.loadUsersFromServer(false);
+        }, 500); 
     });
 
-    function triggerUserSearch(term) {
-        term = term.trim().toLowerCase();
-        userSearchPage = 1;
-        filteredUsers = term === '' 
-            ? allUsersCache 
-            : allUsersCache.filter(u => (u.id.toLowerCase().includes(term) || (u.name || "").toLowerCase().includes(term)));
-        
-        document.getElementById('user-search-results').innerHTML = '';
-        renderUsersBatch();
-    }
-
-    window.renderUsersBatch = function() {
+    window.loadUsersFromServer = async function(isLoadMore = false) {
         const container = document.getElementById('user-search-results');
         const loadBtn = document.getElementById('load-more-users-btn');
-        const startIdx = (userSearchPage - 1) * 10;
-        const endIdx = startIdx + 10;
-        const batch = filteredUsers.slice(startIdx, endIdx);
+        const loader = document.getElementById('user-search-loading');
 
-        if(filteredUsers.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No participants found.</p></div>';
-            loadBtn.style.display = 'none'; return;
+        if (!isLoadMore) {
+            container.innerHTML = '<div class="loader" style="border-top-color:var(--auction-color);"></div>';
+            lastVisibleUser = null;
+        } else {
+            loadBtn.innerText = "Loading...";
         }
 
-        batch.forEach(u => {
-            const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
-            const card = document.createElement('div');
-            card.className = 'data-card';
-            card.onclick = () => openLendActionModal(u);
-            card.innerHTML = `
-                <div class="c-left">
-                    <div class="c-icon" style="background:var(--brand-accent-light); color:var(--brand-accent);">${initial}</div>
-                    <div class="c-info">
-                        <h3>${u.name || 'Unnamed'}</h3>
-                        <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${u.id}</div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
+        if (loader) loader.style.display = 'block';
 
-        loadBtn.style.display = endIdx < filteredUsers.length ? 'block' : 'none';
-        userSearchPage++;
+        try {
+            let q;
+            const term = currentUserSearchTerm;
+            const termUpper = term.toUpperCase();
+            const termName = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
+
+            if (term === "") {
+                lastUserSearchType = "default";
+                q = (isLoadMore && lastVisibleUser) 
+                    ? query(collection(db, "users"), orderBy("joinedAt", "desc"), startAfter(lastVisibleUser), limit(10))
+                    : query(collection(db, "users"), orderBy("joinedAt", "desc"), limit(10));
+            } else if (isNumericUserSearch) {
+                lastUserSearchType = "phone";
+                q = (isLoadMore && lastVisibleUser)
+                    ? query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), orderBy("phone"), startAfter(lastVisibleUser), limit(10))
+                    : query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), orderBy("phone"), limit(10));
+            } else {
+                if (isLoadMore && lastVisibleUser) {
+                    if (lastUserSearchType === "id") {
+                        q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleUser), limit(10));
+                    } else if (lastUserSearchType === "name") {
+                        q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), orderBy("name"), startAfter(lastVisibleUser), limit(10));
+                    } else {
+                        q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), startAfter(lastVisibleUser), limit(10));
+                    }
+                } else {
+                    // Try ID first
+                    q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
+                    lastUserSearchType = "id";
+                }
+            }
+
+            let querySnapshot;
+            try {
+                querySnapshot = await getDocs(q);
+                
+                // Name Fallback
+                if (!isLoadMore && term !== "" && !isNumericUserSearch && querySnapshot.empty) {
+                    q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), orderBy("name"), limit(10));
+                    querySnapshot = await getDocs(q);
+                    lastUserSearchType = "name";
+                    
+                    if(querySnapshot.empty) {
+                        q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), limit(10));
+                        querySnapshot = await getDocs(q);
+                        lastUserSearchType = "name_exact";
+                    }
+                }
+            } catch (idxErr) {
+                console.warn("Index missing for User Search.", idxErr);
+                // Safe Fallback
+                let fallbackQ;
+                if (term === "") {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
+                } else if (isNumericUserSearch) {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), limit(10));
+                } else {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(10));
+                }
+                querySnapshot = await getDocs(fallbackQ);
+            }
+
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                if (!isLoadMore) container.innerHTML = '<div class="empty-state"><p>No participants found.</p></div>';
+                loadBtn.style.display = 'none';
+                return;
+            }
+
+            lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            querySnapshot.forEach(docSnap => {
+                const user = docSnap.data();
+                user.id = docSnap.id;
+
+                const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
+                const card = document.createElement('div');
+                card.className = 'data-card';
+                card.onclick = () => window.openLendActionModal(user);
+                card.innerHTML = `
+                    <div class="c-left">
+                        <div class="c-icon">${initial}</div>
+                        <div class="c-info">
+                            <h3>${user.name || 'Unnamed'}</h3>
+                            <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${user.id}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            loadBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+            loadBtn.innerText = "Load More";
+
+        } catch (e) {
+            console.error("User Search Error:", e);
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-color);">Search Error.</div>';
+        }
     };
+
+
+    // --- SMART SERVER-SIDE SEARCH (GROUPS) ---
+    let lastVisibleGroup = null;
+    let currentGrpSearchTerm = "";
+    let lastGrpSearchType = "default";
+    let grpSearchDebounce;
+
+    window.openGroupSearchModal = function() {
+        openModal('search-group-modal');
+        document.getElementById('group-search-input').value = '';
+        currentGrpSearchTerm = '';
+        lastGrpSearchType = "default";
+        window.loadGroupsFromServer(false);
+    };
+
+    document.getElementById('group-search-input').addEventListener('input', (e) => {
+        clearTimeout(grpSearchDebounce);
+        const val = e.target.value.trim();
+        grpSearchDebounce = setTimeout(() => {
+            currentGrpSearchTerm = val;
+            window.loadGroupsFromServer(false);
+        }, 500); 
+    });
+
+    window.loadGroupsFromServer = async function(isLoadMore = false) {
+        const container = document.getElementById('group-search-results');
+        const loadBtn = document.getElementById('load-more-groups-btn');
+        const loader = document.getElementById('group-search-loading');
+
+        if (!isLoadMore) {
+            container.innerHTML = '<div class="loader" style="border-top-color:var(--auction-color);"></div>';
+            lastVisibleGroup = null;
+        } else {
+            loadBtn.innerText = "Loading...";
+        }
+
+        if (loader) loader.style.display = 'block';
+
+        try {
+            let q;
+            const term = currentGrpSearchTerm;
+            const termUpper = term.toUpperCase();
+            const termTitle = term.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            if (term === "") {
+                lastGrpSearchType = "default";
+                q = (isLoadMore && lastVisibleGroup) 
+                    ? query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleGroup), limit(10))
+                    : query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(10));
+            } else {
+                if (isLoadMore && lastVisibleGroup) {
+                    if (lastGrpSearchType === "id") {
+                        q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleGroup), limit(10));
+                    } else if (lastGrpSearchType === "name_title") {
+                        q = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
+                    } else if (lastGrpSearchType === "name_upper") {
+                        q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
+                    } else {
+                        q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
+                    }
+                } else {
+                    // Try ID first
+                    q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
+                    lastGrpSearchType = "id";
+                }
+            }
+
+            let querySnapshot;
+            try {
+                querySnapshot = await getDocs(q);
+                
+                // Name Fallback
+                if (!isLoadMore && term !== "" && querySnapshot.empty) {
+                    q = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), limit(10));
+                    querySnapshot = await getDocs(q);
+                    lastGrpSearchType = "name_title";
+                    
+                    if(querySnapshot.empty) {
+                        q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), limit(10));
+                        querySnapshot = await getDocs(q);
+                        lastGrpSearchType = "name_upper";
+                    }
+
+                    if(querySnapshot.empty) {
+                        q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), limit(10));
+                        querySnapshot = await getDocs(q);
+                        lastGrpSearchType = "name_exact";
+                    }
+                }
+            } catch (idxErr) {
+                console.warn("Index missing for Group Search.", idxErr);
+                // Safe Fallback
+                let fallbackQ;
+                if (term === "") {
+                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), limit(10));
+                } else {
+                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(10));
+                }
+                querySnapshot = await getDocs(fallbackQ);
+            }
+
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                if (!isLoadMore) container.innerHTML = '<div class="empty-state"><p>No groups found.</p></div>';
+                loadBtn.style.display = 'none';
+                return;
+            }
+
+            lastVisibleGroup = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            querySnapshot.forEach(docSnap => {
+                const group = docSnap.data();
+                group.id = docSnap.id;
+
+                const card = document.createElement('div');
+                card.className = 'data-card';
+                card.onclick = () => window.openGroupPayoutsModal(group);
+                card.innerHTML = `
+                    <div class="c-left">
+                        <div class="c-info">
+                            <h3>${group.groupName || 'Unnamed'}</h3>
+                            <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${group.id}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            loadBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+            loadBtn.innerText = "Load More";
+
+        } catch (e) {
+            console.error("Group Search Error:", e);
+            if (loader) loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-color);">Search Error.</div>';
+        }
+    };
+
 
     // --- LEND ACTION LOGIC ---
     let targetLendUser = null;
@@ -670,79 +887,6 @@
         }
     };
 
-    // --- SEARCH GROUPS (For View) ---
-    let allGroupsCache = [];
-    let filteredGroups = [];
-    let groupSearchPage = 1;
-    let currentGrpSearchTerm = "";
-
-    window.openGroupSearchModal = async function() {
-        openModal('search-group-modal');
-        document.getElementById('group-search-results').innerHTML = '<div class="loader"></div>';
-        
-        if(allGroupsCache.length === 0) {
-            try {
-                let snap;
-                try {
-                    const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(100));
-                    snap = await getDocs(q);
-                } catch(e) {
-                    const fQ = query(collection(db, "groups"), limit(100));
-                    snap = await getDocs(fQ);
-                }
-                snap.forEach(doc => allGroupsCache.push({ id: doc.id, ...doc.data() }));
-            } catch(e) { console.error(e); }
-        }
-        
-        document.getElementById('group-search-input').value = '';
-        triggerGroupSearch('');
-    };
-
-    document.getElementById('group-search-input').addEventListener('input', (e) => {
-        triggerGroupSearch(e.target.value);
-    });
-
-    function triggerGroupSearch(term) {
-        term = term.trim().toLowerCase();
-        groupSearchPage = 1;
-        filteredGroups = term === '' 
-            ? allGroupsCache 
-            : allGroupsCache.filter(g => (g.id.toLowerCase().includes(term) || (g.groupName || "").toLowerCase().includes(term)));
-        
-        document.getElementById('group-search-results').innerHTML = '';
-        renderGroupsBatch();
-    }
-
-    window.renderGroupsBatch = function() {
-        const container = document.getElementById('group-search-results');
-        const loadBtn = document.getElementById('load-more-groups-btn');
-        const startIdx = (groupSearchPage - 1) * 10;
-        const endIdx = startIdx + 10;
-        const batch = filteredGroups.slice(startIdx, endIdx);
-
-        if(filteredGroups.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No groups found.</p></div>';
-            loadBtn.style.display = 'none'; return;
-        }
-
-        batch.forEach(g => {
-            const card = document.createElement('div');
-            card.className = 'data-card';
-            card.onclick = () => openGroupPayoutsModal(g);
-            card.innerHTML = `
-                <div class="c-left">
-                    <div class="c-info">
-                        <h3>${g.groupName || 'Unnamed'}</h3>
-                        <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${g.id}</div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-
-        loadBtn.style.display = endIdx < filteredGroups.length ? 'block' : 'none';
-        groupSearchPage++;
-    };
 
     // --- VIEW SPECIFIC GROUP PAYOUTS ---
     window.openGroupPayoutsModal = async function(group) {
@@ -751,7 +895,7 @@
         
         openModal('group-payouts-modal');
         const container = document.getElementById('group-payouts-list');
-        container.innerHTML = '<div class="loader"></div>';
+        container.innerHTML = '<div class="loader" style="border-top-color:var(--auction-color);"></div>';
         
         try {
             let txns = [];
