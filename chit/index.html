@@ -180,6 +180,7 @@
     /* Summary Stats Grid */
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     .summary-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--card-shadow); text-align: center; }
+    .summary-box.full-width { grid-column: span 2; background: var(--success-bg); border-color: rgba(15, 157, 88, 0.2); }
     .s-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;}
     .s-val { font-size: 1.8rem; font-weight: 800; color: var(--text-main); letter-spacing: -1px; }
     .s-val.success { color: var(--success-txt); }
@@ -289,6 +290,10 @@
             <div class="summary-box">
                 <div class="s-label">Months Paid</div>
                 <div class="s-val success" id="sum-paid">--</div>
+            </div>
+            <div class="summary-box full-width">
+                <div class="s-label">Your Total Contribution</div>
+                <div class="s-val success" id="sum-total-amount">₹0</div>
             </div>
         </div>
 
@@ -470,9 +475,10 @@
             document.getElementById("sum-paid").innerText = monthsPaid;
             document.getElementById("lg-title").innerText = groupData.groupName || `@${groupId}`;
 
-            // 5. Generate Rows
+            // 5. Generate Rows & Calculate Total Paid Amount
             const container = document.getElementById("ledger-rows-container");
             container.innerHTML = "";
+            let cumulativePaidAmount = 0;
 
             for (let m = 1; m <= totalMonths; m++) {
                 // Calculate exact mathematical amount for this specific tier month
@@ -484,6 +490,7 @@
                 
                 if (m <= monthsPaid) {
                     // Paid
+                    cumulativePaidAmount += dueAmount; // Add to the summary total
                     statusHtml = `<span class="badge badge-paid"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Paid</span>`;
                 } else if (m <= systemCurrentMonth) {
                     // Missed / Currently Due
@@ -516,6 +523,9 @@
                 `;
                 container.appendChild(row);
             }
+
+            // Update the new Total Contribution summary box
+            document.getElementById("sum-total-amount").innerText = `₹${cumulativePaidAmount.toLocaleString('en-IN')}`;
 
             // Show view
             document.getElementById("loader-spinner").style.display = "none";
