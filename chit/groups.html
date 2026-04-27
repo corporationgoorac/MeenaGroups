@@ -374,7 +374,7 @@
     };
 
     // --- GLOBAL CACHE & SEARCH ENGINE ---
-    let allGroupsCache = [];
+    let allGroupsCache = []; // Kept to instantly load modal data without re-reading
     let lastVisibleGroup = null;
     let isSearching = false;
     let currentSearchTerm = "";
@@ -385,97 +385,73 @@
     window.loadGroupsFromServer = async function(isLoadMore = false) {
         const container = document.getElementById('main-groups-list');
         const loadMoreBtn = document.getElementById('main-load-more-btn');
-        const loader = document.getElementById('main-loader');
-
+        
         if (!isLoadMore) {
-            container.innerHTML = '';
+            container.innerHTML = '<div class="loader" id="main-loader"></div>';
             lastVisibleGroup = null;
+        } else {
+            loadMoreBtn.innerText = "Loading...";
         }
 
-        loader.style.display = 'block';
+        const loader = document.getElementById('main-loader');
+        if (loader) loader.style.display = 'block';
 
         try {
-            let q;
+            let querySnapshot;
             const term = currentSearchTerm;
             const termUpper = term.toUpperCase();
             // Handle Title Case for group names
-            const termName = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
+            const termTitle = term.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
             if (term === "") {
                 lastSearchType = "default";
-                if (isLoadMore && lastVisibleGroup) {
-                    q = query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleGroup), limit(10));
-                } else {
-                    q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(10));
-                }
+                let q = (isLoadMore && lastVisibleGroup) 
+                    ? query(collection(db, "groups"), orderBy("createdAt", "desc"), startAfter(lastVisibleGroup), limit(10)) 
+                    : query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(10));
+                querySnapshot = await getDocs(q);
             } else {
                 if (isLoadMore && lastVisibleGroup) {
+                    let q;
                     if (lastSearchType === "id") {
                         q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleGroup), limit(10));
-                    } else if (lastSearchType === "name") {
-                        q = query(collection(db, "groups"), where("groupName", ">=", termName), where("groupName", "<=", termName + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
+                    } else if (lastSearchType === "name_title") {
+                        q = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
                     } else if (lastSearchType === "name_upper") {
                         q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
                     } else {
                         q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), startAfter(lastVisibleGroup), limit(10));
                     }
-                } else {
-                    // Start search by Document ID first
-                    q = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
-                    lastSearchType = "id";
-                }
-            }
-
-            let querySnapshot;
-            try {
-                querySnapshot = await getDocs(q);
-                
-                // Smart Fallback for Name searches if ID yields nothing
-                if (!isLoadMore && term !== "" && querySnapshot.empty) {
-                    // Try Capitalized Name Search
-                    q = query(collection(db, "groups"), where("groupName", ">=", termName), where("groupName", "<=", termName + "\uf8ff"), orderBy("groupName"), limit(10));
                     querySnapshot = await getDocs(q);
-                    lastSearchType = "name";
-                    
-                    // If still empty, try exact Name Search
-                    if(querySnapshot.empty) {
-                        q = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), limit(10));
-                        querySnapshot = await getDocs(q);
-                        lastSearchType = "name_exact";
+                } else {
+                    // Try ID first
+                    let qId = query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
+                    querySnapshot = await getDocs(qId);
+                    lastSearchType = "id";
+
+                    // Try Name (Title Case)
+                    if (querySnapshot.empty) {
+                        let qNameTitle = query(collection(db, "groups"), where("groupName", ">=", termTitle), where("groupName", "<=", termTitle + "\uf8ff"), orderBy("groupName"), limit(10));
+                        querySnapshot = await getDocs(qNameTitle);
+                        lastSearchType = "name_title";
                     }
 
-                    // If still empty, try uppercase Name Search
-                    if(querySnapshot.empty) {
-                        q = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), limit(10));
-                        querySnapshot = await getDocs(q);
+                    // Try Name (Upper Case)
+                    if (querySnapshot.empty) {
+                        let qNameUpper = query(collection(db, "groups"), where("groupName", ">=", termUpper), where("groupName", "<=", termUpper + "\uf8ff"), orderBy("groupName"), limit(10));
+                        querySnapshot = await getDocs(qNameUpper);
                         lastSearchType = "name_upper";
                     }
-                }
 
-            } catch (idxErr) {
-                console.warn("Index missing. Falling back...", idxErr);
-                
-                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
-                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-                    const match = idxErr.message.match(urlRegex);
-                    if(match && match[0]) {
-                        const extractedUrl = match[0];
-                        setTimeout(() => {
-                            showMessage("Database Index Missing", `Please click the link below to build the required Firebase Index to speed up loading.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
-                        }, 500);
+                    // Try Name (Exact/Lower)
+                    if (querySnapshot.empty) {
+                        let qNameExact = query(collection(db, "groups"), where("groupName", ">=", term), where("groupName", "<=", term + "\uf8ff"), orderBy("groupName"), limit(10));
+                        querySnapshot = await getDocs(qNameExact);
+                        lastSearchType = "name_exact";
                     }
                 }
-
-                let fallbackQ;
-                if (term === "") {
-                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), limit(10));
-                } else {
-                    fallbackQ = (isLoadMore && lastVisibleGroup) ? query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), startAfter(lastVisibleGroup), limit(10)) : query(collection(db, "groups"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(10));
-                }
-                querySnapshot = await getDocs(fallbackQ);
             }
 
-            loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '';
 
             if (querySnapshot.empty) {
                 if (!isLoadMore) {
@@ -483,7 +459,7 @@
                         <div class="empty-state">
                             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                             <h3>No Groups Found</h3>
-                            <p>We couldn't find any chit groups matching that search.</p>
+                            <p>We couldn't find any chit groups matching "${term}".</p>
                         </div>`;
                 }
                 loadMoreBtn.style.display = 'none';
@@ -537,11 +513,31 @@
             });
 
             loadMoreBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+            loadMoreBtn.innerText = "Load More Groups";
 
         } catch (e) {
             console.error("Fetch Error:", e);
-            loader.style.display = 'none';
-            if (!isLoadMore) container.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding: 20px; font-weight:700;">Error Loading Groups</div>`;
+            if (loader) loader.style.display = 'none';
+            
+            // Check for index error and render professional button
+            if(e.message && e.message.includes("https://console.firebase.google.com")) {
+                const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                const match = e.message.match(urlRegex);
+                if(match && match[0]) {
+                    if (!isLoadMore) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding: 30px 20px;">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)" style="margin-bottom:16px;"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                                <h3 style="margin:0 0 8px 0; font-size:18px; font-weight:800; color:var(--text-main);">Database Optimization Required</h3>
+                                <p style="margin:0 0 20px 0; font-size:14px; color:var(--text-muted); line-height:1.5;">To enable lightning-fast live search, Firebase needs a quick index build. Please click the button below to generate it.</p>
+                                <a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800; font-size:14px; box-shadow: 0 8px 20px rgba(6, 95, 212, 0.25); transition: 0.2s;">Build Secure Index</a>
+                            </div>
+                        `;
+                    }
+                }
+            } else if (!isLoadMore) {
+                container.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding: 20px; font-weight:700;">Error Loading Groups</div>`;
+            }
         }
     };
 
@@ -555,7 +551,6 @@
         searchDebounce = setTimeout(() => {
             currentSearchTerm = val;
             isSearching = val.length > 0;
-            lastSearchType = "default";
             loadGroupsFromServer(false);
         }, 500);
     });
@@ -564,7 +559,7 @@
 
     // 1. Calculate the Target Month strictly by Date Math
     function calculateCurrentMonth(startDateStr) {
-        if(!startDateStr) return 1; // Failsafe
+        if(!startDateStr) return 1; 
         const start = new Date(startDateStr);
         const now = new Date();
         
@@ -572,7 +567,6 @@
         months -= start.getMonth();
         months += now.getMonth();
         
-        // If created in the future or same month, it's Month 1
         return months <= 0 ? 1 : months + 1; 
     }
 
@@ -583,7 +577,6 @@
         let currentAmount = startAmount;
         for (let m = 2; m <= targetMonth; m++) {
             let increment = 0;
-            // Find the increment for month 'm'
             for (let tier of schedule) {
                 if (m >= tier.start && m <= tier.end) {
                     increment = tier.amount;
