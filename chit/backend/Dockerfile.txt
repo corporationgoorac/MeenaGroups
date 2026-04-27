@@ -1,47 +1,41 @@
-# Use a lightweight Node.js 18 image as the base
+# Use Debian Bullseye Slim - The most stable base for Puppeteer
 FROM node:18-bullseye-slim
 
-# --- 1. INSTALL CHROMIUM & DEPENDENCIES ---
-# Install native Chromium and necessary fonts/libraries to prevent headless Chrome from crashing
+# --- 1. SET SERVER TIME TO IST ---
+ENV TZ=Asia/Kolkata
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# --- 2. INSTALL CHROMIUM & CRITICAL SYSTEM LIBRARIES ---
+# These specific libraries prevent the "Target closed" crashes in cloud environments
 RUN apt-get update \
-    && apt-get install -y wget gnupg \
+    && apt-get install -y wget gnupg tzdata \
     && apt-get install -y chromium \
-    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf \
+    libxss1 libnss3 libatk-bridge2.0-0 libgtk-3-0 libasound2 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# --- 2. CONFIGURE PUPPETEER ---
-# Tell Puppeteer to use the installed native Chromium instead of downloading its own
+# --- 3. CONFIGURE PUPPETEER ---
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# --- 3. HUGGING FACE SECURITY REQUIREMENTS ---
-# Hugging Face Spaces strictly require the app to run as a non-root user (uid 1000)
-# The 'node' base image already has a user named 'node' with UID 1000.
-# We will use that existing user instead of creating a new one.
+# --- 4. HUGGING FACE SECURITY REQUIREMENTS ---
 ENV HOME=/home/node
 WORKDIR $HOME/app
 
-# Ensure the node user owns the working directory before we switch to it
+# Ensure the node user owns the working directory
 RUN chown -R node:node $HOME
 
 # Switch to the secure non-root user
 USER node
 
-# --- 4. INSTALL APP DEPENDENCIES ---
-# Copy package files first to leverage Docker layer caching
+# --- 5. INSTALL APP DEPENDENCIES ---
 COPY --chown=node:node package.json package-lock.json* ./
-
-# Install packages
 RUN npm install
 
-# --- 5. COPY THE REST OF THE APP ---
-# Copy server.js, check.js, etc. giving ownership to our secure node user
+# --- 6. COPY THE REST OF THE APP ---
 COPY --chown=node:node . .
 
-# --- 6. EXPOSE PORT & START ---
-# Hugging Face routes external traffic to port 7860 by default
+# --- 7. EXPOSE PORT & START ---
 EXPOSE 7860
-
-# Start the Express server
 CMD ["node", "server.js"]
