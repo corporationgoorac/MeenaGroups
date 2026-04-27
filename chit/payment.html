@@ -187,9 +187,16 @@
     .due-section::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--brand-accent); }
     .due-label { font-size: 14px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;}
     .due-calc-hint { font-size: 11px; color: var(--brand-accent); font-weight: 600; margin-bottom: 12px; background: var(--brand-accent-light); display: inline-block; padding: 4px 10px; border-radius: 20px;}
+    
     .due-amount-wrapper { display: flex; justify-content: center; align-items: baseline; gap: 4px; }
-    .currency-symbol { font-size: 24px; font-weight: 700; color: var(--text-muted); }
-    .due-amount-input { width: 100%; max-width: 200px; font-size: 42px; font-weight: 800; color: var(--text-main); text-align: center; background: none; border: none; outline: none; padding: 0; letter-spacing: -1px;}
+    .currency-symbol { font-size: 24px; font-weight: 700; color: var(--brand-accent); }
+    
+    /* READONLY OVERRIDE TO SECURE FIELD */
+    .due-amount-input { width: 100%; max-width: 200px; font-size: 42px; font-weight: 800; color: var(--brand-accent); text-align: center; background: none; border: none; outline: none; padding: 0; letter-spacing: -1px;}
+    .due-amount-input:read-only { user-select: none; -webkit-user-select: none; pointer-events: none; opacity: 1; }
+
+    /* NEW ARREARS BANNER */
+    .arrears-banner { background: var(--danger-light); color: var(--danger-color); padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 800; text-align: center; margin-bottom: 20px; display: none; border: 1px solid rgba(220, 53, 69, 0.2); letter-spacing: 0.5px; text-transform: uppercase;}
 
     .submit-btn { background: var(--success-color); color: #ffffff; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(15, 157, 88, 0.25); transition: 0.2s; margin-top: 20px;}
     .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
@@ -225,7 +232,12 @@
     /* System Alert Modals */
     .center-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-overlay); z-index: 200; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);}
     .center-modal.active { opacity: 1; pointer-events: all; }
-    .mini-modal-content { background-color: var(--surface-color); width: 90%; max-width: 340px; border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); border: 1px solid var(--border-color); text-align: center; }
+    .mini-modal-content {
+      background-color: var(--surface-color); width: 90%; max-width: 340px;
+      border-radius: 24px; padding: 30px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      transform: scale(0.95); transition: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 1px solid var(--border-color); text-align: center;
+    }
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
@@ -305,6 +317,8 @@
 
         <div id="payment-details-view" style="display: none;">
           
+          <div id="arrears-warning" class="arrears-banner"></div>
+
           <div class="progress-container">
             <div class="progress-labels">
               <span>Chit Progress</span>
@@ -331,7 +345,11 @@
             <div class="due-calc-hint" id="d-calc-hint">Base + Increment</div>
             <div class="due-amount-wrapper">
               <span class="currency-symbol">₹</span>
-              <input type="number" id="d-amount-due" class="due-amount-input">
+              <input type="number" id="d-amount-due" class="due-amount-input" readonly>
+            </div>
+            <div style="font-size:10px; color:var(--success-color); font-weight:700; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:4px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+              Secured System Calculation
             </div>
           </div>
 
@@ -350,14 +368,12 @@
     </div>
     <div class="gpay-title">Payment Successful</div>
     <div class="gpay-amount" id="gpay-amount-text">₹0</div>
-    <div class="gpay-footer">Secured by Goorac</div>
+    <div class="gpay-footer">Verified transaction</div>
   </div>
 
   <aside id="message-modal" class="center-modal">
     <div class="mini-modal-content">
-      <div id="msg-icon" class="msg-icon">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-      </div>
+      <div id="msg-icon" class="msg-icon">⚠️</div>
       <h3 class="mini-modal-title" id="msg-title">Error</h3>
       <p class="mini-modal-text" id="msg-body">Something went wrong.</p>
       <div class="mini-modal-actions">
@@ -373,8 +389,8 @@
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- FLAWLESS HASH-BASED MODAL NAVIGATION (Fixed Back Button Trap) ---
-    let modalStackCount = 0; // Tracks history depth for safe rewinding
+    // --- FLAWLESS HASH-BASED MODAL NAVIGATION (Fixed Back Button) ---
+    let modalStackCount = 0;
 
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
@@ -403,7 +419,7 @@
     window.addEventListener('popstate', (e) => {
        closeAllModals();
        if(modalStackCount > 0) modalStackCount--;
-       
+
        if(window.location.hash) {
            const targetModal = document.querySelector(window.location.hash);
            if(targetModal) {
@@ -415,14 +431,7 @@
     window.showMessage = function(title, body, type = 'error') {
       document.getElementById('msg-title').innerText = title;
       document.getElementById('msg-body').innerHTML = body; 
-      const iconContainer = document.getElementById('msg-icon');
-      
-      if (type === 'success') {
-        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
-      } else {
-        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
-      }
-      
+      document.getElementById('msg-icon').innerText = type === 'success' ? '✅' : '⚠️';
       document.getElementById('message-modal').classList.add('active');
     };
     window.closeMessageModal = function() {
@@ -430,7 +439,8 @@
     };
 
     // --- ENGINE CALCULATION FUNCTIONS ---
-    // Calculate exact due by matching start amount + tier increments up to target month
+    
+    // Calculates exact mathematical amount for any target month using the schedule
     function calculateDueForMonth(targetMonth, startAmount, schedule) {
         if (targetMonth <= 1) return startAmount;
         
@@ -448,12 +458,22 @@
         return currentAmount;
     }
 
+    // Identifies the real-world current month position of the chit fund
+    function calculateCurrentSystemMonth(startDateStr) {
+        if(!startDateStr) return 1; 
+        const start = new Date(startDateStr);
+        const now = new Date();
+        let months = (now.getFullYear() - start.getFullYear()) * 12;
+        months -= start.getMonth();
+        months += now.getMonth();
+        return months <= 0 ? 1 : months + 1; 
+    }
+
     // --- Global State for Calculation Engine ---
     let targetUserId = null;
     let targetUserName = "";
     let activeGroupData = null; 
     let currentCalcMonth = 0;
-    let baselineLastAmount = 0;
 
     // --- ADVANCED FEATURE: 0-READ CLIENT SIDE SEARCH ENGINE ---
     let allUsersCache = [];
@@ -626,8 +646,6 @@
                 }
             });
             
-            baselineLastAmount = lastAmountPaid; 
-
             // 3. Determine Next Month
             currentCalcMonth = maxMonthPaid + 1;
             let totalMonths = activeGroupData.totalMonths || 0;
@@ -654,7 +672,19 @@
                 document.getElementById('d-calc-hint').innerText = `Calculated via Scheduled Increments`;
             }
 
-            // 5. Update UI Components
+            // 5. Arrears Detection Engine
+            const systemCurrentMonth = calculateCurrentSystemMonth(activeGroupData.startDate);
+            const arrears = systemCurrentMonth - currentCalcMonth;
+            
+            const arrearsWarning = document.getElementById('arrears-warning');
+            if (arrears > 0) {
+                arrearsWarning.style.display = 'block';
+                arrearsWarning.innerText = `⚠️ Participant is ${arrears} month(s) behind schedule.`;
+            } else {
+                arrearsWarning.style.display = 'none';
+            }
+
+            // 6. Update UI Components
             document.getElementById('d-last-paid').innerText = `₹${Number(lastAmountPaid).toLocaleString('en-IN')}`;
             document.getElementById('d-total-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
             
@@ -664,6 +694,8 @@
             document.getElementById('d-progress-bar').style.width = `${progressPercent}%`;
 
             document.getElementById('d-month-label').innerText = `Installment: Month ${currentCalcMonth}`;
+            
+            // Populate the newly locked system field
             document.getElementById('d-amount-due').value = amountDue;
 
             detailsView.style.display = 'block';
@@ -689,11 +721,11 @@
         try {
             const batch = writeBatch(db);
 
-            // 1. Create Transaction Ledger Entry (Now saving Name too!)
+            // 1. Create Transaction Ledger Entry
             const newTxRef = doc(collection(db, "transactions"));
             batch.set(newTxRef, {
                 subscriberId: targetUserId,
-                subscriberName: targetUserName, // Saves name for history UI
+                subscriberName: targetUserName,
                 groupId: groupId,
                 amount: amountToPay,
                 monthAttributed: currentCalcMonth,
