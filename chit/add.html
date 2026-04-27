@@ -283,11 +283,12 @@
           <div class="grid-2">
             <div class="input-group" style="margin-bottom:0;">
               <label>Join Month</label>
-              <input type="number" id="p-join-month" placeholder="e.g., 5">
+              <input type="number" id="p-join-month" placeholder="e.g., 5" min="1">
             </div>
             <div class="input-group" style="margin-bottom:0;">
               <label>Amount (₹)</label>
-              <input type="number" id="p-join-amount" placeholder="Total Paid">
+              <input type="number" id="p-join-amount" placeholder="Auto-Calculated" readonly style="background: rgba(6, 95, 212, 0.1); color: var(--brand-accent); font-weight: 800; border-color: var(--brand-accent);">
+              <div id="p-join-calc-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 600; line-height: 1.2;">Select group & month to auto-calculate</div>
             </div>
           </div>
         </div>
@@ -471,6 +472,66 @@
       });
     };
 
+    // --- CORE ENGINE LOGIC (Mathematical Ledger) ---
+    function calculateDueForMonth(targetMonth, startAmount, schedule) {
+        if (targetMonth <= 1) return startAmount;
+        let currentAmount = startAmount;
+        for (let m = 2; m <= targetMonth; m++) {
+            let increment = 0;
+            for (let tier of schedule) {
+                if (m >= tier.start && m <= tier.end) {
+                    increment = tier.amount; break;
+                }
+            }
+            currentAmount += increment;
+        }
+        return currentAmount;
+    }
+
+    // --- MID-WAY JOIN CALCULATION ENGINE ---
+    function calculateMidwayAmount() {
+        const monthInput = document.getElementById('p-join-month');
+        const amountInput = document.getElementById('p-join-amount');
+        const groupSelect = document.getElementById('p-group');
+        const hintText = document.getElementById('p-join-calc-hint');
+
+        const month = parseInt(monthInput.value);
+        const groupId = groupSelect.value;
+
+        // If data is missing, clear it
+        if (!month || !groupId || !cachedGroupsForModal[groupId]) {
+            amountInput.value = '';
+            if(hintText) hintText.innerText = 'Select group & month to auto-calculate';
+            return;
+        }
+
+        const groupData = cachedGroupsForModal[groupId];
+        const startAmt = groupData.startAmount || 0;
+        const schedule = groupData.installmentSchedule || [];
+        const totalMonths = groupData.totalMonths || 0;
+
+        // Safety Boundary Check
+        if (month > totalMonths) {
+             amountInput.value = '';
+             if(hintText) hintText.innerHTML = `<span style="color:var(--danger-color)">Error: Exceeds group duration (${totalMonths} Mo)</span>`;
+             return;
+        }
+
+        // Calculate Cumulative Catch-up Total
+        let cumulativeTotal = 0;
+        for(let m = 1; m <= month; m++) {
+            cumulativeTotal += calculateDueForMonth(m, startAmt, schedule);
+        }
+
+        // Populate Readonly Field visually
+        amountInput.value = cumulativeTotal;
+        if(hintText) hintText.innerHTML = `Calculated cumulative total for Months 1 to ${month}`;
+    }
+
+    // Bind real-time listeners
+    document.getElementById('p-join-month').addEventListener('input', calculateMidwayAmount);
+    document.getElementById('p-group').addEventListener('change', calculateMidwayAmount);
+
     // --- Schedule Builder Logic (Mobile UI) ---
     window.addScheduleRow = function() {
       const container = document.getElementById('schedule-rows');
@@ -489,11 +550,13 @@
     // --- UI Toggles ---
     document.getElementById('midway-toggle').addEventListener('change', (e) => {
       const section = document.getElementById('midway-section');
-      if(e.target.checked) section.classList.add('active');
-      else {
-        section.classList.remove('active');
-        document.getElementById('p-join-month').value = '';
-        document.getElementById('p-join-amount').value = '';
+      if(e.target.checked) {
+          section.classList.add('active');
+      } else {
+          section.classList.remove('active');
+          document.getElementById('p-join-month').value = '';
+          document.getElementById('p-join-amount').value = '';
+          calculateMidwayAmount(); // Reset hint
       }
     });
 
@@ -549,6 +612,7 @@
     const groupsList = document.getElementById('groups-list');
     const loadMoreBtn = document.getElementById('load-more-btn');
     let lastVisibleDoc = null;
+    let cachedGroupsForModal = {}; // Memory cache for real-time calculations
 
     async function loadGroups(isLoadMore = false) {
       try {
@@ -644,28 +708,31 @@
     }
     loadMoreBtn.addEventListener('click', () => loadGroups(true));
 
-    // --- Participant Modal Setup (Fixed Dropdown Duplication) ---
+    // --- Participant Modal Setup (Now Caches Group Engine Data) ---
     window.openParticipantModal = async function() {
-      // 1. Open the modal immediately so the user isn't waiting
       openModal('participant-modal');
       
       const select = document.getElementById('p-group');
-      // 2. Set loading state to prevent race conditions
       select.innerHTML = '<option value="">-- Fetching Groups... --</option>'; 
       
       try {
         const q = query(collection(db, "groups"), limit(50)); 
         const snap = await getDocs(q);
         
-        // 3. Clear the innerHTML completely right before appending options
         select.innerHTML = '<option value="">-- Do not assign yet --</option>'; 
+        cachedGroupsForModal = {}; // Reset global cache
         
         snap.forEach(doc => {
+          const gData = doc.data();
+          cachedGroupsForModal[doc.id] = gData; // Store for calculation
+          
           const opt = document.createElement('option');
           opt.value = doc.id;
-          opt.innerText = `${doc.data().groupName} (@${doc.id})`;
+          opt.innerText = `${gData.groupName} (@${doc.id})`;
           select.appendChild(opt);
         });
+
+        calculateMidwayAmount(); // Trigger in case fields somehow had data
       } catch(e) { 
         console.error("Dropdown error", e); 
         select.innerHTML = '<option value="">-- Error Loading Groups --</option>';
@@ -773,7 +840,7 @@
             })
           });
           
-          // 3. If Mid-way join, record the initial transaction
+          // 3. If Mid-way join, record the initial transaction using the automated field value
           if (isMidway) {
             const joinMonth = Number(document.getElementById('p-join-month').value);
             const amountPaid = Number(document.getElementById('p-join-amount').value);
@@ -797,6 +864,7 @@
         e.target.reset();
         document.getElementById('p-id-icon').innerHTML = ''; 
         document.getElementById('midway-section').classList.remove('active');
+        calculateMidwayAmount(); // Reset hints
         closeModal();
         
         // Trigger Custom Success Modal
