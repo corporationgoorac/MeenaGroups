@@ -241,7 +241,7 @@
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
   </style>
 </head>
@@ -277,8 +277,8 @@
     <div class="modal-body" style="padding-bottom: 80px;">
       
       <div class="input-group" style="position: sticky; top: -24px; z-index: 5; background: var(--bg-color); padding-top: 24px; margin-top: -24px;">
-        <span class="loading-text" id="p-id-loading">Syncing Database...</span>
-        <input type="text" id="p-id" placeholder="Search Name, Phone, or ID..." autocomplete="off">
+        <span class="loading-text" id="p-id-loading">Searching Database...</span>
+        <input type="text" id="p-id" placeholder="Search ID or Phone..." autocomplete="off">
         <span class="validation-icon" id="p-id-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </span>
@@ -483,105 +483,156 @@
     let currentCalcMonth = 0;
     let baselineLastAmount = 0;
 
-    // --- ADVANCED FEATURE: 0-READ CLIENT SIDE SEARCH ENGINE ---
-    let allUsersCache = [];
-    let filteredUsers = [];
-    let userSearchPage = 1;
-    const RESULTS_PER_PAGE = 10;
+    // --- ADVANCED LIVE SERVER SEARCH (0-READ WASTE) ---
+    let lastVisibleUser = null;
+    let currentSearchTerm = "";
+    let isNumericSearch = false;
+    let searchDebounce;
 
-    window.openPaymentSearchModal = async function() {
+    window.openPaymentSearchModal = function() {
         openModal('payment-modal');
-        const loader = document.getElementById('p-id-loading');
-        
-        if(allUsersCache.length === 0) {
-            loader.style.display = 'block';
-            try {
-                const q = query(collection(db, "users"), limit(500));
-                const snap = await getDocs(q);
-                snap.forEach(doc => {
-                    allUsersCache.push({ id: doc.id, ...doc.data() });
-                });
-            } catch(e) { console.error("Search cache fail:", e); }
-            loader.style.display = 'none';
-        }
-        
         document.getElementById('p-id').value = '';
-        triggerLocalSearch('');
+        currentSearchTerm = '';
+        isNumericSearch = false;
+        loadUsersFromServer(false);
     };
 
     document.getElementById('p-id').addEventListener('input', (e) => {
-        triggerLocalSearch(e.target.value);
+        clearTimeout(searchDebounce);
+        const val = e.target.value.trim();
+        // Wait 500ms before querying to avoid wasting reads on every keystroke
+        searchDebounce = setTimeout(() => {
+            currentSearchTerm = val;
+            isNumericSearch = /^\d+$/.test(val); // Detect if they are typing a phone number
+            loadUsersFromServer(false);
+        }, 500); 
     });
 
-    function triggerLocalSearch(searchTerm) {
-        const term = searchTerm.trim().toLowerCase();
-        userSearchPage = 1;
-        
-        if(term === '') {
-            filteredUsers = allUsersCache; 
-        } else {
-            filteredUsers = allUsersCache.filter(u => {
-                const nameMatch = (u.name || "").toLowerCase().includes(term);
-                const phoneMatch = (u.phone || "").includes(term);
-                const idMatch = u.id.toLowerCase().includes(term);
-                return nameMatch || phoneMatch || idMatch;
-            });
-        }
-        
-        document.getElementById('search-results-container').innerHTML = '';
-        renderSearchResultsBatch();
-    }
-
     window.loadMoreSearchResults = function() {
-        userSearchPage++;
-        renderSearchResultsBatch();
+        loadUsersFromServer(true);
     };
 
-    function renderSearchResultsBatch() {
+    async function loadUsersFromServer(isLoadMore = false) {
         const container = document.getElementById('search-results-container');
         const loadMoreBtn = document.getElementById('search-load-more-btn');
-        
-        const startIndex = (userSearchPage - 1) * RESULTS_PER_PAGE;
-        const endIndex = startIndex + RESULTS_PER_PAGE;
-        const batchToRender = filteredUsers.slice(startIndex, endIndex);
+        const loader = document.getElementById('p-id-loading');
 
-        if(filteredUsers.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:14px; font-weight: 500;">No participants found matching your search.</div>';
-            loadMoreBtn.style.display = 'none';
-            return;
+        if (!isLoadMore) {
+            container.innerHTML = '';
+            lastVisibleUser = null;
         }
 
-        const phoneIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
-        const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+        loader.style.display = 'block';
 
-        batchToRender.forEach(user => {
-            const card = document.createElement('div');
-            card.className = 'search-result-card';
-            card.onclick = () => selectUserForPayment(user);
-            
-            const locText = user.location ? `${locIconSVG} ${user.location}` : 'No Location';
-            const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : 'No Phone';
-            const userInitial = user.name ? user.name.charAt(0).toUpperCase() : '?';
-            
-            card.innerHTML = `
-                <div style="display:flex; gap: 16px; align-items: center;">
-                    <div class="profile-avatar" style="width: 48px; height: 48px; font-size: 18px; flex-shrink: 0; border-radius: 12px; box-shadow: none;">${userInitial}</div>
-                    <div style="flex: 1;">
-                        <div class="sr-top" style="margin-bottom: 4px;">
-                            <span class="sr-name">${user.name || 'Unnamed'}</span>
-                            <span class="sr-id">@${user.id}</span>
-                        </div>
-                        <div class="sr-bottom">
-                            <span>${phoneText}</span>
-                            <span>${locText}</span>
+        try {
+            let q;
+            // Case 1: Empty Search (Show latest added users)
+            if (currentSearchTerm === "") {
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), orderBy("joinedAt", "desc"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), orderBy("joinedAt", "desc"), limit(10));
+                }
+            } 
+            // Case 2: Numeric Search (Search by Phone Number)
+            else if (isNumericSearch) {
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), orderBy("phone"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), orderBy("phone"), limit(10));
+                }
+            } 
+            // Case 3: Alphanumeric Search (Search exactly by ID, Case Insensitive via uppercase conversion)
+            else {
+                const termUpper = currentSearchTerm.toUpperCase();
+                if (isLoadMore && lastVisibleUser) {
+                    q = query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), orderBy("id"), startAfter(lastVisibleUser), limit(10));
+                } else {
+                    q = query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), orderBy("id"), limit(10));
+                }
+            }
+
+            let querySnapshot;
+            try {
+                querySnapshot = await getDocs(q);
+            } catch (idxErr) {
+                console.warn("Index missing for search. Attempting safe fallback...", idxErr);
+                
+                // Show index error link if present
+                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                    const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
+                    if(match && match[0]) {
+                        setTimeout(() => {
+                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+
+                // Fallback queries without orderBy if index is completely missing
+                let fallbackQ;
+                if (currentSearchTerm === "") {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
+                } else if (isNumericSearch) {
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("phone", ">=", currentSearchTerm), where("phone", "<=", currentSearchTerm + "\uf8ff"), limit(10));
+                } else {
+                    const termUpper = currentSearchTerm.toUpperCase();
+                    fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), where("id", ">=", termUpper), where("id", "<=", termUpper + "\uf8ff"), limit(10));
+                }
+                querySnapshot = await getDocs(fallbackQ);
+            }
+
+            loader.style.display = 'none';
+
+            if (querySnapshot.empty) {
+                if (!isLoadMore) {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:14px; font-weight: 500;">No participants found.</div>';
+                }
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+
+            lastVisibleUser = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            const phoneIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
+            const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+
+            querySnapshot.forEach(docSnap => {
+                const user = docSnap.data();
+                user.id = docSnap.id;
+
+                const card = document.createElement('div');
+                card.className = 'search-result-card';
+                card.onclick = () => selectUserForPayment(user);
+                
+                const locText = user.location ? `${locIconSVG} ${user.location}` : 'No Location';
+                const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : 'No Phone';
+                const userInitial = user.name ? user.name.charAt(0).toUpperCase() : '?';
+                
+                card.innerHTML = `
+                    <div style="display:flex; gap: 16px; align-items: center;">
+                        <div class="profile-avatar" style="width: 48px; height: 48px; font-size: 18px; flex-shrink: 0; border-radius: 12px; box-shadow: none;">${userInitial}</div>
+                        <div style="flex: 1;">
+                            <div class="sr-top" style="margin-bottom: 4px;">
+                                <span class="sr-name">${user.name || 'Unnamed'}</span>
+                                <span class="sr-id">@${user.id}</span>
+                            </div>
+                            <div class="sr-bottom">
+                                <span>${phoneText}</span>
+                                <span>${locText}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
+                `;
+                container.appendChild(card);
+            });
 
-        loadMoreBtn.style.display = endIndex < filteredUsers.length ? 'block' : 'none';
+            loadMoreBtn.style.display = querySnapshot.docs.length === 10 ? 'block' : 'none';
+
+        } catch (e) {
+            console.error("Search Error:", e);
+            loader.style.display = 'none';
+            if (!isLoadMore) container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger-color); font-weight: 700;">Error searching database.</div>';
+        }
     }
 
     // --- STEP 2: OPENING THE CALCULATION MODAL ---
@@ -682,7 +733,7 @@
                 document.getElementById('d-calc-hint').innerText = `Calculated via Scheduled Increments`;
             }
 
-            // 5. Arrears Detection Engine (FIXED: Subtract maxMonthPaid instead of currentCalcMonth)
+            // 5. Arrears Detection Engine
             const systemCurrentMonth = calculateCurrentSystemMonth(activeGroupData.startDate);
             const arrears = systemCurrentMonth - maxMonthPaid;
             
