@@ -364,7 +364,7 @@
   <aside id="delete-modal" class="center-modal">
     <div class="mini-modal-content">
       <h3 class="mini-modal-title">Delete Group</h3>
-      <p class="mini-modal-text">Are you sure you want to permanently delete this group? All participant links and ledger transactions will be lost.</p>
+      <p class="mini-modal-text">Are you sure you want to permanently delete this group? All participant links, ledger transactions, and auction payouts will be lost.</p>
       <div class="mini-modal-actions">
         <button class="mini-btn mini-btn-cancel" onclick="closeModal()">Cancel</button>
         <button class="mini-btn mini-btn-danger" id="confirm-delete-btn">Delete Group</button>
@@ -965,6 +965,25 @@
         return deletedCount;
     }
 
+    async function deleteAuctionsInBatches(groupId) {
+        let deletedCount = 0;
+        const batchLimit = 450; // Staying under the 500 hard limit
+        
+        while (true) {
+            const q = query(collection(db, "auctions"), where("groupId", "==", groupId), limit(batchLimit));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) break;
+            
+            const batch = writeBatch(db);
+            snap.forEach(aDoc => batch.delete(aDoc.ref));
+            await batch.commit();
+            deletedCount += snap.size;
+            console.log(`Intermediate Batch: Deleted ${snap.size} auctions...`);
+        }
+        return deletedCount;
+    }
+
     // --- Custom Delete Modal Logic (Advanced Batched Deletion) ---
     window.initiateDelete = function(id) {
       targetIdToDelete = id;
@@ -979,6 +998,9 @@
       try {
         // Step 1: Recursively delete all transactions in batches (500 limit fix)
         const totalTxnsDeleted = await deleteTransactionsInBatches(targetIdToDelete);
+        
+        // Step 1.5: Recursively delete all auction payouts in batches
+        const totalAuctionsDeleted = await deleteAuctionsInBatches(targetIdToDelete);
         
         // Step 2: Find all participants in this group and clean them up
         const usersQ = query(collection(db, "users"), where("activeGroups", "array-contains", targetIdToDelete));
@@ -1008,7 +1030,7 @@
         closeModal();
         loadGroups();
         
-        setTimeout(() => showMessage("Complete Wipe Successful", `Group, ${usersSnap.size} participant links, and ${totalTxnsDeleted} ledger records permanently removed.`, "success"), 300);
+        setTimeout(() => showMessage("Complete Wipe Successful", `Group, ${usersSnap.size} participant links, ${totalTxnsDeleted} ledger records, and ${totalAuctionsDeleted} payouts permanently removed.`, "success"), 300);
       } catch(e) { 
         console.error("Error wiping records:", e); 
         showMessage("Wipe Failed", `Failed to complete deletion: <br><br> ${e.message}`, "error");
