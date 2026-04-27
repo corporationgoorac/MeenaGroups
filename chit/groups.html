@@ -164,16 +164,15 @@
     .u-avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
     .u-info { flex: 1; }
     .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
-    .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;}
-    .u-loc { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;}
+    .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;}
     
     /* Defaulter / Pending Specific Styling */
-    .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); display: flex; flex-direction: column; gap: 16px;}
+    .defaulter-card { border-color: var(--danger-color); background: var(--danger-light); }
     .d-amount { font-size: 18px; font-weight: 800; color: var(--danger-color); text-align: right; }
-    .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; margin-top: 4px; }
+    .d-months { font-size: 11px; color: var(--danger-color); font-weight: 700; text-align: right; margin-top: 4px; }
     
-    .call-btn { background: var(--success-color); color: white; border: none; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s;}
-    .call-btn:active { transform: scale(0.95); }
+    .call-btn { background: var(--success-color); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); transition: 0.2s;}
+    .call-btn:active { transform: scale(0.9); }
     .call-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
     /* Empty States */
@@ -193,7 +192,7 @@
     .center-modal.active .mini-modal-content { transform: scale(1); }
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
-    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
+    .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
 
   </style>
@@ -328,16 +327,11 @@
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- FLAWLESS MODAL NAVIGATION (Hash Based Fallback for File Protocol) ---
+    // --- FLAWLESS MODAL NAVIGATION (Hash Based) ---
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
-      try {
-          if (window.location.hash !== `#${modalId}`) {
-              history.pushState({ id: modalId }, '', `#${modalId}`);
-          }
-      } catch(e) {
-          // Fallback for local file:// execution blocks
-          window.location.hash = modalId; 
+      if (window.location.hash !== `#${modalId}`) {
+          history.pushState({ id: modalId }, '', `#${modalId}`);
       }
     };
     
@@ -357,9 +351,6 @@
        closeAllModals();
        if(e.state && e.state.id) {
            const targetModal = document.getElementById(e.state.id);
-           if(targetModal) targetModal.classList.add('active');
-       } else if (window.location.hash) {
-           const targetModal = document.querySelector(window.location.hash);
            if(targetModal) targetModal.classList.add('active');
        }
     });
@@ -388,7 +379,7 @@
     let currentSearchPage = 1;
     const GROUPS_PER_PAGE = 10;
 
-    let activeLoadedGroup = null; // Stores data for the currently viewed Group Modal
+    let activeGroupData = null; // Stores data for the currently viewed Group Modal
     let activeLoadedGroupCurrentMonth = 1; // Stored engine calculation
     let activeLoadedGroupUsers = []; // Stores fetched user profiles to save reads
 
@@ -399,29 +390,8 @@
         
         try {
             // Fetch up to 500 groups into memory to allow instant 0-read searching
-            let snap;
-            try {
-                const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
-                snap = await getDocs(q);
-            } catch (err) {
-                console.warn("Ordered query failed. Falling back to safe query...", err);
-                
-                // --- INJECTED INDEX LINK EXTRACTOR ---
-                if(err.message && err.message.includes("https://console.firebase.google.com")) {
-                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
-                    const match = err.message.match(urlRegex);
-                    if(match && match[0]) {
-                        const extractedUrl = match[0];
-                        setTimeout(() => {
-                            showMessage("Database Index Missing", `Please click the link below to build the required Firebase Index to speed up loading.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
-                        }, 500);
-                    }
-                }
-                // -------------------------------------
-
-                const fallbackQ = query(collection(db, "groups"), limit(500));
-                snap = await getDocs(fallbackQ);
-            }
+            const q = query(collection(db, "groups"), orderBy("createdAt", "desc"), limit(500));
+            const snap = await getDocs(q);
             
             allGroupsCache = [];
             snap.forEach(docSnap => {
@@ -431,12 +401,37 @@
             loader.style.display = 'none';
             triggerLocalSearch(''); // Initial Render
         } catch (e) {
-            console.error("Init Error", e);
-            document.getElementById('main-groups-list').innerHTML = `
-            <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700; word-break: break-word;">
-              Database Connection Error: ${e.message}
-            </div>`;
-            loader.style.display = 'none';
+            console.warn("Init Error. Attempting Fallback", e);
+            
+            // --- INDEX FALLBACK LOGIC ---
+            try {
+                const fallbackQ = query(collection(db, "groups"), limit(500));
+                const snap = await getDocs(fallbackQ);
+                allGroupsCache = [];
+                snap.forEach(docSnap => {
+                    allGroupsCache.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                loader.style.display = 'none';
+                triggerLocalSearch(''); 
+                
+                // Show index error link if present in the error payload
+                if(e.message && e.message.includes("https://console.firebase.google.com")) {
+                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                    const match = e.message.match(urlRegex);
+                    if(match && match[0]) {
+                        setTimeout(() => {
+                            showMessage("System Alert", `Please build the required Firebase Index to enable proper sorting.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 1000);
+                    }
+                }
+                
+            } catch(fallbackErr) {
+                document.getElementById('main-groups-list').innerHTML = `
+                <div style="color:var(--danger-color); background:var(--danger-light); border-radius:12px; padding: 20px; font-size:13px; font-weight:700; word-break: break-word;">
+                  Database Connection Error: ${fallbackErr.message}
+                </div>`;
+                loader.style.display = 'none';
+            }
         }
     }
 
@@ -564,6 +559,8 @@
     // --- MODAL VIEWS ---
 
     window.openGroupDetail = function(group) {
+      if(!group) return showMessage("Error", "Active group data not found.", "error");
+
       try {
         activeGroupData = group;
         activeLoadedGroupUsers = []; // Clear user cache for the new group
@@ -626,7 +623,7 @@
 
     // --- NEW FEATURE: Share Group Summary ---
     window.shareGroupSummary = function() {
-        if(!activeGroupData) return;
+        if(!activeGroupData) return showMessage("Error", "Active group data not found.", "error");
         
         const safeName = (activeGroupData.groupName || 'Group').toUpperCase();
         
@@ -651,6 +648,7 @@
     // --- FETCH FULL PARTICIPANT PROFILES ---
     // We fetch the full docs to get phone numbers for the dialer button. (1 Read per user)
     async function fetchGroupUsers() {
+        if(!activeGroupData) throw new Error("Active group data not found.");
         if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; // Use cache if already loaded this session
         
         const q = query(collection(db, "users"), where("activeGroups", "array-contains", activeGroupData.id));
@@ -670,6 +668,8 @@
     const locIconSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
 
     window.openParticipantsModal = async function() {
+        if(!activeGroupData) return showMessage("Error", "Active group data not found.", "error");
+
         openModal('participants-modal');
         const container = document.getElementById('participants-list-container');
         container.innerHTML = '<div class="loader"></div><div style="text-align:center; font-size:12px; color:var(--text-muted); font-weight:700;">Fetching Directory...</div>';
@@ -727,6 +727,8 @@
     };
 
     window.openPendingModal = async function() {
+        if(!activeGroupData) return showMessage("Error", "Active group data not found.", "error");
+
         openModal('pending-modal');
         const container = document.getElementById('pending-list-container');
         container.innerHTML = '<div class="loader" style="border-top-color: var(--danger-color);"></div><div style="text-align:center; font-size:12px; color:var(--text-muted); font-weight:700;">Analyzing Defaulters...</div>';
@@ -761,43 +763,36 @@
                     const missedCount = activeLoadedGroupCurrentMonth - snapData.monthsPaid;
                     
                     const callButtonHTML = u.phone 
-                        ? `<a href="tel:${u.phone}" class="call-btn" style="flex: 1; width: 100%; border-radius: 10px; font-size: 13px; font-weight: 800; gap: 6px;"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg> CALL</a>`
+                        ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
                         : ``;
 
-                    // WhatsApp Quick Link with dynamic message
-                    let breakdownText = "";
-                    for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
-                        breakdownText += `- Month ${m}: ₹${calculateDueForMonth(m, startAmt, schedule)}\n`;
-                    }
-                    const msg = `*Meena Chitfunds*\nGroup: ${activeGroupData.groupName.toUpperCase()} (@${activeGroupData.id})\nTimeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n\nDear ${u.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${totalOwed}*\n\nKindly clear your dues at the earliest.`;
-
+                    // NEW FEATURE: WhatsApp Quick Link
                     const waButtonHTML = u.phone 
-                        ? `<a href="https://wa.me/${u.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}" target="_blank" class="call-btn" style="background:#25D366; flex: 1; width: 100%; border-radius: 10px; font-size: 13px; font-weight: 800; gap: 6px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg> MESSAGE</a>`
+                        ? `<a href="https://wa.me/${u.phone.replace(/\D/g,'')}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`
                         : ``;
 
+                    // MOBILE CRASH FIX: Allow vertical stacking of content inside block container so action row stays below text cleanly
                     const card = document.createElement('div');
                     card.className = 'user-card defaulter-card';
+                    card.style.display = 'block'; 
                     card.innerHTML = `
-                        <div style="display: flex; flex-direction: column; width: 100%; gap: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div class="u-left" style="width: auto; flex: 1;">
-                                    <div class="u-avatar" style="background: var(--danger-color); box-shadow: none;">${initial}</div>
-                                    <div class="u-info">
-                                        <h3 style="color: var(--danger-color); margin:0 0 4px 0;">${u.name || 'Unnamed'}</h3>
-                                        <div class="u-meta" style="margin:0;">@${u.id}</div>
-                                        <div class="d-months">${missedCount} Month(s) Behind</div>
-                                    </div>
-                                </div>
-                                <div style="text-align: right; flex-shrink: 0; padding-left: 8px;">
-                                    <div class="d-amount">₹${Number(totalOwed).toLocaleString('en-IN')}</div>
-                                    <div style="font-size: 10px; font-weight: 800; color: var(--danger-color); text-transform: uppercase; margin-top: 4px;">Total Due</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <div class="u-left" style="width: auto; flex:1;">
+                                <div class="u-avatar" style="background: var(--danger-color); box-shadow: none;">${initial}</div>
+                                <div class="u-info">
+                                    <h3 style="color: var(--danger-color);">${u.name || 'Unnamed'}</h3>
+                                    <div class="u-meta">@${u.id}</div>
+                                    <div class="d-months">${missedCount} Month(s) Behind</div>
                                 </div>
                             </div>
-                            ${(waButtonHTML || callButtonHTML) ? `
-                            <div style="display: flex; gap: 10px; width: 100%; border-top: 1px dashed rgba(220, 53, 69, 0.2); padding-top: 14px;">
-                                ${waButtonHTML}
-                                ${callButtonHTML}
-                            </div>` : ''}
+                            <div style="text-align: right; flex-shrink:0;">
+                                <div class="d-amount">₹${Number(totalOwed).toLocaleString('en-IN')}</div>
+                                <div style="font-size: 10px; font-weight: 800; color: var(--danger-color); text-transform: uppercase; margin-top: 4px;">Total Due</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:8px; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 12px;">
+                            ${waButtonHTML}
+                            ${callButtonHTML}
                         </div>
                     `;
                     container.appendChild(card);
