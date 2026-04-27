@@ -242,7 +242,7 @@
     .msg-icon { font-size: 48px; margin-bottom: 16px; }
     .mini-modal-title { font-size: 20px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-main); }
     .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500;}
-    .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
+    .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
   </style>
 </head>
 <body>
@@ -368,7 +368,7 @@
     </div>
     <div class="gpay-title">Payment Successful</div>
     <div class="gpay-amount" id="gpay-amount-text">₹0</div>
-    <div class="gpay-footer">Verified transaction</div>
+    <div class="gpay-footer">Secured by Goorac</div>
   </div>
 
   <aside id="message-modal" class="center-modal">
@@ -389,8 +389,8 @@
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
-    // --- FLAWLESS HASH-BASED MODAL NAVIGATION (Fixed Back Button) ---
-    let modalStackCount = 0;
+    // --- FLAWLESS HASH-BASED MODAL NAVIGATION (Fixed Back Button Trap) ---
+    let modalStackCount = 0; // Tracks history depth for safe rewinding
 
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
@@ -419,7 +419,7 @@
     window.addEventListener('popstate', (e) => {
        closeAllModals();
        if(modalStackCount > 0) modalStackCount--;
-
+       
        if(window.location.hash) {
            const targetModal = document.querySelector(window.location.hash);
            if(targetModal) {
@@ -431,7 +431,14 @@
     window.showMessage = function(title, body, type = 'error') {
       document.getElementById('msg-title').innerText = title;
       document.getElementById('msg-body').innerHTML = body; 
-      document.getElementById('msg-icon').innerText = type === 'success' ? '✅' : '⚠️';
+      const iconContainer = document.getElementById('msg-icon');
+      
+      if (type === 'success') {
+        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--success-color)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      } else {
+        iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
+      }
+      
       document.getElementById('message-modal').classList.add('active');
     };
     window.closeMessageModal = function() {
@@ -474,6 +481,7 @@
     let targetUserName = "";
     let activeGroupData = null; 
     let currentCalcMonth = 0;
+    let baselineLastAmount = 0;
 
     // --- ADVANCED FEATURE: 0-READ CLIENT SIDE SEARCH ENGINE ---
     let allUsersCache = [];
@@ -646,6 +654,8 @@
                 }
             });
             
+            baselineLastAmount = lastAmountPaid; 
+
             // 3. Determine Next Month
             currentCalcMonth = maxMonthPaid + 1;
             let totalMonths = activeGroupData.totalMonths || 0;
@@ -672,9 +682,9 @@
                 document.getElementById('d-calc-hint').innerText = `Calculated via Scheduled Increments`;
             }
 
-            // 5. Arrears Detection Engine
+            // 5. Arrears Detection Engine (FIXED: Subtract maxMonthPaid instead of currentCalcMonth)
             const systemCurrentMonth = calculateCurrentSystemMonth(activeGroupData.startDate);
-            const arrears = systemCurrentMonth - currentCalcMonth;
+            const arrears = systemCurrentMonth - maxMonthPaid;
             
             const arrearsWarning = document.getElementById('arrears-warning');
             if (arrears > 0) {
