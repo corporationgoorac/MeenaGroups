@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Dashboard - MeenaGroups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0B0F19">
+  <meta name="theme-color" content="#000000">
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="manifest" href="manifest.json">
@@ -13,16 +13,16 @@
 
   <style>
     /* * ==========================================
-     * 1. COMPLETELY REDESIGNED PREMIUM UI (FINTECH GLASSMORPHISM)
+     * 1. COMPLETELY REDESIGNED PREMIUM UI (OLED BLACK FINTECH)
      * ==========================================
      */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
     :root { 
-      --bg: #0B0F19; /* Deep Space Blue */
-      --surface: rgba(21, 26, 40, 0.7); /* Glassy Surface */
-      --card: #151A28; 
-      --card-border: rgba(255, 255, 255, 0.05);
+      --bg: #000000; /* OLED Pure Black */
+      --surface: rgba(15, 15, 15, 0.7); /* Deep Glassy Surface */
+      --card: #0A0A0A; /* Ultra Dark Gray for contrast */
+      --card-border: rgba(255, 255, 255, 0.08); /* Slightly brighter border for OLED */
       
       /* Brand Colors */
       --primary: #10B981; /* Emerald Green */
@@ -31,17 +31,16 @@
       --secondary-dim: rgba(99, 102, 241, 0.15);
       --danger: #EF4444; /* Rose Red */
       --warn: #F59E0B; /* Amber */
-      --accent: #06B6D4; /* Cyan Accent */
+      --accent: #3B82F6; /* Bright Blue for Links */
       
       --text: #F8FAFC; 
       --text-muted: #94A3B8;
-      --border: rgba(255, 255, 255, 0.08); 
-      --nav-bg: rgba(11, 15, 25, 0.85);
+      --border: rgba(255, 255, 255, 0.1); 
+      --nav-bg: rgba(0, 0, 0, 0.85);
 
-      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-      --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.5);
-      --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
-      --glow-primary: 0 0 20px rgba(16, 185, 129, 0.2);
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.8);
+      --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.2);
     }
     
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -57,9 +56,8 @@
       flex-direction: column;
       overflow-x: hidden;
       background-image: 
-        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.08), transparent 25%),
-        radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.05), transparent 20%);
+        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.05), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
     }
 
     /* * ==========================================
@@ -68,8 +66,8 @@
      */
     .app-header {
       background: var(--nav-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
       padding: 16px 24px;
       display: flex;
@@ -92,7 +90,6 @@
       font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: -0.5px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
     
     .brand-red { color: var(--danger); }
@@ -105,7 +102,7 @@
       letter-spacing: 0.5px;
     }
     
-    .brand-sub span { color: var(--secondary); font-weight: 700; text-shadow: 0 0 8px var(--secondary-dim); }
+    .brand-sub span { color: var(--secondary); font-weight: 700; }
 
     /* Header Actions (Nav + Sync) */
     .header-actions {
@@ -114,9 +111,9 @@
       gap: 16px;
     }
 
-    /* HIDDEN SYNC BUTTON AS PER REQUEST, BUT LINE PRESERVED */
+    /* RE-ENABLED SYNC BUTTON FOR FIREBASE READ OPTIMIZATION */
     .header-sync-btn {
-      display: none !important; /* Automated in JS now */
+      display: flex !important; /* Changed from none to flex */
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
       color: var(--primary);
@@ -130,6 +127,15 @@
       position: relative;
       padding: 0;
     }
+    
+    .header-sync-btn:hover {
+      background: var(--primary-dim);
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .header-sync-btn:active { transform: scale(0.95); }
 
     .header-guide-link {
       background: var(--surface);
@@ -173,8 +179,8 @@
       font-weight: 600;
       transition: all 0.3s ease;
     }
-    .desktop-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .desktop-link.active { color: var(--secondary); background: var(--secondary-dim); box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2); }
+    .desktop-link:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .desktop-link.active { color: var(--secondary); background: var(--secondary-dim); box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.3); }
 
     /* * ==========================================
      * 4. MAIN DASHBOARD LAYOUT
@@ -203,14 +209,19 @@
     .greeting-box h1 { margin: 0; font-size: 2.2rem; font-weight: 800; color: var(--text); letter-spacing: -1px; }
     .greeting-box p { color: var(--text-muted); margin: 8px 0 0; font-size: 1rem; font-weight: 400; }
     .last-sync-tag { 
-      font-size: 0.75rem; color: var(--primary); 
-      background: var(--primary-dim); 
+      font-size: 0.75rem; color: var(--text-muted); 
+      background: rgba(255,255,255,0.05); 
       padding: 6px 12px; border-radius: 20px; 
       display: inline-flex; align-items: center; gap: 6px;
       margin-top: 12px; font-weight: 600; letter-spacing: 0.5px;
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      border: 1px solid var(--border);
     }
-    .last-sync-tag::before {
+    .last-sync-tag.active {
+      color: var(--primary);
+      background: var(--primary-dim);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .last-sync-tag.active::before {
       content: ''; display: inline-block; width: 6px; height: 6px;
       background: var(--primary); border-radius: 50%; box-shadow: 0 0 8px var(--primary);
       animation: pulseDot 1.5s infinite;
@@ -241,36 +252,27 @@
     
     .kpi-card::before {
       content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%);
       z-index: -1;
-    }
-
-    /* Gradient animated border effect */
-    .kpi-card::after {
-      content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--secondary), transparent);
-      opacity: 0; transition: opacity 0.4s ease;
     }
 
     .kpi-card:hover { 
       transform: translateY(-8px); 
-      border-color: rgba(99, 102, 241, 0.3); 
-      box-shadow: var(--shadow-lg), var(--shadow-glow); 
+      border-color: rgba(255,255,255,0.2); 
+      box-shadow: var(--shadow-lg); 
     }
     
-    .kpi-card:hover::after { opacity: 1; }
-    
     .kpi-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-    .kpi-value { font-size: 2.5rem; font-weight: 800; margin: 12px 0; letter-spacing: -1px; text-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .kpi-value { font-size: 2.5rem; font-weight: 800; margin: 12px 0; letter-spacing: -1px; }
     .kpi-trend { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; font-weight: 500; }
-    .trend-up { color: var(--primary); background: var(--primary-dim); padding: 4px 10px; border-radius: 8px; display: inline-flex; width: fit-content; }
-    .trend-down { color: var(--warn); background: rgba(245, 158, 11, 0.1); padding: 4px 10px; border-radius: 8px; display: inline-flex; width: fit-content; }
+    .trend-up { color: var(--primary); background: var(--primary-dim); padding: 4px 8px; border-radius: 6px; }
+    .trend-down { color: var(--warn); background: rgba(245, 158, 11, 0.1); padding: 4px 8px; border-radius: 6px; }
 
     /* Financial Advice Card (Special) */
     .advice-card {
       grid-column: 1 / -1;
-      background: linear-gradient(135deg, var(--card), rgba(21, 26, 40, 0.9));
-      border: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--card), rgba(15, 15, 15, 0.9));
+      border: 1px solid var(--card-border);
       padding: 30px;
       border-radius: 20px;
       display: flex;
@@ -295,7 +297,7 @@
       border: 4px solid var(--text-muted); /* Dynamic Color via JS */
       display: flex; align-items: center; justify-content: center;
       font-size: 1.8rem; font-weight: 800; color: var(--text);
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 15px rgba(0,0,0,0.2);
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
       flex-shrink: 0;
       position: relative;
       z-index: 2;
@@ -326,34 +328,25 @@
       position: relative;
       box-shadow: var(--shadow-sm);
       transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
     }
     
     .chart-box:hover {
-      box-shadow: var(--shadow-lg), 0 0 15px rgba(255,255,255,0.02);
-      border-color: rgba(255,255,255,0.1);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(255,255,255,0.15);
     }
 
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
     .chart-title { font-weight: 600; color: var(--text); font-size: 1rem; letter-spacing: 0.5px; }
-    
-    /* NEW: Visual stats directly inside chart headers for 7-week volume */
+
     .chart-stat-badge {
       background: rgba(99, 102, 241, 0.1);
       color: var(--secondary);
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.3);
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 0.8rem;
       font-weight: 700;
-      box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.05);
-    }
-
-    .chart-container {
-      position: relative;
-      flex: 1;
-      width: 100%;
     }
 
     /* --- 5. MOBILE BOTTOM NAVIGATION --- */
@@ -362,7 +355,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(11, 15, 25, 0.95);
+      background: rgba(0, 0, 0, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
@@ -405,14 +398,14 @@
       padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem;
       transition: background 0.2s;
     }
-    #adminInstallPrompt button:hover { background: #4F46E5; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+    #adminInstallPrompt button:hover { background: #4F46E5; }
 
     /* --- 7. ANIMATIONS --- */
     @keyframes spin { 100% { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes pulseData { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-    @keyframes pulseDot { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+    @keyframes pulseDot { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
     .loading-pulse { animation: pulseData 1.5s infinite ease-in-out; }
 
@@ -465,7 +458,7 @@
 
     .profile-modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
       display: none; align-items: center; justify-content: center; z-index: 3000;
       opacity: 0; transition: opacity 0.3s ease;
     }
@@ -477,7 +470,7 @@
       border: 1px solid var(--border); width: 90%; max-width: 360px;
       display: flex; flex-direction: column; align-items: center; text-align: center;
       transform: translateY(20px) scale(0.95); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.9);
       position: relative; overflow: hidden;
     }
     .profile-modal-overlay.active .profile-modal { transform: translateY(0) scale(1); }
@@ -552,9 +545,12 @@
       <div class="greeting-box">
         <h1 id="greetingTitle">Dashboard</h1>
         <p>System Overview & Financial Intelligence</p>
-        <span id="lastSyncTime" class="last-sync-tag">Connecting to Database...</span>
+        <span id="lastSyncTime" class="last-sync-tag">Loading Local Cache...</span>
       </div>
     </div>
+
+    <div id="firebaseErrorBox" style="display:none; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); padding: 18px; border-radius: 12px; margin-bottom: 24px; color: var(--text); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);">
+      </div>
 
     <div id="financialAdviceCard" class="advice-card" style="display:none;">
       <div class="advice-score-circle" id="healthScore">--</div>
@@ -598,7 +594,7 @@
         <div class="chart-header">
           <span class="chart-title">Revenue History (14-Day Performance)</span>
         </div>
-        <div class="chart-container">
+        <div style="position: relative; flex: 1; width: 100%;">
           <canvas id="chartRevenue"></canvas>
         </div>
       </div>
@@ -607,7 +603,7 @@
         <div class="chart-header">
           <span class="chart-title">Collection Status</span>
         </div>
-        <div class="chart-container">
+        <div style="position: relative; flex: 1; width: 100%;">
           <canvas id="chartStatus"></canvas>
         </div>
       </div>
@@ -617,7 +613,7 @@
           <span class="chart-title">Activity Volume (Last 7 Days)</span>
           <span class="chart-stat-badge" id="dispTotalVolume">Vol: 0</span>
         </div>
-        <div class="chart-container">
+        <div style="position: relative; flex: 1; width: 100%;">
           <canvas id="chartDaily"></canvas>
         </div>
       </div>
@@ -626,7 +622,7 @@
         <div class="chart-header">
           <span class="chart-title">Product Categories</span>
         </div>
-        <div class="chart-container">
+        <div style="position: relative; flex: 1; width: 100%;">
           <canvas id="chartProduct"></canvas>
         </div>
       </div>
@@ -635,7 +631,7 @@
         <div class="chart-header">
           <span class="chart-title">Efficiency Metrics</span>
         </div>
-        <div class="chart-container">
+        <div style="position: relative; flex: 1; width: 100%;">
           <canvas id="chartEfficiency"></canvas>
         </div>
       </div>
@@ -714,8 +710,13 @@
         
         document.getElementById('greetingTitle').innerText = "Welcome, " + name.split(' ');
 
-        // AUTOMATICALLY TRIGGER DATA LOAD INSTEAD OF MANUAL BUTTON
-        autoLoadData();
+        // OPTIMIZED FIREBASE READS: Do NOT auto-load on start. Let LocalStorage render first.
+        // User must click "Sync" to fetch new data.
+        // autoLoadData(); 
+        
+        if(!localStorage.getItem('dashboardData')){
+            document.getElementById('lastSyncTime').innerText = `Click Sync Icon to Load Data`;
+        }
       }
     });
 
@@ -771,7 +772,11 @@
       const storedData = localStorage.getItem('dashboardData');
       const lastSync = localStorage.getItem('lastSyncTime');
       
-      if (lastSync) document.getElementById('lastSyncTime').innerText = `Live 🟢 Last update: ${lastSync}`;
+      if (lastSync) {
+          const syncEl = document.getElementById('lastSyncTime');
+          syncEl.innerText = `Offline Cache 🟢 Last update: ${lastSync}`;
+          syncEl.classList.remove('active');
+      }
 
       if (storedData) {
         const parsed = JSON.parse(storedData);
@@ -780,20 +785,21 @@
     });
 
     // --- 2. AUTOMATIC SYNC & SERVER SIDE AGGREGATION ---
-    // Kept window.manualSync for backwards compatibility if called elsewhere, but we use autoLoadData now
-    window.manualSync = async () => autoLoadData();
+    // User explicitly clicks this to save Firebase Read costs.
+    window.manualSync = async () => {
+        document.getElementById('lastSyncTime').innerText = "Syncing with Cloud...";
+        document.getElementById('lastSyncTime').classList.add('active');
+        await autoLoadData();
+    };
 
     async function autoLoadData() {
       try {
+        document.getElementById('firebaseErrorBox').style.display = 'none'; // Hide errors on retry
         console.log("Triggering Server Side Data Load...");
         
         const coll = collection(db, "customers");
 
         // --- FIREBASE SERVER SIDE AGGREGATION (NEW API) ---
-        // This gives you top-level document count instantly in one read.
-        // NOTE: Firebase sum() cannot iterate inside arrays (like 'products.payments') 
-        // without flattening the DB. We use count() here to utilize the new feature efficiently, 
-        // and process the arrays locally below.
         const aggSnapshot = await getAggregateFromServer(coll, {
             totalUsers: count()
         });
@@ -857,25 +863,28 @@
         let compactHistory = {};
         sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
-        // Calculate total 7-day volume for badge
-        const totalVol = weekActivity + weekActivity + weekActivity + weekActivity + weekActivity + weekActivity + weekActivity;
+        // Calculate total 7-day volume for badge (FIXED SYNTAX)
+        const totalVol = (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0);
 
         const data = {
           totals: totals,
           history: compactHistory, 
           products: [productCounts['Loans'], productCounts['EMI'], productCounts['Ins.'], productCounts['Other']], 
           // FIXED SYNTAX ERROR HERE: Properly formatted array for Monday -> Sunday
-          weekData: [weekActivity, weekActivity, weekActivity, weekActivity, weekActivity, weekActivity, weekActivity],
+          weekData: [weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0],
           totalVolume: totalVol,
           // FIXED SYNTAX ERROR HERE: Added valid metrics array
-          efficiency: 
+          efficiency:
         };
 
         localStorage.setItem('dashboardData', JSON.stringify(data));
         
         const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         localStorage.setItem('lastSyncTime', timeNow);
-        document.getElementById('lastSyncTime').innerText = `Live 🟢 Synced at ${timeNow}`;
+        
+        const syncLabel = document.getElementById('lastSyncTime');
+        syncLabel.innerText = `Live 🟢 Synced at ${timeNow}`;
+        syncLabel.classList.add('active');
 
         // Remove loading pulse classes
         document.getElementById("dispTotalPaid").classList.remove('loading-pulse');
@@ -886,10 +895,34 @@
 
       } catch (e) {
         console.error("Auto-Load Failed:", e);
-        document.getElementById('lastSyncTime').innerText = `Offline - Using Cache`;
-        document.getElementById('lastSyncTime').style.color = "var(--warn)";
-        document.getElementById('lastSyncTime').style.background = "rgba(245, 158, 11, 0.1)";
-        document.getElementById('lastSyncTime').style.border = "1px solid rgba(245, 158, 11, 0.2)";
+        
+        const syncLabel = document.getElementById('lastSyncTime');
+        syncLabel.innerText = `Sync Failed - Check Alert`;
+        syncLabel.style.color = "var(--warn)";
+        syncLabel.style.background = "rgba(245, 158, 11, 0.1)";
+        syncLabel.style.border = "1px solid rgba(245, 158, 11, 0.2)";
+        syncLabel.classList.remove('active');
+        
+        // --- NEW: FIREBASE INDEX ERROR CATCHER ---
+        const errorBox = document.getElementById('firebaseErrorBox');
+        errorBox.style.display = 'block';
+        
+        const errorString = e.toString();
+        // Regex to extract the Firebase console index creation link
+        const urlMatch = errorString.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/);
+        
+        if (urlMatch) {
+            errorBox.innerHTML = `
+              <h3 style="margin:0 0 8px 0; color: var(--danger); font-size: 1rem;">⚠️ Database Index Required</h3>
+              <p style="margin:0 0 12px 0; font-size: 0.9rem; color: var(--text-muted);">Firebase requires a new composite index to run this query securely.</p>
+              <a href="${urlMatch}" target="_blank" style="display:inline-block; background: var(--accent); color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85rem; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);">Click Here to Auto-Create Index</a>
+            `;
+        } else {
+            errorBox.innerHTML = `
+              <h3 style="margin:0 0 8px 0; color: var(--warn); font-size: 1rem;">⚠️ Database Sync Error</h3>
+              <p style="margin:0; font-size: 0.9rem; color: var(--text-muted);">${e.message}</p>
+            `;
+        }
       }
     }
 
@@ -989,7 +1022,6 @@
       const ctxRev = document.getElementById('chartRevenue').getContext('2d');
       if(charts.revenue) charts.revenue.destroy();
       
-      // Gradient for Line Chart
       let gradientRev = ctxRev.createLinearGradient(0, 0, 0, 400);
       gradientRev.addColorStop(0, 'rgba(16, 185, 129, 0.6)');
       gradientRev.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
@@ -1007,7 +1039,7 @@
             tension: 0.4,
             borderWidth: 3,
             pointBackgroundColor: '#10B981',
-            pointBorderColor: '#151A28',
+            pointBorderColor: '#000',
             pointRadius: 4,
             pointHoverRadius: 6
           }]
@@ -1018,7 +1050,7 @@
           plugins: { 
             legend: { display: false },
             tooltip: {
-              backgroundColor: 'rgba(21, 26, 40, 0.9)',
+              backgroundColor: 'rgba(15, 15, 15, 0.95)',
               titleColor: '#F8FAFC',
               bodyColor: '#10B981',
               borderColor: 'rgba(255,255,255,0.1)',
@@ -1063,7 +1095,7 @@
       
       let gradientBar = ctxDaily.createLinearGradient(0, 0, 0, 400);
       gradientBar.addColorStop(0, '#6366F1');
-      gradientBar.addColorStop(1, 'rgba(99, 102, 241, 0.3)');
+      gradientBar.addColorStop(1, 'rgba(99, 102, 241, 0.1)');
 
       charts.daily = new Chart(ctxDaily, {
         type: 'bar',
@@ -1075,7 +1107,7 @@
             backgroundColor: gradientBar,
             borderRadius: 6,
             barPercentage: 0.6,
-            hoverBackgroundColor: '#4F46E5'
+            hoverBackgroundColor: '#3B82F6'
           }]
         },
         options: {
@@ -1088,7 +1120,7 @@
           plugins: { 
             legend: { display: false },
             tooltip: {
-              backgroundColor: 'rgba(21, 26, 40, 0.9)',
+              backgroundColor: 'rgba(15, 15, 15, 0.95)',
               titleColor: '#F8FAFC',
               bodyColor: '#6366F1',
               borderColor: 'rgba(255,255,255,0.1)',
@@ -1112,10 +1144,10 @@
               'rgba(16, 185, 129, 0.8)',
               'rgba(99, 102, 241, 0.8)',
               'rgba(245, 158, 11, 0.8)',
-              'rgba(6, 182, 212, 0.8)'
+              'rgba(59, 130, 246, 0.8)'
             ],
             borderWidth: 2,
-            borderColor: '#151A28'
+            borderColor: '#0A0A0A'
           }]
         },
         options: {
@@ -1136,9 +1168,9 @@
           datasets: [{
             label: 'Agent Team Performance',
             data: data.efficiency,
-            borderColor: '#06B6D4',
-            backgroundColor: 'rgba(6, 182, 212, 0.2)',
-            pointBackgroundColor: '#06B6D4',
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            pointBackgroundColor: '#3B82F6',
             pointBorderColor: '#fff',
             borderWidth: 2,
             pointHoverRadius: 6
