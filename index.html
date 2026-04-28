@@ -492,6 +492,13 @@
         return;
       }
 
+      // --- NEW FIX: CHECK REDIRECT ON MANUAL LOGIN ---
+      // Check for 2 or more letters followed by numbers (e.g. DD02)
+      if (/^[A-Z]{2,}\d+$/.test(idInput)) {
+          window.location.replace(`https://meena.goorac.biz/chit#${idInput}`);
+          return; // Stop execution so it doesn't try to query Firebase
+      }
+
       const btn = document.querySelector(".btn-primary");
       btn.innerText = "Logging in...";
       btn.disabled = true;
