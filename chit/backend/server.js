@@ -175,7 +175,7 @@ setInterval(async () => {
             await clientCDP.send('HeapProfiler.collectGarbage');
             await clientCDP.detach();
             
-            console.log("🧹 Headless Browser RAM & Cache optimized to stay under 450MB.");
+            //console.log("🧹 Headless Browser RAM & Cache optimized to stay under 450MB.");
         } catch (e) {
             // Simplified error output so it doesn't flood your logs if it fails once
             console.error("Failed to clear RAM:", e.message);
