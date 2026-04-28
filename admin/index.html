@@ -113,7 +113,7 @@
 
     /* RE-ENABLED SYNC BUTTON FOR FIREBASE READ OPTIMIZATION */
     .header-sync-btn {
-      display: flex !important; /* Changed from none to flex */
+      display: flex !important;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
       color: var(--primary);
@@ -136,6 +136,10 @@
     }
     
     .header-sync-btn:active { transform: scale(0.95); }
+    
+    /* Animation Class applied via JS */
+    .header-sync-btn.syncing svg { animation: spin 1s infinite linear; }
+    .header-sync-btn.syncing { border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
 
     .header-guide-link {
       background: var(--surface);
@@ -265,8 +269,8 @@
     .kpi-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
     .kpi-value { font-size: 2.5rem; font-weight: 800; margin: 12px 0; letter-spacing: -1px; }
     .kpi-trend { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; font-weight: 500; }
-    .trend-up { color: var(--primary); background: var(--primary-dim); padding: 4px 8px; border-radius: 6px; }
-    .trend-down { color: var(--warn); background: rgba(245, 158, 11, 0.1); padding: 4px 8px; border-radius: 6px; }
+    .trend-up { color: var(--primary); background: var(--primary-dim); padding: 4px 8px; border-radius: 6px; display: inline-flex; width: fit-content; }
+    .trend-down { color: var(--warn); background: rgba(245, 158, 11, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-flex; width: fit-content; }
 
     /* Financial Advice Card (Special) */
     .advice-card {
@@ -315,7 +319,7 @@
     /* Charts Section */
     .charts-wrapper {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 24px;
     }
     
@@ -404,10 +408,7 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes pulseData { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     @keyframes pulseDot { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
-
-    .loading-pulse { animation: pulseData 1.5s infinite ease-in-out; }
 
     /* --- RESPONSIVENESS --- */
     @media (max-width: 768px) {
@@ -545,7 +546,7 @@
       <div class="greeting-box">
         <h1 id="greetingTitle">Dashboard</h1>
         <p>System Overview & Financial Intelligence</p>
-        <span id="lastSyncTime" class="last-sync-tag">Loading Local Cache...</span>
+        <span id="lastSyncTime" class="last-sync-tag">Sync Required</span>
       </div>
     </div>
 
@@ -564,7 +565,7 @@
     <div class="dashboard-grid">
       <div class="kpi-card">
         <span class="kpi-title">Total Collected</span>
-        <div class="kpi-value loading-pulse" style="color:var(--primary);" id="dispTotalPaid">₹---</div>
+        <div class="kpi-value" style="color:var(--primary);" id="dispTotalPaid">₹0</div>
         <div class="kpi-trend trend-up">
           <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
           <span>Lifetime Earnings</span>
@@ -573,7 +574,7 @@
 
       <div class="kpi-card">
         <span class="kpi-title">Outstanding Due</span>
-        <div class="kpi-value loading-pulse" style="color:var(--warn);" id="dispTotalDue">₹---</div>
+        <div class="kpi-value" style="color:var(--danger);" id="dispTotalDue">₹0</div>
         <div class="kpi-trend trend-down">
            <span>Total Market Balance</span>
         </div>
@@ -581,7 +582,7 @@
 
       <div class="kpi-card">
         <span class="kpi-title">Recovery Rate</span>
-        <div class="kpi-value loading-pulse" style="color:var(--secondary);" id="dispRecovery">--%</div>
+        <div class="kpi-value" style="color:var(--secondary);" id="dispRecovery">0%</div>
         <div class="kpi-trend trend-up" style="background:var(--secondary-dim); color:var(--secondary);">
           <span>Performance Indicator</span>
         </div>
@@ -672,16 +673,16 @@
       <h3 class="pm-name" id="modalUserName">Loading...</h3>
       
       <div class="pm-actions">
-        <button id="btnCancelProfile" class="btn-pm btn-pm-cancel">Close</button>
+        <button id="btnCancelProfile" class="btn-pm btn-pm-cancel">Cancel</button>
         <button id="btnLogout" class="btn-pm btn-pm-logout">Logout</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    import { db, auth } from "./config.js";
-    // ADDED NEW FIREBASE SERVER-SIDE CALCULATION API: getAggregateFromServer, count, sum
-    import { collection, getDocs, getAggregateFromServer, count, sum } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { db } from "./config.js";
+    import { auth } from "./config.js";
+    import { collection, getDocs, getAggregateFromServer, count } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
     // --- 0ms LOAD: LOCAL STORAGE PROFILE PIC INSTANT RENDER ---
@@ -694,7 +695,7 @@
       modalProfilePic.src = cachedPic;
     }
 
-    // --- NEW: AUTH CHECK & AUTOMATIC SERVER LOAD ---
+    // --- NEW: AUTH CHECK & PROFILE DATA SYNC ---
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "login.html"; // Kickout logic
@@ -708,19 +709,12 @@
         modalProfilePic.src = pic;
         document.getElementById('modalUserName').innerText = name;
         
+        // Update greeting with user's name
         document.getElementById('greetingTitle').innerText = "Welcome, " + name.split(' ');
-
-        // OPTIMIZED FIREBASE READS: Do NOT auto-load on start. Let LocalStorage render first.
-        // User must click "Sync" to fetch new data.
-        // autoLoadData(); 
-        
-        if(!localStorage.getItem('dashboardData')){
-            document.getElementById('lastSyncTime').innerText = `Click Sync Icon to Load Data`;
-        }
       }
     });
 
-    // --- PROFILE MODAL LOGIC ---
+    // --- NEW: PROFILE MODAL WITH MOBILE BACK BUTTON LOGIC ---
     const profileModal = document.getElementById('profileModalOverlay');
     const btnCancelProfile = document.getElementById('btnCancelProfile');
     const btnLogout = document.getElementById('btnLogout');
@@ -728,7 +722,7 @@
     headerProfilePic.addEventListener('click', () => {
       profileModal.style.display = 'flex';
       setTimeout(() => profileModal.classList.add('active'), 10);
-      history.pushState({ profileModalOpen: true }, ""); 
+      history.pushState({ profileModalOpen: true }, ""); // Adds to mobile history
     });
 
     function closeProfileModal() {
@@ -738,7 +732,7 @@
 
     btnCancelProfile.addEventListener('click', () => {
       if (history.state && history.state.profileModalOpen) {
-        history.back(); 
+        history.back(); // Triggers popstate below
       } else {
         closeProfileModal();
       }
@@ -764,7 +758,7 @@
     });
 
 
-    // --- CHART INSTANCES ---
+    // --- CHART INSTANCES (Global to allow updates) ---
     let charts = {};
 
     // --- 1. INITIAL LOAD (FROM LOCAL STORAGE) ---
@@ -779,55 +773,63 @@
       }
 
       if (storedData) {
+        console.log("Loading from LocalStorage (0 Reads)");
         const parsed = JSON.parse(storedData);
         renderDashboard(parsed);
+      } else {
+        document.getElementById('greetingTitle').innerText = "Dashboard";
       }
     });
 
-    // --- 2. AUTOMATIC SYNC & SERVER SIDE AGGREGATION ---
-    // User explicitly clicks this to save Firebase Read costs.
+    // --- 2. SYNC LOGIC (CALCULATE FROM CUSTOMERS) ---
     window.manualSync = async () => {
-        document.getElementById('lastSyncTime').innerText = "Syncing with Cloud...";
-        document.getElementById('lastSyncTime').classList.add('active');
-        await autoLoadData();
-    };
+      const btn = document.querySelector('.header-sync-btn');
+      if(btn.classList.contains('syncing')) return; 
 
-    async function autoLoadData() {
+      btn.classList.add('syncing'); 
+      document.getElementById('firebaseErrorBox').style.display = 'none'; // Hide errors on retry
+
       try {
-        document.getElementById('firebaseErrorBox').style.display = 'none'; // Hide errors on retry
-        console.log("Triggering Server Side Data Load...");
+        console.log("Fetching Full Customer Data...");
         
         const coll = collection(db, "customers");
-
-        // --- FIREBASE SERVER SIDE AGGREGATION (NEW API) ---
-        const aggSnapshot = await getAggregateFromServer(coll, {
-            totalUsers: count()
-        });
-        console.log("Server Aggregation - Total Customer Documents:", aggSnapshot.data().totalUsers);
         
-        // --- FETCH FULL CUSTOMER DATA FOR ARRAYS & CHARTS ---
+        // Optional Server aggregation log (saves reading full collection just to count)
+        try {
+            const aggSnapshot = await getAggregateFromServer(coll, { totalUsers: count() });
+            console.log("Total Customer Documents:", aggSnapshot.data().totalUsers);
+        } catch(aggErr) {
+            console.warn("Aggregation skipped: ", aggErr);
+        }
+
+        // --- STEP A: Fetch ALL Customers ---
         const custSnapshot = await getDocs(coll);
         
         let calculatedPaid = 0;
         let calculatedDue = 0;
         
-        let historyMap = {}; 
+        // Stats Accumulators
+        let historyMap = {}; // Date -> Total
         let productCounts = { 'Loans': 0, 'EMI': 0, 'Ins.': 0, 'Other': 0 };
-        let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+        let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 }; // Sun-Sat
 
+        // --- STEP B: Iterate & Calculate ---
         custSnapshot.forEach(doc => {
           const c = doc.data();
           
           if(c.products && Array.isArray(c.products)) {
              c.products.forEach(p => {
+                // FORCE NUMBER CONVERSION
                 const pTotal = parseFloat(p.total) || 0;
                 let pPaidSum = 0;
                 
+                // 1. Calculate from Payment Array if exists
                 if(p.payments && Array.isArray(p.payments)) {
                    p.payments.forEach(pay => {
                       const amount = parseFloat(pay.amount) || 0;
                       pPaidSum += amount;
                       
+                      // 2. History & Activity Logic
                       if(pay.date) {
                          const dKey = pay.date; 
                          historyMap[dKey] = (historyMap[dKey] || 0) + amount;
@@ -841,13 +843,18 @@
                    });
                 }
 
+                // 3. Handle Legacy 'paid' field
                 const legacyPaid = parseFloat(p.paid) || 0;
+                
+                // Effective Paid: Use larger value (Log Sum OR Manual Field)
                 const effectivePaid = Math.max(pPaidSum, legacyPaid);
+                
                 const pBalance = pTotal - effectivePaid;
 
                 calculatedPaid += effectivePaid;
                 calculatedDue += pBalance;
 
+                // 4. Product Categories
                 let pName = (p.name || '').toLowerCase();
                 if(pName.includes('loan')) productCounts['Loans']++;
                 else if(pName.includes('emi') || pName.includes('mobile')) productCounts['EMI']++;
@@ -859,24 +866,27 @@
 
         const totals = { totalPaid: calculatedPaid, totalBalance: calculatedDue };
 
+        // Prepare History Object for Chart
         const sortedDates = Object.keys(historyMap).sort();
+        // Limit to last 30 days stored in dashboardHistory to prevent bloat
         let compactHistory = {};
         sortedDates.slice(-14).forEach(k => compactHistory[k] = { paid: historyMap[k] });
 
-        // Calculate total 7-day volume for badge (FIXED SYNTAX)
+        // Calculate total 7-day volume for badge
         const totalVol = (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0) + (weekActivity||0);
 
+        // C. Prepare Data Object
         const data = {
           totals: totals,
           history: compactHistory, 
           products: [productCounts['Loans'], productCounts['EMI'], productCounts['Ins.'], productCounts['Other']], 
-          // FIXED SYNTAX ERROR HERE: Properly formatted array for Monday -> Sunday
+          // Week activity array for bar chart
           weekData: [weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0, weekActivity||0],
           totalVolume: totalVol,
-          // FIXED SYNTAX ERROR HERE: Added valid metrics array
-          efficiency:
+          efficiency: // Derived or static for now
         };
 
+        // D. Save to Cache
         localStorage.setItem('dashboardData', JSON.stringify(data));
         
         const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -885,11 +895,6 @@
         const syncLabel = document.getElementById('lastSyncTime');
         syncLabel.innerText = `Live 🟢 Synced at ${timeNow}`;
         syncLabel.classList.add('active');
-
-        // Remove loading pulse classes
-        document.getElementById("dispTotalPaid").classList.remove('loading-pulse');
-        document.getElementById("dispTotalDue").classList.remove('loading-pulse');
-        document.getElementById("dispRecovery").classList.remove('loading-pulse');
 
         renderDashboard(data);
 
@@ -903,7 +908,7 @@
         syncLabel.style.border = "1px solid rgba(245, 158, 11, 0.2)";
         syncLabel.classList.remove('active');
         
-        // --- NEW: FIREBASE INDEX ERROR CATCHER ---
+        // --- FIREBASE INDEX ERROR CATCHER ---
         const errorBox = document.getElementById('firebaseErrorBox');
         errorBox.style.display = 'block';
         
@@ -923,13 +928,18 @@
               <p style="margin:0; font-size: 0.9rem; color: var(--text-muted);">${e.message}</p>
             `;
         }
+      } finally {
+        setTimeout(() => {
+          btn.classList.remove('syncing'); 
+        }, 800); 
       }
-    }
+    };
 
     // --- 3. RENDER DASHBOARD ---
     function renderDashboard(data) {
       const { totalPaid, totalBalance } = data.totals;
       
+      // Update KPIs
       animateValue("dispTotalPaid", totalPaid, "₹");
       animateValue("dispTotalDue", totalBalance, "₹");
       
@@ -942,15 +952,19 @@
          document.getElementById('dispTotalVolume').innerText = `Total Vol: ${data.totalVolume}`;
       }
 
+      // Run Financial Advisor
       analyzeHealth(totalPaid, totalBalance, recoveryRate, data.history);
+
+      // Render Charts
       initCharts(data, recoveryRate);
     }
 
+    // Small animation for numbers
     function animateValue(id, value, prefix = "") {
       const obj = document.getElementById(id);
       obj.innerText = prefix + value.toLocaleString();
       obj.style.opacity = 0;
-      setTimeout(() => { obj.style.transition = "opacity 0.6s ease"; obj.style.opacity = 1; }, 50);
+      setTimeout(() => { obj.style.transition = "opacity 0.5s"; obj.style.opacity = 1; }, 50);
     }
 
     // --- 4. AI FINANCIAL ADVISOR LOGIC ---
@@ -964,11 +978,13 @@
       card.style.display = 'flex';
       scoreEl.innerText = rate;
 
+      // Reset Styles
       card.style.borderLeftColor = '';
       scoreEl.style.borderColor = '';
       badgeEl.style.background = '';
       badgeEl.style.color = '';
       
+      // Trend Analysis
       const dates = Object.keys(history || {});
       let trendTxt = "Data insufficient for trend analysis.";
       if(dates.length > 1) {
@@ -1009,16 +1025,16 @@
     function initCharts(data, rate) {
       const gridColor = 'rgba(255, 255, 255, 0.05)';
 
+      // 1. Line Chart (Real History)
       let labels = [];
       let historyData = [];
       
       if (data.history) {
         const sortedDates = Object.keys(data.history).sort();
-        labels = sortedDates.map(d => d.substring(5)); 
+        labels = sortedDates.map(d => d.substring(5)); // Remove Year
         historyData = sortedDates.map(d => data.history[d].paid);
       }
       
-      // 1. Line Chart
       const ctxRev = document.getElementById('chartRevenue').getContext('2d');
       if(charts.revenue) charts.revenue.destroy();
       
@@ -1065,7 +1081,7 @@
         }
       });
 
-      // 2. Doughnut
+      // 2. Doughnut (Status)
       const ctxStatus = document.getElementById('chartStatus').getContext('2d');
       if(charts.status) charts.status.destroy();
       charts.status = new Chart(ctxStatus, {
@@ -1084,12 +1100,12 @@
           maintainAspectRatio: false,
           cutout: '78%',
           plugins: { 
-            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, color: '#F8FAFC' } }
+            legend: { position: 'right', labels: { usePointStyle: true, color: '#F8FAFC' } }
           }
         }
       });
 
-      // 3. Bar (7-Day Volume)
+      // 3. Bar (Daily Activity from aggregated weekData)
       const ctxDaily = document.getElementById('chartDaily').getContext('2d');
       if(charts.daily) charts.daily.destroy();
       
@@ -1131,7 +1147,7 @@
         }
       });
 
-      // 4. Polar Area
+      // 4. Polar Area (Real Product Counts)
       const ctxProd = document.getElementById('chartProduct').getContext('2d');
       if(charts.prod) charts.prod.destroy();
       charts.prod = new Chart(ctxProd, {
@@ -1158,7 +1174,7 @@
         }
       });
 
-      // 5. Radar
+      // 5. Radar (Efficiency - Static for now as agent logic is complex)
       const ctxEff = document.getElementById('chartEfficiency').getContext('2d');
       if(charts.eff) charts.eff.destroy();
       charts.eff = new Chart(ctxEff, {
@@ -1214,7 +1230,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => console.log('SW registration skipped locally'));
+        navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
       });
     }
   </script>
