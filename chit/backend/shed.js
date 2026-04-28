@@ -375,6 +375,7 @@ module.exports = function(client, admin) {
             const todayStrCheck = getISTDateString(currentIST);
             if (memState.date !== todayStrCheck && memState.date !== null) {
                 console.log(`🔄 [SHED.JS] Day rollover detected (${todayStrCheck}). Re-evaluating Rest/Work schedule...`);
+                memState.date = todayStrCheck;
                 // By temporarily emptying the queue, we force prepareNextGroup() to process the new day properly.
                 memState.queue = []; 
                 memState.isCompleted = false;
