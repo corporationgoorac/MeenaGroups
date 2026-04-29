@@ -445,6 +445,7 @@
         
         // Pagination state
         let visibleCount = 15;
+        let lastCustomerString = ""; // FIREBASE UI OPTIMIZATION VAR
         
         // Modal & History Logic for Mobile Back Button
         function openModal() {
@@ -567,7 +568,13 @@
                     // Small delay to make the loading feel natural
                     setTimeout(() => {
                         visibleCount += 15;
+                        
+                        // Temporarily bypass optimization cache to allow pagination expansion
+                        const tempCache = lastCustomerString; 
+                        lastCustomerString = ""; 
                         renderDashboard();
+                        lastCustomerString = tempCache; 
+                        
                         loadingMore.style.display = 'none';
                     }, 400);
                 }
@@ -578,6 +585,15 @@
             if (!currentData || !currentData.pendingCustomers) return;
             
             const pending = currentData.pendingCustomers;
+
+            // FIREBASE UI OPTIMIZATION: Only rebuild the massive DOM if the array data actually changed.
+            // When Firebase triggers an update just because 'nextAllowedTime' changed, we save huge CPU resources.
+            const newCustomerString = JSON.stringify(pending);
+            if(newCustomerString === lastCustomerString) {
+                return; // The queue hasn't changed, skip DOM re-painting.
+            }
+            lastCustomerString = newCustomerString;
+
             document.getElementById('quick-stats').innerText = `Displaying ${Math.min(visibleCount, pending.length)} of ${pending.length} Pending Customers Queue`;
 
             // Slice the array based on the visibleCount for pagination
@@ -631,7 +647,7 @@
             
             // Apply logic to UI
             document.getElementById('ui-limit').innerText = maxLimit;
-            document.getElementById('ui-day-type').innerText = isSunday ? 'Sunday Booster Active 🚀' : 'Standard Business Day';
+            document.getElementById('ui-day-type').innerText = isSunday ? 'Sunday Weekend Booster 🚀 (10 per day)' : 'Standard Business Day (7 per day)';
             document.getElementById('ui-sent').innerText = sentToday;
             document.getElementById('ui-remaining').innerText = remaining > 0 ? remaining : 0;
             
@@ -645,22 +661,80 @@
             const isOverdue = currentData.nextAllowedTime && (now.getTime() - currentData.nextAllowedTime > fiveMinsInMillis);
             const hasPendingWork = sentToday < maxLimit && queueSize > 0;
 
-            // --- HUMAN-LIKE AGENT LOGIC ---
+            // --- MASSIVE HUMAN-LIKE AGENT VOCABULARY ARRAYS ---
+            const sleepQuotes = [
+                "Dreaming of 10x ROI 💰", "Catching Zzz's 😴", "Deep in REM sleep 🌙", "Counting sheep 🐑",
+                "Recharging batteries 🔋", "Out of Office till 6 AM 🚪", "Hibernating for the night 🐻",
+                "Snoring softly 💤", "System cooling down ❄️", "Dreaming of the next big sale 📈",
+                "Powering down auxiliary systems 🔌", "Midnight meditation 🧘", "Counting conversions in my sleep 💭",
+                "Night mode activated 🦇", "Resting my virtual eyes 😌", "Off the clock ⏰",
+                "Dreaming in JavaScript ✨", "Storing energy for tomorrow ⚡", "Do not disturb 🚫",
+                "Enjoying the digital silence 🤫", "Catching some virtual shut-eye 🛌", "Asleep at the terminal 💻"
+            ];
+
+            const quotaMetQuotes = [
+                "Agent clocked out. See you tomorrow! 🏖️", "Daily target absolutely crushed 🔨", "Mission accomplished for today 🎖️",
+                "Heading to the virtual pub 🍻", "High-fiving the database 🙌", "Time to celebrate today's wins 🎉",
+                "Pack it up, we are done here 🎒", "Kicking back and relaxing 🛋️", "Another successful day in the books 📚",
+                "Mic drop. I'm out. 🎤", "Quota demolished. Resting now. 💥", "Enjoying the post-work glow 🌅",
+                "Taking a well-deserved break 🛀", "My work here is done 🦸", "Clocking out with a smile 😊",
+                "Leaving the office early today 🏃", "Time to watch some virtual Netflix 🍿", "Sales target hit, powering down 📉"
+            ];
+
+            const depressedQuotes = [
+                "Ghosted by Node Server (>5m) 👻", "Feeling lonely in the cloud ☁️", "Did my backend leave me? 💔",
+                "Staring into the digital void 🕳️", "Waiting for a ping... any ping 🏓", "Is the Wi-Fi down? 📶",
+                "Severely depressed, server offline 🌧️", "Crying in binary 0️⃣1️⃣", "Where did everybody go? 🏜️",
+                "Connection lost. Heart broken. 💔", "Lost in the server graveyard 🪦", "Send help... or a heartbeat 🆘",
+                "I miss my Node.js companion 🥺", "Is it me? Did I do something wrong? 🥀", "Experiencing severe existential dread 🕸️",
+                "Please check the backend console 🖥️", "I'm giving up hope 📉", "Drifting in cyberspace 🌌",
+                "Hello? Is anybody out there? 🗣️", "My ping requests are echoing 🦇", "I think the engine died 🚗💨"
+            ];
+
+            const readyQuotes = [
+                "Cracking knuckles, ready to type ⌨️", "Sipping coffee, hyped up ☕", "Reviewing product catalog 📦",
+                "Waiting for the green light 🚦", "Locked and loaded 🔫", "Caffeine kicking in 🚀",
+                "Fingers hovering over the keyboard 🖐️", "Ready to deploy the next pitch 📝", "Target acquired 🎯",
+                "Pumped and ready to go 💪", "System running at 100% efficiency ⚙️", "Eager to make a sale 🛒",
+                "Polishing the sales copy ✨", "Warming up the servers 🔥", "Stretching virtual muscles 🤸",
+                "Scanning the customer database 🗃️", "Awaiting deployment orders 📡", "Let's make some magic happen 🎩",
+                "Vibe check passed, ready to send ✅", "Fully caffeinated and operational ☕🤖",
+                "Standing by for transmission 📻", "In the zone 🎧", "All systems nominal and ready 🟢"
+            ];
+
+            const draftingQuotes = [
+                "Drafting the perfect pitch ✍️", "Checking spelling and grammar 📖", "Adding emojis to the message 🎨",
+                "Personalizing the introduction 🤝", "Double-checking the promo code 🎫", "Polishing the Tamil translation 🗣️",
+                "Doing some quick conversion math 🧮", "Crafting a compelling hook 🪝", "Adjusting the tone of voice 🎭"
+            ];
+            const teaBreakQuotes = [
+                "Having a tea break ☕", "Stretching my legs 🚶", "Organizing my digital desk 🗄️", 
+                "Reading a marketing blog 📰", "Daydreaming about conversions 🌈", "Listening to lo-fi beats 🎧"
+            ];
+            const reviewingQuotes = [
+                "Reviewing customer file 📁", "Looking up purchase history 🔍", "Analyzing engagement metrics 📊",
+                "Cross-referencing the database 🖇️", "Evaluating lead temperature 🌡️", "Preparing the attachments 📎"
+            ];
+            const triggerQuotes = [
+                "Finger on the trigger 🎯", "Taking a deep breath 😮‍💨", "Countdown initiated ⏱️", 
+                "Preparing to hit send 📨", "Final system check 🛠️", "Brace for impact 💥"
+            ];
+
+            // --- EVALUATING CURRENT STATE ---
             
             // 1. Sleep Logic (10 PM to 6 AM IST)
             if (currentHour >= 22 || currentHour < 6) {
-                const sleepQuotes = ["Dreaming of 10x ROI 💰", "Catching Zzz's 😴", "Deep in REM sleep 🌙", "Counting sheep 🐑"];
                 const randomSleep = sleepQuotes[Math.floor(Date.now() / 3600000) % sleepQuotes.length]; // Rotates every hour
-                
                 nextTimeLabel.innerText = "Agent is sleeping 🌙";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = `${randomSleep} (Resumes 6 AM)`;
+                badge.innerText = `${randomSleep}`;
             } 
             // 2. Quota Met Logic
             else if (sentToday >= maxLimit) {
+                const randomQuota = quotaMetQuotes[Math.floor(Date.now() / 600000) % quotaMetQuotes.length]; // Rotates every 10 min
                 nextTimeLabel.innerText = "Target Achieved 🎯";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = "Agent clocked out. See you tomorrow!";
+                badge.innerText = randomQuota;
             }
             // 3. Pacing Active Logic (Time is in the future)
             else if (currentData.nextAllowedTime && currentData.nextAllowedTime > now.getTime()) {
@@ -676,12 +750,15 @@
                 hours = hours % 12 || 12;
                 mins = mins < 10 ? '0' + mins : mins;
                 
-                // Humanize the waiting period
+                // Humanize the waiting period with dynamically selected rotating text
                 const minsLeft = Math.ceil((currentData.nextAllowedTime - now.getTime()) / 60000);
-                let humanAction = "Drafting perfect pitch ✍️";
-                if (minsLeft > 25) humanAction = "Having a tea break ☕";
-                else if (minsLeft > 15) humanAction = "Reviewing customer file 📁";
-                else if (minsLeft <= 2) humanAction = "Finger on the trigger 🎯";
+                const rotationIndex = Math.floor(Date.now() / 180000); // Changes text every 3 mins to keep it fresh
+                
+                let humanAction = "";
+                if (minsLeft > 25) humanAction = teaBreakQuotes[rotationIndex % teaBreakQuotes.length];
+                else if (minsLeft > 15) humanAction = draftingQuotes[rotationIndex % draftingQuotes.length];
+                else if (minsLeft > 2) humanAction = reviewingQuotes[rotationIndex % reviewingQuotes.length];
+                else humanAction = triggerQuotes[rotationIndex % triggerQuotes.length];
                 
                 nextTimeLabel.innerText = `${hours}.${mins} ${ampm}`;
                 badge.className = "status-badge status-active";
@@ -689,18 +766,13 @@
             } 
             // 4. Agent Depressed Logic (Time crossed > 5 mins and it still has work to do)
             else if (isOverdue && hasPendingWork) {
+                const randomDepressed = depressedQuotes[Math.floor(Date.now() / 60000) % depressedQuotes.length]; // Fast rotation when broken
                 nextTimeLabel.innerText = "Agent is depressed 🌧️";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = "Ghosted by Node Server (>5m)";
+                badge.innerText = randomDepressed;
             }
             // 5. Idle/Ready Logic
             else {
-                const readyQuotes = [
-                    "Cracking knuckles, ready to type ⌨️", 
-                    "Sipping coffee, hyped up ☕", 
-                    "Reviewing product catalog 📦", 
-                    "Waiting for green light 🚦"
-                ];
                 // Rotates the quote every few minutes so it feels alive
                 const randomReady = readyQuotes[Math.floor(Date.now() / 120000) % readyQuotes.length]; 
                 
