@@ -6,24 +6,25 @@
     <title>Meena Marketing - Campaign Agent</title>
     
     <style>
-        /* YOUTUBE DARK THEME */
+        /* YOUTUBE DARK THEME (Updated to match index.html palette) */
         :root {
-            --yt-bg: #0f0f0f;
+            --yt-bg: #121212;
             --yt-card: #212121;
-            --yt-border: #3d3d3d;
-            --yt-text-primary: #f1f1f1;
+            --yt-border: #333333;
+            --yt-text-primary: #ffffff;
             --yt-text-secondary: #aaaaaa;
-            --meena-red: #ff0000;
+            --meena-red: #ff3333;
             --meena-white: #ffffff;
             --wa-green: #25D366;
             --call-blue: #3ea6ff;
+            --accent-color: #0056b3;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -31,11 +32,15 @@
             background-color: var(--yt-bg);
             color: var(--yt-text-primary);
             overflow-x: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         /* HEADER */
         header {
-            background-color: var(--yt-bg);
+            background-color: var(--yt-card);
             position: sticky;
             top: 0;
             z-index: 50;
@@ -43,7 +48,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 20px;
-            border-bottom: 1px solid var(--yt-border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
 
         .brand {
@@ -69,6 +74,8 @@
         /* GRID CONTENT */
         main {
             padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .dashboard-stats {
@@ -92,7 +99,7 @@
             flex-direction: column;
             gap: 12px;
             transition: transform 0.2s ease;
-            border: 1px solid transparent;
+            border: 1px solid var(--yt-border);
         }
         
         .card-header {
@@ -201,6 +208,7 @@
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
+            border: 1px solid var(--yt-border);
         }
 
         .stat-label { font-size: 12px; color: var(--yt-text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
@@ -215,7 +223,7 @@
             margin-top: 10px;
         }
         .status-active { background: rgba(37, 211, 102, 0.2); color: var(--wa-green); }
-        .status-sleep { background: rgba(255, 0, 0, 0.2); color: var(--meena-red); }
+        .status-sleep { background: rgba(255, 51, 51, 0.2); color: var(--meena-red); }
 
         .danger-zone {
             margin-top: 30px;
@@ -226,16 +234,24 @@
         .btn-danger {
             width: 100%;
             padding: 12px;
-            background: rgba(255, 0, 0, 0.1);
-            color: #ff4a4a;
-            border: 1px solid rgba(255, 0, 0, 0.3);
+            background: rgba(255, 51, 51, 0.1);
+            color: var(--meena-red);
+            border: 1px solid rgba(255, 51, 51, 0.3);
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 10px;
         }
-        .btn-danger:active { background: rgba(255, 0, 0, 0.2); }
+        .btn-danger:active { background: rgba(255, 51, 51, 0.2); }
 
+        /* Loader for pagination */
+        .loading-more {
+            text-align: center;
+            padding: 20px;
+            color: var(--yt-text-secondary);
+            font-size: 14px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -253,6 +269,7 @@
         <div class="dashboard-stats" id="quick-stats">Loading pending customers...</div>
         <div class="customer-grid" id="grid">
             </div>
+        <div class="loading-more" id="loading-more">Loading more customers...</div>
     </main>
 
     <div class="overlay" id="overlay"></div>
@@ -281,21 +298,27 @@
             </div>
 
             <div class="danger-zone">
-                <div class="stat-label" style="color: #ff4a4a;">Admin Actions</div>
+                <div class="stat-label" style="color: #ff3333;">Admin Actions</div>
                 <button class="btn-danger" id="btn-reset-graveyard">♻️ Reset Graveyard List (<span id="ui-grave-count">0</span>)</button>
                 <button class="btn-danger" id="btn-delete-doc">🗑️ Delete Campaign Data</button>
             </div>
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script>
+    <script type="module">
+        import { db } from './config.js';
+        import { doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
         // DOM Elements
         const grid = document.getElementById('grid');
         const modal = document.getElementById('modal');
         const overlay = document.getElementById('overlay');
         const btnOpen = document.getElementById('btn-open-modal');
         const btnClose = document.getElementById('btn-close-modal');
+        const loadingMore = document.getElementById('loading-more');
+        
+        // Pagination state
+        let visibleCount = 15;
         
         // Modal & History Logic for Mobile Back Button
         function openModal() {
@@ -323,13 +346,12 @@
             if (!e.state?.modalOpen) closeModal();
         });
 
-        // Firebase Sync Logic
-        // Assumes `db` is defined in config.js (e.g. const db = firebase.firestore())
-        const docRef = db.collection('marketing_messages').doc('campaign_data');
+        // Firebase Sync Logic (v9 Modular)
+        const docRef = doc(db, 'marketing_messages', 'campaign_data');
         let currentData = null;
 
-        docRef.onSnapshot((snap) => {
-            if (snap.exists) {
+        onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
                 currentData = snap.data();
                 renderDashboard();
                 renderModalStats();
@@ -341,13 +363,35 @@
             }
         });
 
+        // Scroll Event Listener for Pagination
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            
+            // Check if we hit the bottom of the page
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                if (currentData && currentData.pendingCustomers && visibleCount < currentData.pendingCustomers.length) {
+                    loadingMore.style.display = 'block';
+                    
+                    // Small delay to make the loading feel natural
+                    setTimeout(() => {
+                        visibleCount += 15;
+                        renderDashboard();
+                        loadingMore.style.display = 'none';
+                    }, 400);
+                }
+            }
+        });
+
         function renderDashboard() {
             if (!currentData || !currentData.pendingCustomers) return;
             
             const pending = currentData.pendingCustomers;
-            document.getElementById('quick-stats').innerText = `Displaying ${pending.length} Pending Customers Queue`;
+            document.getElementById('quick-stats').innerText = `Displaying ${Math.min(visibleCount, pending.length)} of ${pending.length} Pending Customers Queue`;
 
-            grid.innerHTML = pending.map((customer, index) => {
+            // Slice the array based on the visibleCount for pagination
+            const paginatedCustomers = pending.slice(0, visibleCount);
+
+            grid.innerHTML = paginatedCustomers.map((customer, index) => {
                 // Safeguard against old string formats
                 const name = typeof customer === 'string' ? 'Valued Customer' : (customer.name || 'Valued Customer');
                 const phone = typeof customer === 'string' ? customer : customer.phone;
@@ -356,7 +400,7 @@
                 const cleanPhone = phone.replace(/[^0-9]/g, '');
                 
                 return `
-                <div class="card" style="animation: fadeIn 0.3s ease ${index * 0.01}s both;">
+                <div class="card" style="animation: fadeIn 0.3s ease ${index % 15 * 0.02}s both;">
                     <div class="card-header">
                         <div>
                             <div class="customer-name">${name}</div>
@@ -435,11 +479,11 @@
             document.getElementById('ui-grave-count').innerText = graves;
         }
 
-        // --- ADMIN ACTIONS ---
+        // --- ADMIN ACTIONS (v9 Modular) ---
         document.getElementById('btn-reset-graveyard').addEventListener('click', async () => {
             if(confirm("Are you sure you want to clear the graveyard? Invalid numbers will be retried.")) {
                 try {
-                    await docRef.update({ invalidNumbers: [] });
+                    await updateDoc(docRef, { invalidNumbers: [] });
                     alert("Graveyard cleared.");
                 } catch (e) {
                     alert("Error clearing graveyard: " + e.message);
@@ -450,7 +494,7 @@
         document.getElementById('btn-delete-doc').addEventListener('click', async () => {
             if(confirm("⚠️ DANGER! This will wipe the current cycle entirely. The Node engine will re-fetch the last 200 bills on next run. Proceed?")) {
                 try {
-                    await docRef.delete();
+                    await deleteDoc(docRef);
                     closeModal();
                 } catch (e) {
                     alert("Error deleting document: " + e.message);
