@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meena Marketing - Campaign Agent</title>
+    
+    <style>
+        /* YOUTUBE DARK THEME */
+        :root {
+            --yt-bg: #0f0f0f;
+            --yt-card: #212121;
+            --yt-border: #3d3d3d;
+            --yt-text-primary: #f1f1f1;
+            --yt-text-secondary: #aaaaaa;
+            --meena-red: #ff0000;
+            --meena-white: #ffffff;
+            --wa-green: #25D366;
+            --call-blue: #3ea6ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--yt-bg);
+            color: var(--yt-text-primary);
+            overflow-x: hidden;
+        }
+
+        /* HEADER */
+        header {
+            background-color: var(--yt-bg);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--yt-border);
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+        }
+        .brand .meena { color: var(--meena-red); }
+        .brand .marketing { color: var(--meena-white); }
+
+        .server-icon {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .server-icon:active { background: var(--yt-border); }
+        .server-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
+
+        /* GRID CONTENT */
+        main {
+            padding: 20px;
+        }
+
+        .dashboard-stats {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--yt-text-secondary);
+        }
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        /* CARDS */
+        .card {
+            background-color: var(--yt-card);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s ease;
+            border: 1px solid transparent;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .customer-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--yt-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .customer-phone {
+            font-size: 14px;
+            color: var(--yt-text-secondary);
+            margin-top: 4px;
+            font-family: monospace;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            border: none;
+        }
+        .btn:active { opacity: 0.7; }
+
+        .btn-call { background-color: rgba(62, 166, 255, 0.15); color: var(--call-blue); }
+        .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
+
+        .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
+        .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
+
+        /* SLIDE MODAL */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100%;
+            background-color: var(--yt-card);
+            z-index: 101;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+            transition: right 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .overlay.active { opacity: 1; visibility: visible; }
+        .modal.active { right: 0; }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--yt-border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--yt-text-primary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .stat-box {
+            background-color: var(--yt-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-label { font-size: 12px; color: var(--yt-text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--yt-text-primary); }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status-active { background: rgba(37, 211, 102, 0.2); color: var(--wa-green); }
+        .status-sleep { background: rgba(255, 0, 0, 0.2); color: var(--meena-red); }
+
+        .danger-zone {
+            margin-top: 30px;
+            border-top: 1px solid var(--yt-border);
+            padding-top: 20px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff4a4a;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-danger:active { background: rgba(255, 0, 0, 0.2); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <span class="meena">Meena</span> <span class="marketing">Marketing</span>
+        </div>
+        <div class="server-icon" id="btn-open-modal">
+            <svg viewBox="0 0 24 24"><path d="M4 11h16V5H4v6zm2-4h2v2H6V7zm-2 6h16v6H4v-6zm2 2h2v2H6v-2z"></path></svg>
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard-stats" id="quick-stats">Loading pending customers...</div>
+        <div class="customer-grid" id="grid">
+            </div>
+    </main>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="modal">
+        <div class="modal-header">
+            <button class="back-btn" id="btn-close-modal">&larr;</button>
+            <h2 style="font-size: 18px;">Server Controller</h2>
+        </div>
+        <div class="modal-content">
+            
+            <div class="stat-box">
+                <div class="stat-label">Daily Limit</div>
+                <div class="stat-value" id="ui-limit">--</div>
+                <div style="font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px;" id="ui-day-type"></div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Messages Today</div>
+                <div class="stat-value"><span id="ui-sent">0</span> <span style="font-size:16px; color:var(--yt-text-secondary)">/ <span id="ui-remaining">0</span> Remaining</span></div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Agent Status</div>
+                <div class="stat-value" id="ui-next-time" style="font-size: 20px;">--</div>
+                <div id="ui-badge" class="status-badge status-active">Syncing...</div>
+            </div>
+
+            <div class="danger-zone">
+                <div class="stat-label" style="color: #ff4a4a;">Admin Actions</div>
+                <button class="btn-danger" id="btn-reset-graveyard">♻️ Reset Graveyard List (<span id="ui-grave-count">0</span>)</button>
+                <button class="btn-danger" id="btn-delete-doc">🗑️ Delete Campaign Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // DOM Elements
+        const grid = document.getElementById('grid');
+        const modal = document.getElementById('modal');
+        const overlay = document.getElementById('overlay');
+        const btnOpen = document.getElementById('btn-open-modal');
+        const btnClose = document.getElementById('btn-close-modal');
+        
+        // Modal & History Logic for Mobile Back Button
+        function openModal() {
+            modal.classList.add('active');
+            overlay.classList.add('active');
+            history.pushState({ modalOpen: true }, '');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        btnOpen.addEventListener('click', openModal);
+        btnClose.addEventListener('click', () => {
+            if (history.state?.modalOpen) history.back();
+            else closeModal();
+        });
+        overlay.addEventListener('click', () => {
+            if (history.state?.modalOpen) history.back();
+            else closeModal();
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (!e.state?.modalOpen) closeModal();
+        });
+
+        // Firebase Sync Logic
+        // Assumes `db` is defined in config.js (e.g. const db = firebase.firestore())
+        const docRef = db.collection('marketing_messages').doc('campaign_data');
+        let currentData = null;
+
+        docRef.onSnapshot((snap) => {
+            if (snap.exists) {
+                currentData = snap.data();
+                renderDashboard();
+                renderModalStats();
+            } else {
+                currentData = null;
+                grid.innerHTML = '<div style="color: var(--yt-text-secondary);">No active campaign found. Agent will build this when the node script runs.</div>';
+                document.getElementById('quick-stats').innerText = "Database is empty.";
+                renderModalStats();
+            }
+        });
+
+        function renderDashboard() {
+            if (!currentData || !currentData.pendingCustomers) return;
+            
+            const pending = currentData.pendingCustomers;
+            document.getElementById('quick-stats').innerText = `Displaying ${pending.length} Pending Customers Queue`;
+
+            grid.innerHTML = pending.map((customer, index) => {
+                // Safeguard against old string formats
+                const name = typeof customer === 'string' ? 'Valued Customer' : (customer.name || 'Valued Customer');
+                const phone = typeof customer === 'string' ? customer : customer.phone;
+                
+                // Format phone for links
+                const cleanPhone = phone.replace(/[^0-9]/g, '');
+                
+                return `
+                <div class="card" style="animation: fadeIn 0.3s ease ${index * 0.01}s both;">
+                    <div class="card-header">
+                        <div>
+                            <div class="customer-name">${name}</div>
+                            <div class="customer-phone">${phone}</div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <a href="tel:+${cleanPhone}" class="btn btn-call">
+                            <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
+                            Call
+                        </a>
+                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="btn btn-wa">
+                            <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderModalStats() {
+            if (!currentData) return;
+
+            // Date and Time Logic
+            const now = new Date();
+            const currentHour = now.getHours();
+            const isSunday = now.getDay() === 0;
+            const maxLimit = isSunday ? 10 : 7;
+            
+            const sentToday = currentData.messagesSentToday || 0;
+            const remaining = maxLimit - sentToday;
+            
+            // Apply logic to UI
+            document.getElementById('ui-limit').innerText = maxLimit;
+            document.getElementById('ui-day-type').innerText = isSunday ? 'Sunday Booster Active 🚀' : 'Standard Business Day';
+            document.getElementById('ui-sent').innerText = sentToday;
+            document.getElementById('ui-remaining').innerText = remaining > 0 ? remaining : 0;
+            
+            const badge = document.getElementById('ui-badge');
+            const nextTimeLabel = document.getElementById('ui-next-time');
+
+            // Sleep Logic (10 PM to 6 AM)
+            if (currentHour >= 22 || currentHour < 6) {
+                nextTimeLabel.innerText = "Agent is sleeping 🌙";
+                badge.className = "status-badge status-sleep";
+                badge.innerText = "Sleeping (Resumes 6 AM)";
+            } 
+            // Quota Met Logic
+            else if (sentToday >= maxLimit) {
+                nextTimeLabel.innerText = "Quota Reached 🔒";
+                badge.className = "status-badge status-sleep";
+                badge.innerText = "Resting until tomorrow";
+            }
+            // Pacing Active Logic
+            else if (currentData.nextAllowedTime && currentData.nextAllowedTime > now.getTime()) {
+                const nextDate = new Date(currentData.nextAllowedTime);
+                let hours = nextDate.getHours();
+                let mins = nextDate.getMinutes();
+                const ampm = hours >= 12 ? 'Pm' : 'Am';
+                hours = hours % 12 || 12;
+                mins = mins < 10 ? '0' + mins : mins;
+                
+                nextTimeLabel.innerText = `${hours}.${mins} ${ampm}`;
+                badge.className = "status-badge status-active";
+                badge.innerText = "Pacing Active";
+            } 
+            // Idle/Ready Logic
+            else {
+                nextTimeLabel.innerText = "Ready to Send ⚡";
+                badge.className = "status-badge status-active";
+                badge.innerText = "Processing Queue";
+            }
+
+            // Graveyard stats
+            const graves = currentData.invalidNumbers ? currentData.invalidNumbers.length : 0;
+            document.getElementById('ui-grave-count').innerText = graves;
+        }
+
+        // --- ADMIN ACTIONS ---
+        document.getElementById('btn-reset-graveyard').addEventListener('click', async () => {
+            if(confirm("Are you sure you want to clear the graveyard? Invalid numbers will be retried.")) {
+                try {
+                    await docRef.update({ invalidNumbers: [] });
+                    alert("Graveyard cleared.");
+                } catch (e) {
+                    alert("Error clearing graveyard: " + e.message);
+                }
+            }
+        });
+
+        document.getElementById('btn-delete-doc').addEventListener('click', async () => {
+            if(confirm("⚠️ DANGER! This will wipe the current cycle entirely. The Node engine will re-fetch the last 200 bills on next run. Proceed?")) {
+                try {
+                    await docRef.delete();
+                    closeModal();
+                } catch (e) {
+                    alert("Error deleting document: " + e.message);
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
