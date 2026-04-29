@@ -603,10 +603,13 @@
         function renderModalStats() {
             if (!currentData) return;
 
-            // Date and Time Logic
+            // Date and Time Logic - Enforcing Indian Standard Time (IST)
             const now = new Date();
-            const currentHour = now.getHours();
-            const isSunday = now.getDay() === 0;
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const istTime = new Date(utc + (330 * 60000)); // IST is UTC+5:30 (330 minutes)
+            
+            const currentHour = istTime.getHours();
+            const isSunday = istTime.getDay() === 0;
             const maxLimit = isSunday ? 10 : 7;
             
             const sentToday = currentData.messagesSentToday || 0;
@@ -621,7 +624,14 @@
             const badge = document.getElementById('ui-badge');
             const nextTimeLabel = document.getElementById('ui-next-time');
 
-            // Sleep Logic (10 PM to 6 AM)
+            // 5 minutes in milliseconds
+            const fiveMinsInMillis = 5 * 60 * 1000;
+            
+            // Check if Node server missed its mark by > 5 mins
+            const isOverdue = currentData.nextAllowedTime && (now.getTime() - currentData.nextAllowedTime > fiveMinsInMillis);
+            const hasPendingWork = sentToday < maxLimit && currentData.pendingCustomers && currentData.pendingCustomers.length > 0;
+
+            // Sleep Logic (10 PM to 6 AM IST)
             if (currentHour >= 22 || currentHour < 6) {
                 nextTimeLabel.innerText = "Agent is sleeping 🌙";
                 badge.className = "status-badge status-sleep";
@@ -633,11 +643,16 @@
                 badge.className = "status-badge status-sleep";
                 badge.innerText = "Resting until tomorrow";
             }
-            // Pacing Active Logic
+            // Pacing Active Logic (Time is in the future)
             else if (currentData.nextAllowedTime && currentData.nextAllowedTime > now.getTime()) {
                 const nextDate = new Date(currentData.nextAllowedTime);
-                let hours = nextDate.getHours();
-                let mins = nextDate.getMinutes();
+                
+                // Convert stored nextAllowedTime to IST for display
+                const nextDateUtc = nextDate.getTime() + (nextDate.getTimezoneOffset() * 60000);
+                const nextDateIst = new Date(nextDateUtc + (330 * 60000));
+                
+                let hours = nextDateIst.getHours();
+                let mins = nextDateIst.getMinutes();
                 const ampm = hours >= 12 ? 'Pm' : 'Am';
                 hours = hours % 12 || 12;
                 mins = mins < 10 ? '0' + mins : mins;
@@ -646,6 +661,12 @@
                 badge.className = "status-badge status-active";
                 badge.innerText = "Pacing Active";
             } 
+            // Agent Depressed Logic (Time crossed > 5 mins and it still has work to do)
+            else if (isOverdue && hasPendingWork) {
+                nextTimeLabel.innerText = "Agent is depressed 🌧️";
+                badge.className = "status-badge status-sleep";
+                badge.innerText = "Node Server Offline (>5m)";
+            }
             // Idle/Ready Logic
             else {
                 nextTimeLabel.innerText = "Ready to Send ⚡";
