@@ -37,6 +37,11 @@
             -ms-user-select: none;
             user-select: none;
         }
+        
+        /* Stop main page scrolling when modals are open */
+        body.no-scroll {
+            overflow: hidden !important;
+        }
 
         /* HEADER */
         header {
@@ -49,6 +54,34 @@
             align-items: center;
             padding: 12px 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Professional Back Arrow for History Page */
+        .header-back-btn {
+            color: var(--yt-text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            margin-right: 12px;
+            margin-left: -8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .header-back-btn:active {
+            background: var(--yt-border);
+        }
+        .header-back-btn svg {
+            fill: currentColor;
+            width: 26px;
+            height: 26px;
         }
 
         .brand {
@@ -252,13 +285,79 @@
             font-size: 14px;
             display: none;
         }
+
+        /* CUSTOM MINI-MODAL (Replaces system Confirm/Alert) */
+        .dialog-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dialog-overlay.active {
+            opacity: 1; visibility: visible;
+        }
+        .dialog-box {
+            background: var(--yt-card);
+            border: 1px solid var(--yt-border);
+            border-radius: 12px;
+            width: 85%;
+            max-width: 350px;
+            padding: 24px;
+            transform: scale(0.9);
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .dialog-overlay.active .dialog-box {
+            transform: scale(1);
+        }
+        .dialog-text {
+            font-size: 16px;
+            color: var(--yt-text-primary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .dialog-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .dialog-btn:active { opacity: 0.7; }
+        .dialog-btn-cancel {
+            background: transparent;
+            color: var(--yt-text-secondary);
+        }
+        .dialog-btn-confirm {
+            background: rgba(255, 51, 51, 0.1);
+            color: var(--meena-red);
+            border: 1px solid rgba(255, 51, 51, 0.3);
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="brand">
-            <span class="meena">Meena</span> <span class="marketing">Marketing</span>
+        <div class="header-left">
+            <a href="history.html" class="header-back-btn">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </a>
+            <div class="brand">
+                <span class="meena">Meena</span> <span class="marketing">Marketing</span>
+            </div>
         </div>
         <div class="server-icon" id="btn-open-modal">
             <svg viewBox="0 0 24 24"><path d="M4 11h16V5H4v6zm2-4h2v2H6V7zm-2 6h16v6H4v-6zm2 2h2v2H6v-2z"></path></svg>
@@ -305,6 +404,16 @@
         </div>
     </div>
 
+    <div class="dialog-overlay" id="dialog-overlay">
+        <div class="dialog-box">
+            <div class="dialog-text" id="dialog-text">Are you sure?</div>
+            <div class="dialog-buttons">
+                <button class="dialog-btn dialog-btn-cancel" id="dialog-btn-cancel">Cancel</button>
+                <button class="dialog-btn dialog-btn-confirm" id="dialog-btn-confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { db } from './config.js';
         import { doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -317,6 +426,13 @@
         const btnClose = document.getElementById('btn-close-modal');
         const loadingMore = document.getElementById('loading-more');
         
+        // Custom Dialog Elements
+        const dialogOverlay = document.getElementById('dialog-overlay');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCancel = document.getElementById('dialog-btn-cancel');
+        const dialogConfirm = document.getElementById('dialog-btn-confirm');
+        let dialogCallback = null;
+        
         // Pagination state
         let visibleCount = 15;
         
@@ -324,14 +440,66 @@
         function openModal() {
             modal.classList.add('active');
             overlay.classList.add('active');
+            document.body.classList.add('no-scroll'); // Prevent main page scrolling
             history.pushState({ modalOpen: true }, '');
         }
 
         function closeModal() {
             modal.classList.remove('active');
             overlay.classList.remove('active');
+            // Remove no-scroll if custom dialog is also not open
+            if (!dialogOverlay.classList.contains('active')) {
+                document.body.classList.remove('no-scroll');
+            }
         }
 
+        // Custom Dialog Logic replacing system confirm/alert
+        function showCustomDialog(message, isAlert, callback) {
+            dialogText.innerHTML = message;
+            dialogCallback = callback;
+            
+            if (isAlert) {
+                dialogCancel.style.display = 'none';
+                dialogConfirm.innerText = 'OK';
+                dialogConfirm.style.color = 'var(--call-blue)';
+                dialogConfirm.style.borderColor = 'rgba(62, 166, 255, 0.3)';
+                dialogConfirm.style.background = 'rgba(62, 166, 255, 0.1)';
+            } else {
+                dialogCancel.style.display = 'block';
+                dialogConfirm.innerText = 'Confirm';
+                dialogConfirm.style.color = 'var(--meena-red)';
+                dialogConfirm.style.borderColor = 'rgba(255, 51, 51, 0.3)';
+                dialogConfirm.style.background = 'rgba(255, 51, 51, 0.1)';
+            }
+
+            dialogOverlay.classList.add('active');
+            document.body.classList.add('no-scroll'); // Prevent background scrolling
+            
+            // Push history state to support hardware back button for the dialog
+            history.pushState({ dialogOpen: true }, '');
+        }
+
+        function closeCustomDialog(isConfirmed) {
+            dialogOverlay.classList.remove('active');
+            
+            // Remove no-scroll only if side modal is also closed
+            if (!modal.classList.contains('active')) {
+                document.body.classList.remove('no-scroll');
+            }
+            
+            // Pop the specific state if it exists
+            if (history.state && history.state.dialogOpen) {
+                history.back();
+            }
+            
+            if (dialogCallback) dialogCallback(isConfirmed);
+            dialogCallback = null;
+        }
+
+        dialogCancel.addEventListener('click', () => closeCustomDialog(false));
+        dialogConfirm.addEventListener('click', () => closeCustomDialog(true));
+        
+        // Listeners for side modal
         btnOpen.addEventListener('click', openModal);
         btnClose.addEventListener('click', () => {
             if (history.state?.modalOpen) history.back();
@@ -342,8 +510,19 @@
             else closeModal();
         });
 
+        // Universal Popstate listener overriding previous basic one
         window.addEventListener('popstate', (e) => {
-            if (!e.state?.modalOpen) closeModal();
+            // First check if the custom dialog is open and close it
+            if (dialogOverlay.classList.contains('active')) {
+                dialogOverlay.classList.remove('active');
+                if (!modal.classList.contains('active')) document.body.classList.remove('no-scroll');
+                if (dialogCallback) dialogCallback(false);
+                dialogCallback = null;
+            } 
+            // If custom dialog wasn't open, check if modal needs closing
+            else if (!e.state?.modalOpen && modal.classList.contains('active')) {
+                closeModal();
+            }
         });
 
         // Firebase Sync Logic (v9 Modular)
@@ -479,27 +658,31 @@
             document.getElementById('ui-grave-count').innerText = graves;
         }
 
-        // --- ADMIN ACTIONS (v9 Modular) ---
+        // --- ADMIN ACTIONS (v9 Modular with Custom Modals) ---
         document.getElementById('btn-reset-graveyard').addEventListener('click', async () => {
-            if(confirm("Are you sure you want to clear the graveyard? Invalid numbers will be retried.")) {
-                try {
-                    await updateDoc(docRef, { invalidNumbers: [] });
-                    alert("Graveyard cleared.");
-                } catch (e) {
-                    alert("Error clearing graveyard: " + e.message);
+            showCustomDialog("Are you sure you want to clear the graveyard? Invalid numbers will be retried.", false, async (confirmed) => {
+                if (confirmed) {
+                    try {
+                        await updateDoc(docRef, { invalidNumbers: [] });
+                        showCustomDialog("Graveyard cleared.", true);
+                    } catch (e) {
+                        showCustomDialog("Error clearing graveyard: " + e.message, true);
+                    }
                 }
-            }
+            });
         });
 
         document.getElementById('btn-delete-doc').addEventListener('click', async () => {
-            if(confirm("⚠️ DANGER! This will wipe the current cycle entirely. The Node engine will re-fetch the last 200 bills on next run. Proceed?")) {
-                try {
-                    await deleteDoc(docRef);
-                    closeModal();
-                } catch (e) {
-                    alert("Error deleting document: " + e.message);
+            showCustomDialog("⚠️ DANGER!<br><br>This will wipe the current cycle entirely. The Node engine will re-fetch the last 200 bills on next run. Proceed?", false, async (confirmed) => {
+                if (confirmed) {
+                    try {
+                        await deleteDoc(docRef);
+                        closeModal();
+                    } catch (e) {
+                        showCustomDialog("Error deleting document: " + e.message, true);
+                    }
                 }
-            }
+            });
         });
 
     </script>
