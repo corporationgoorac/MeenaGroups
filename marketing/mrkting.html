@@ -352,7 +352,7 @@
 
     <header>
         <div class="header-left">
-            <a href="history.html" class="header-back-btn">
+            <a href="history.html" class="header-back-btn" id="smart-back-btn">
                 <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
             </a>
             <div class="brand">
@@ -418,6 +418,16 @@
         import { db } from './config.js';
         import { doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+        // SMART BACK BUTTON LOGIC
+        document.getElementById('smart-back-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+                window.history.back(); // Go back to exactly where they came from
+            } else {
+                window.location.href = 'index.html'; // Fallback to home if directly opened
+            }
+        });
+
         // DOM Elements
         const grid = document.getElementById('grid');
         const modal = document.getElementById('modal');
@@ -442,6 +452,9 @@
             overlay.classList.add('active');
             document.body.classList.add('no-scroll'); // Prevent main page scrolling
             history.pushState({ modalOpen: true }, '');
+            
+            // Re-render stats immediately when opened to show fresh human mood quotes
+            renderModalStats();
         }
 
         function closeModal() {
@@ -614,6 +627,7 @@
             
             const sentToday = currentData.messagesSentToday || 0;
             const remaining = maxLimit - sentToday;
+            const queueSize = currentData.pendingCustomers ? currentData.pendingCustomers.length : 0;
             
             // Apply logic to UI
             document.getElementById('ui-limit').innerText = maxLimit;
@@ -629,21 +643,26 @@
             
             // Check if Node server missed its mark by > 5 mins
             const isOverdue = currentData.nextAllowedTime && (now.getTime() - currentData.nextAllowedTime > fiveMinsInMillis);
-            const hasPendingWork = sentToday < maxLimit && currentData.pendingCustomers && currentData.pendingCustomers.length > 0;
+            const hasPendingWork = sentToday < maxLimit && queueSize > 0;
 
-            // Sleep Logic (10 PM to 6 AM IST)
+            // --- HUMAN-LIKE AGENT LOGIC ---
+            
+            // 1. Sleep Logic (10 PM to 6 AM IST)
             if (currentHour >= 22 || currentHour < 6) {
+                const sleepQuotes = ["Dreaming of 10x ROI 💰", "Catching Zzz's 😴", "Deep in REM sleep 🌙", "Counting sheep 🐑"];
+                const randomSleep = sleepQuotes[Math.floor(Date.now() / 3600000) % sleepQuotes.length]; // Rotates every hour
+                
                 nextTimeLabel.innerText = "Agent is sleeping 🌙";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = "Sleeping (Resumes 6 AM)";
+                badge.innerText = `${randomSleep} (Resumes 6 AM)`;
             } 
-            // Quota Met Logic
+            // 2. Quota Met Logic
             else if (sentToday >= maxLimit) {
-                nextTimeLabel.innerText = "Quota Reached 🔒";
+                nextTimeLabel.innerText = "Target Achieved 🎯";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = "Resting until tomorrow";
+                badge.innerText = "Agent clocked out. See you tomorrow!";
             }
-            // Pacing Active Logic (Time is in the future)
+            // 3. Pacing Active Logic (Time is in the future)
             else if (currentData.nextAllowedTime && currentData.nextAllowedTime > now.getTime()) {
                 const nextDate = new Date(currentData.nextAllowedTime);
                 
@@ -657,21 +676,44 @@
                 hours = hours % 12 || 12;
                 mins = mins < 10 ? '0' + mins : mins;
                 
+                // Humanize the waiting period
+                const minsLeft = Math.ceil((currentData.nextAllowedTime - now.getTime()) / 60000);
+                let humanAction = "Drafting perfect pitch ✍️";
+                if (minsLeft > 25) humanAction = "Having a tea break ☕";
+                else if (minsLeft > 15) humanAction = "Reviewing customer file 📁";
+                else if (minsLeft <= 2) humanAction = "Finger on the trigger 🎯";
+                
                 nextTimeLabel.innerText = `${hours}.${mins} ${ampm}`;
                 badge.className = "status-badge status-active";
-                badge.innerText = "Pacing Active";
+                badge.innerText = humanAction;
             } 
-            // Agent Depressed Logic (Time crossed > 5 mins and it still has work to do)
+            // 4. Agent Depressed Logic (Time crossed > 5 mins and it still has work to do)
             else if (isOverdue && hasPendingWork) {
                 nextTimeLabel.innerText = "Agent is depressed 🌧️";
                 badge.className = "status-badge status-sleep";
-                badge.innerText = "Node Server Offline (>5m)";
+                badge.innerText = "Ghosted by Node Server (>5m)";
             }
-            // Idle/Ready Logic
+            // 5. Idle/Ready Logic
             else {
-                nextTimeLabel.innerText = "Ready to Send ⚡";
+                const readyQuotes = [
+                    "Cracking knuckles, ready to type ⌨️", 
+                    "Sipping coffee, hyped up ☕", 
+                    "Reviewing product catalog 📦", 
+                    "Waiting for green light 🚦"
+                ];
+                // Rotates the quote every few minutes so it feels alive
+                const randomReady = readyQuotes[Math.floor(Date.now() / 120000) % readyQuotes.length]; 
+                
+                let moodLabel = "Agent is pumped up ⚡";
+                if (queueSize > 150) {
+                    moodLabel = "Agent is sweating 😰"; // Dynamic reaction to large queues
+                } else if (queueSize < 5) {
+                    moodLabel = "Almost done for the day 🏖️"; // Dynamic reaction to small queues
+                }
+
+                nextTimeLabel.innerText = moodLabel;
                 badge.className = "status-badge status-active";
-                badge.innerText = "Processing Queue";
+                badge.innerText = randomReady;
             }
 
             // Graveyard stats
