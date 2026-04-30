@@ -185,7 +185,7 @@ module.exports = (client, db) => {
                 console.log("📥 [Marketing] 30-Day Cycle Started: Pulling last 200 bills from Firebase...");
                 
                 // FIREBASE OPTIMIZATION: Exactly 200 reads, performed ONLY once a month.
-                const sellingSnap = await db.collection('sellings').orderBy('date', 'desc').limit(200).get();
+                const sellingSnap = await db.collection('sellings').orderBy('date', 'asc').limit(350).get();
                 const uniqueCustomers = new Map();
 
                 // Deduplication
