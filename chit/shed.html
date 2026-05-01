@@ -97,9 +97,10 @@
     }
 
     .refresh-btn {
+      display: none !important; /* Hidden per advanced UI request, relies on load triggers */
       background: var(--brand-accent-light); color: var(--brand-accent); border: none;
       padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer;
-      display: flex; align-items: center; gap: 6px; transition: 0.2s;
+      align-items: center; gap: 6px; transition: 0.2s;
     }
     .refresh-btn:active { transform: scale(0.9); }
     .refresh-btn svg { width: 14px; height: 14px; fill: currentColor; }
@@ -209,7 +210,7 @@
     
     <div class="status-card" id="agent-card">
       <div class="agent-mood-title" id="ui-day-type">Work Day System Active</div>
-      <div class="agent-mood-text" id="ui-mood">Syncing Engine...</div>
+      <div class="agent-mood-text" id="ui-mood">Connecting...</div>
       <div class="agent-timer" id="ui-timer">--:--</div>
     </div>
 
@@ -268,7 +269,7 @@
 
   <script type="module">
     import { db } from './config.js';
-    import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { doc, getDocFromServer, updateDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     // CORE CONFIG
     const docRef = doc(db, 'system', 'scheduler_state');
@@ -280,13 +281,13 @@
     const depressedQuotes = ["Ghosted by Node Server 👻", "Connection lost to Engine 💔", "Staring into the void 🕳️"];
     const sleepQuotes = ["System cooling down ❄️", "Deep in REM sleep 🌙", "Out of Office till 6 AM 🚪"];
 
-    // 1 READ ON LOAD - Fetch State
+    // 1 READ ON LOAD - Fetch State directly from server bypass cache
     window.fetchServerState = async function(isManual = false) {
       if(isManual) {
-        document.getElementById('ui-mood').innerText = "Syncing Engine...";
+        document.getElementById('ui-mood').innerText = "Querying Server...";
       }
       try {
-        const snap = await getDoc(docRef);
+        const snap = await getDocFromServer(docRef);
         if (snap.exists()) {
           currentState = snap.data();
           renderDashboard();
@@ -295,11 +296,11 @@
         }
       } catch (e) {
         console.error("Fetch Error:", e);
-        document.getElementById('ui-mood').innerText = "Sync Failed ❌";
+        document.getElementById('ui-mood').innerText = "Connection Failed ❌";
       }
     };
 
-    // Load instantly on boot (1 Read)
+    // Load instantly on boot (1 Read directly to Cloud)
     fetchServerState();
 
     function renderDashboard() {
