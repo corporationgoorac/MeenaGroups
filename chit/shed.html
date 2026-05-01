@@ -172,6 +172,7 @@
       background: var(--surface-hover); border: 1px solid var(--border-color); border-radius: 12px; 
       padding: 8px 12px; font-family: monospace; font-size: 13px; font-weight: 600; color: var(--text-main);
       display: flex; align-items: center; gap: 6px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; /* EDGE CASE FIX: Prevents long numbers from breaking layout */
     }
     .id-pill.success { background: var(--success-light); color: #065f46; border-color: var(--success-color); }
     @media (prefers-color-scheme: dark) { .id-pill.success { color: var(--success-color); } }
@@ -327,11 +328,15 @@
     function renderDashboard() {
         if (!currentState) return;
 
-        // Populate Metrics
-        document.getElementById('ui-group-idx').innerText = `#${currentState.targetGroupIndex || 0}`;
+        // EDGE CASE FIX: Safely fallback undefined indexes
+        document.getElementById('ui-group-idx').innerText = `#${currentState.targetGroupIndex !== undefined ? currentState.targetGroupIndex : '--'}`;
         
-        const qCount = currentState.queue ? currentState.queue.length : 0;
-        const sCount = currentState.sentToday ? currentState.sentToday.length : 0;
+        // EDGE CASE FIX: Ensure arrays exist before calculating length to prevent crashes
+        const safeQueue = Array.isArray(currentState.queue) ? currentState.queue : [];
+        const safeSent = Array.isArray(currentState.sentToday) ? currentState.sentToday : [];
+
+        const qCount = safeQueue.length;
+        const sCount = safeSent.length;
         
         document.getElementById('ui-queue-count').innerText = qCount;
         document.getElementById('ui-sent-count').innerText = sCount;
@@ -340,9 +345,9 @@
         const qGrid = document.getElementById('queue-grid');
         if (qCount > 0) {
             qGrid.innerHTML = `<div class="pill-grid">` + 
-                currentState.queue.map(u => {
-                    // Handle both object and string formats
-                    const id = typeof u === 'object' ? u.id : u;
+                safeQueue.map(u => {
+                    // EDGE CASE FIX: Deep safe extraction for both objects and strings
+                    const id = typeof u === 'object' ? (u.id || u.phone || JSON.stringify(u)) : u;
                     return `<div class="id-pill">⏳ ${id}</div>`;
                 }).join('') + `</div>`;
         } else {
@@ -353,14 +358,19 @@
         const sGrid = document.getElementById('sent-grid');
         if (sCount > 0) {
             sGrid.innerHTML = `<div class="pill-grid">` + 
-                currentState.sentToday.map(id => `<div class="id-pill success">✅ ${id}</div>`).join('') + `</div>`;
+                safeSent.map(u => {
+                    // EDGE CASE FIX: Deep safe extraction for sent items to prevent [object Object] printing
+                    const id = typeof u === 'object' ? (u.id || u.phone || JSON.stringify(u)) : u;
+                    return `<div class="id-pill success">✅ ${id}</div>`;
+                }).join('') + `</div>`;
         } else {
             sGrid.innerHTML = `<div class="empty-state">No messages dispatched yet today.</div>`;
         }
 
-        // --- ADDED: Live Progress Visualization Math ---
+        // --- Live Progress Visualization Math ---
         const totalForDay = qCount + sCount;
-        const percent = totalForDay === 0 ? 0 : Math.round((sCount / totalForDay) * 100);
+        // EDGE CASE FIX: Clamped Math limits max value to 100 to prevent bar visual breakout
+        const percent = totalForDay === 0 ? 0 : Math.min(100, Math.max(0, Math.round((sCount / totalForDay) * 100)));
         
         const progressWrapper = document.getElementById('ui-progress-wrapper');
         const progressFill = document.getElementById('ui-progress-fill');
