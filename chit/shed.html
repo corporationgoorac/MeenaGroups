@@ -119,9 +119,18 @@
     .status-card.sleeping { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 12px 30px rgba(100, 116, 139, 0.3); }
     .status-card.depressed { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 12px 30px rgba(239, 68, 68, 0.3); }
 
-    .agent-mood-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-    .agent-mood-text { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1.2; }
+    .agent-mood-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;}
+    
+    /* ADDED: Layout Shift Fix (min-height prevents jumping) */
+    .agent-mood-text { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1.2; min-height: 64px; display: flex; align-items: center; }
+    
     .agent-timer { background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 12px; font-size: 15px; font-weight: 700; display: inline-block; width: max-content; backdrop-filter: blur(10px); }
+
+    /* ADDED: Progress Bar UI Elements */
+    .progress-wrapper { margin-top: 8px; transition: opacity 0.3s ease; }
+    .progress-track { width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; backdrop-filter: blur(5px); }
+    .progress-fill { height: 100%; background: #ffffff; width: 0%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 10px;}
+    .progress-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-top: 6px; opacity: 0.9; }
 
     /* Metrics Grid */
     .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
@@ -209,9 +218,21 @@
   <main class="dashboard-container">
     
     <div class="status-card" id="agent-card">
-      <div class="agent-mood-title" id="ui-day-type">Work Day System Active</div>
+      <div class="agent-mood-title">
+        <span id="ui-day-type">Work Day System Active</span>
+        <span id="ui-timer" class="agent-timer" style="padding: 4px 10px; font-size: 12px;">--:--</span>
+      </div>
       <div class="agent-mood-text" id="ui-mood">Connecting...</div>
-      <div class="agent-timer" id="ui-timer">--:--</div>
+      
+      <div class="progress-wrapper" id="ui-progress-wrapper" style="display: none;">
+        <div class="progress-track">
+          <div class="progress-fill" id="ui-progress-fill"></div>
+        </div>
+        <div class="progress-labels">
+          <span id="ui-progress-text">0% Completed</span>
+          <span id="ui-progress-ratio">0/0</span>
+        </div>
+      </div>
     </div>
 
     <div class="metrics-grid">
@@ -336,6 +357,24 @@
         } else {
             sGrid.innerHTML = `<div class="empty-state">No messages dispatched yet today.</div>`;
         }
+
+        // --- ADDED: Live Progress Visualization Math ---
+        const totalForDay = qCount + sCount;
+        const percent = totalForDay === 0 ? 0 : Math.round((sCount / totalForDay) * 100);
+        
+        const progressWrapper = document.getElementById('ui-progress-wrapper');
+        const progressFill = document.getElementById('ui-progress-fill');
+        
+        if (totalForDay > 0 && currentState.isCompleted === false) {
+            progressWrapper.style.display = 'block';
+            // Slight delay so the CSS animation actually fires visually
+            setTimeout(() => { progressFill.style.width = `${percent}%`; }, 100);
+            document.getElementById('ui-progress-text').innerText = `${percent}% Completed`;
+            document.getElementById('ui-progress-ratio').innerText = `${sCount}/${totalForDay}`;
+        } else {
+            progressWrapper.style.display = 'none';
+        }
+
 
         // --- CALCULATE REST DAY & AGENT MOOD (IST) ---
         const now = new Date();
