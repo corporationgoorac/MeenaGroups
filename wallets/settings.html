@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#18191a" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="./manifest.json">
   
   <title>Settings - Meena Wallets</title>
@@ -15,27 +15,31 @@
   <style>
     :root {
       --bg-color: #ffffff;
-      --surface-color: #ffffff;
-      --text-main: #000000;
-      --text-muted: #6b7280;
+      --surface-color: #f9fafb;
+      --text-main: #050505;
+      --text-muted: #65676b;
       --primary: #10b981;
       --primary-hover: #059669;
-      --danger: #ef4444;
-      --border-color: #e5e7eb;
-      --input-bg: #f3f4f6;
-      --input-text: #111827;
+      --danger: #e41e3f;
+      --danger-bg: #ffe4e8;
+      --border-color: #ced0d4;
+      --input-bg: #f0f2f5;
+      --input-text: #050505;
       --modal-overlay: rgba(0,0,0,0.4);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-color: #000000;
-        --surface-color: #121212;
-        --text-main: #ffffff;
-        --text-muted: #9ca3af;
-        --border-color: #27272a;
-        --input-bg: #1f2937;
-        --input-text: #ffffff;
+        /* Meta/Facebook style soft dark theme */
+        --bg-color: #18191a;
+        --surface-color: #242526;
+        --text-main: #e4e6eb;
+        --text-muted: #b0b3b8;
+        --border-color: #3e4042;
+        --input-bg: #3a3b3c;
+        --input-text: #e4e6eb;
+        --danger: #ff6b6b;
+        --danger-bg: rgba(255, 107, 107, 0.1);
         --modal-overlay: rgba(0,0,0,0.7);
       }
     }
@@ -53,9 +57,10 @@
       color: var(--text-main);
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh; /* Fixed height to prevent full page scroll */
       width: 100vw;
-      overflow-x: hidden;
+      overflow: hidden;
+      transition: background-color 0.3s ease;
     }
 
     /* Top Navigation */
@@ -63,16 +68,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
-      position: sticky;
-      top: 0;
+      padding: 16px 24px;
       background-color: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
       z-index: 10;
     }
 
     .nav-title {
-      font-size: 24px;
-      font-weight: 800;
+      font-size: 20px;
+      font-weight: 700;
       letter-spacing: -0.5px;
     }
 
@@ -86,13 +90,16 @@
       padding: 8px 0;
     }
 
+    /* Fixed Layout Container */
     .app-container {
       width: 100%;
       max-width: 600px;
       margin: 0 auto;
-      padding: 0 24px 100px 24px; /* Bottom padding for mobile */
+      padding: 0 24px 24px 24px;
       display: flex;
       flex-direction: column;
+      flex: 1;
+      overflow: hidden; /* Contains the internal scroll */
     }
 
     /* Profile Section */
@@ -100,21 +107,23 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 32px 0 48px 0;
+      margin: 24px 0;
+      flex-shrink: 0;
     }
 
     .profile-pic-container {
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .profile-pic {
-      width: 96px;
-      height: 96px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       object-fit: cover;
       background-color: var(--input-bg);
-      border: 2px solid var(--border-color);
+      border: 3px solid var(--surface-color);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .name-row {
@@ -124,7 +133,7 @@
     }
 
     .profile-name {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
     }
 
@@ -132,32 +141,60 @@
       background: var(--input-bg);
       border: none;
       border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       color: var(--text-main);
+      transition: background-color 0.2s;
+    }
+    
+    .edit-icon:hover {
+      background-color: var(--border-color);
     }
 
     /* Section Headers */
     .section-title {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
-      margin-top: 24px;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
     }
+
+    /* Admin Section - Scrollable */
+    #admin-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      background-color: var(--surface-color);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+
+    #users-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    
+    /* Custom Scrollbar for list */
+    #users-list::-webkit-scrollbar { width: 4px; }
+    #users-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
     /* Naked List UI */
     .list-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 0;
+      padding: 12px 0;
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -168,12 +205,24 @@
     .list-item-left {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .item-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-you {
+      font-size: 11px;
+      background: var(--primary);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 700;
     }
 
     .item-subtitle {
@@ -182,44 +231,55 @@
     }
 
     .item-action {
-      background: none;
+      background: var(--input-bg);
       border: none;
-      color: var(--primary);
+      color: var(--text-main);
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: background-color 0.2s;
     }
 
     .item-action:hover {
-      background-color: var(--input-bg);
+      background-color: var(--border-color);
     }
 
     .load-more-btn {
       width: 100%;
-      padding: 14px;
-      margin-top: 16px;
+      padding: 12px;
+      margin-top: 12px;
       background: none;
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      border-radius: 14px;
+      border-radius: 12px;
       font-weight: 600;
-      font-size: 15px;
+      font-size: 14px;
       cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Fixed Logout Button Wrapper */
+    .logout-wrapper {
+      flex-shrink: 0;
     }
 
     .logout-btn {
       width: 100%;
       padding: 16px;
-      margin-top: 48px;
-      background-color: var(--input-bg);
+      background-color: var(--danger-bg);
       color: var(--danger);
-      border: none;
-      border-radius: 14px;
+      border: 1px solid rgba(255,0,0,0.1);
+      border-radius: 16px;
       font-weight: 700;
       font-size: 16px;
       cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    
+    .logout-btn:active {
+      opacity: 0.7;
     }
 
     /* Modals (Slide-up Bottom Sheets) */
@@ -231,6 +291,7 @@
       visibility: hidden;
       transition: opacity 0.3s ease;
       z-index: 100;
+      backdrop-filter: blur(4px);
     }
 
     .modal-overlay.active {
@@ -241,7 +302,7 @@
     .modal-sheet {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      background-color: var(--surface-color);
+      background-color: var(--bg-color);
       border-top-left-radius: 24px;
       border-top-right-radius: 24px;
       padding: 24px;
@@ -249,7 +310,7 @@
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 101;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
     }
 
     .modal-sheet.active {
@@ -314,6 +375,8 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 0;
+      border-top: 1px solid var(--border-color);
+      margin-top: 16px;
     }
 
     .switch {
@@ -331,18 +394,19 @@
       background-color: var(--input-bg);
       transition: .3s;
       border-radius: 30px;
+      border: 1px solid var(--border-color);
     }
     .slider:before {
       position: absolute;
       content: "";
       height: 22px; width: 22px;
-      left: 4px; bottom: 4px;
-      background-color: var(--surface-color);
+      left: 3px; bottom: 3px;
+      background-color: white;
       transition: .3s;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider { background-color: var(--primary); border-color: var(--primary); }
     input:checked + .slider:before { transform: translateX(20px); }
 
   </style>
@@ -351,10 +415,11 @@
 
   <div class="top-nav">
     <button class="back-btn" onclick="window.location.href='index.html'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
     </button>
     <div class="nav-title">Settings</div>
-    <div style="width: 24px;"></div> </div>
+    <div style="width: 24px;"></div>
+  </div>
 
   <div class="app-container">
     
@@ -365,19 +430,21 @@
       <div class="name-row">
         <span id="display-name" class="profile-name">Loading...</span>
         <button class="edit-icon" onclick="openModal('edit-name-modal')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"></polygon></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"></polygon></svg>
         </button>
       </div>
     </div>
 
-    <div id="admin-section" style="display: none;">
-      <div class="section-title">User Management</div>
+    <div id="admin-section">
+      <div class="section-title">Directory & Access</div>
       <div id="users-list">
         </div>
-      <button id="load-more-users" class="load-more-btn" style="display: none;">Load More</button>
+      <button id="load-more-users" class="load-more-btn" style="display: none;">Load More Directory</button>
     </div>
 
-    <button id="logout-btn" class="logout-btn">Log Out</button>
+    <div class="logout-wrapper">
+      <button id="logout-btn" class="logout-btn">Log Out</button>
+    </div>
 
   </div>
 
@@ -403,13 +470,13 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
-    <h3 id="manage-user-name" style="margin-bottom: 8px;">User Name</h3>
-    <p id="manage-user-email" style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">user@email.com</p>
+    <h3 id="manage-user-name" style="margin-bottom: 4px; font-size: 18px;">User Name</h3>
+    <p id="manage-user-email" style="color: var(--text-muted); font-size: 14px;">user@email.com</p>
     
     <div class="switch-container">
       <div>
-        <div style="font-weight: 600; font-size: 16px;">Administrator Access</div>
-        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Allow this user to manage bags and other users.</div>
+        <div style="font-weight: 600; font-size: 15px;">Administrator Access</div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">Allow this user to manage bags, edit entries, and control other users.</div>
       </div>
       <label class="switch">
         <input type="checkbox" id="admin-toggle-input">
@@ -422,34 +489,48 @@
     import { db, auth, logoutUser, onAuthStateChanged } from './config.js';
     import { doc, getDoc, updateDoc, collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-    // State Variables
+    // State
     let currentUserData = null;
     let selectedManageUserId = null;
     let lastVisibleUser = null;
-    const USERS_PER_PAGE = 5;
+    const USERS_PER_PAGE = 8;
 
-    // DOM Elements
+    // Elements
     const nameDisplay = document.getElementById('display-name');
     const profilePic = document.getElementById('profile-pic');
     const nameInput = document.getElementById('edit-name-input');
-    const adminSection = document.getElementById('admin-section');
     const usersListEl = document.getElementById('users-list');
     const loadMoreBtn = document.getElementById('load-more-users');
     const adminToggle = document.getElementById('admin-toggle-input');
 
-    // 1. Authentication State Hook
+    // Helper: Create List Item HTML
+    function createListItem(uData, uId, isMe = false) {
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      
+      const badge = isMe ? '<span class="badge-you">YOU</span>' : '';
+      const star = uData.admin ? '⭐' : '';
+      
+      item.innerHTML = `
+        <div class="list-item-left">
+          <div class="item-title">${uData.name || 'Unknown User'} ${badge} ${star}</div>
+          <div class="item-subtitle">${uData.email || 'No email'}</div>
+        </div>
+        <button class="item-action" onclick="window.openManageUser('${uId}', '${(uData.name || 'User').replace(/'/g, "\\'")}', '${uData.email || ''}', ${uData.admin === true})">Manage</button>
+      `;
+      return item;
+    }
+
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = 'login.html';
         return;
       }
 
-      // Load Profile Pic from Google Auth
       if (user.photoURL) {
         profilePic.src = user.photoURL;
       }
 
-      // Load specific user document from Firestore
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -460,15 +541,14 @@
         nameDisplay.textContent = userName;
         nameInput.value = userName;
 
-        // If current user is admin, show user management section
-        if (currentUserData.admin === true) {
-          adminSection.style.display = 'block';
-          loadUsersList(); // Initial paginated load
-        }
+        // Force 'ME' to the very top of the list so user can make themselves admin
+        usersListEl.appendChild(createListItem(currentUserData, user.uid, true));
+
+        // Load the rest of the directory
+        loadUsersList(); 
       }
     });
 
-    // 2. Edit Own Name Logic
     document.getElementById('save-name-btn').addEventListener('click', async () => {
       const newName = nameInput.value.trim();
       if (!newName || !auth.currentUser) return;
@@ -488,7 +568,6 @@
       }
     });
 
-    // 3. Paginated User List Loading
     async function loadUsersList() {
       try {
         let q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(USERS_PER_PAGE));
@@ -503,19 +582,12 @@
           const uData = docSnap.data();
           const uId = docSnap.id;
           
-          const item = document.createElement('div');
-          item.className = 'list-item';
-          item.innerHTML = `
-            <div class="list-item-left">
-              <div class="item-title">${uData.name || 'Unknown User'} ${uData.admin ? '⭐' : ''}</div>
-              <div class="item-subtitle">${uData.email || 'No email'}</div>
-            </div>
-            <button class="item-action" onclick="window.openManageUser('${uId}', '${(uData.name || 'User').replace(/'/g, "\\'")}', '${uData.email || ''}', ${uData.admin === true})">Edit</button>
-          `;
-          usersListEl.appendChild(item);
+          // Skip the current user since we pinned them to the top already
+          if (uId !== auth.currentUser.uid) {
+            usersListEl.appendChild(createListItem(uData, uId, false));
+          }
         });
 
-        // Setup next pagination
         if (documentSnapshots.docs.length === USERS_PER_PAGE) {
           lastVisibleUser = documentSnapshots.docs[documentSnapshots.docs.length - 1];
           loadMoreBtn.style.display = 'block';
@@ -529,32 +601,26 @@
 
     loadMoreBtn.addEventListener('click', () => {
       loadMoreBtn.textContent = 'Loading...';
-      loadUsersList().then(() => loadMoreBtn.textContent = 'Load More');
+      loadUsersList().then(() => loadMoreBtn.textContent = 'Load More Directory');
     });
 
-    // 4. Admin Toggle Logic
     adminToggle.addEventListener('change', async (e) => {
       if (!selectedManageUserId) return;
       const isAdmin = e.target.checked;
       
       try {
         await updateDoc(doc(db, 'users', selectedManageUserId), { admin: isAdmin });
-        // Refreshing the page/list visually would go here, or just trust the switch.
       } catch (error) {
         console.error("Error updating admin status:", error);
-        e.target.checked = !isAdmin; // revert toggle on fail
+        e.target.checked = !isAdmin;
         alert("Failed to update user status.");
       }
     });
 
-    // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
       await logoutUser();
       window.location.href = 'login.html';
     });
-
-
-    // --- HISTORY API / MODAL MANAGEMENT (MOBILE BACK BUTTON SUPPORT) ---
     
     window.openModal = function(modalId) {
       history.pushState({ modalId: modalId }, "", `#${modalId}`);
@@ -564,7 +630,7 @@
 
     window.closeModal = function() {
       if (history.state && history.state.modalId) {
-        history.back(); // Triggers popstate listener below
+        history.back();
       } else {
         forceCloseAllModals();
       }
@@ -587,16 +653,13 @@
 
     window.addEventListener('popstate', (e) => {
       if (e.state && e.state.modalId) {
-        // A modal is expected to be open
-        forceCloseAllModals(); // Close any currently open first
+        forceCloseAllModals();
         document.getElementById('modal-overlay').classList.add('active');
         document.getElementById(e.state.modalId).classList.add('active');
       } else {
-        // No modal state, ensure all are closed
         forceCloseAllModals();
       }
     });
-
   </script>
 </body>
 </html>
