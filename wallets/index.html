@@ -1077,9 +1077,9 @@
         if (dateVal) {
             // FIX: Match the exact 'dateStr' string format saved in the database
             const parts = dateVal.split('-');
-            const year = parseInt(parts, 10);
-            const month = parseInt(parts, 10) - 1; // Month is 0-indexed in JS Date
-            const day = parseInt(parts, 10);
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JS Date
+            const day = parseInt(parts[2], 10);
             
             const targetDateStr = new Date(year, month, day).toLocaleDateString('en-US');
             
@@ -1332,7 +1332,7 @@
 
     function triggerGPayAnimation() {
       // FIX: 3 Strong vibrations upon successful payment completion
-      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {} 
+      try { if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 200]); } catch(e) {} 
       
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
@@ -1413,7 +1413,7 @@
       
       document.getElementById(`view-${tabId}`).classList.add('active');
       
-      if (event && event.currentTarget) {
+      if (typeof event !== 'undefined' && event && event.currentTarget) {
           event.currentTarget.classList.add('active');
       } else {
           const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
