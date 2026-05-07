@@ -494,6 +494,11 @@
         <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Cash Flow (Last 7 Days)</div>
         <canvas id="dashboardBarChart" height="200"></canvas>
       </div>
+      
+      <div class="chart-container">
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Expense Comparison (This vs Last Week)</div>
+        <canvas id="dashboardCompareChart" height="150"></canvas>
+      </div>
 
       <div class="chart-container">
         <div style="font-size:14px; font-weight:700; margin-bottom:12px;">All-Time Split</div>
@@ -656,6 +661,12 @@
       <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last 7 Days Split (Bar)</div>
       <canvas id="bagDetailsBarChart" height="150"></canvas>
     </div>
+
+    <div class="chart-container">
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Expense Comparison (This vs Last Week)</div>
+      <canvas id="bagDetailsCompareChart" height="150"></canvas>
+    </div>
+
     <div class="chart-container">
       <div style="font-size:14px; font-weight:700; margin-bottom:12px;">30 Day Overview (Pie)</div>
       <canvas id="bagDetailsPieChart" height="150"></canvas>
@@ -890,6 +901,7 @@
 
         renderBarChart('dashboardBarChart', data.labels, data.barInc, data.barExp);
         renderPieChart('dashboardPieChart', data.allInc, data.allExp);
+        renderCompareChart('dashboardCompareChart', data.thisWeekExp, data.lastWeekExp);
     }
 
     async function loadRealDashboardData() {
@@ -960,7 +972,9 @@
             lastMonthNet: lastMonthInc - lastMonthExp,
             thisWeekNet: thisWeekInc - thisWeekExp,
             lastWeekNet: lastWeekInc - lastWeekExp,
-            labels, barInc, barExp
+            labels, barInc, barExp,
+            thisWeekExp: thisWeekExp,
+            lastWeekExp: lastWeekExp
         };
 
         // Cache the newly calculated data
@@ -983,6 +997,7 @@
           if (parsed.date === todayStr) {
              renderBarChart('bagDetailsBarChart', parsed.labels, parsed.barInc, parsed.barExp);
              renderPieChart('bagDetailsPieChart', parsed.totalInc, parsed.totalExp);
+             renderCompareChart('bagDetailsCompareChart', parsed.thisWeekExp || 0, parsed.lastWeekExp || 0);
              return;
           }
       }
@@ -995,6 +1010,14 @@
       const [totalInc, totalExp] = await Promise.all([
           fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',t30))),
           fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t30)))
+      ]);
+
+      // Adding the 2 explicit aggregates for "Last Week" and "This week" to support the new bar chart exactly
+      const t7 = new Date(); t7.setDate(now.getDate() - 7);
+      const t14 = new Date(); t14.setDate(now.getDate() - 14);
+      const [thisWeekBagExp, lastWeekBagExp] = await Promise.all([
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t7))),
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t14), where('timestamp','<',t7)))
       ]);
 
       // 7-Day Bar Chart Aggregates
@@ -1013,11 +1036,12 @@
           barExp.push(dExp);
       }
 
-      const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp };
+      const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp, thisWeekExp: thisWeekBagExp, lastWeekExp: lastWeekBagExp };
       localStorage.setItem(`meena_bag_cache_${bagId}`, JSON.stringify(dataObj));
 
       renderBarChart('bagDetailsBarChart', labels, barInc, barExp);
       renderPieChart('bagDetailsPieChart', totalInc, totalExp);
+      renderCompareChart('bagDetailsCompareChart', thisWeekBagExp, lastWeekBagExp);
     };
 
     // --- NEW: TRANSACTION HISTORY LIST LOGIC ---
@@ -1165,6 +1189,33 @@
           }]
         },
         options: { responsive: true, plugins: { legend: { position: 'bottom', labels: {color: 'var(--text-muted)', font: {weight: 'bold'}} } } }
+      });
+    }
+
+    function renderCompareChart(canvasId, thisWeekData, lastWeekData) {
+      const canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+      
+      chartInstances[canvasId] = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: ['Last Week', 'This Week'],
+          datasets: [{
+            label: 'Expenditure',
+            data: [lastWeekData, thisWeekData],
+            backgroundColor: ['#f59e0b', '#e41e3f'], /* Orange vs Red */
+            borderRadius: 6
+          }]
+        },
+        options: { 
+          responsive: true, 
+          plugins: { legend: { display: false } }, 
+          scales: { 
+            x: { grid: {display:false} }, 
+            y: { display: false } 
+          } 
+        }
       });
     }
 
