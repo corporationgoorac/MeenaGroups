@@ -59,8 +59,10 @@
       height: 100vh;
       width: 100vw;
       overflow: hidden;
+      transition: background-color 0.3s ease;
     }
 
+    /* Top Header */
     .app-header {
       display: flex;
       justify-content: space-between;
@@ -87,14 +89,16 @@
       border: 2px solid var(--border-color);
     }
 
+    /* Main Container (Scrollable) */
     .main-content {
       flex: 1;
       overflow-y: auto;
-      padding: 0 24px 120px 24px;
+      padding: 0 24px 120px 24px; /* Padding bottom for nav pill */
       display: flex;
       flex-direction: column;
     }
 
+    /* Page Views */
     .page-view {
       display: none;
       animation: fadeIn 0.3s ease forwards;
@@ -106,12 +110,17 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Access Denied */
     #view-denied {
       text-align: center;
       margin-top: 50px;
     }
+    #view-denied h2 { color: var(--danger); margin-bottom: 12px; }
 
-    .net-worth-card { margin: 20px 0; }
+    /* Home: Net Worth & Pills */
+    .net-worth-card {
+      margin: 20px 0;
+    }
     .net-worth-label { font-size: 14px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
     .net-worth-amount { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-top: 4px; }
 
@@ -122,7 +131,8 @@
       padding-bottom: 12px;
       margin-bottom: 24px;
     }
-
+    .bag-pills-container::-webkit-scrollbar { display: none; }
+    
     .bag-pill {
       padding: 12px 20px;
       border-radius: 20px;
@@ -130,6 +140,7 @@
       font-weight: 600;
       font-size: 14px;
       white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .chart-container {
@@ -140,6 +151,37 @@
       margin-bottom: 24px;
     }
 
+    /* Install Banner */
+    .install-banner {
+      display: none;
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 400px;
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      border-radius: 16px;
+      z-index: 999;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      justify-content: space-between;
+      align-items: center;
+    }
+    .install-banner.active { display: flex; }
+    .install-text { font-size: 13px; font-weight: 600; }
+    .install-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    /* Floating Pill Navigation */
     .bottom-nav {
       position: fixed;
       bottom: 24px;
@@ -160,18 +202,31 @@
     }
 
     .nav-btn {
-      background: none; border: none; color: var(--text-muted);
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      padding: 8px 16px; border-radius: 30px; cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .nav-btn.active { color: var(--primary); background-color: rgba(16, 185, 129, 0.1); }
+    .nav-btn.active {
+      color: var(--primary);
+      background-color: rgba(16, 185, 129, 0.1);
+    }
     .nav-btn svg { width: 24px; height: 24px; }
     .nav-btn span { font-size: 11px; font-weight: 700; }
 
+    /* Modals */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background-color: var(--modal-overlay);
-      opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 2000;
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.3s ease; z-index: 2000;
       backdrop-filter: blur(4px);
     }
     .modal-overlay.active { opacity: 1; visibility: visible; }
@@ -181,22 +236,50 @@
       background-color: var(--bg-color);
       border-top-left-radius: 24px; border-top-right-radius: 24px;
       padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));
-      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2001;
     }
     .modal-sheet.active { transform: translateY(0); }
 
-    .big-amount-input {
-      font-size: 48px; font-weight: 800; text-align: center; width: 100%;
-      padding: 20px; background: transparent; border: none; border-bottom: 2px solid var(--border-color);
-      color: var(--text-main); outline: none; margin-bottom: 32px;
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-size: 20px; font-weight: 700; }
+    .close-modal {
+      background: var(--input-bg); border: none; border-radius: 50%;
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-main); cursor: pointer;
     }
+
+    /* Forms */
+    input, select {
+      width: 100%; padding: 16px; border-radius: 14px;
+      border: 2px solid transparent; background-color: var(--input-bg);
+      color: var(--input-text); font-size: 16px; font-weight: 500;
+      outline: none; margin-bottom: 16px;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+    
+    .big-amount-input {
+      font-size: 48px; font-weight: 800; text-align: center;
+      padding: 20px; background: transparent; border: none; border-bottom: 2px solid var(--border-color);
+      border-radius: 0; margin-bottom: 32px;
+    }
+    .big-amount-input:focus { border-color: var(--primary); background: transparent; }
 
     .btn-primary {
       width: 100%; padding: 16px; border-radius: 14px; border: none;
-      background-color: var(--primary); color: #fff; font-size: 16px; font-weight: 700;
+      background-color: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
     }
 
+    /* Color Picker Gradients */
+    .color-picker { display: flex; gap: 12px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px;}
+    .color-swatch {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      cursor: pointer; border: 3px solid transparent; transition: transform 0.2s;
+    }
+    .color-swatch.selected { transform: scale(1.1); border-color: var(--text-main); }
+
+    /* GPay Animation Overlay */
     #gpay-animation {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: var(--bg-color); z-index: 3000;
@@ -204,23 +287,47 @@
       opacity: 0; visibility: hidden; transition: opacity 0.3s;
     }
     #gpay-animation.active { opacity: 1; visibility: visible; }
+    
+    .check-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 4px solid var(--primary); display: flex; align-items: center; justify-content: center;
+      animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .check-mark {
+      font-size: 40px; color: var(--primary); opacity: 0;
+      animation: checkFade 0.3s ease 0.3s forwards;
+    }
+    @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    @keyframes checkFade { 0% { opacity: 0; } 100% { opacity: 1; } }
 
-    .color-picker { display: flex; gap: 12px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px;}
-    .color-swatch { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; border: 3px solid transparent; }
-    .color-swatch.selected { border-color: var(--text-main); transform: scale(1.1); }
+    /* List Items */
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid var(--border-color);
+    }
+    .list-item:last-child { border-bottom: none; }
+    .item-title { font-size: 16px; font-weight: 600; }
+    .item-subtitle { font-size: 13px; color: var(--text-muted); }
   </style>
 </head>
 <body>
 
   <header class="app-header">
     <div class="brand-title">Goorac<span>.</span></div>
-    <img id="header-profile-pic" class="header-profile-pic" src="" alt="Profile" onclick="window.location.href='settings.html'">
+    <img id="header-profile-pic" class="header-profile-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2QxZDVkYiI+PHBhdGggZD0iTTEyIDJDMi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMyMS41MiAyIDEyIDJ6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMi4wMSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz48L3N2Zz4=" alt="Profile" onclick="window.location.href='settings.html'">
   </header>
 
+  <div id="install-banner" class="install-banner">
+    <span class="install-text">Install App for Offline Use</span>
+    <button id="install-btn" class="install-btn">Install</button>
+  </div>
+
   <main class="main-content">
+    
     <div id="view-denied" class="page-view">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
       <h2>Access Denied</h2>
-      <p style="color: var(--text-muted);">Admin privileges required.</p>
+      <p style="color: var(--text-muted);">You do not have administrator privileges to view this application. Contact the owner.</p>
     </div>
 
     <div id="view-home" class="page-view">
@@ -228,159 +335,414 @@
         <div class="net-worth-label">Total Liquid Net Worth</div>
         <div class="net-worth-amount" id="total-net-worth">₹0</div>
       </div>
-      <div class="bag-pills-container" id="home-bag-pills"></div>
+
+      <div class="bag-pills-container" id="home-bag-pills">
+      </div>
+
       <div class="chart-container">
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Cash Flow (Last 7 Days)</div>
         <canvas id="cashFlowChart" height="200"></canvas>
       </div>
     </div>
 
     <div id="view-pay" class="page-view">
       <h2 style="margin-bottom: 24px;">Log Transaction</h2>
-      <div id="pay-bag-list"></div>
+      
+      <div id="pay-bag-list">
+      </div>
     </div>
 
     <div id="view-manage" class="page-view">
-      <div style="display:flex; justify-content:space-between; margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
         <h2>My Bags</h2>
-        <button onclick="openModal('create-bag-modal')" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:20px;">+ New</button>
+        <button onclick="openModal('create-bag-modal')" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:20px; font-weight:700;">+ New Bag</button>
       </div>
-      <div id="manage-bag-list"></div>
+
+      <div id="manage-bag-list">
+      </div>
     </div>
+
   </main>
 
   <nav class="bottom-nav" id="main-nav" style="display:none;">
-    <button class="nav-btn active" onclick="switchTab('home')"><span>Home</span></button>
-    <button class="nav-btn" onclick="switchTab('pay')"><span>Pay</span></button>
-    <button class="nav-btn" onclick="switchTab('manage')"><span>Manage</span></button>
+    <button class="nav-btn active" onclick="switchTab('home')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('pay')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <span>Pay</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('manage')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+      <span>Manage</span>
+    </button>
   </nav>
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
 
   <div id="create-bag-modal" class="modal-sheet">
-    <input type="text" id="new-bag-name" placeholder="Bag Name">
-    <input type="number" id="new-bag-balance" placeholder="Initial Balance">
-    <div class="color-picker" id="bag-color-picker">
-        <div class="color-swatch selected" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="linear-gradient(135deg, #3b82f6, #1d4ed8)"></div>
-        <div class="color-swatch" style="background: linear-gradient(135deg, #10b981, #047857);" data-color="linear-gradient(135deg, #10b981, #047857)"></div>
-        <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
+    <div class="modal-header">
+      <div class="modal-title">Create New Bag</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
+    
+    <input type="text" id="new-bag-name" placeholder="Bag Name (e.g. SBI Current)">
+    <input type="number" id="new-bag-balance" placeholder="Initial Balance (₹)">
+    
+    <div style="font-size:14px; font-weight:600; margin-bottom:12px;">Select Theme</div>
+    <div class="color-picker" id="bag-color-picker">
+      <div class="color-swatch selected" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="linear-gradient(135deg, #3b82f6, #1d4ed8)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #10b981, #047857);" data-color="linear-gradient(135deg, #10b981, #047857)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #8b5cf6, #5b21b6);" data-color="linear-gradient(135deg, #8b5cf6, #5b21b6)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #f59e0b, #b45309);" data-color="linear-gradient(135deg, #f59e0b, #b45309)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ec4899, #be185d);" data-color="linear-gradient(135deg, #ec4899, #be185d)"></div>
+    </div>
+
     <button class="btn-primary" id="save-bag-btn">Create Bag</button>
   </div>
 
   <div id="pay-modal" class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="pay-modal-title">Log Entry</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
     <input type="number" id="pay-amount" class="big-amount-input" placeholder="₹0">
-    <input type="text" id="pay-note" placeholder="Note">
+    <input type="text" id="pay-note" placeholder="What was this for?">
+    
     <select id="pay-type">
-      <option value="expense">Outcome</option>
+      <option value="expense">Outcome (Expense)</option>
       <option value="income">Income</option>
     </select>
+
     <button class="btn-primary" id="submit-pay-btn">Done</button>
   </div>
 
   <div id="gpay-animation">
-    <div style="border: 4px solid var(--primary); border-radius:50%; width:80px; height:80px; display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:40px;">✔</div>
-    <h2 style="margin-top:24px;">Success</h2>
+    <div class="check-circle">
+      <div class="check-mark">✔</div>
+    </div>
+    <h2 style="margin-top:24px;">Added</h2>
   </div>
 
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
     import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
+    // App State
+    let currentUser = null;
     let bagsData = [];
     let selectedBagIdForPay = null;
-    let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+    let selectedBagColor = '';
 
+    // Elements
+    const profilePicImg = document.getElementById('header-profile-pic');
+    const mainNav = document.getElementById('main-nav');
+    const totalNetWorthEl = document.getElementById('total-net-worth');
+    
+    // Check Local Storage for MMS Profile Pic
+    const savedPic = localStorage.getItem('gooracProfilePic');
+    if (savedPic) profilePicImg.src = savedPic;
+
+    // --- 1. AUTH & ADMIN CHECK ---
     onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = 'login.html'; return; }
-      
-      const savedPic = localStorage.getItem('gooracProfilePic') || user.photoURL;
-      if (savedPic) document.getElementById('header-profile-pic').src = savedPic;
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
 
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      // Update Profile Pic globally
+      if (user.photoURL) {
+        profilePicImg.src = user.photoURL;
+        localStorage.setItem('gooracProfilePic', user.photoURL);
+      }
+
+      // Check Admin Status
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
       if (userSnap.exists() && userSnap.data().admin === true) {
+        currentUser = user.uid;
+        document.getElementById('view-denied').classList.remove('active');
         document.getElementById('view-home').classList.add('active');
-        document.getElementById('main-nav').style.display = 'flex';
-        initApp();
+        mainNav.style.display = 'flex';
+        initApp(); // Start loading data
       } else {
+        // Not Admin
+        document.getElementById('view-home').classList.remove('active');
+        document.getElementById('view-pay').classList.remove('active');
+        document.getElementById('view-manage').classList.remove('active');
         document.getElementById('view-denied').classList.add('active');
+        mainNav.style.display = 'none';
       }
     });
 
+    // --- 2. DATA SUBSCRIPTIONS ---
     function initApp() {
-      onSnapshot(query(collection(db, 'bags'), where('isActive', '==', true)), (snapshot) => {
+      // Listen to active bags in real-time
+      const q = query(collection(db, 'bags'), where('isActive', '==', true));
+      onSnapshot(q, (snapshot) => {
         bagsData = [];
         let totalNW = 0;
-        snapshot.forEach(d => {
-          const b = {id: d.id, ...d.data()};
-          bagsData.push(b);
-          totalNW += b.currentBalance;
+        
+        snapshot.forEach(docSnap => {
+          const bag = { id: docSnap.id, ...docSnap.data() };
+          bagsData.push(bag);
+          totalNW += bag.currentBalance || 0;
         });
-        document.getElementById('total-net-worth').textContent = `₹${totalNW.toLocaleString('en-IN')}`;
-        renderUI();
-        renderChart();
+
+        // Update UI
+        totalNetWorthEl.textContent = `₹${totalNW.toLocaleString('en-IN')}`;
+        renderBagsUI();
+        renderDummyChart(); // Placeholder for actual stats
       });
     }
 
-    function renderUI() {
-      const home = document.getElementById('home-bag-pills');
-      const pay = document.getElementById('pay-bag-list');
-      const manage = document.getElementById('manage-bag-list');
-      home.innerHTML = ''; pay.innerHTML = ''; manage.innerHTML = '';
+    function renderBagsUI() {
+      const homePills = document.getElementById('home-bag-pills');
+      const payList = document.getElementById('pay-bag-list');
+      const manageList = document.getElementById('manage-bag-list');
+      
+      homePills.innerHTML = '';
+      payList.innerHTML = '';
+      manageList.innerHTML = '';
 
-      bagsData.forEach(b => {
-        home.innerHTML += `<div class="bag-pill" style="background:${b.color}">${b.name}</div>`;
-        pay.innerHTML += `<div onclick="window.openPayModal('${b.id}')" style="background:${b.color}; color:white; padding:20px; border-radius:16px; margin-bottom:12px;">${b.name} (₹${b.currentBalance})</div>`;
-        manage.innerHTML += `<div style="padding:16px; border-bottom:1px solid var(--border-color);">${b.name}</div>`;
+      bagsData.forEach(bag => {
+        // Home Pills
+        homePills.innerHTML += `<div class="bag-pill" style="background: ${bag.color}">${bag.name} - ₹${bag.currentBalance.toLocaleString('en-IN')}</div>`;
+
+        // Pay List (Big colored buttons)
+        payList.innerHTML += `
+          <div class="list-item" style="background:${bag.color}; color:white; border-radius:16px; padding:20px; margin-bottom:12px; cursor:pointer;" onclick="window.openPayModal('${bag.id}', '${bag.name}', '${bag.color}')">
+            <div>
+              <div style="font-size:20px; font-weight:800;">${bag.name}</div>
+              <div style="font-size:14px; opacity:0.9;">Available: ₹${bag.currentBalance.toLocaleString('en-IN')}</div>
+            </div>
+            <div style="font-size:24px; font-weight:700;">+</div>
+          </div>
+        `;
+
+        // Manage List
+        manageList.innerHTML += `
+          <div class="list-item">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:16px; height:16px; border-radius:50%; background:${bag.color};"></div>
+              <div>
+                <div class="item-title">${bag.name}</div>
+                <div class="item-subtitle">₹${bag.currentBalance.toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+            <button style="background:var(--input-bg); border:none; padding:6px 12px; border-radius:12px; font-weight:600; cursor:pointer; color:var(--text-main);">Edit</button>
+          </div>
+        `;
       });
     }
 
-    window.openPayModal = (id) => {
-      selectedBagIdForPay = id;
+    // --- 3. CREATE BAG LOGIC ---
+    let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+    
+    // Color Swatch Selection
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', (e) => {
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        e.target.classList.add('selected');
+        newBagColor = e.target.getAttribute('data-color');
+      });
+    });
+
+    document.getElementById('save-bag-btn').addEventListener('click', async () => {
+      const name = document.getElementById('new-bag-name').value.trim();
+      const balStr = document.getElementById('new-bag-balance').value;
+      if (!name) return alert("Enter a name");
+      
+      const initialBalance = balStr ? parseInt(balStr) : 0;
+      
+      const batch = writeBatch(db);
+      const newBagRef = doc(collection(db, 'bags'));
+      
+      batch.set(newBagRef, {
+        name: name,
+        color: newBagColor,
+        currentBalance: initialBalance,
+        isActive: true,
+        createdAt: serverTimestamp()
+      });
+
+      // If initial balance > 0, log it as an initial income
+      if (initialBalance > 0) {
+        const txRef = doc(collection(db, 'transactions'));
+        batch.set(txRef, {
+          bagId: newBagRef.id,
+          amount: initialBalance,
+          type: 'income',
+          note: 'Initial Balance',
+          timestamp: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+      document.getElementById('new-bag-name').value = '';
+      document.getElementById('new-bag-balance').value = '';
+      closeModal();
+    });
+
+    // --- 4. PAY (LOG TRANSACTION) LOGIC ---
+    window.openPayModal = function(bagId, bagName, color) {
+      selectedBagIdForPay = bagId;
+      selectedBagColor = color;
+      document.getElementById('pay-modal-title').textContent = bagName;
+      document.getElementById('pay-amount').value = '';
+      document.getElementById('pay-note').value = '';
       openModal('pay-modal');
     };
 
-    document.getElementById('submit-pay-btn').onclick = async () => {
-      const amount = parseInt(document.getElementById('pay-amount').value);
+    document.getElementById('submit-pay-btn').addEventListener('click', async () => {
+      const amtVal = document.getElementById('pay-amount').value;
+      const note = document.getElementById('pay-note').value.trim();
       const type = document.getElementById('pay-type').value;
-      if (!amount || !selectedBagIdForPay) return;
+      
+      const amount = parseInt(amtVal);
+      if (!amount || amount <= 0 || !selectedBagIdForPay) return;
 
       const batch = writeBatch(db);
-      batch.set(doc(collection(db, 'transactions')), { bagId: selectedBagIdForPay, amount, type, timestamp: serverTimestamp() });
-      batch.update(doc(db, 'bags', selectedBagIdForPay), { currentBalance: increment(type === 'expense' ? -amount : amount) });
-      
-      await batch.commit();
-      closeModal();
-      document.getElementById('gpay-animation').classList.add('active');
-      if (navigator.vibrate) navigator.vibrate();
-      setTimeout(() => { document.getElementById('gpay-animation').classList.remove('active'); switchTab('home'); }, 1500);
-    };
+      const bagRef = doc(db, 'bags', selectedBagIdForPay);
+      const txRef = doc(collection(db, 'transactions'));
 
-    // Navigation and Modals
-    window.switchTab = (id) => {
+      // Add to logs
+      batch.set(txRef, {
+        bagId: selectedBagIdForPay,
+        amount: amount,
+        type: type,
+        note: note,
+        timestamp: serverTimestamp()
+      });
+
+      // Update Running Total
+      const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
+      batch.update(bagRef, {
+        currentBalance: increment(mathValue)
+      });
+
+      try {
+        await batch.commit();
+        closeModal();
+        triggerGPayAnimation();
+      } catch (err) {
+        console.error("Batch fail:", err);
+        alert("Transaction failed");
+      }
+    });
+
+    function triggerGPayAnimation() {
+      if ('vibrate' in navigator) navigator.vibrate(); // Haptic
+      const anim = document.getElementById('gpay-animation');
+      anim.classList.add('active');
+      setTimeout(() => {
+        anim.classList.remove('active');
+        // Redirect back to home after payment
+        switchTab('home');
+      }, 1500);
+    }
+
+    // --- 5. UI TABS & MODALS (HISTORY API) ---
+    window.switchTab = function(tabId) {
       document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`view-${id}`).classList.add('active');
-      event.currentTarget.classList.add('active');
+      
+      document.getElementById(`view-${tabId}`).classList.add('active');
+      
+      // Fixed: Ensure the active tab button styling updates correctly
+      if (event && event.currentTarget) {
+          event.currentTarget.classList.add('active');
+      }
+      history.pushState({ page: tabId }, "", `#${tabId}`);
     };
 
-    window.openModal = (id) => {
+    window.openModal = function(modalId) {
+      history.pushState({ modalId: modalId }, "", `#${modalId}`);
       document.getElementById('modal-overlay').classList.add('active');
-      document.getElementById(id).classList.add('active');
+      document.getElementById(modalId).classList.add('active');
     };
 
-    window.closeModal = () => {
+    window.closeModal = function() {
+      if (history.state && history.state.modalId) {
+        history.back();
+      } else {
+        forceCloseModals();
+      }
+    };
+
+    function forceCloseModals() {
       document.getElementById('modal-overlay').classList.remove('active');
       document.querySelectorAll('.modal-sheet').forEach(m => m.classList.remove('active'));
-    };
+    }
 
-    function renderChart() {
+    window.addEventListener('popstate', (e) => {
+      forceCloseModals();
+      if (e.state && e.state.modalId) {
+        document.getElementById('modal-overlay').classList.add('active');
+        document.getElementById(e.state.modalId).classList.add('active');
+      } else if (e.state && e.state.page) {
+        document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`view-${e.state.page}`).classList.add('active');
+      }
+    });
+
+    // --- 6. PWA INSTALL BANNER ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').classList.add('active');
+    });
+
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('install-banner').classList.remove('active');
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    // --- DUMMY CHART (Placeholder) ---
+    function renderDummyChart() {
       const ctx = document.getElementById('cashFlowChart').getContext('2d');
       new Chart(ctx, {
         type: 'line',
-        data: { labels: ['M','T','W','T','F','S','S'], datasets: [{ label: 'Flow', data:, borderColor: '#10b981' }] },
-        options: { plugins: { legend: { display: false } } }
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Income',
+            data: [1000, 1500, 1200, 1800, 2000, 2500, 3000],
+            borderColor: '#10b981', tension: 0.4
+          }, {
+            label: 'Expense',
+            data: [500, 800, 600, 1200, 900, 1500, 1100],
+            borderColor: '#e41e3f', tension: 0.4
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
       });
     }
   </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+
 </body>
 </html>
