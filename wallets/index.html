@@ -54,6 +54,13 @@
       padding: 0;
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    *::-webkit-scrollbar {
+      display: none;
     }
 
     body {
@@ -768,7 +775,7 @@
             }
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
-                const url = match[0];
+                const url = match;
                 document.getElementById('index-error-banner').classList.add('active');
                 document.getElementById('index-fix-btn').onclick = () => { window.open(url, '_blank'); };
             }
@@ -1117,9 +1124,9 @@
         if (dateVal) {
             // FIXED Edge case: Direct construction of US date string bypasses exact local timezone drift
             const parts = dateVal.split('-');
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10);
-            const day = parseInt(parts[2], 10);
+            const year = parseInt(parts, 10);
+            const month = parseInt(parts, 10);
+            const day = parseInt(parts, 10);
             const targetDateStr = `${month}/${day}/${year}`; 
             
             txQuery = query(txQuery, where('dateStr', '==', targetDateStr), orderBy('timestamp', 'desc'));
@@ -1171,7 +1178,7 @@
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
                 document.getElementById('index-error-banner').classList.add('active');
-                document.getElementById('index-fix-btn').onclick = () => { window.open(match[0], '_blank'); };
+                document.getElementById('index-fix-btn').onclick = () => { window.open(match, '_blank'); };
                 showCustomAlert("Database Index Required! Please click the red banner at the bottom of the screen to enable history loading.");
             }
         }
@@ -1370,7 +1377,7 @@
 
     function triggerGPayAnimation() {
       // FIX: 3 Strong vibrations upon successful payment completion
-      try { if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 200]); } catch(e) {} 
+      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {} 
       
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
