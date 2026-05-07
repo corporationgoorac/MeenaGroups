@@ -4,33 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  
+  <link rel="manifest" href="./manifest.json">
   
   <title>Meena Wallets - Login</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
   
   <style>
     :root {
-      --bg-color: #f3f4f6;
-      --card-bg: #ffffff;
-      --text-main: #111827;
+      --bg-color: #ffffff;
+      --text-main: #000000;
       --text-muted: #6b7280;
-      --primary: #10b981; /* Professional Green */
+      --primary: #10b981; /* Professional Finance Green */
       --primary-hover: #059669;
-      --input-border: #d1d5db;
+      --input-bg: #f3f4f6;
+      --input-text: #111827;
+      --google-btn-bg: #f9fafb;
+      --google-btn-border: #e5e7eb;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-color: #121212;
-        --card-bg: #1e1e1e;
+        --bg-color: #000000;
         --text-main: #ffffff;
         --text-muted: #9ca3af;
         --primary: #10b981;
         --primary-hover: #34d399;
-        --input-border: #374151;
+        --input-bg: #1f2937;
+        --input-text: #ffffff;
+        --google-btn-bg: #111827;
+        --google-btn-border: #374151;
       }
     }
 
@@ -46,44 +52,49 @@
       background-color: var(--bg-color);
       color: var(--text-main);
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       width: 100vw;
       overflow: hidden;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    .login-card {
-      background-color: var(--card-bg);
-      padding: 40px 30px;
-      border-radius: 24px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-      text-align: center;
-      transition: background-color 0.3s ease;
+    /* No Box - Just a constrained container area */
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .brand-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, var(--primary), #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      line-height: 1.1;
     }
 
     .brand-subtitle {
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: 400;
       color: var(--text-muted);
-      margin-bottom: 32px;
+      margin-bottom: 48px;
+      line-height: 1.5;
+    }
+
+    .accent-dot {
+      color: var(--primary);
     }
 
     button {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: 14px;
       border: none;
       font-size: 16px;
       font-weight: 600;
@@ -91,23 +102,29 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      transition: transform 0.1s ease, background-color 0.2s ease;
+      gap: 12px;
+      transition: all 0.2s ease;
     }
 
     button:active {
-      transform: scale(0.97);
+      transform: scale(0.98);
     }
 
     .btn-google {
-      background-color: var(--text-main);
-      color: var(--bg-color);
+      background-color: var(--google-btn-bg);
+      color: var(--text-main);
+      border: 1px solid var(--google-btn-border);
+    }
+
+    .btn-google:hover {
+      border-color: var(--text-muted);
     }
 
     .btn-primary {
       background-color: var(--primary);
       color: #ffffff;
-      margin-top: 20px;
+      margin-top: 32px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
     }
 
     .btn-primary:hover {
@@ -115,156 +132,162 @@
     }
 
     #onboarding-section {
-      display: none; /* Hidden by default */
-      text-align: left;
-      animation: fadeIn 0.4s ease forwards;
+      display: none; 
+      animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .input-group {
+      margin-top: 16px;
     }
 
     .input-group label {
       display: block;
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       color: var(--text-main);
     }
 
     .input-group input {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: 1px solid var(--input-border);
-      background-color: transparent;
-      color: var(--text-main);
+      padding: 16px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background-color: var(--input-bg);
+      color: var(--input-text);
       font-size: 16px;
+      font-weight: 500;
       outline: none;
-      transition: border-color 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .input-group input:focus {
       border-color: var(--primary);
+      background-color: transparent;
+    }
+
+    .input-group input::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Setup Service Worker */
+    .pwa-script {
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  <div class="login-card">
-    <h1 class="brand-title">Meena Wallets</h1>
-    <p class="brand-subtitle">Manage your business operations & cash flow</p>
+  <div class="app-container">
+    
+    <h1 class="brand-title">Meena<br>Wallets<span class="accent-dot">.</span></h1>
+    <p class="brand-subtitle">Streamlined business operations and real-time cash flow management.</p>
 
     <div id="login-section">
       <button id="google-btn" class="btn-google">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        Sign in with Google
+        Continue with Google
       </button>
     </div>
 
     <div id="onboarding-section">
       <div class="input-group">
         <label for="display-name">Confirm your name</label>
-        <input type="text" id="display-name" placeholder="Enter your name">
+        <input type="text" id="display-name" placeholder="E.g. Meena Marketing">
       </div>
-      <button id="continue-btn" class="btn-primary">Set Up My Wallets</button>
+      <button id="continue-btn" class="btn-primary">Initialize Wallets</button>
     </div>
+
   </div>
 
   <script type="module">
-    // Import from your established config
     import { db, loginWithGoogle } from './config.js';
-    
-    // Import Firestore utilities directly via CDN matching your config version
     import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-    // DOM Elements
     const loginSection = document.getElementById('login-section');
     const onboardingSection = document.getElementById('onboarding-section');
     const googleBtn = document.getElementById('google-btn');
     const continueBtn = document.getElementById('continue-btn');
     const nameInput = document.getElementById('display-name');
 
-    // State variable to hold the user instance between steps
     let pendingUser = null;
 
-    // Step 1: Handle Google Sign-in
     googleBtn.addEventListener('click', async () => {
       try {
         googleBtn.innerHTML = 'Connecting...';
-        googleBtn.style.opacity = '0.7';
+        googleBtn.style.opacity = '0.5';
         googleBtn.disabled = true;
 
         pendingUser = await loginWithGoogle();
 
-        // Check if user exists in the 'users' collection
         const userRef = doc(db, 'users', pendingUser.uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-          // User already exists, route immediately to app
           window.location.href = 'index.html';
         } else {
-          // First-time user: Hide login button, show name input
           loginSection.style.display = 'none';
           onboardingSection.style.display = 'block';
           
-          // Pre-fill the input with their Google display name
           if (pendingUser.displayName) {
             nameInput.value = pendingUser.displayName;
           }
         }
       } catch (error) {
         console.error("Login failed:", error);
-        googleBtn.innerHTML = 'Sign in with Google';
+        googleBtn.innerHTML = 'Continue with Google';
         googleBtn.style.opacity = '1';
         googleBtn.disabled = false;
-        alert("Authentication failed. Please check your connection and try again.");
       }
     });
 
-    // Step 2: Handle First-Time User Creation
     continueBtn.addEventListener('click', async () => {
       const finalName = nameInput.value.trim();
       
-      if (!finalName) {
-        alert("Please enter a valid name to continue.");
-        return;
-      }
+      if (!finalName) return;
 
       try {
-        continueBtn.innerHTML = 'Creating Profile...';
+        continueBtn.innerHTML = 'Securing Data...';
         continueBtn.disabled = true;
 
         const userRef = doc(db, 'users', pendingUser.uid);
         
-        // Create the initial user document
         await setDoc(userRef, {
           uid: pendingUser.uid,
           name: finalName,
           email: pendingUser.email,
           createdAt: serverTimestamp(),
-          settings: {
-            currency: '₹' // Preparing default settings for future
-          }
+          settings: { currency: '₹' }
         });
 
-        // Setup complete, route to main app
         window.location.href = 'index.html';
 
       } catch (error) {
-        console.error("Error creating user profile:", error);
-        continueBtn.innerHTML = 'Set Up My Wallets';
+        console.error("Setup failed:", error);
+        continueBtn.innerHTML = 'Initialize Wallets';
         continueBtn.disabled = false;
-        alert("Failed to create profile. Please try again.");
       }
     });
   </script>
+
+  <script class="pwa-script">
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+
 </body>
 </html>
