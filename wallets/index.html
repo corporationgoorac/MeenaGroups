@@ -552,6 +552,45 @@
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
 
+  <div id="custom-alert-modal" class="modal-sheet" style="z-index: 2005;">
+    <div class="modal-header">
+      <div class="modal-title">Notice</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p id="custom-alert-text" style="margin-bottom: 24px; line-height: 1.5;"></p>
+    <button class="btn-primary" onclick="closeModal()">OK</button>
+  </div>
+
+  <div id="custom-confirm-modal" class="modal-sheet" style="z-index: 2005;">
+    <div class="modal-header">
+      <div class="modal-title">Confirm Action</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p id="custom-confirm-text" style="margin-bottom: 24px; line-height: 1.5; color: var(--danger); font-weight: 600;"></p>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn-primary" style="background: var(--input-bg); color: var(--text-main);" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary btn-danger" id="custom-confirm-btn">Yes, Execute</button>
+    </div>
+  </div>
+
+  <div id="custom-prompt-modal" class="modal-sheet" style="z-index: 2005;">
+    <div class="modal-header">
+      <div class="modal-title" id="custom-prompt-title">Enter Value</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <input type="text" id="custom-prompt-input" placeholder="...">
+    <div style="display: flex; gap: 12px;">
+      <button class="btn-primary" style="background: var(--input-bg); color: var(--text-main);" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="custom-prompt-btn">Save</button>
+    </div>
+  </div>
+
   <div id="create-bag-modal" class="modal-slide-side">
     <div class="modal-header">
       <div class="modal-title">Create New Bag</div>
@@ -645,9 +684,43 @@
   </div>
 
   <script type="module">
-    // UPDATED IMPORTS: Added orderBy, limit, startAfter
     import { db, auth, onAuthStateChanged } from './config.js';
     import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    // Custom Modal Handlers replacing system dialogs
+    window.showCustomAlert = function(msg) {
+      document.getElementById('custom-alert-text').textContent = msg;
+      openModal('custom-alert-modal');
+    };
+
+    window.showCustomConfirm = function(msg, callback) {
+      document.getElementById('custom-confirm-text').textContent = msg;
+      const btn = document.getElementById('custom-confirm-btn');
+      btn.onclick = () => {
+        closeModal();
+        setTimeout(callback, 300); // Give modal time to transition out
+      };
+      openModal('custom-confirm-modal');
+    };
+
+    window.showCustomPrompt = function(title, placeholder, callback) {
+      document.getElementById('custom-prompt-title').textContent = title;
+      const input = document.getElementById('custom-prompt-input');
+      input.value = '';
+      input.placeholder = placeholder;
+      const btn = document.getElementById('custom-prompt-btn');
+      btn.onclick = () => {
+        const val = input.value.trim();
+        if(val) {
+          closeModal();
+          setTimeout(() => callback(val), 300); // Give modal time to transition out
+        } else {
+          input.focus();
+        }
+      };
+      openModal('custom-prompt-modal');
+    };
+
 
     // App State
     let currentUser = null;
@@ -677,7 +750,6 @@
             return snap.data().total || 0;
         } catch(e) {
             console.warn("Index Required!", e.message);
-            // Search for Firebase Console URL in the error text
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
                 const url = match;
@@ -975,10 +1047,10 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
-            // Apply date boundaries
-            const startDay = new Date(dateVal);
-            const endDay = new Date(dateVal);
-            endDay.setHours(23, 59, 59, 999);
+            // FIX: Parse Date locally to prevent Timezone Offset pushing to previous/next day
+            const parts = dateVal.split('-');
+            const startDay = new Date(parts, parts - 1, parts);
+            const endDay = new Date(parts, parts - 1, parts, 23, 59, 59, 999);
             txQuery = query(txQuery, where('timestamp', '>=', startDay), where('timestamp', '<=', endDay), orderBy('timestamp', 'desc'));
         } else {
             txQuery = query(txQuery, orderBy('timestamp', 'desc'));
@@ -1103,7 +1175,10 @@
     document.getElementById('save-bag-btn').addEventListener('click', async () => {
       const name = document.getElementById('new-bag-name').value.trim();
       const balStr = document.getElementById('new-bag-balance').value;
-      if (!name) return alert("Enter a name");
+      if (!name) {
+          showCustomAlert("Please enter a name for the bag.");
+          return;
+      }
       
       const initialBalance = balStr ? parseInt(balStr) : 0;
       
@@ -1125,7 +1200,9 @@
           amount: initialBalance,
           type: 'income',
           note: 'Initial Balance',
-          timestamp: serverTimestamp()
+          timestamp: serverTimestamp(),
+          dateStr: new Date().toLocaleDateString('en-US'),
+          dateISO: new Date().toISOString()
         });
       }
 
@@ -1162,7 +1239,9 @@
         amount: amount,
         type: type,
         note: note,
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        dateStr: new Date().toLocaleDateString('en-US'), 
+        dateISO: new Date().toISOString()
       });
 
       const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
@@ -1178,15 +1257,17 @@
         localStorage.removeItem(`meena_bag_cache_${selectedBagIdForPay}`);
         
         closeModal();
-        triggerGPayAnimation();
+        setTimeout(triggerGPayAnimation, 100);
       } catch (err) {
         console.error("Batch fail:", err);
-        alert("Transaction failed");
+        showCustomAlert("Transaction failed. Please try again.");
       }
     });
 
     function triggerGPayAnimation() {
-      if ('vibrate' in navigator) navigator.vibrate(); 
+      // FIX: 3 Strong vibrations upon successful payment completion
+      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {} 
+      
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
       setTimeout(() => {
@@ -1206,54 +1287,61 @@
         let commitPromises = [];
 
         snapshot.docs.forEach((docSnap) => {
-          if (count === 500) {
-            commitPromises.push(batch.commit());
-            batch = writeBatch(db);
-            count = 0;
-          }
           if (operation === 'delete') {
             batch.delete(docSnap.ref);
           } else if (operation === 'edit') {
-            batch.update(docSnap.ref, newData);
+            batch.update(docSnap.ref, newData); // Applies update strictly to all matched documents (up to 5000+)
           }
+          
           count++;
+          if (count === 500) {
+            commitPromises.push(batch.commit());
+            batch = writeBatch(db); // Generate a fresh batch when limit hit
+            count = 0;
+          }
         });
 
+        // Ensure Bag itself is modified in final batch
         const bagRef = doc(db, 'bags', bagId);
         if (operation === 'delete') {
           batch.delete(bagRef);
         } else if (operation === 'edit') {
-          batch.update(bagRef, newData);
+          batch.update(bagRef, newData); 
         }
         
-        commitPromises.push(batch.commit());
+        commitPromises.push(batch.commit()); // Push final remaining batch chunk
+        
+        // Run all batch chunks simultaneously 
         await Promise.all(commitPromises);
         
         // Clear caches
         localStorage.removeItem('meena_dashboard_cache');
         localStorage.removeItem(`meena_bag_cache_${bagId}`);
 
-        alert(`Successfully ${operation === 'delete' ? 'deleted' : 'updated'} bag and all related documents.`);
+        showCustomAlert(`Successfully ${operation === 'delete' ? 'deleted' : 'updated'} bag and all linked records.`);
       } catch (e) {
         console.error("Batch operation error: ", e);
-        alert("Error executing batch process.");
+        showCustomAlert("Error executing batch process.");
       }
     }
 
     window.editBagBatch = function(bagId) {
-      const newName = prompt("Enter new name for this bag:");
-      if (!newName) return;
-      processBatchOperation(bagId, 'edit', { name: newName });
+      showCustomPrompt("Rename Bag", "Enter new name", (newName) => {
+          processBatchOperation(bagId, 'edit', { name: newName });
+      });
     };
 
     window.deleteBagBatch = function(bagId) {
-      if (confirm("Are you sure you want to completely delete this bag and all its transactions? This action processes in batches of 500 and cannot be undone.")) {
-        processBatchOperation(bagId, 'delete');
-      }
+      showCustomConfirm("Are you sure you want to completely delete this bag and all its transactions? This action processes in batches of 500 and cannot be undone.", () => {
+          processBatchOperation(bagId, 'delete');
+      });
     };
 
     // --- 7. UI TABS & MODALS (HISTORY API) ---
     window.switchTab = function(tabId) {
+      // Vibrate shortly on UI tab switch 
+      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) {}
+
       document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       
