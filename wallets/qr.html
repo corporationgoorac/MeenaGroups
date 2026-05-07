@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="./manifest.json">
+  
+  <title>Meena Wallets - QR Code</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --surface-color: #f9fafb;
+      --text-main: #050505;
+      --text-muted: #65676b;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --danger: #e41e3f;
+      --danger-bg: #ffe4e8;
+      --border-color: #ced0d4;
+      --input-bg: #f0f2f5;
+      --input-text: #050505;
+      --nav-bg: rgba(255, 255, 255, 0.85);
+      --modal-overlay: rgba(0,0,0,0.4);
+      --skeleton-bg: #e2e5e7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --surface-color: #1e1e1e;
+        --text-main: #e4e6eb;
+        --text-muted: #a3a3a3;
+        --primary: #2ea043;
+        --border-color: #333333;
+        --input-bg: #2d2d2d;
+        --input-text: #e4e6eb;
+        --nav-bg: rgba(18, 18, 18, 0.85);
+        --danger: #ff6b6b;
+        --danger-bg: rgba(255, 107, 107, 0.1);
+        --modal-overlay: rgba(0,0,0,0.7);
+        --skeleton-bg: #2d2d2d;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      background-color: var(--bg-color);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .nav-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .back-btn, .header-icon-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      transition: transform 0.2s;
+    }
+    .header-icon-btn:active, .back-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* Main Container */
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .amount-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 40px;
+      margin-bottom: 40px;
+    }
+
+    .amount-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .big-amount-input {
+      font-size: 56px;
+      font-weight: 800;
+      text-align: center;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid var(--border-color);
+      border-radius: 0;
+      color: var(--text-main);
+      width: 100%;
+      max-width: 300px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .big-amount-input:focus {
+      border-color: var(--primary);
+    }
+
+    .input-group {
+      margin-bottom: 24px;
+    }
+    .input-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background-color: var(--input-bg);
+      color: var(--input-text);
+      font-size: 16px;
+      font-weight: 600;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+    .select-wrapper::after {
+      content: '▼';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(46, 160, 67, 0.2);
+      transition: transform 0.2s;
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--modal-overlay);
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.3s ease; z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+
+    .modal-slide-side {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 400px;
+      background-color: var(--bg-color);
+      padding: 24px; overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2001;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+    }
+    .modal-slide-side.active { transform: translateX(0); }
+    
+    .modal-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background-color: var(--bg-color);
+      border-top-left-radius: 24px; border-top-right-radius: 24px;
+      padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2001;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-sheet.active { transform: translateY(0); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-size: 20px; font-weight: 700; }
+    .close-modal {
+      background: var(--input-bg); border: none; border-radius: 50%;
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-main); cursor: pointer;
+    }
+
+    /* UPI Management List */
+    .upi-list {
+      margin-top: 24px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 16px;
+    }
+    .upi-item {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .upi-item-info { display: flex; flex-direction: column; gap: 4px; }
+    .upi-item-name { font-weight: 700; font-size: 15px; }
+    .upi-item-id { font-size: 13px; color: var(--text-muted); }
+    .btn-remove {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Google Pay Style QR UI */
+    .qr-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--surface-color);
+      border-radius: 24px;
+      padding: 32px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .qr-branding {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .qr-amount-display {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    .qr-box {
+      background: #ffffff; /* Always white so scanners can read it easily */
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+      border: 2px solid #e2e5e7;
+    }
+    .qr-box img {
+      display: block;
+      width: 220px;
+      height: 220px;
+    }
+
+    .qr-powered {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: auto;
+    }
+
+    .btn-share {
+      background: var(--surface-color);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div class="nav-title">Receive Payment</div>
+    <button class="header-icon-btn" onclick="openModal('manage-upi-modal')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+        <line x1="2" y1="10" x2="22" y2="10"></line>
+        <line x1="7" y1="15" x2="7.01" y2="15"></line>
+        <line x1="11" y1="15" x2="13" y2="15"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div class="app-container">
+    <div class="amount-section">
+      <div class="amount-label">Enter Amount to Receive</div>
+      <input type="text" inputmode="numeric" id="receive-amount" class="big-amount-input" placeholder="₹0">
+    </div>
+
+    <div class="input-group">
+      <label>Receive to Account</label>
+      <div class="select-wrapper">
+        <select id="upi-select">
+          <option value="" disabled selected>Loading UPI IDs...</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="generate-btn">Generate QR Code</button>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <div id="manage-upi-modal" class="modal-slide-side">
+    <div class="modal-header">
+      <div class="modal-title">Manage UPI IDs</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div style="margin-bottom: 24px;">
+      <input type="text" id="new-upi-name" placeholder="Display Name (e.g. HDFC Current)" style="margin-bottom: 12px;">
+      <input type="text" id="new-upi-id" placeholder="UPI ID (e.g. you@bank)" style="margin-bottom: 12px;">
+      <button class="btn-primary" id="add-upi-btn" style="padding: 12px;">Add Account</button>
+    </div>
+
+    <div class="upi-list" id="upi-list-container">
+      <div style="color:var(--text-muted); font-size:14px; text-align:center;">Loading...</div>
+    </div>
+  </div>
+
+  <div id="qr-display-modal" class="modal-sheet">
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <div class="modal-title">Scan to Pay</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div class="qr-container" id="qr-export-area">
+      <div class="qr-branding">Meena Groups</div>
+      <div class="qr-amount-display" id="display-qr-amount">₹0</div>
+      
+      <div class="qr-box">
+        <img id="qr-image" src="" alt="QR Code">
+      </div>
+      
+      <div style="font-size:14px; font-weight:600; margin-bottom: 16px;" id="display-qr-upi"></div>
+      
+      <div class="qr-powered">Powered by Goorac Pay Infrastructure</div>
+    </div>
+
+    <button class="btn-share" id="share-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+      Share via WhatsApp
+    </button>
+  </div>
+
+  <script type="module">
+    import { db, auth, onAuthStateChanged } from './config.js';
+    import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    // State
+    let upiData = [];
+    let qrInstance = null;
+
+    // Elements
+    const amountInput = document.getElementById('receive-amount');
+    const upiSelect = document.getElementById('upi-select');
+    const generateBtn = document.getElementById('generate-btn');
+    const shareBtn = document.getElementById('share-btn');
+    
+    const newUpiName = document.getElementById('new-upi-name');
+    const newUpiId = document.getElementById('new-upi-id');
+    const addUpiBtn = document.getElementById('add-upi-btn');
+    const upiListContainer = document.getElementById('upi-list-container');
+    const qrImage = document.getElementById('qr-image');
+
+    // Realtime INR Formatting
+    amountInput.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+      if(value) {
+          e.target.value = parseInt(value, 10).toLocaleString('en-IN');
+      } else {
+          e.target.value = '';
+      }
+    });
+
+    // Modal Handlers (History API)
+    window.openModal = function(modalId) {
+      history.pushState({ modalId: modalId }, "", `#${modalId}`);
+      document.getElementById('modal-overlay').classList.add('active');
+      document.getElementById(modalId).classList.add('active');
+    };
+
+    window.closeModal = function() {
+      if (history.state && history.state.modalId) {
+        history.back();
+      } else {
+        forceCloseModals();
+      }
+    };
+
+    function forceCloseModals() {
+      document.getElementById('modal-overlay').classList.remove('active');
+      document.querySelectorAll('.modal-sheet, .modal-slide-side').forEach(m => m.classList.remove('active'));
+    }
+
+    window.addEventListener('popstate', (e) => {
+      forceCloseModals();
+      if (e.state && e.state.modalId) {
+        document.getElementById('modal-overlay').classList.add('active');
+        document.getElementById(e.state.modalId).classList.add('active');
+      }
+    });
+
+    // Database Initialization
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists() && userSnap.data().admin === true) {
+        loadUPIConfig();
+      } else {
+        alert("Access Denied: Admins only.");
+        window.location.href = 'index.html';
+      }
+    });
+
+    function loadUPIConfig() {
+      const upiDocRef = doc(db, 'System', 'upiIDs');
+      
+      onSnapshot(upiDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          upiData = docSnap.data().ids || [];
+        } else {
+          upiData = [];
+          setDoc(upiDocRef, { ids: [] }); // Initialize if missing
+        }
+        renderUPIList();
+      });
+    }
+
+    function renderUPIList() {
+      // Update Dropdown
+      upiSelect.innerHTML = upiData.length === 0 ? '<option value="" disabled selected>No accounts added</option>' : '';
+      
+      // Update Manage List
+      upiListContainer.innerHTML = upiData.length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center;">No accounts saved yet.</div>' : '';
+
+      upiData.forEach((item, index) => {
+        // Dropdown Option
+        const opt = document.createElement('option');
+        opt.value = item.upi;
+        opt.textContent = `${item.name} (${item.upi})`;
+        upiSelect.appendChild(opt);
+
+        // List Item
+        const div = document.createElement('div');
+        div.className = 'upi-item';
+        div.innerHTML = `
+          <div class="upi-item-info">
+            <div class="upi-item-name">${item.name}</div>
+            <div class="upi-item-id">${item.upi}</div>
+          </div>
+          <button class="btn-remove" onclick="window.removeUPI(${index})">Remove</button>
+        `;
+        upiListContainer.appendChild(div);
+      });
+    }
+
+    addUpiBtn.addEventListener('click', async () => {
+      const name = newUpiName.value.trim();
+      const upi = newUpiId.value.trim();
+      
+      if (!name || !upi) {
+        alert("Please enter both Name and UPI ID.");
+        return;
+      }
+
+      addUpiBtn.textContent = 'Saving...';
+      const newArray = [...upiData, { name, upi }];
+      
+      try {
+        await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
+        newUpiName.value = '';
+        newUpiId.value = '';
+      } catch (e) {
+        alert("Failed to save.");
+      }
+      addUpiBtn.textContent = 'Add Account';
+    });
+
+    window.removeUPI = async function(index) {
+      if(!confirm("Remove this account?")) return;
+      const newArray = [...upiData];
+      newArray.splice(index, 1);
+      
+      try {
+        await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
+      } catch(e) {
+        alert("Failed to remove.");
+      }
+    };
+
+    // QR Generation Logic
+    generateBtn.addEventListener('click', () => {
+      const rawAmt = amountInput.value.replace(/,/g, '');
+      const upiId = upiSelect.value;
+
+      if (!rawAmt || parseInt(rawAmt) <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+      if (!upiId) {
+        alert("Please select a valid receive account.");
+        return;
+      }
+
+      const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
+      const selectedName = upiData.find(x => x.upi === upiId)?.name || 'Account';
+
+      // Standard UPI Intent URI string
+      const intentStr = `upi://pay?pa=${upiId}&pn=Meena%20Groups&am=${rawAmt}&cu=INR`;
+
+      // Generate QR Code via QRious
+      if (!qrInstance) {
+          qrInstance = new QRious({
+            element: document.createElement('canvas'),
+            size: 500,
+            level: 'H'
+          });
+      }
+      qrInstance.value = intentStr;
+      
+      // Update Modal UI
+      document.getElementById('display-qr-amount').textContent = `₹${formattedAmt}`;
+      document.getElementById('display-qr-upi').textContent = `To: ${selectedName}`;
+      qrImage.src = qrInstance.toDataURL('image/png');
+
+      openModal('qr-display-modal');
+      
+      // Trigger strong vibration mapping to success
+      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {}
+    });
+
+    // High Resolution Sharing Logic via Canvas API
+    shareBtn.addEventListener('click', async () => {
+      const rawAmt = amountInput.value.replace(/,/g, '');
+      const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
+      
+      shareBtn.innerHTML = 'Generating...';
+      shareBtn.disabled = true;
+
+      try {
+        // Create an off-screen canvas to draw the sleek high-res shareable image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1080;
+        canvas.height = 1440;
+
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Styling constraints
+        ctx.textAlign = 'center';
+        
+        // Brand Title
+        ctx.fillStyle = '#050505';
+        ctx.font = 'bold 72px Inter, sans-serif';
+        ctx.fillText('Meena Groups', canvas.width / 2, 250);
+
+        // Amount
+        ctx.fillStyle = '#10b981';
+        ctx.font = '900 130px Inter, sans-serif';
+        ctx.fillText(`₹${formattedAmt}`, canvas.width / 2, 420);
+
+        // Setup QR Image Loading
+        const qrImg = new Image();
+        qrImg.src = qrInstance.toDataURL('image/png');
+        
+        await new Promise(resolve => qrImg.onload = resolve);
+        
+        // Draw QR Background Box
+        const boxSize = 650;
+        const boxX = (canvas.width - boxSize) / 2;
+        const boxY = 550;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 15;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxSize, boxSize, 40);
+        ctx.fill();
+        ctx.shadowColor = 'transparent'; // Reset shadow
+
+        // Inner border for QR box
+        ctx.strokeStyle = '#e2e5e7';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Draw actual QR inside the box
+        const qrPadding = 50;
+        ctx.drawImage(qrImg, boxX + qrPadding, boxY + qrPadding, boxSize - (qrPadding*2), boxSize - (qrPadding*2));
+
+        // Powered By Text
+        ctx.fillStyle = '#65676b';
+        ctx.font = 'bold 32px Inter, sans-serif';
+        ctx.fillText('POWERED BY GOORAC PAY INFRASTRUCTURE', canvas.width / 2, 1350);
+
+        // Convert to Blob and Share
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], `Meena_Groups_Payment_₹${rawAmt}.png`, { type: 'image/png' });
+          const shareData = {
+            title: 'Meena Groups Payment',
+            text: `Please complete the payment of ₹${formattedAmt} to Meena Groups using the attached QR code.`,
+            files: [file]
+          };
+
+          if (navigator.canShare && navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+          } else {
+            // Fallback if browser doesn't support file sharing
+            alert("Your device doesn't support direct image sharing. You can long-press the QR code above to save it.");
+          }
+          
+          shareBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            Share via WhatsApp
+          `;
+          shareBtn.disabled = false;
+        }, 'image/png');
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to generate sharing image.");
+        shareBtn.innerHTML = `Share via WhatsApp`;
+        shareBtn.disabled = false;
+      }
+    });
+
+  </script>
+</body>
+</html>
