@@ -239,8 +239,19 @@
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2001;
+      max-height: 90vh; overflow-y: auto;
     }
     .modal-sheet.active { transform: translateY(0); }
+
+    /* New Side Modal for Create/Edit */
+    .modal-side {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 85%; max-width: 400px;
+      background-color: var(--bg-color); transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2001;
+      padding: 24px; padding-top: max(24px, env(safe-area-inset-top));
+      box-shadow: -10px 0 40px rgba(0,0,0,0.1); overflow-y: auto;
+    }
+    .modal-side.active { transform: translateX(0); }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .modal-title { font-size: 20px; font-weight: 700; }
@@ -269,6 +280,11 @@
     .btn-primary {
       width: 100%; padding: 16px; border-radius: 14px; border: none;
       background-color: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    
+    .btn-danger {
+      width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--danger);
+      background-color: transparent; color: var(--danger); font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px;
     }
 
     /* Color Picker Gradients */
@@ -311,6 +327,17 @@
   </style>
 </head>
 <body>
+
+  <script>
+    if(localStorage.getItem('goorac_homePills')) {
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('home-bag-pills').innerHTML = localStorage.getItem('goorac_homePills');
+        document.getElementById('pay-bag-list').innerHTML = localStorage.getItem('goorac_payList');
+        document.getElementById('manage-bag-list').innerHTML = localStorage.getItem('goorac_manageList');
+        document.getElementById('total-net-worth').textContent = localStorage.getItem('goorac_netWorth') || '₹0';
+      });
+    }
+  </script>
 
   <header class="app-header">
     <div class="brand-title">Goorac<span>.</span></div>
@@ -381,7 +408,7 @@
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
 
-  <div id="create-bag-modal" class="modal-sheet">
+  <div id="create-bag-modal" class="modal-side">
     <div class="modal-header">
       <div class="modal-title">Create New Bag</div>
       <button class="close-modal" onclick="closeModal()">
@@ -403,6 +430,48 @@
     </div>
 
     <button class="btn-primary" id="save-bag-btn">Create Bag</button>
+  </div>
+
+  <div id="edit-bag-modal" class="modal-side">
+    <div class="modal-header">
+      <div class="modal-title">Edit Bag</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <input type="text" id="edit-bag-name" placeholder="Bag Name">
+    <div style="font-size:14px; font-weight:600; margin-bottom:12px;">Select Theme</div>
+    <div class="color-picker" id="edit-bag-color-picker">
+      <div class="color-swatch" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="linear-gradient(135deg, #3b82f6, #1d4ed8)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #10b981, #047857);" data-color="linear-gradient(135deg, #10b981, #047857)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #8b5cf6, #5b21b6);" data-color="linear-gradient(135deg, #8b5cf6, #5b21b6)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #f59e0b, #b45309);" data-color="linear-gradient(135deg, #f59e0b, #b45309)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ec4899, #be185d);" data-color="linear-gradient(135deg, #ec4899, #be185d)"></div>
+    </div>
+    <button class="btn-primary" id="update-bag-btn">Save Changes</button>
+    <button class="btn-danger" id="delete-bag-btn">Delete Bag Completely</button>
+  </div>
+
+  <div id="bag-detail-modal" class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-bag-title">Bag Details</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div style="text-align:center; margin-bottom: 24px;">
+      <div style="font-size:14px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Current Balance</div>
+      <div id="detail-bag-balance" style="font-size:48px; font-weight:800; letter-spacing:-1px;">₹0</div>
+    </div>
+    <div class="chart-container">
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Weekly Activity</div>
+      <canvas id="bagDetailChart" height="200"></canvas>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-primary" id="open-edit-bag-btn" style="background:var(--input-bg); color:var(--text-main);">Edit Settings</button>
+    </div>
   </div>
 
   <div id="pay-modal" class="modal-sheet">
@@ -433,20 +502,20 @@
 
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // App State
     let currentUser = null;
     let bagsData = [];
     let selectedBagIdForPay = null;
     let selectedBagColor = '';
+    let editingBagId = null;
 
     // Elements
     const profilePicImg = document.getElementById('header-profile-pic');
     const mainNav = document.getElementById('main-nav');
     const totalNetWorthEl = document.getElementById('total-net-worth');
     
-    // Check Local Storage for MMS Profile Pic
     const savedPic = localStorage.getItem('gooracProfilePic');
     if (savedPic) profilePicImg.src = savedPic;
 
@@ -457,13 +526,11 @@
         return;
       }
 
-      // Update Profile Pic globally
       if (user.photoURL) {
         profilePicImg.src = user.photoURL;
         localStorage.setItem('gooracProfilePic', user.photoURL);
       }
 
-      // Check Admin Status
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -472,9 +539,8 @@
         document.getElementById('view-denied').classList.remove('active');
         document.getElementById('view-home').classList.add('active');
         mainNav.style.display = 'flex';
-        initApp(); // Start loading data
+        initApp(); 
       } else {
-        // Not Admin
         document.getElementById('view-home').classList.remove('active');
         document.getElementById('view-pay').classList.remove('active');
         document.getElementById('view-manage').classList.remove('active');
@@ -485,7 +551,6 @@
 
     // --- 2. DATA SUBSCRIPTIONS ---
     function initApp() {
-      // Listen to active bags in real-time
       const q = query(collection(db, 'bags'), where('isActive', '==', true));
       onSnapshot(q, (snapshot) => {
         bagsData = [];
@@ -497,10 +562,17 @@
           totalNW += bag.currentBalance || 0;
         });
 
-        // Update UI
-        totalNetWorthEl.textContent = `₹${totalNW.toLocaleString('en-IN')}`;
+        const formattedNW = `₹${totalNW.toLocaleString('en-IN')}`;
+        totalNetWorthEl.textContent = formattedNW;
+        
         renderBagsUI();
-        renderDummyChart(); // Placeholder for actual stats
+        renderDummyChart(); 
+        
+        // Cache data for 0ms load next time
+        localStorage.setItem('goorac_netWorth', formattedNW);
+        localStorage.setItem('goorac_homePills', document.getElementById('home-bag-pills').innerHTML);
+        localStorage.setItem('goorac_payList', document.getElementById('pay-bag-list').innerHTML);
+        localStorage.setItem('goorac_manageList', document.getElementById('manage-bag-list').innerHTML);
       });
     }
 
@@ -509,15 +581,11 @@
       const payList = document.getElementById('pay-bag-list');
       const manageList = document.getElementById('manage-bag-list');
       
-      homePills.innerHTML = '';
-      payList.innerHTML = '';
-      manageList.innerHTML = '';
+      homePills.innerHTML = ''; payList.innerHTML = ''; manageList.innerHTML = '';
 
       bagsData.forEach(bag => {
-        // Home Pills
         homePills.innerHTML += `<div class="bag-pill" style="background: ${bag.color}">${bag.name} - ₹${bag.currentBalance.toLocaleString('en-IN')}</div>`;
 
-        // Pay List (Big colored buttons)
         payList.innerHTML += `
           <div class="list-item" style="background:${bag.color}; color:white; border-radius:16px; padding:20px; margin-bottom:12px; cursor:pointer;" onclick="window.openPayModal('${bag.id}', '${bag.name}', '${bag.color}')">
             <div>
@@ -528,9 +596,8 @@
           </div>
         `;
 
-        // Manage List
         manageList.innerHTML += `
-          <div class="list-item">
+          <div class="list-item" style="cursor:pointer;" onclick="window.openBagDetailModal('${bag.id}')">
             <div style="display:flex; align-items:center; gap:12px;">
               <div style="width:16px; height:16px; border-radius:50%; background:${bag.color};"></div>
               <div>
@@ -538,21 +605,29 @@
                 <div class="item-subtitle">₹${bag.currentBalance.toLocaleString('en-IN')}</div>
               </div>
             </div>
-            <button style="background:var(--input-bg); border:none; padding:6px 12px; border-radius:12px; font-weight:600; cursor:pointer; color:var(--text-main);">Edit</button>
+            <button style="background:var(--input-bg); border:none; padding:6px 12px; border-radius:12px; font-weight:600; color:var(--text-main);">View</button>
           </div>
         `;
       });
     }
 
-    // --- 3. CREATE BAG LOGIC ---
+    // --- 3. CREATE & EDIT BAG LOGIC ---
     let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+    let editBagColor = '';
     
-    // Color Swatch Selection
-    document.querySelectorAll('.color-swatch').forEach(swatch => {
+    document.querySelectorAll('#bag-color-picker .color-swatch').forEach(swatch => {
       swatch.addEventListener('click', (e) => {
-        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        document.querySelectorAll('#bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
         e.target.classList.add('selected');
         newBagColor = e.target.getAttribute('data-color');
+      });
+    });
+
+    document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', (e) => {
+        document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
+        e.target.classList.add('selected');
+        editBagColor = e.target.getAttribute('data-color');
       });
     });
 
@@ -562,35 +637,100 @@
       if (!name) return alert("Enter a name");
       
       const initialBalance = balStr ? parseInt(balStr) : 0;
-      
       const batch = writeBatch(db);
       const newBagRef = doc(collection(db, 'bags'));
       
       batch.set(newBagRef, {
-        name: name,
-        color: newBagColor,
-        currentBalance: initialBalance,
-        isActive: true,
-        createdAt: serverTimestamp()
+        name: name, color: newBagColor, currentBalance: initialBalance,
+        isActive: true, createdAt: serverTimestamp()
       });
 
-      // If initial balance > 0, log it as an initial income
       if (initialBalance > 0) {
         const txRef = doc(collection(db, 'transactions'));
         batch.set(txRef, {
-          bagId: newBagRef.id,
-          amount: initialBalance,
-          type: 'income',
-          note: 'Initial Balance',
-          timestamp: serverTimestamp()
+          bagId: newBagRef.id, bagName: name, bagColor: newBagColor,
+          amount: initialBalance, type: 'income', note: 'Initial Balance', timestamp: serverTimestamp()
         });
       }
 
       await batch.commit();
-      document.getElementById('new-bag-name').value = '';
-      document.getElementById('new-bag-balance').value = '';
+      document.getElementById('new-bag-name').value = ''; document.getElementById('new-bag-balance').value = '';
       closeModal();
     });
+
+    window.openBagDetailModal = function(id) {
+      editingBagId = id;
+      const bag = bagsData.find(b => b.id === id);
+      if(!bag) return;
+      document.getElementById('detail-bag-title').textContent = bag.name;
+      document.getElementById('detail-bag-balance').textContent = `₹${bag.currentBalance.toLocaleString('en-IN')}`;
+      renderDetailChart(bag.color);
+      openModal('bag-detail-modal');
+    };
+
+    document.getElementById('open-edit-bag-btn').addEventListener('click', () => {
+      const bag = bagsData.find(b => b.id === editingBagId);
+      document.getElementById('edit-bag-name').value = bag.name;
+      editBagColor = bag.color;
+      
+      document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => {
+        s.classList.remove('selected');
+        if(s.getAttribute('data-color') === editBagColor) s.classList.add('selected');
+      });
+      closeModal(); 
+      setTimeout(() => openModal('edit-bag-modal'), 350);
+    });
+
+    // BATCH EDIT ALL DOCUMENTS (Limit 500 chunks)
+    document.getElementById('update-bag-btn').addEventListener('click', async () => {
+      const newName = document.getElementById('edit-bag-name').value.trim();
+      if(!newName || !editingBagId) return;
+      
+      document.getElementById('update-bag-btn').textContent = "Updating...";
+      
+      // Update Bag Doc
+      await updateDoc(doc(db, 'bags', editingBagId), { name: newName, color: editBagColor });
+
+      // Update all transactions in batches of 500 to prevent crashing
+      const q = query(collection(db, 'transactions'), where('bagId', '==', editingBagId));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs;
+      
+      for (let i = 0; i < docs.length; i += 500) {
+          const chunk = docs.slice(i, i + 500);
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.update(d.ref, { bagName: newName, bagColor: editBagColor }));
+          await batch.commit();
+      }
+
+      document.getElementById('update-bag-btn').textContent = "Save Changes";
+      closeModal();
+    });
+
+    // BATCH DELETE ALL DOCUMENTS (Limit 500 chunks)
+    document.getElementById('delete-bag-btn').addEventListener('click', async () => {
+      if(!confirm("Are you sure? This deletes the bag and ALL its transactions forever.")) return;
+      if(!editingBagId) return;
+
+      document.getElementById('delete-bag-btn').textContent = "Deleting...";
+
+      const q = query(collection(db, 'transactions'), where('bagId', '==', editingBagId));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs;
+      
+      for (let i = 0; i < docs.length; i += 500) {
+          const chunk = docs.slice(i, i + 500);
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+      }
+      
+      await deleteDoc(doc(db, 'bags', editingBagId));
+      
+      document.getElementById('delete-bag-btn').textContent = "Delete Bag Completely";
+      closeModal();
+    });
+
 
     // --- 4. PAY (LOG TRANSACTION) LOGIC ---
     window.openPayModal = function(bagId, bagName, color) {
@@ -614,52 +754,48 @@
       const bagRef = doc(db, 'bags', selectedBagIdForPay);
       const txRef = doc(collection(db, 'transactions'));
 
-      // Add to logs
+      const bagData = bagsData.find(b => b.id === selectedBagIdForPay);
+
       batch.set(txRef, {
         bagId: selectedBagIdForPay,
+        bagName: bagData.name,
+        bagColor: bagData.color,
         amount: amount,
         type: type,
         note: note,
         timestamp: serverTimestamp()
       });
 
-      // Update Running Total
       const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
-      batch.update(bagRef, {
-        currentBalance: increment(mathValue)
-      });
+      batch.update(bagRef, { currentBalance: increment(mathValue) });
 
       try {
         await batch.commit();
         closeModal();
         triggerGPayAnimation();
-      } catch (err) {
-        console.error("Batch fail:", err);
-        alert("Transaction failed");
-      }
+      } catch (err) { alert("Transaction failed"); }
     });
 
     function triggerGPayAnimation() {
-      if ('vibrate' in navigator) navigator.vibrate(); // Haptic
+      if ('vibrate' in navigator) navigator.vibrate(); 
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
       setTimeout(() => {
         anim.classList.remove('active');
-        // Redirect back to home after payment
         switchTab('home');
       }, 1500);
     }
 
     // --- 5. UI TABS & MODALS (HISTORY API) ---
-    window.switchTab = function(tabId) {
+    window.switchTab = function(tabId, element = null) {
       document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      
       document.getElementById(`view-${tabId}`).classList.add('active');
-      
-      // Fixed: Ensure the active tab button styling updates correctly
-      if (event && event.currentTarget) {
-          event.currentTarget.classList.add('active');
+      if(element) element.classList.add('active');
+      else {
+        // Find matching nav button based on onclick string
+        const matchingBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+        if (matchingBtn) matchingBtn.classList.add('active');
       }
       history.pushState({ page: tabId }, "", `#${tabId}`);
     };
@@ -671,16 +807,14 @@
     };
 
     window.closeModal = function() {
-      if (history.state && history.state.modalId) {
-        history.back();
-      } else {
-        forceCloseModals();
-      }
+      if (history.state && history.state.modalId) history.back();
+      else forceCloseModals();
     };
 
     function forceCloseModals() {
       document.getElementById('modal-overlay').classList.remove('active');
       document.querySelectorAll('.modal-sheet').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.modal-side').forEach(m => m.classList.remove('active'));
     }
 
     window.addEventListener('popstate', (e) => {
@@ -692,14 +826,15 @@
         document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`view-${e.state.page}`).classList.add('active');
+        const matchingBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(e.state.page));
+        if (matchingBtn) matchingBtn.classList.add('active');
       }
     });
 
-    // --- 6. PWA INSTALL BANNER ---
+    // --- 6. INSTALL BANNER ---
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
+      e.preventDefault(); deferredPrompt = e;
       document.getElementById('install-banner').classList.add('active');
     });
 
@@ -707,31 +842,43 @@
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          document.getElementById('install-banner').classList.remove('active');
-        }
+        if (outcome === 'accepted') document.getElementById('install-banner').classList.remove('active');
         deferredPrompt = null;
       }
     });
 
-    // --- DUMMY CHART (Placeholder) ---
+    // --- CHART JS (Home & Detail) ---
+    let homeChartInstance = null;
+    let detailChartInstance = null;
+
     function renderDummyChart() {
       const ctx = document.getElementById('cashFlowChart').getContext('2d');
-      new Chart(ctx, {
+      if(homeChartInstance) homeChartInstance.destroy();
+      homeChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: [{
-            label: 'Income',
-            data: [1000, 1500, 1200, 1800, 2000, 2500, 3000],
-            borderColor: '#10b981', tension: 0.4
-          }, {
-            label: 'Expense',
-            data: [500, 800, 600, 1200, 900, 1500, 1100],
-            borderColor: '#e41e3f', tension: 0.4
-          }]
+          datasets: [{ label: 'Income', data:, borderColor: '#10b981', tension: 0.4 }, 
+                     { label: 'Expense', data:, borderColor: '#e41e3f', tension: 0.4 }]
         },
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+      });
+    }
+
+    function renderDetailChart(colorStr) {
+      const ctx = document.getElementById('bagDetailChart').getContext('2d');
+      if(detailChartInstance) detailChartInstance.destroy();
+      // Extract main color from gradient for border
+      const match = colorStr.match(/#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})/g);
+      const chartColor = match ? match : '#10b981';
+
+      detailChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+          datasets: [{ label: 'Activity', data: [5000, -2000, 3000, -500], backgroundColor: chartColor, borderRadius: 8 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: {display:false} }, y: { display: false } } }
       });
     }
   </script>
