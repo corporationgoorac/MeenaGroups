@@ -1047,10 +1047,15 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
-            // FIX: Parse Date locally to prevent Timezone Offset pushing to previous/next day
+            // FIX: Valid Date Object Creation using precise indices
             const parts = dateVal.split('-');
-            const startDay = new Date(parts, parts - 1, parts);
-            const endDay = new Date(parts, parts - 1, parts, 23, 59, 59, 999);
+            const year = parseInt(parts, 10);
+            const month = parseInt(parts, 10) - 1; // Month is 0-indexed in JS Date
+            const day = parseInt(parts, 10);
+            
+            const startDay = new Date(year, month, day);
+            const endDay = new Date(year, month, day, 23, 59, 59, 999);
+            
             txQuery = query(txQuery, where('timestamp', '>=', startDay), where('timestamp', '<=', endDay), orderBy('timestamp', 'desc'));
         } else {
             txQuery = query(txQuery, orderBy('timestamp', 'desc'));
@@ -1097,10 +1102,12 @@
             lastVisibleTx = snap.docs[snap.docs.length - 1]; // update cursor for next batch
         } catch (e) {
             console.error("Tx Load Error:", e);
+            // If Firebase Database index is missing, this will trigger the banner and alert.
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
                 document.getElementById('index-error-banner').classList.add('active');
                 document.getElementById('index-fix-btn').onclick = () => { window.open(match, '_blank'); };
+                showCustomAlert("Database Index Required! Please click the red banner at the bottom of the screen to enable history loading.");
             }
         }
         isFetchingTx = false;
