@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#18191a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="./manifest.json">
   
-  <title>Goorac Wallets - Dashboard</title>
+  <title>Meena Wallets - Dashboard</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,14 +31,15 @@
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-color: #18191a;
-        --surface-color: #242526;
+        --bg-color: #121212; /* Deep charcoal for professional look */
+        --surface-color: #1e1e1e;
         --text-main: #e4e6eb;
-        --text-muted: #b0b3b8;
-        --border-color: #3e4042;
-        --input-bg: #3a3b3c;
+        --text-muted: #a3a3a3;
+        --primary: #2ea043; /* Mossy green highlight */
+        --border-color: #333333;
+        --input-bg: #2d2d2d;
         --input-text: #e4e6eb;
-        --nav-bg: rgba(36, 37, 38, 0.85);
+        --nav-bg: rgba(18, 18, 18, 0.85);
         --modal-overlay: rgba(0,0,0,0.7);
       }
     }
@@ -98,15 +99,15 @@
       flex-direction: column;
     }
 
-    /* Page Views */
+    /* Page Views - 0ms instantly active */
     .page-view {
       display: none;
-      animation: fadeIn 0.3s ease forwards;
+      animation: fadeIn 0.15s ease forwards;
     }
     .page-view.active { display: block; }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -123,6 +124,25 @@
     }
     .net-worth-label { font-size: 14px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
     .net-worth-amount { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-top: 4px; }
+
+    /* Monthly/Weekly Status Block */
+    .status-block {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .status-card {
+      flex: 1;
+      background: var(--surface-color);
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+    }
+    .status-card-title { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .status-card-value { font-size: 20px; font-weight: 800; }
+    .status-card-trend { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .trend-up { color: var(--primary); }
+    .trend-down { color: var(--danger); }
 
     .bag-pills-container {
       display: flex;
@@ -216,7 +236,7 @@
     }
     .nav-btn.active {
       color: var(--primary);
-      background-color: rgba(16, 185, 129, 0.1);
+      background-color: rgba(46, 160, 67, 0.1);
     }
     .nav-btn svg { width: 24px; height: 24px; }
     .nav-btn span { font-size: 11px; font-weight: 700; }
@@ -231,6 +251,7 @@
     }
     .modal-overlay.active { opacity: 1; visibility: visible; }
 
+    /* Slide from Bottom */
     .modal-sheet {
       position: fixed; bottom: 0; left: 0; right: 0;
       background-color: var(--bg-color);
@@ -239,19 +260,20 @@
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2001;
-      max-height: 90vh; overflow-y: auto;
     }
     .modal-sheet.active { transform: translateY(0); }
 
-    /* New Side Modal for Create/Edit */
-    .modal-side {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 85%; max-width: 400px;
-      background-color: var(--bg-color); transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2001;
-      padding: 24px; padding-top: max(24px, env(safe-area-inset-top));
-      box-shadow: -10px 0 40px rgba(0,0,0,0.1); overflow-y: auto;
+    /* Slide from Side */
+    .modal-slide-side {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 400px;
+      background-color: var(--bg-color);
+      padding: 24px; overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2001;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.1);
     }
-    .modal-side.active { transform: translateX(0); }
+    .modal-slide-side.active { transform: translateX(0); }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .modal-title { font-size: 20px; font-weight: 700; }
@@ -273,7 +295,7 @@
     .big-amount-input {
       font-size: 48px; font-weight: 800; text-align: center;
       padding: 20px; background: transparent; border: none; border-bottom: 2px solid var(--border-color);
-      border-radius: 0; margin-bottom: 32px;
+      border-radius: 0; margin-bottom: 32px; color: var(--text-main);
     }
     .big-amount-input:focus { border-color: var(--primary); background: transparent; }
 
@@ -281,10 +303,8 @@
       width: 100%; padding: 16px; border-radius: 14px; border: none;
       background-color: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
     }
-    
     .btn-danger {
-      width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--danger);
-      background-color: transparent; color: var(--danger); font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px;
+      background-color: var(--danger); color: #fff;
     }
 
     /* Color Picker Gradients */
@@ -324,23 +344,20 @@
     .list-item:last-child { border-bottom: none; }
     .item-title { font-size: 16px; font-weight: 600; }
     .item-subtitle { font-size: 13px; color: var(--text-muted); }
+
+    .action-btns {
+      display: flex; gap: 8px;
+    }
+    .action-btn {
+      background: var(--input-bg); border: none; padding: 6px 12px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-main);
+    }
+    .action-btn.delete { color: var(--danger); background: rgba(228, 30, 63, 0.1); }
   </style>
 </head>
 <body>
 
-  <script>
-    if(localStorage.getItem('goorac_homePills')) {
-      document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById('home-bag-pills').innerHTML = localStorage.getItem('goorac_homePills');
-        document.getElementById('pay-bag-list').innerHTML = localStorage.getItem('goorac_payList');
-        document.getElementById('manage-bag-list').innerHTML = localStorage.getItem('goorac_manageList');
-        document.getElementById('total-net-worth').textContent = localStorage.getItem('goorac_netWorth') || '₹0';
-      });
-    }
-  </script>
-
   <header class="app-header">
-    <div class="brand-title">Goorac<span>.</span></div>
+    <div class="brand-title">Meena<span>.</span></div>
     <img id="header-profile-pic" class="header-profile-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2QxZDVkYiI+PHBhdGggZD0iTTEyIDJDMi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMyMS41MiAyIDEyIDJ6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMi4wMSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz48L3N2Zz4=" alt="Profile" onclick="window.location.href='settings.html'">
   </header>
 
@@ -361,6 +378,19 @@
       <div class="net-worth-card">
         <div class="net-worth-label">Total Liquid Net Worth</div>
         <div class="net-worth-amount" id="total-net-worth">₹0</div>
+      </div>
+
+      <div class="status-block">
+        <div class="status-card">
+          <div class="status-card-title">This Week</div>
+          <div class="status-card-value">₹12,400</div>
+          <div class="status-card-trend trend-up">↑ 4.2% vs last week</div>
+        </div>
+        <div class="status-card">
+          <div class="status-card-title">This Month</div>
+          <div class="status-card-value">₹48,200</div>
+          <div class="status-card-trend trend-down">↓ 1.1% vs last month</div>
+        </div>
       </div>
 
       <div class="bag-pills-container" id="home-bag-pills">
@@ -408,7 +438,7 @@
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
 
-  <div id="create-bag-modal" class="modal-side">
+  <div id="create-bag-modal" class="modal-slide-side">
     <div class="modal-header">
       <div class="modal-title">Create New Bag</div>
       <button class="close-modal" onclick="closeModal()">
@@ -427,51 +457,10 @@
       <div class="color-swatch" style="background: linear-gradient(135deg, #f59e0b, #b45309);" data-color="linear-gradient(135deg, #f59e0b, #b45309)"></div>
       <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
       <div class="color-swatch" style="background: linear-gradient(135deg, #ec4899, #be185d);" data-color="linear-gradient(135deg, #ec4899, #be185d)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #1f2937, #030712);" data-color="linear-gradient(135deg, #1f2937, #030712)"></div>
     </div>
 
     <button class="btn-primary" id="save-bag-btn">Create Bag</button>
-  </div>
-
-  <div id="edit-bag-modal" class="modal-side">
-    <div class="modal-header">
-      <div class="modal-title">Edit Bag</div>
-      <button class="close-modal" onclick="closeModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>
-    
-    <input type="text" id="edit-bag-name" placeholder="Bag Name">
-    <div style="font-size:14px; font-weight:600; margin-bottom:12px;">Select Theme</div>
-    <div class="color-picker" id="edit-bag-color-picker">
-      <div class="color-swatch" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="linear-gradient(135deg, #3b82f6, #1d4ed8)"></div>
-      <div class="color-swatch" style="background: linear-gradient(135deg, #10b981, #047857);" data-color="linear-gradient(135deg, #10b981, #047857)"></div>
-      <div class="color-swatch" style="background: linear-gradient(135deg, #8b5cf6, #5b21b6);" data-color="linear-gradient(135deg, #8b5cf6, #5b21b6)"></div>
-      <div class="color-swatch" style="background: linear-gradient(135deg, #f59e0b, #b45309);" data-color="linear-gradient(135deg, #f59e0b, #b45309)"></div>
-      <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
-      <div class="color-swatch" style="background: linear-gradient(135deg, #ec4899, #be185d);" data-color="linear-gradient(135deg, #ec4899, #be185d)"></div>
-    </div>
-    <button class="btn-primary" id="update-bag-btn">Save Changes</button>
-    <button class="btn-danger" id="delete-bag-btn">Delete Bag Completely</button>
-  </div>
-
-  <div id="bag-detail-modal" class="modal-sheet">
-    <div class="modal-header">
-      <div class="modal-title" id="detail-bag-title">Bag Details</div>
-      <button class="close-modal" onclick="closeModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>
-    <div style="text-align:center; margin-bottom: 24px;">
-      <div style="font-size:14px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Current Balance</div>
-      <div id="detail-bag-balance" style="font-size:48px; font-weight:800; letter-spacing:-1px;">₹0</div>
-    </div>
-    <div class="chart-container">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Weekly Activity</div>
-      <canvas id="bagDetailChart" height="200"></canvas>
-    </div>
-    <div style="display:flex; gap:12px;">
-      <button class="btn-primary" id="open-edit-bag-btn" style="background:var(--input-bg); color:var(--text-main);">Edit Settings</button>
-    </div>
   </div>
 
   <div id="pay-modal" class="modal-sheet">
@@ -493,6 +482,29 @@
     <button class="btn-primary" id="submit-pay-btn">Done</button>
   </div>
 
+  <div id="bag-details-modal" class="modal-slide-side">
+    <div class="modal-header">
+      <div class="modal-title" id="details-modal-title">Bag Details</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="font-size: 14px; color: var(--text-muted);">Current Balance</div>
+      <div style="font-size: 36px; font-weight: 800;" id="details-modal-balance">₹0</div>
+    </div>
+
+    <div class="chart-container">
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last Week Graph</div>
+      <canvas id="weeklyBagChart" height="150"></canvas>
+    </div>
+    <div class="chart-container">
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last Month Graph</div>
+      <canvas id="monthlyBagChart" height="150"></canvas>
+    </div>
+  </div>
+
   <div id="gpay-animation">
     <div class="check-circle">
       <div class="check-mark">✔</div>
@@ -502,20 +514,20 @@
 
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, getDocs, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // App State
     let currentUser = null;
     let bagsData = [];
     let selectedBagIdForPay = null;
     let selectedBagColor = '';
-    let editingBagId = null;
 
     // Elements
     const profilePicImg = document.getElementById('header-profile-pic');
     const mainNav = document.getElementById('main-nav');
     const totalNetWorthEl = document.getElementById('total-net-worth');
     
+    // Check Local Storage for MMS Profile Pic
     const savedPic = localStorage.getItem('gooracProfilePic');
     if (savedPic) profilePicImg.src = savedPic;
 
@@ -526,11 +538,13 @@
         return;
       }
 
+      // Update Profile Pic globally
       if (user.photoURL) {
         profilePicImg.src = user.photoURL;
         localStorage.setItem('gooracProfilePic', user.photoURL);
       }
 
+      // Check Admin Status
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -539,8 +553,9 @@
         document.getElementById('view-denied').classList.remove('active');
         document.getElementById('view-home').classList.add('active');
         mainNav.style.display = 'flex';
-        initApp(); 
+        initApp(); // Start loading data
       } else {
+        // Not Admin
         document.getElementById('view-home').classList.remove('active');
         document.getElementById('view-pay').classList.remove('active');
         document.getElementById('view-manage').classList.remove('active');
@@ -551,6 +566,7 @@
 
     // --- 2. DATA SUBSCRIPTIONS ---
     function initApp() {
+      // Listen to active bags in real-time
       const q = query(collection(db, 'bags'), where('isActive', '==', true));
       onSnapshot(q, (snapshot) => {
         bagsData = [];
@@ -562,17 +578,10 @@
           totalNW += bag.currentBalance || 0;
         });
 
-        const formattedNW = `₹${totalNW.toLocaleString('en-IN')}`;
-        totalNetWorthEl.textContent = formattedNW;
-        
+        // Update UI
+        totalNetWorthEl.textContent = `₹${totalNW.toLocaleString('en-IN')}`;
         renderBagsUI();
-        renderDummyChart(); 
-        
-        // Cache data for 0ms load next time
-        localStorage.setItem('goorac_netWorth', formattedNW);
-        localStorage.setItem('goorac_homePills', document.getElementById('home-bag-pills').innerHTML);
-        localStorage.setItem('goorac_payList', document.getElementById('pay-bag-list').innerHTML);
-        localStorage.setItem('goorac_manageList', document.getElementById('manage-bag-list').innerHTML);
+        renderDummyChart('cashFlowChart'); 
       });
     }
 
@@ -581,11 +590,15 @@
       const payList = document.getElementById('pay-bag-list');
       const manageList = document.getElementById('manage-bag-list');
       
-      homePills.innerHTML = ''; payList.innerHTML = ''; manageList.innerHTML = '';
+      homePills.innerHTML = '';
+      payList.innerHTML = '';
+      manageList.innerHTML = '';
 
       bagsData.forEach(bag => {
+        // Home Pills
         homePills.innerHTML += `<div class="bag-pill" style="background: ${bag.color}">${bag.name} - ₹${bag.currentBalance.toLocaleString('en-IN')}</div>`;
 
+        // Pay List (Big colored buttons)
         payList.innerHTML += `
           <div class="list-item" style="background:${bag.color}; color:white; border-radius:16px; padding:20px; margin-bottom:12px; cursor:pointer;" onclick="window.openPayModal('${bag.id}', '${bag.name}', '${bag.color}')">
             <div>
@@ -596,38 +609,34 @@
           </div>
         `;
 
+        // Manage List with Edit & Delete actions
         manageList.innerHTML += `
-          <div class="list-item" style="cursor:pointer;" onclick="window.openBagDetailModal('${bag.id}')">
+          <div class="list-item" style="border-radius:16px; background:var(--surface-color); padding:16px; margin-bottom:12px; border:1px solid var(--border-color); cursor:pointer;" onclick="window.openBagDetails('${bag.id}', '${bag.name}', ${bag.currentBalance})">
             <div style="display:flex; align-items:center; gap:12px;">
-              <div style="width:16px; height:16px; border-radius:50%; background:${bag.color};"></div>
+              <div style="width:24px; height:24px; border-radius:50%; background:${bag.color};"></div>
               <div>
                 <div class="item-title">${bag.name}</div>
                 <div class="item-subtitle">₹${bag.currentBalance.toLocaleString('en-IN')}</div>
               </div>
             </div>
-            <button style="background:var(--input-bg); border:none; padding:6px 12px; border-radius:12px; font-weight:600; color:var(--text-main);">View</button>
+            <div class="action-btns" onclick="event.stopPropagation()">
+              <button class="action-btn" onclick="window.editBagBatch('${bag.id}')">Edit</button>
+              <button class="action-btn delete" onclick="window.deleteBagBatch('${bag.id}')">Delete</button>
+            </div>
           </div>
         `;
       });
     }
 
-    // --- 3. CREATE & EDIT BAG LOGIC ---
+    // --- 3. CREATE BAG LOGIC ---
     let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-    let editBagColor = '';
     
-    document.querySelectorAll('#bag-color-picker .color-swatch').forEach(swatch => {
+    // Color Swatch Selection
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
       swatch.addEventListener('click', (e) => {
-        document.querySelectorAll('#bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
         e.target.classList.add('selected');
         newBagColor = e.target.getAttribute('data-color');
-      });
-    });
-
-    document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(swatch => {
-      swatch.addEventListener('click', (e) => {
-        document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
-        e.target.classList.add('selected');
-        editBagColor = e.target.getAttribute('data-color');
       });
     });
 
@@ -637,100 +646,35 @@
       if (!name) return alert("Enter a name");
       
       const initialBalance = balStr ? parseInt(balStr) : 0;
+      
       const batch = writeBatch(db);
       const newBagRef = doc(collection(db, 'bags'));
       
       batch.set(newBagRef, {
-        name: name, color: newBagColor, currentBalance: initialBalance,
-        isActive: true, createdAt: serverTimestamp()
+        name: name,
+        color: newBagColor,
+        currentBalance: initialBalance,
+        isActive: true,
+        createdAt: serverTimestamp()
       });
 
+      // If initial balance > 0, log it as an initial income
       if (initialBalance > 0) {
         const txRef = doc(collection(db, 'transactions'));
         batch.set(txRef, {
-          bagId: newBagRef.id, bagName: name, bagColor: newBagColor,
-          amount: initialBalance, type: 'income', note: 'Initial Balance', timestamp: serverTimestamp()
+          bagId: newBagRef.id,
+          amount: initialBalance,
+          type: 'income',
+          note: 'Initial Balance',
+          timestamp: serverTimestamp()
         });
       }
 
       await batch.commit();
-      document.getElementById('new-bag-name').value = ''; document.getElementById('new-bag-balance').value = '';
+      document.getElementById('new-bag-name').value = '';
+      document.getElementById('new-bag-balance').value = '';
       closeModal();
     });
-
-    window.openBagDetailModal = function(id) {
-      editingBagId = id;
-      const bag = bagsData.find(b => b.id === id);
-      if(!bag) return;
-      document.getElementById('detail-bag-title').textContent = bag.name;
-      document.getElementById('detail-bag-balance').textContent = `₹${bag.currentBalance.toLocaleString('en-IN')}`;
-      renderDetailChart(bag.color);
-      openModal('bag-detail-modal');
-    };
-
-    document.getElementById('open-edit-bag-btn').addEventListener('click', () => {
-      const bag = bagsData.find(b => b.id === editingBagId);
-      document.getElementById('edit-bag-name').value = bag.name;
-      editBagColor = bag.color;
-      
-      document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => {
-        s.classList.remove('selected');
-        if(s.getAttribute('data-color') === editBagColor) s.classList.add('selected');
-      });
-      closeModal(); 
-      setTimeout(() => openModal('edit-bag-modal'), 350);
-    });
-
-    // BATCH EDIT ALL DOCUMENTS (Limit 500 chunks)
-    document.getElementById('update-bag-btn').addEventListener('click', async () => {
-      const newName = document.getElementById('edit-bag-name').value.trim();
-      if(!newName || !editingBagId) return;
-      
-      document.getElementById('update-bag-btn').textContent = "Updating...";
-      
-      // Update Bag Doc
-      await updateDoc(doc(db, 'bags', editingBagId), { name: newName, color: editBagColor });
-
-      // Update all transactions in batches of 500 to prevent crashing
-      const q = query(collection(db, 'transactions'), where('bagId', '==', editingBagId));
-      const snapshot = await getDocs(q);
-      const docs = snapshot.docs;
-      
-      for (let i = 0; i < docs.length; i += 500) {
-          const chunk = docs.slice(i, i + 500);
-          const batch = writeBatch(db);
-          chunk.forEach(d => batch.update(d.ref, { bagName: newName, bagColor: editBagColor }));
-          await batch.commit();
-      }
-
-      document.getElementById('update-bag-btn').textContent = "Save Changes";
-      closeModal();
-    });
-
-    // BATCH DELETE ALL DOCUMENTS (Limit 500 chunks)
-    document.getElementById('delete-bag-btn').addEventListener('click', async () => {
-      if(!confirm("Are you sure? This deletes the bag and ALL its transactions forever.")) return;
-      if(!editingBagId) return;
-
-      document.getElementById('delete-bag-btn').textContent = "Deleting...";
-
-      const q = query(collection(db, 'transactions'), where('bagId', '==', editingBagId));
-      const snapshot = await getDocs(q);
-      const docs = snapshot.docs;
-      
-      for (let i = 0; i < docs.length; i += 500) {
-          const chunk = docs.slice(i, i + 500);
-          const batch = writeBatch(db);
-          chunk.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-      }
-      
-      await deleteDoc(doc(db, 'bags', editingBagId));
-      
-      document.getElementById('delete-bag-btn').textContent = "Delete Bag Completely";
-      closeModal();
-    });
-
 
     // --- 4. PAY (LOG TRANSACTION) LOGIC ---
     window.openPayModal = function(bagId, bagName, color) {
@@ -754,48 +698,119 @@
       const bagRef = doc(db, 'bags', selectedBagIdForPay);
       const txRef = doc(collection(db, 'transactions'));
 
-      const bagData = bagsData.find(b => b.id === selectedBagIdForPay);
-
+      // Add to logs
       batch.set(txRef, {
         bagId: selectedBagIdForPay,
-        bagName: bagData.name,
-        bagColor: bagData.color,
         amount: amount,
         type: type,
         note: note,
         timestamp: serverTimestamp()
       });
 
+      // Update Running Total
       const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
-      batch.update(bagRef, { currentBalance: increment(mathValue) });
+      batch.update(bagRef, {
+        currentBalance: increment(mathValue)
+      });
 
       try {
         await batch.commit();
         closeModal();
         triggerGPayAnimation();
-      } catch (err) { alert("Transaction failed"); }
+      } catch (err) {
+        console.error("Batch fail:", err);
+        alert("Transaction failed");
+      }
     });
 
     function triggerGPayAnimation() {
-      if ('vibrate' in navigator) navigator.vibrate(); 
+      if ('vibrate' in navigator) navigator.vibrate([50]); // Haptic
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
       setTimeout(() => {
         anim.classList.remove('active');
+        // Redirect back to home after payment
         switchTab('home');
       }, 1500);
     }
 
-    // --- 5. UI TABS & MODALS (HISTORY API) ---
-    window.switchTab = function(tabId, element = null) {
+    // --- 5. BATCH OPERATIONS (EDIT / DELETE IN CHUNKS OF 500) ---
+    async function processBatchOperation(bagId, operation, newData = null) {
+      try {
+        const txQuery = query(collection(db, 'transactions'), where('bagId', '==', bagId));
+        const snapshot = await getDocs(txQuery);
+        
+        let batch = writeBatch(db);
+        let count = 0;
+        let commitPromises = [];
+
+        snapshot.docs.forEach((docSnap) => {
+          if (count === 500) {
+            commitPromises.push(batch.commit());
+            batch = writeBatch(db);
+            count = 0;
+          }
+          if (operation === 'delete') {
+            batch.delete(docSnap.ref);
+          } else if (operation === 'edit') {
+            batch.update(docSnap.ref, newData);
+          }
+          count++;
+        });
+
+        // Handle the main bag document
+        const bagRef = doc(db, 'bags', bagId);
+        if (operation === 'delete') {
+          batch.delete(bagRef);
+        } else if (operation === 'edit') {
+          batch.update(bagRef, newData);
+        }
+        
+        commitPromises.push(batch.commit());
+        await Promise.all(commitPromises);
+        
+        alert(`Successfully ${operation === 'delete' ? 'deleted' : 'updated'} bag and all related documents.`);
+      } catch (e) {
+        console.error("Batch operation error: ", e);
+        alert("Error executing batch process.");
+      }
+    }
+
+    window.editBagBatch = function(bagId) {
+      const newName = prompt("Enter new name for this bag:");
+      if (!newName) return;
+      processBatchOperation(bagId, 'edit', { name: newName });
+    };
+
+    window.deleteBagBatch = function(bagId) {
+      if (confirm("Are you sure you want to completely delete this bag and all its transactions? This action processes in batches of 500 and cannot be undone.")) {
+        processBatchOperation(bagId, 'delete');
+      }
+    };
+
+    // --- 6. BAG DETAILS MODAL ---
+    window.openBagDetails = function(bagId, name, balance) {
+      document.getElementById('details-modal-title').textContent = name;
+      document.getElementById('details-modal-balance').textContent = `₹${balance.toLocaleString('en-IN')}`;
+      openModal('bag-details-modal');
+      renderDummyChart('weeklyBagChart');
+      renderDummyChart('monthlyBagChart');
+    };
+
+    // --- 7. UI TABS & MODALS (HISTORY API) ---
+    // 0ms Navigation switching class instant
+    window.switchTab = function(tabId) {
       document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
       document.getElementById(`view-${tabId}`).classList.add('active');
-      if(element) element.classList.add('active');
-      else {
-        // Find matching nav button based on onclick string
-        const matchingBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(tabId));
-        if (matchingBtn) matchingBtn.classList.add('active');
+      
+      if (event && event.currentTarget) {
+          event.currentTarget.classList.add('active');
+      } else {
+          // Fallback if not triggered by click event
+          const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
+          if (activeBtn) activeBtn.classList.add('active');
       }
       history.pushState({ page: tabId }, "", `#${tabId}`);
     };
@@ -807,14 +822,88 @@
     };
 
     window.closeModal = function() {
-      if (history.state && history.state.modalId) history.back();
-      else forceCloseModals();
+      if (history.state && history.state.modalId) {
+        history.back();
+      } else {
+        forceCloseModals();
+      }
     };
 
     function forceCloseModals() {
       document.getElementById('modal-overlay').classList.remove('active');
-      document.querySelectorAll('.modal-sheet').forEach(m => m.classList.remove('active'));
-      document.querySelectorAll('.modal-side').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.modal-sheet, .modal-slide-side').forEach(m => m.classList.remove('active'));
     }
 
-    window.
+    window.addEventListener('popstate', (e) => {
+      forceCloseModals();
+      if (e.state && e.state.modalId) {
+        document.getElementById('modal-overlay').classList.add('active');
+        document.getElementById(e.state.modalId).classList.add('active');
+      } else if (e.state && e.state.page) {
+        document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`view-${e.state.page}`).classList.add('active');
+        const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${e.state.page}')"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+      }
+    });
+
+    // --- 8. PWA INSTALL BANNER ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').classList.add('active');
+    });
+
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('install-banner').classList.remove('active');
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    // --- DUMMY CHART (Placeholder) ---
+    function renderDummyChart(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+      
+      // Destroy existing chart if it exists to avoid overlapping render
+      if(window[canvasId + 'Instance']) {
+        window[canvasId + 'Instance'].destroy();
+      }
+      
+      window[canvasId + 'Instance'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['1', '2', '3', '4', '5', '6', '7'],
+          datasets: [{
+            label: 'Income',
+            data: Array.from({length: 7}, () => Math.floor(Math.random() * 3000)),
+            borderColor: '#2ea043', tension: 0.4
+          }, {
+            label: 'Expense',
+            data: Array.from({length: 7}, () => Math.floor(Math.random() * 2000)),
+            borderColor: '#e41e3f', tension: 0.4
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+      });
+    }
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+
+</body>
+</html>
