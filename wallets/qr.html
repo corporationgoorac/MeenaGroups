@@ -117,7 +117,7 @@
       align-items: center;
       justify-content: center;
       margin-top: 40px;
-      margin-bottom: 40px;
+      margin-bottom: 30px;
     }
 
     .amount-label {
@@ -126,25 +126,50 @@
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
+    /* Upgraded Big Seamless Input */
     .big-amount-input {
-      font-size: 56px;
+      font-size: 64px;
       font-weight: 800;
       text-align: center;
-      padding: 10px;
+      padding: 0;
       background: transparent;
       border: none;
-      border-bottom: 3px solid var(--border-color);
-      border-radius: 0;
       color: var(--text-main);
       width: 100%;
-      max-width: 300px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: opacity 0.2s;
+      caret-color: var(--primary);
     }
-    .big-amount-input:focus {
+    .big-amount-input::placeholder {
+      color: var(--border-color);
+    }
+    
+    /* Bonus Feature: Quick Amount Chips */
+    .quick-chips {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .quick-chip {
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-chip:active {
+      transform: scale(0.95);
+      background: var(--primary);
+      color: white;
       border-color: var(--primary);
     }
 
@@ -159,7 +184,23 @@
       margin-bottom: 8px;
     }
 
-    select, input[type="text"] {
+    /* Custom Dropdown Trigger Replacing Select */
+    .custom-select-trigger {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: 2px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--input-text);
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    input[type="text"] {
       width: 100%;
       padding: 16px;
       border-radius: 14px;
@@ -169,25 +210,9 @@
       font-size: 16px;
       font-weight: 600;
       outline: none;
-      appearance: none;
-      -webkit-appearance: none;
     }
-    select:focus, input[type="text"]:focus {
+    input[type="text"]:focus {
       border-color: var(--primary);
-    }
-
-    .select-wrapper {
-      position: relative;
-    }
-    .select-wrapper::after {
-      content: '▼';
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 12px;
-      pointer-events: none;
-      color: var(--text-muted);
     }
 
     .btn-primary {
@@ -205,6 +230,10 @@
     }
     .btn-primary:active {
       transform: scale(0.98);
+    }
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
     }
 
     /* Modals */
@@ -237,11 +266,14 @@
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2001;
       box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
-      height: 90vh;
       display: flex;
       flex-direction: column;
     }
+    .modal-sheet.full-height { height: 90vh; }
     .modal-sheet.active { transform: translateY(0); }
+    
+    /* Top tier z-index for alerts */
+    .modal-sheet.alert-level { z-index: 3000; }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .modal-title { font-size: 20px; font-weight: 700; }
@@ -250,6 +282,19 @@
       width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
       color: var(--text-main); cursor: pointer;
     }
+
+    /* UPI Selector List */
+    .upi-option-item {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .upi-option-item:last-child { border-bottom: none; }
+    .upi-option-name { font-weight: 700; font-size: 16px; }
+    .upi-option-id { font-size: 13px; color: var(--text-muted); }
 
     /* UPI Management List */
     .upi-list {
@@ -312,17 +357,18 @@
     }
     
     .qr-box {
-      background: #ffffff; /* Always white so scanners can read it easily */
+      background: #ffffff; 
       padding: 16px;
       border-radius: 16px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       margin-bottom: 24px;
       border: 2px solid #e2e5e7;
+      position: relative;
     }
     .qr-box img {
       display: block;
-      width: 220px;
-      height: 220px;
+      width: 240px;
+      height: 240px;
     }
 
     .qr-powered {
@@ -376,12 +422,18 @@
       <input type="text" inputmode="numeric" id="receive-amount" class="big-amount-input" placeholder="₹0">
     </div>
 
+    <div class="quick-chips">
+      <div class="quick-chip" onclick="addQuickAmount(500)">+₹500</div>
+      <div class="quick-chip" onclick="addQuickAmount(1000)">+₹1,000</div>
+      <div class="quick-chip" onclick="addQuickAmount(2000)">+₹2,000</div>
+      <div class="quick-chip" onclick="addQuickAmount(5000)">+₹5,000</div>
+    </div>
+
     <div class="input-group">
       <label>Receive to Account</label>
-      <div class="select-wrapper">
-        <select id="upi-select">
-          <option value="" disabled selected>Loading UPI IDs...</option>
-        </select>
+      <div class="custom-select-trigger" onclick="openModal('select-upi-modal')">
+        <span id="selected-upi-display">Select an Account...</span>
+        <span>▼</span>
       </div>
     </div>
 
@@ -389,6 +441,43 @@
   </div>
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <div id="custom-alert-modal" class="modal-sheet alert-level">
+    <div class="modal-header">
+      <div class="modal-title">Notice</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p id="custom-alert-text" style="margin-bottom: 24px; line-height: 1.5;"></p>
+    <button class="btn-primary" onclick="closeModal()">OK</button>
+  </div>
+
+  <div id="custom-confirm-modal" class="modal-sheet alert-level">
+    <div class="modal-header">
+      <div class="modal-title">Confirm Action</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p id="custom-confirm-text" style="margin-bottom: 24px; line-height: 1.5; color: var(--danger); font-weight: 600;"></p>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn-primary" style="background: var(--input-bg); color: var(--text-main);" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary btn-danger" id="custom-confirm-btn">Yes, Remove</button>
+    </div>
+  </div>
+
+  <div id="select-upi-modal" class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Select Account</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div id="upi-options-container" style="max-height: 50vh; overflow-y: auto;">
+      <div style="color:var(--text-muted); font-size:14px; text-align:center;">Loading...</div>
+    </div>
+  </div>
 
   <div id="manage-upi-modal" class="modal-slide-side">
     <div class="modal-header">
@@ -409,7 +498,7 @@
     </div>
   </div>
 
-  <div id="qr-display-modal" class="modal-sheet">
+  <div id="qr-display-modal" class="modal-sheet full-height">
     <div class="modal-header" style="margin-bottom: 16px;">
       <div class="modal-title">Scan to Pay</div>
       <button class="close-modal" onclick="closeModal()">
@@ -425,7 +514,7 @@
         <img id="qr-image" src="" alt="QR Code">
       </div>
       
-      <div style="font-size:14px; font-weight:600; margin-bottom: 16px;" id="display-qr-upi"></div>
+      <div style="font-size:14px; font-weight:600; margin-bottom: 16px;">To: Meena Groups</div>
       
       <div class="qr-powered">Powered by Goorac Pay Infrastructure</div>
     </div>
@@ -436,25 +525,55 @@
     </button>
   </div>
 
+  <img id="center-qr-logo" src="qr-logo.png" style="display: none;" alt="logo">
+
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
     import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
+    // Custom UI Alert/Confirm Replacement
+    window.showCustomAlert = function(msg) {
+      document.getElementById('custom-alert-text').textContent = msg;
+      openModal('custom-alert-modal');
+    };
+
+    window.showCustomConfirm = function(msg, callback) {
+      document.getElementById('custom-confirm-text').textContent = msg;
+      const btn = document.getElementById('custom-confirm-btn');
+      btn.onclick = () => {
+        closeModal();
+        setTimeout(callback, 300); // Wait for modal slide down
+      };
+      openModal('custom-confirm-modal');
+    };
+
     // State
     let upiData = [];
-    let qrInstance = null;
+    let selectedUpiId = '';
+    let rawQrCanvasData = null; // Store base QR without logo for share export
 
     // Elements
     const amountInput = document.getElementById('receive-amount');
-    const upiSelect = document.getElementById('upi-select');
     const generateBtn = document.getElementById('generate-btn');
     const shareBtn = document.getElementById('share-btn');
+    const selectedUpiDisplay = document.getElementById('selected-upi-display');
+    const upiOptionsContainer = document.getElementById('upi-options-container');
     
     const newUpiName = document.getElementById('new-upi-name');
     const newUpiId = document.getElementById('new-upi-id');
     const addUpiBtn = document.getElementById('add-upi-btn');
     const upiListContainer = document.getElementById('upi-list-container');
     const qrImage = document.getElementById('qr-image');
+
+    // Added Feature: Quick Amount Logic
+    window.addQuickAmount = function(val) {
+      let currentVal = amountInput.value.replace(/[^0-9]/g, '');
+      currentVal = currentVal ? parseInt(currentVal) : 0;
+      const newVal = currentVal + val;
+      amountInput.value = newVal.toLocaleString('en-IN');
+      // Trigger haptic
+      try { if ('vibrate' in navigator) navigator.vibrate(10); } catch(e) {}
+    };
 
     // Realtime INR Formatting
     amountInput.addEventListener('input', (e) => {
@@ -507,8 +626,8 @@
       if (userSnap.exists() && userSnap.data().admin === true) {
         loadUPIConfig();
       } else {
-        alert("Access Denied: Admins only.");
-        window.location.href = 'index.html';
+        showCustomAlert("Access Denied: Admins only.");
+        setTimeout(() => window.location.href = 'index.html', 1500);
       }
     });
 
@@ -526,21 +645,31 @@
       });
     }
 
+    window.selectUpi = function(upi, name) {
+        selectedUpiId = upi;
+        selectedUpiDisplay.textContent = `${name} (${upi})`;
+        closeModal();
+    };
+
     function renderUPIList() {
-      // Update Dropdown
-      upiSelect.innerHTML = upiData.length === 0 ? '<option value="" disabled selected>No accounts added</option>' : '';
+      // Custom Modal Dropdown UI
+      upiOptionsContainer.innerHTML = upiData.length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center; padding: 20px;">No accounts added. Manage UPI IDs first.</div>' : '';
       
-      // Update Manage List
+      // Settings Management UI
       upiListContainer.innerHTML = upiData.length === 0 ? '<div style="color:var(--text-muted); font-size:14px; text-align:center;">No accounts saved yet.</div>' : '';
 
       upiData.forEach((item, index) => {
-        // Dropdown Option
-        const opt = document.createElement('option');
-        opt.value = item.upi;
-        opt.textContent = `${item.name} (${item.upi})`;
-        upiSelect.appendChild(opt);
+        // Dropdown Replacement
+        const optDiv = document.createElement('div');
+        optDiv.className = 'upi-option-item';
+        optDiv.onclick = () => window.selectUpi(item.upi, item.name);
+        optDiv.innerHTML = `
+          <div class="upi-option-name">${item.name}</div>
+          <div class="upi-option-id">${item.upi}</div>
+        `;
+        upiOptionsContainer.appendChild(optDiv);
 
-        // List Item
+        // List Item for Managing
         const div = document.createElement('div');
         div.className = 'upi-item';
         div.innerHTML = `
@@ -552,6 +681,14 @@
         `;
         upiListContainer.appendChild(div);
       });
+      
+      // Auto-select first item if nothing is selected
+      if(upiData.length > 0 && !selectedUpiId) {
+          window.selectUpi(upiData.upi, upiData.name);
+      } else if (upiData.length === 0) {
+          selectedUpiId = '';
+          selectedUpiDisplay.textContent = 'Select an Account...';
+      }
     }
 
     addUpiBtn.addEventListener('click', async () => {
@@ -559,7 +696,7 @@
       const upi = newUpiId.value.trim();
       
       if (!name || !upi) {
-        alert("Please enter both Name and UPI ID.");
+        showCustomAlert("Please enter both Name and UPI ID.");
         return;
       }
 
@@ -571,58 +708,103 @@
         newUpiName.value = '';
         newUpiId.value = '';
       } catch (e) {
-        alert("Failed to save.");
+        showCustomAlert("Failed to save.");
       }
       addUpiBtn.textContent = 'Add Account';
     });
 
     window.removeUPI = async function(index) {
-      if(!confirm("Remove this account?")) return;
-      const newArray = [...upiData];
-      newArray.splice(index, 1);
-      
-      try {
-        await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
-      } catch(e) {
-        alert("Failed to remove.");
-      }
+      showCustomConfirm("Are you sure you want to completely remove this UPI account?", async () => {
+          const newArray = [...upiData];
+          newArray.splice(index, 1);
+          
+          try {
+            await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
+            if(selectedUpiId === upiData[index].upi) selectedUpiId = ''; // reset if active deleted
+          } catch(e) {
+            showCustomAlert("Failed to remove.");
+          }
+      });
     };
 
-    // QR Generation Logic
-    generateBtn.addEventListener('click', () => {
+    // Advanced QR Generation with Center Logo Canvas Merging
+    async function createCompositeQR(intentStr) {
+       return new Promise((resolve) => {
+           // 1. Generate base QR
+           const qr = new QRious({
+               value: intentStr,
+               size: 600, // Generate high-res base
+               level: 'H' // High error correction required so covering the center doesn't break it
+           });
+           
+           rawQrCanvasData = qr.toDataURL('image/png');
+
+           // 2. Setup Canvas
+           const canvas = document.createElement('canvas');
+           canvas.width = 600;
+           canvas.height = 600;
+           const ctx = canvas.getContext('2d');
+           
+           const qrBaseImg = new Image();
+           qrBaseImg.src = rawQrCanvasData;
+           qrBaseImg.onload = () => {
+               ctx.drawImage(qrBaseImg, 0, 0);
+               
+               const logoEl = document.getElementById('center-qr-logo');
+               const logoSize = 130; // ~22% of QR code
+               const center = (600 - logoSize) / 2;
+               const circleRadius = (logoSize / 2) + 10;
+               
+               // Draw solid white circle behind logo to mask QR dots
+               ctx.fillStyle = '#ffffff';
+               ctx.beginPath();
+               ctx.arc(300, 300, circleRadius, 0, 2 * Math.PI);
+               ctx.fill();
+
+               // Try to draw logo
+               if (logoEl.complete && logoEl.naturalHeight !== 0) {
+                   ctx.drawImage(logoEl, center, center, logoSize, logoSize);
+               } else {
+                   // Fallback Text Logo if image missing
+                   ctx.fillStyle = '#10b981';
+                   ctx.font = 'bold 24px Inter';
+                   ctx.textAlign = 'center';
+                   ctx.textBaseline = 'middle';
+                   ctx.fillText('MEENA', 300, 300);
+               }
+               
+               resolve(canvas.toDataURL('image/png'));
+           };
+       });
+    }
+
+    generateBtn.addEventListener('click', async () => {
       const rawAmt = amountInput.value.replace(/,/g, '');
-      const upiId = upiSelect.value;
 
       if (!rawAmt || parseInt(rawAmt) <= 0) {
-        alert("Please enter a valid amount.");
+        showCustomAlert("Please enter a valid amount.");
         return;
       }
-      if (!upiId) {
-        alert("Please select a valid receive account.");
+      if (!selectedUpiId) {
+        showCustomAlert("Please select a receive account.");
         return;
       }
 
       const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
-      const selectedName = upiData.find(x => x.upi === upiId)?.name || 'Account';
+      
+      generateBtn.textContent = 'Generating...';
 
-      // Standard UPI Intent URI string
-      const intentStr = `upi://pay?pa=${upiId}&pn=Meena%20Groups&am=${rawAmt}&cu=INR`;
+      // Standard UPI Intent URI string (Hardcoded Meena Groups)
+      const intentStr = `upi://pay?pa=${selectedUpiId}&pn=Meena%20Groups&am=${rawAmt}&cu=INR`;
 
-      // Generate QR Code via QRious
-      if (!qrInstance) {
-          qrInstance = new QRious({
-            element: document.createElement('canvas'),
-            size: 500,
-            level: 'H'
-          });
-      }
-      qrInstance.value = intentStr;
+      // Draw QR with custom Meena Groups center Logo
+      const finalQrDataUrl = await createCompositeQR(intentStr);
       
       // Update Modal UI
       document.getElementById('display-qr-amount').textContent = `₹${formattedAmt}`;
-      document.getElementById('display-qr-upi').textContent = `To: ${selectedName}`;
-      qrImage.src = qrInstance.toDataURL('image/png');
+      qrImage.src = finalQrDataUrl;
 
+      generateBtn.textContent = 'Generate QR Code';
       openModal('qr-display-modal');
       
       // Trigger strong vibration mapping to success
@@ -638,36 +820,29 @@
       shareBtn.disabled = true;
 
       try {
-        // Create an off-screen canvas to draw the sleek high-res shareable image
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = 1080;
         canvas.height = 1440;
 
-        // Background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Styling constraints
         ctx.textAlign = 'center';
         
-        // Brand Title
         ctx.fillStyle = '#050505';
         ctx.font = 'bold 72px Inter, sans-serif';
         ctx.fillText('Meena Groups', canvas.width / 2, 250);
 
-        // Amount
         ctx.fillStyle = '#10b981';
         ctx.font = '900 130px Inter, sans-serif';
         ctx.fillText(`₹${formattedAmt}`, canvas.width / 2, 420);
 
-        // Setup QR Image Loading
         const qrImg = new Image();
-        qrImg.src = qrInstance.toDataURL('image/png');
+        qrImg.src = qrImage.src; // Use the composited one with logo
         
         await new Promise(resolve => qrImg.onload = resolve);
         
-        // Draw QR Background Box
         const boxSize = 650;
         const boxX = (canvas.width - boxSize) / 2;
         const boxY = 550;
@@ -679,23 +854,19 @@
         ctx.beginPath();
         ctx.roundRect(boxX, boxY, boxSize, boxSize, 40);
         ctx.fill();
-        ctx.shadowColor = 'transparent'; // Reset shadow
+        ctx.shadowColor = 'transparent';
 
-        // Inner border for QR box
         ctx.strokeStyle = '#e2e5e7';
         ctx.lineWidth = 4;
         ctx.stroke();
 
-        // Draw actual QR inside the box
         const qrPadding = 50;
         ctx.drawImage(qrImg, boxX + qrPadding, boxY + qrPadding, boxSize - (qrPadding*2), boxSize - (qrPadding*2));
 
-        // Powered By Text
         ctx.fillStyle = '#65676b';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.fillText('POWERED BY GOORAC PAY INFRASTRUCTURE', canvas.width / 2, 1350);
 
-        // Convert to Blob and Share
         canvas.toBlob(async (blob) => {
           const file = new File([blob], `Meena_Groups_Payment_₹${rawAmt}.png`, { type: 'image/png' });
           const shareData = {
@@ -707,8 +878,7 @@
           if (navigator.canShare && navigator.canShare(shareData)) {
             await navigator.share(shareData);
           } else {
-            // Fallback if browser doesn't support file sharing
-            alert("Your device doesn't support direct image sharing. You can long-press the QR code above to save it.");
+            showCustomAlert("Your device doesn't support direct image sharing. You can long-press the QR code above to save it.");
           }
           
           shareBtn.innerHTML = `
@@ -720,7 +890,7 @@
 
       } catch (err) {
         console.error(err);
-        alert("Failed to generate sharing image.");
+        showCustomAlert("Failed to generate sharing image.");
         shareBtn.innerHTML = `Share via WhatsApp`;
         shareBtn.disabled = false;
       }
