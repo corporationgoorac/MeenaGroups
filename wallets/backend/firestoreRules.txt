@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function: Checks if the requester has admin == true in their user document
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // ---------------------------------------------------------
+    // USERS COLLECTION (Handles Login & Settings)
+    // ---------------------------------------------------------
+    match /users/{userId} {
+      // Users can read their own profile. Admins can read the whole directory.
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      
+      // Allow new users to create their profile document during onboarding
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own name, but CANNOT change their own admin status
+      // Admins bypass this and can update anything (like granting admin rights)
+      allow update: if isAdmin() || 
+                    (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin']));
+      
+      // Only admins can delete users from the system
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // ADMIN-ONLY COLLECTIONS (Core App Data)
+    // ---------------------------------------------------------
+    
+    match /bags/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /transactions/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /System/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+  }
+}
