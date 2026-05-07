@@ -409,9 +409,33 @@
       content: ''; position: absolute; top: -50%; right: -20%; width: 100px; height: 200%;
       background: rgba(255,255,255,0.1); transform: rotate(30deg);
     }
+
+    /* NEW STYLES: Sleek Transaction Cards */
+    .tx-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tx-card-info { display: flex; flex-direction: column; gap: 4px; }
+    .tx-card-note { font-weight: 700; font-size: 15px; color: var(--text-main); }
+    .tx-card-date { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .tx-card-amt { font-weight: 800; font-size: 16px; }
+    .tx-inc { color: var(--primary); }
+    .tx-exp { color: var(--text-main); } /* Dark text for expense looks cleaner than aggressive red everywhere */
   </style>
 </head>
 <body>
+
+  <div id="index-error-banner" class="install-banner" style="bottom: 90px; z-index: 9999; background-color: var(--danger); border-color: var(--danger);">
+    <span class="install-text" style="color: white;">Missing Database Index</span>
+    <button id="index-fix-btn" class="install-btn" style="background: white; color: var(--danger);">Create Index</button>
+    <button onclick="document.getElementById('index-error-banner').classList.remove('active')" style="background:none;border:none;color:white;font-size:24px;margin-left:8px;cursor:pointer;line-height:1;">×</button>
+  </div>
 
   <header class="app-header">
     <div class="brand-title">Meena <span>Wallets</span></div>
@@ -593,6 +617,24 @@
       <div style="font-size:14px; font-weight:700; margin-bottom:12px;">30 Day Overview (Pie)</div>
       <canvas id="bagDetailsPieChart" height="150"></canvas>
     </div>
+    
+    <button class="btn-primary" style="margin-top:8px; margin-bottom:30px; background:transparent; color:var(--text-main); border:2px solid var(--border-color);" onclick="window.openTransactionHistory()">
+      See Transaction History
+    </button>
+  </div>
+
+  <div id="tx-history-modal" class="modal-slide-side">
+    <div class="modal-header">
+      <div class="modal-title">Transactions</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div style="margin-bottom: 16px;">
+      <input type="date" id="tx-date-filter" onchange="window.filterTransactions()">
+    </div>
+    <div id="tx-list-container" style="overflow-y: auto; height: calc(100vh - 180px); padding-bottom: 40px;" onscroll="window.handleTxScroll(this)">
+       </div>
   </div>
 
   <div id="gpay-animation">
@@ -603,8 +645,9 @@
   </div>
 
   <script type="module">
+    // UPDATED IMPORTS: Added orderBy, limit, startAfter
     import { db, auth, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // App State
     let currentUser = null;
@@ -612,6 +655,11 @@
     let selectedBagIdForPay = null;
     let selectedBagColor = '';
     const chartInstances = {};
+
+    // History Pagination State
+    let lastVisibleTx = null;
+    let isFetchingTx = false;
+    let currentHistoryBagId = null;
 
     // Elements
     const profilePicImg = document.getElementById('header-profile-pic');
@@ -622,14 +670,20 @@
     const savedPic = localStorage.getItem('gooracProfilePic');
     if (savedPic) profilePicImg.src = savedPic;
 
-    // --- HELPER: SAFE AGGREGATION SERVER QUERY ---
-    // If you haven't created the Firebase Composite Index yet, this safely catches the error instead of breaking the app.
+    // --- HELPER: SAFE AGGREGATION SERVER QUERY WITH POPUP ---
     async function fetchAggregateSum(q) {
         try {
             const snap = await getAggregateFromServer(q, { total: sum('amount') });
             return snap.data().total || 0;
         } catch(e) {
-            console.warn("Index Required! Open Firebase Console to create the index for 'type' and 'timestamp':", e.message);
+            console.warn("Index Required!", e.message);
+            // Search for Firebase Console URL in the error text
+            const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+            if(match) {
+                const url = match;
+                document.getElementById('index-error-banner').classList.add('active');
+                document.getElementById('index-fix-btn').onclick = () => { window.open(url, '_blank'); };
+            }
             return 0;
         }
     }
@@ -779,7 +833,6 @@
             }
         }
 
-        // --- Execute Server-Side Aggregations (Only runs when cache is expired/missing) ---
         const now = new Date();
         const t7 = new Date(); t7.setDate(now.getDate() - 7);
         const t14 = new Date(); t14.setDate(now.getDate() - 14);
@@ -845,6 +898,7 @@
 
     // --- BAG ANALYTICS CHARTS ---
     window.openBagDetails = async function(bagId, name, balance) {
+      currentHistoryBagId = bagId; // Store for history fetching
       document.getElementById('details-modal-title').textContent = name;
       document.getElementById('details-modal-balance').textContent = `₹${balance.toLocaleString('en-IN')}`;
       openModal('bag-details-modal');
@@ -893,6 +947,102 @@
       renderBarChart('bagDetailsBarChart', labels, barInc, barExp);
       renderPieChart('bagDetailsPieChart', totalInc, totalExp);
     };
+
+    // --- NEW: TRANSACTION HISTORY LIST LOGIC ---
+    window.openTransactionHistory = function() {
+        document.getElementById('tx-date-filter').value = ''; // Reset filter
+        openModal('tx-history-modal');
+        window.loadTransactions(true); // reset and load first 10
+    };
+
+    window.filterTransactions = function() {
+        window.loadTransactions(true);
+    };
+
+    window.loadTransactions = async function(reset = false) {
+        if (!currentHistoryBagId || isFetchingTx) return;
+        isFetchingTx = true;
+        
+        const container = document.getElementById('tx-list-container');
+        if (reset) {
+            container.innerHTML = '';
+            lastVisibleTx = null;
+        }
+
+        const dateVal = document.getElementById('tx-date-filter').value;
+        const coll = collection(db, 'transactions');
+        
+        let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
+
+        if (dateVal) {
+            // Apply date boundaries
+            const startDay = new Date(dateVal);
+            const endDay = new Date(dateVal);
+            endDay.setHours(23, 59, 59, 999);
+            txQuery = query(txQuery, where('timestamp', '>=', startDay), where('timestamp', '<=', endDay), orderBy('timestamp', 'desc'));
+        } else {
+            txQuery = query(txQuery, orderBy('timestamp', 'desc'));
+        }
+
+        // Apply Pagination
+        if (lastVisibleTx && !reset) {
+            txQuery = query(txQuery, startAfter(lastVisibleTx), limit(10));
+        } else {
+            txQuery = query(txQuery, limit(10));
+        }
+
+        try {
+            const snap = await getDocs(txQuery);
+            if (snap.empty && reset) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No transactions found.</div>';
+                isFetchingTx = false;
+                return;
+            }
+
+            snap.docs.forEach(docSnap => {
+                const data = docSnap.data();
+                const amt = data.amount || 0;
+                const isInc = data.type === 'income';
+                const dateObj = data.timestamp ? data.timestamp.toDate() : new Date();
+                
+                const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                const cardHtml = `
+                  <div class="tx-card">
+                    <div class="tx-card-info">
+                      <div class="tx-card-note">${data.note || (isInc ? 'Income' : 'Expense')}</div>
+                      <div class="tx-card-date">${dateStr} • ${timeStr}</div>
+                    </div>
+                    <div class="tx-card-amt ${isInc ? 'tx-inc' : 'tx-exp'}">
+                      ${isInc ? '+' : '-'}₹${amt.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            lastVisibleTx = snap.docs[snap.docs.length - 1]; // update cursor for next batch
+        } catch (e) {
+            console.error("Tx Load Error:", e);
+            const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+            if(match) {
+                document.getElementById('index-error-banner').classList.add('active');
+                document.getElementById('index-fix-btn').onclick = () => { window.open(match, '_blank'); };
+            }
+        }
+        isFetchingTx = false;
+    };
+
+    window.handleTxScroll = function(element) {
+        // If scrolled within 50px of bottom, fetch next 10
+        if (element.scrollTop + element.clientHeight >= element.scrollHeight - 50) {
+            if (!isFetchingTx && lastVisibleTx) {
+                window.loadTransactions(false);
+            }
+        }
+    };
+
 
     // --- CHART GENERATORS ---
     function renderBarChart(canvasId, labels, incomeData, expenseData) {
