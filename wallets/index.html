@@ -496,7 +496,7 @@
       </div>
       
       <div class="chart-container">
-        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Expense Comparison (This vs Last Week)</div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Income & Expense (This vs Last Week)</div>
         <canvas id="dashboardCompareChart" height="150"></canvas>
       </div>
 
@@ -605,7 +605,7 @@
     </div>
     
     <input type="text" id="new-bag-name" placeholder="Bag Name (e.g. SBI Current)">
-    <input type="number" id="new-bag-balance" placeholder="Initial Balance (₹)">
+    <input type="text" inputmode="numeric" id="new-bag-balance" placeholder="Initial Balance (₹)">
     
     <div style="font-size:14px; font-weight:600; margin-bottom:12px;">Select Theme</div>
     <div class="color-picker" id="bag-color-picker">
@@ -629,7 +629,7 @@
       </button>
     </div>
 
-    <input type="number" id="pay-amount" class="big-amount-input" placeholder="₹0">
+    <input type="text" inputmode="numeric" id="pay-amount" class="big-amount-input" placeholder="₹0">
     <input type="text" id="pay-note" placeholder="What was this for?">
     
     <select id="pay-type">
@@ -663,7 +663,7 @@
     </div>
 
     <div class="chart-container">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Expense Comparison (This vs Last Week)</div>
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Income & Expense (This vs Last Week)</div>
       <canvas id="bagDetailsCompareChart" height="150"></canvas>
     </div>
 
@@ -901,7 +901,7 @@
 
         renderBarChart('dashboardBarChart', data.labels, data.barInc, data.barExp);
         renderPieChart('dashboardPieChart', data.allInc, data.allExp);
-        renderCompareChart('dashboardCompareChart', data.thisWeekExp, data.lastWeekExp);
+        renderCompareChart('dashboardCompareChart', data.thisWeekInc, data.thisWeekExp, data.lastWeekInc, data.lastWeekExp);
     }
 
     async function loadRealDashboardData() {
@@ -973,7 +973,9 @@
             thisWeekNet: thisWeekInc - thisWeekExp,
             lastWeekNet: lastWeekInc - lastWeekExp,
             labels, barInc, barExp,
+            thisWeekInc: thisWeekInc,
             thisWeekExp: thisWeekExp,
+            lastWeekInc: lastWeekInc,
             lastWeekExp: lastWeekExp
         };
 
@@ -997,7 +999,7 @@
           if (parsed.date === todayStr) {
              renderBarChart('bagDetailsBarChart', parsed.labels, parsed.barInc, parsed.barExp);
              renderPieChart('bagDetailsPieChart', parsed.totalInc, parsed.totalExp);
-             renderCompareChart('bagDetailsCompareChart', parsed.thisWeekExp || 0, parsed.lastWeekExp || 0);
+             renderCompareChart('bagDetailsCompareChart', parsed.thisWeekInc || 0, parsed.thisWeekExp || 0, parsed.lastWeekInc || 0, parsed.lastWeekExp || 0);
              return;
           }
       }
@@ -1012,12 +1014,14 @@
           fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t30)))
       ]);
 
-      // Adding the 2 explicit aggregates for "Last Week" and "This week" to support the new bar chart exactly
+      // Adding the 4 explicit aggregates for "Last Week" and "This week" to support the new bar chart exactly
       const t7 = new Date(); t7.setDate(now.getDate() - 7);
       const t14 = new Date(); t14.setDate(now.getDate() - 14);
-      const [thisWeekBagExp, lastWeekBagExp] = await Promise.all([
+      const [thisWeekBagExp, lastWeekBagExp, thisWeekBagInc, lastWeekBagInc] = await Promise.all([
           fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t7))),
-          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t14), where('timestamp','<',t7)))
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t14), where('timestamp','<',t7))),
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',t7))),
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',t14), where('timestamp','<',t7)))
       ]);
 
       // 7-Day Bar Chart Aggregates
@@ -1036,12 +1040,12 @@
           barExp.push(dExp);
       }
 
-      const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp, thisWeekExp: thisWeekBagExp, lastWeekExp: lastWeekBagExp };
+      const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp, thisWeekExp: thisWeekBagExp, lastWeekExp: lastWeekBagExp, thisWeekInc: thisWeekBagInc, lastWeekInc: lastWeekBagInc };
       localStorage.setItem(`meena_bag_cache_${bagId}`, JSON.stringify(dataObj));
 
       renderBarChart('bagDetailsBarChart', labels, barInc, barExp);
       renderPieChart('bagDetailsPieChart', totalInc, totalExp);
-      renderCompareChart('bagDetailsCompareChart', thisWeekBagExp, lastWeekBagExp);
+      renderCompareChart('bagDetailsCompareChart', thisWeekBagInc, thisWeekBagExp, lastWeekBagInc, lastWeekBagExp);
     };
 
     // --- NEW: TRANSACTION HISTORY LIST LOGIC ---
@@ -1192,7 +1196,7 @@
       });
     }
 
-    function renderCompareChart(canvasId, thisWeekData, lastWeekData) {
+    function renderCompareChart(canvasId, thisWeekInc, thisWeekExp, lastWeekInc, lastWeekExp) {
       const canvas = document.getElementById(canvasId);
       if(!canvas) return;
       if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
@@ -1202,15 +1206,20 @@
         data: {
           labels: ['Last Week', 'This Week'],
           datasets: [{
-            label: 'Expenditure',
-            data: [lastWeekData, thisWeekData],
-            backgroundColor: ['#f59e0b', '#e41e3f'], /* Orange vs Red */
-            borderRadius: 6
+            label: 'Income',
+            data: [lastWeekInc, thisWeekInc],
+            backgroundColor: '#2ea043', 
+            borderRadius: 4
+          }, {
+            label: 'Expense',
+            data: [lastWeekExp, thisWeekExp],
+            backgroundColor: '#e41e3f', 
+            borderRadius: 4
           }]
         },
         options: { 
           responsive: true, 
-          plugins: { legend: { display: false } }, 
+          plugins: { legend: { position: 'bottom', labels: {color: 'var(--text-muted)', font: {weight: 'bold'}} } }, 
           scales: { 
             x: { grid: {display:false} }, 
             y: { display: false } 
@@ -1232,7 +1241,7 @@
 
     document.getElementById('save-bag-btn').addEventListener('click', async () => {
       const name = document.getElementById('new-bag-name').value.trim();
-      const balStr = document.getElementById('new-bag-balance').value;
+      const balStr = document.getElementById('new-bag-balance').value.replace(/,/g, '');
       if (!name) {
           showCustomAlert("Please enter a name for the bag.");
           return;
@@ -1281,7 +1290,7 @@
     };
 
     document.getElementById('submit-pay-btn').addEventListener('click', async () => {
-      const amtVal = document.getElementById('pay-amount').value;
+      const amtVal = document.getElementById('pay-amount').value.replace(/,/g, '');
       const note = document.getElementById('pay-note').value.trim();
       const type = document.getElementById('pay-type').value;
       
@@ -1449,6 +1458,18 @@
         if (activeBtn) activeBtn.classList.add('active');
       }
     });
+
+    // --- REALTIME INR FORMATTING LISTENERS ---
+    function handleCurrencyInput(e) {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+      if(value) {
+          e.target.value = parseInt(value, 10).toLocaleString('en-IN');
+      } else {
+          e.target.value = '';
+      }
+    }
+    document.getElementById('new-bag-balance').addEventListener('input', handleCurrencyInput);
+    document.getElementById('pay-amount').addEventListener('input', handleCurrencyInput);
 
     // --- 8. PWA INSTALL BANNER ---
     let deferredPrompt;
