@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="./manifest.json">
+  
+  <title>Settings - Meena Wallets</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --surface-color: #ffffff;
+      --text-main: #000000;
+      --text-muted: #6b7280;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --danger: #ef4444;
+      --border-color: #e5e7eb;
+      --input-bg: #f3f4f6;
+      --input-text: #111827;
+      --modal-overlay: rgba(0,0,0,0.4);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #000000;
+        --surface-color: #121212;
+        --text-main: #ffffff;
+        --text-muted: #9ca3af;
+        --border-color: #27272a;
+        --input-bg: #1f2937;
+        --input-text: #ffffff;
+        --modal-overlay: rgba(0,0,0,0.7);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-color);
+      z-index: 10;
+    }
+
+    .nav-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 24px 100px 24px; /* Bottom padding for mobile */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Profile Section */
+    .profile-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 32px 0 48px 0;
+    }
+
+    .profile-pic-container {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .profile-pic {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: var(--input-bg);
+      border: 2px solid var(--border-color);
+    }
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profile-name {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .edit-icon {
+      background: var(--input-bg);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+
+    /* Section Headers */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    /* Naked List UI */
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-item-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .item-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .item-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .item-action {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .item-action:hover {
+      background-color: var(--input-bg);
+    }
+
+    .load-more-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 16px;
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .logout-btn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 48px;
+      background-color: var(--input-bg);
+      color: var(--danger);
+      border: none;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Modals (Slide-up Bottom Sheets) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--modal-overlay);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-sheet {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background-color: var(--surface-color);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 24px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 101;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    }
+
+    .modal-sheet.active {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .close-modal {
+      background: var(--input-bg);
+      border: none;
+      border-radius: 50%;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background-color: var(--input-bg);
+      color: var(--input-text);
+      font-size: 16px;
+      font-weight: 500;
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Toggle Switch */
+    .switch-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 30px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--input-bg);
+      transition: .3s;
+      border-radius: 30px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px; width: 22px;
+      left: 4px; bottom: 4px;
+      background-color: var(--surface-color);
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div class="nav-title">Settings</div>
+    <div style="width: 24px;"></div> </div>
+
+  <div class="app-container">
+    
+    <div class="profile-header">
+      <div class="profile-pic-container">
+        <img id="profile-pic" class="profile-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2QxZDVkYiI+PHBhdGggZD0iTTEyIDJDMi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMyMS41MiAyIDEyIDJ6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMi4wMSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz48L3N2Zz4=" alt="Profile">
+      </div>
+      <div class="name-row">
+        <span id="display-name" class="profile-name">Loading...</span>
+        <button class="edit-icon" onclick="openModal('edit-name-modal')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"></polygon></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="admin-section" style="display: none;">
+      <div class="section-title">User Management</div>
+      <div id="users-list">
+        </div>
+      <button id="load-more-users" class="load-more-btn" style="display: none;">Load More</button>
+    </div>
+
+    <button id="logout-btn" class="logout-btn">Log Out</button>
+
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <div id="edit-name-modal" class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Edit Name</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="input-group">
+      <input type="text" id="edit-name-input" placeholder="Enter your full name">
+    </div>
+    <button id="save-name-btn" class="btn-save">Save Changes</button>
+  </div>
+
+  <div id="manage-user-modal" class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Manage User</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <h3 id="manage-user-name" style="margin-bottom: 8px;">User Name</h3>
+    <p id="manage-user-email" style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">user@email.com</p>
+    
+    <div class="switch-container">
+      <div>
+        <div style="font-weight: 600; font-size: 16px;">Administrator Access</div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Allow this user to manage bags and other users.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="admin-toggle-input">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db, auth, logoutUser, onAuthStateChanged } from './config.js';
+    import { doc, getDoc, updateDoc, collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    // State Variables
+    let currentUserData = null;
+    let selectedManageUserId = null;
+    let lastVisibleUser = null;
+    const USERS_PER_PAGE = 5;
+
+    // DOM Elements
+    const nameDisplay = document.getElementById('display-name');
+    const profilePic = document.getElementById('profile-pic');
+    const nameInput = document.getElementById('edit-name-input');
+    const adminSection = document.getElementById('admin-section');
+    const usersListEl = document.getElementById('users-list');
+    const loadMoreBtn = document.getElementById('load-more-users');
+    const adminToggle = document.getElementById('admin-toggle-input');
+
+    // 1. Authentication State Hook
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Load Profile Pic from Google Auth
+      if (user.photoURL) {
+        profilePic.src = user.photoURL;
+      }
+
+      // Load specific user document from Firestore
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        currentUserData = userSnap.data();
+        const userName = currentUserData.name || user.displayName || 'User';
+        
+        nameDisplay.textContent = userName;
+        nameInput.value = userName;
+
+        // If current user is admin, show user management section
+        if (currentUserData.admin === true) {
+          adminSection.style.display = 'block';
+          loadUsersList(); // Initial paginated load
+        }
+      }
+    });
+
+    // 2. Edit Own Name Logic
+    document.getElementById('save-name-btn').addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName || !auth.currentUser) return;
+      
+      const btn = document.getElementById('save-name-btn');
+      btn.textContent = 'Saving...';
+
+      try {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: newName });
+        nameDisplay.textContent = newName;
+        closeModal();
+      } catch (error) {
+        console.error("Error updating name: ", error);
+        alert("Failed to update name.");
+      } finally {
+        btn.textContent = 'Save Changes';
+      }
+    });
+
+    // 3. Paginated User List Loading
+    async function loadUsersList() {
+      try {
+        let q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(USERS_PER_PAGE));
+        
+        if (lastVisibleUser) {
+          q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), startAfter(lastVisibleUser), limit(USERS_PER_PAGE));
+        }
+
+        const documentSnapshots = await getDocs(q);
+        
+        documentSnapshots.forEach(docSnap => {
+          const uData = docSnap.data();
+          const uId = docSnap.id;
+          
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div class="list-item-left">
+              <div class="item-title">${uData.name || 'Unknown User'} ${uData.admin ? '⭐' : ''}</div>
+              <div class="item-subtitle">${uData.email || 'No email'}</div>
+            </div>
+            <button class="item-action" onclick="window.openManageUser('${uId}', '${(uData.name || 'User').replace(/'/g, "\\'")}', '${uData.email || ''}', ${uData.admin === true})">Edit</button>
+          `;
+          usersListEl.appendChild(item);
+        });
+
+        // Setup next pagination
+        if (documentSnapshots.docs.length === USERS_PER_PAGE) {
+          lastVisibleUser = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+          loadMoreBtn.style.display = 'block';
+        } else {
+          loadMoreBtn.style.display = 'none';
+        }
+      } catch (error) {
+        console.error("Error loading users: ", error);
+      }
+    }
+
+    loadMoreBtn.addEventListener('click', () => {
+      loadMoreBtn.textContent = 'Loading...';
+      loadUsersList().then(() => loadMoreBtn.textContent = 'Load More');
+    });
+
+    // 4. Admin Toggle Logic
+    adminToggle.addEventListener('change', async (e) => {
+      if (!selectedManageUserId) return;
+      const isAdmin = e.target.checked;
+      
+      try {
+        await updateDoc(doc(db, 'users', selectedManageUserId), { admin: isAdmin });
+        // Refreshing the page/list visually would go here, or just trust the switch.
+      } catch (error) {
+        console.error("Error updating admin status:", error);
+        e.target.checked = !isAdmin; // revert toggle on fail
+        alert("Failed to update user status.");
+      }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await logoutUser();
+      window.location.href = 'login.html';
+    });
+
+
+    // --- HISTORY API / MODAL MANAGEMENT (MOBILE BACK BUTTON SUPPORT) ---
+    
+    window.openModal = function(modalId) {
+      history.pushState({ modalId: modalId }, "", `#${modalId}`);
+      document.getElementById('modal-overlay').classList.add('active');
+      document.getElementById(modalId).classList.add('active');
+    };
+
+    window.closeModal = function() {
+      if (history.state && history.state.modalId) {
+        history.back(); // Triggers popstate listener below
+      } else {
+        forceCloseAllModals();
+      }
+    };
+
+    window.openManageUser = function(uid, name, email, isAdmin) {
+      selectedManageUserId = uid;
+      document.getElementById('manage-user-name').textContent = name;
+      document.getElementById('manage-user-email').textContent = email;
+      adminToggle.checked = isAdmin;
+      openModal('manage-user-modal');
+    };
+
+    function forceCloseAllModals() {
+      document.getElementById('modal-overlay').classList.remove('active');
+      document.querySelectorAll('.modal-sheet').forEach(modal => {
+        modal.classList.remove('active');
+      });
+    }
+
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.modalId) {
+        // A modal is expected to be open
+        forceCloseAllModals(); // Close any currently open first
+        document.getElementById('modal-overlay').classList.add('active');
+        document.getElementById(e.state.modalId).classList.add('active');
+      } else {
+        // No modal state, ensure all are closed
+        forceCloseAllModals();
+      }
+    });
+
+  </script>
+</body>
+</html>
