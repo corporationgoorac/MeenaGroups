@@ -92,8 +92,9 @@
             display: flex;
             justify-content: center;
             transition: background-color 0.3s ease, color 0.3s ease;
-            /* Subtle Background Improvement */
-            background-image: radial-gradient(circle at 50% 0%, rgba(201, 43, 184, 0.05), transparent 40%);
+            /* Improvement: Dynamic subtle mesh background */
+            background-image: radial-gradient(at 0% 0%, rgba(0, 100, 224, 0.03) 0px, transparent 50%),
+                              radial-gradient(at 100% 0%, rgba(201, 43, 184, 0.05) 0px, transparent 50%);
         }
 
         .container {
@@ -122,6 +123,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             display: inline-block;
+            filter: drop-shadow(0 2px 10px rgba(201, 43, 184, 0.1));
         }
 
         .subtitle {
@@ -171,9 +173,9 @@
             opacity: 0;
             transform: translateY(20px);
             animation: fadeUp 0.6s ease-out forwards;
-            /* Improvement: Subtle Glassmorphism */
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            /* Improvement: Glassmorphism refined */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         /* Staggered loading animations */
@@ -182,13 +184,13 @@
         .app-list:nth-of-type(2) .app-card:nth-child(1) { animation-delay: 0.3s; }
         .app-list:nth-of-type(2) .app-card:nth-child(2) { animation-delay: 0.4s; }
         .app-list:nth-of-type(3) .app-card:nth-child(1) { animation-delay: 0.5s; }
-        .app-list:nth-of-type(3) .app-card:nth-child(2) { animation-delay: 0.6s; } /* For Wallets */
+        .app-list:nth-of-type(3) .app-card:nth-child(2) { animation-delay: 0.6s; }
 
         .app-card:hover {
             box-shadow: var(--shadow-md);
-            transform: translateY(-4px);
+            transform: translateY(-6px);
             background-color: var(--surface-hover);
-            border-color: var(--border-color); /* Retain crisp outline in IG dark mode */
+            border-color: var(--text-secondary); /* Refined hover border */
         }
 
         .app-header {
@@ -203,13 +205,13 @@
             border-radius: 16px;
             object-fit: cover;
             background-color: var(--icon-bg);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 1px solid var(--icon-border);
         }
 
         .app-card:hover .app-icon {
-            transform: scale(1.08) rotate(-2deg);
+            transform: scale(1.12) rotate(-3deg);
         }
 
         .app-title {
@@ -248,6 +250,8 @@
             transition: all 0.2s ease;
             font-family: inherit;
             flex: 1;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-primary {
@@ -257,9 +261,29 @@
             box-shadow: var(--shadow-glow);
         }
 
+        /* Improvement: Shimmer effect on primary buttons */
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to bottom right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+            opacity: 0;
+        }
+
+        .btn-primary:hover::after {
+            opacity: 1;
+            left: 50%;
+            top: 50%;
+        }
+
         .btn-primary:hover {
             background: var(--brand-gradient-hover);
-            transform: scale(1.02);
+            transform: scale(1.03);
             box-shadow: 0 6px 20px var(--shadow-glow);
         }
 
@@ -271,7 +295,7 @@
 
         .btn-secondary:hover {
             background-color: var(--btn-secondary-hover);
-            transform: scale(1.02);
+            transform: scale(1.03);
         }
 
         /* --- NEW: Public URLs Grid Styles --- */
@@ -304,13 +328,13 @@
             opacity: 0;
             transform: translateY(20px);
             animation: fadeUp 0.6s ease-out forwards;
-            animation-delay: 0.7s; /* Adjusted for flow */
+            animation-delay: 0.7s;
         }
 
         .public-url-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-5px);
             box-shadow: var(--shadow-md);
-            border-color: var(--border-color);
+            border-color: var(--text-secondary);
             background-color: var(--surface-hover);
         }
 
@@ -328,7 +352,7 @@
         }
 
         .public-url-card:hover .public-icon-wrapper {
-            transform: scale(1.1);
+            transform: scale(1.1) rotate(5deg);
         }
 
         .public-icon {
@@ -629,6 +653,15 @@
                 }, 400);
             }, 3000);
         }
+
+        /* Improvement: Automatic Year Update Logic without removing HTML lines */
+        window.addEventListener('DOMContentLoaded', () => {
+            const footerP = document.querySelector('.monitor-footer p');
+            if(footerP) {
+                const currentYear = new Date().getFullYear();
+                footerP.innerHTML = footerP.innerHTML.replace('2026', currentYear);
+            }
+        });
     </script>
 </body>
 </html>
