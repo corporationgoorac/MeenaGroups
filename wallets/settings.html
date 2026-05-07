@@ -375,6 +375,23 @@
     input:checked + .slider { background-color: var(--primary); border-color: var(--primary); }
     input:checked + .slider:before { transform: translateX(20px); }
 
+    .btn-delete-user {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(255,0,0,0.05);
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
@@ -445,11 +462,16 @@
         <span class="slider"></span>
       </label>
     </div>
+
+    <button id="delete-user-btn" class="btn-delete-user">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      Delete User Forever
+    </button>
   </div>
 
   <script type="module">
     import { db, auth, logoutUser, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, updateDoc, collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, updateDoc, deleteDoc, collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // State
     let currentUserData = null;
@@ -464,18 +486,20 @@
     const usersListEl = document.getElementById('users-list');
     const loadMoreBtn = document.getElementById('load-more-users');
     const adminToggle = document.getElementById('admin-toggle-input');
+    const deleteUserBtn = document.getElementById('delete-user-btn');
 
     // Helper: Create List Item HTML
     function createListItem(uData, uId, isMe = false) {
       const item = document.createElement('div');
       item.className = 'list-item';
+      item.id = `user-row-${uId}`;
       
       const badge = isMe ? '<span class="badge-you">YOU</span>' : '';
       const star = uData.admin ? '⭐' : '';
       
       item.innerHTML = `
         <div class="list-item-left">
-          <div class="item-title">${uData.name || 'Unknown User'} ${badge} ${star}</div>
+          <div class="item-title"><span class="user-name-text">${uData.name || 'Unknown User'}</span> ${badge} <span class="admin-star">${star}</span></div>
           <div class="item-subtitle">${uData.email || 'No email'}</div>
         </div>
         <button class="item-action" onclick="window.openManageUser('${uId}', '${(uData.name || 'User').replace(/'/g, "\\'")}', '${uData.email || ''}', ${uData.admin === true})">Manage</button>
@@ -521,6 +545,11 @@
       try {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), { name: newName });
         nameDisplay.textContent = newName;
+        
+        // Realtime update own name in list
+        const myRow = document.getElementById(`user-row-${auth.currentUser.uid}`);
+        if(myRow) myRow.querySelector('.user-name-text').textContent = newName;
+
         closeModal();
       } catch (error) {
         console.error("Error updating name: ", error);
@@ -572,10 +601,49 @@
       
       try {
         await updateDoc(doc(db, 'users', selectedManageUserId), { admin: isAdmin });
+        
+        // Realtime UI Update: Update the star in the list row immediately
+        const targetRow = document.getElementById(`user-row-${selectedManageUserId}`);
+        if (targetRow) {
+          const starEl = targetRow.querySelector('.admin-star');
+          starEl.textContent = isAdmin ? '⭐' : '';
+          
+          // Update the manage button's onclick to reflect the new admin state
+          const actionBtn = targetRow.querySelector('.item-action');
+          const name = targetRow.querySelector('.user-name-text').textContent;
+          const email = targetRow.querySelector('.item-subtitle').textContent;
+          actionBtn.setAttribute('onclick', `window.openManageUser('${selectedManageUserId}', '${name.replace(/'/g, "\\'")}', '${email}', ${isAdmin})`);
+        }
       } catch (error) {
         console.error("Error updating admin status:", error);
         e.target.checked = !isAdmin;
         alert("Failed to update user status.");
+      }
+    });
+
+    deleteUserBtn.addEventListener('click', async () => {
+      if (!selectedManageUserId) return;
+      
+      const confirmDelete = confirm("Are you sure you want to delete this user? This cannot be undone.");
+      if (!confirmDelete) return;
+
+      deleteUserBtn.textContent = 'Deleting...';
+      deleteUserBtn.disabled = true;
+
+      try {
+        await deleteDoc(doc(db, 'users', selectedManageUserId));
+        
+        // Remove from UI
+        const row = document.getElementById(`user-row-${selectedManageUserId}`);
+        if(row) row.remove();
+        
+        closeModal();
+      } catch (error) {
+        console.error("Error deleting user: ", error);
+        alert("Failed to delete user.");
+      } finally {
+        deleteUserBtn.textContent = 'Delete User Forever';
+        deleteUserBtn.disabled = false;
       }
     });
 
@@ -603,6 +671,14 @@
       document.getElementById('manage-user-name').textContent = name;
       document.getElementById('manage-user-email').textContent = email;
       adminToggle.checked = isAdmin;
+      
+      // Don't let user delete themselves
+      if(uid === auth.currentUser.uid) {
+        deleteUserBtn.style.display = 'none';
+      } else {
+        deleteUserBtn.style.display = 'flex';
+      }
+
       openModal('manage-user-modal');
     };
 
