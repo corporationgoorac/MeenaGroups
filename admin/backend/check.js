@@ -25,8 +25,8 @@ module.exports = function(client) {
     }, 300000); // Check every 5 minutes
 
     client.on('message', async (msg) => {
-        // Normalizing the input: a20 and A20 become the same
-        const input = msg.body.trim().toUpperCase();
+        // Normalizing the input: 'c 44', 'C 44', and ' c44 ' all become 'C44'
+       const input = msg.body.replace(/\s+/g, '').toUpperCase();
 
         // Pattern: Starts with 1 Letter and followed by 1-5 numbers (e.g., A20, M500)
         const accountPattern = /^[A-Z]\d{1,5}$/;
