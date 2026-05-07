@@ -450,13 +450,13 @@
       <div class="status-block">
         <div class="status-card">
           <div class="status-card-title">This Week</div>
-          <div class="status-card-value">₹12,400</div>
-          <div class="status-card-trend trend-up">↑ 4.2% vs last week</div>
+          <div class="status-card-value" id="status-week-value">₹0</div>
+          <div class="status-card-trend" id="status-week-trend">...</div>
         </div>
         <div class="status-card">
           <div class="status-card-title">This Month</div>
-          <div class="status-card-value">₹48,200</div>
-          <div class="status-card-trend trend-down">↓ 1.1% vs last month</div>
+          <div class="status-card-value" id="status-month-value">₹0</div>
+          <div class="status-card-trend" id="status-month-trend">...</div>
         </div>
       </div>
 
@@ -468,7 +468,12 @@
 
       <div class="chart-container">
         <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Cash Flow (Last 7 Days)</div>
-        <canvas id="cashFlowChart" height="200"></canvas>
+        <canvas id="dashboardBarChart" height="200"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <div style="font-size:14px; font-weight:700; margin-bottom:12px;">All-Time Split</div>
+        <canvas id="dashboardPieChart" height="200"></canvas>
       </div>
     </div>
 
@@ -581,12 +586,12 @@
     </div>
 
     <div class="chart-container">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last Week Graph</div>
-      <canvas id="weeklyBagChart" height="150"></canvas>
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last 7 Days Split (Bar)</div>
+      <canvas id="bagDetailsBarChart" height="150"></canvas>
     </div>
     <div class="chart-container">
-      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">Last Month Graph</div>
-      <canvas id="monthlyBagChart" height="150"></canvas>
+      <div style="font-size:14px; font-weight:700; margin-bottom:12px;">30 Day Overview (Pie)</div>
+      <canvas id="bagDetailsPieChart" height="150"></canvas>
     </div>
   </div>
 
@@ -599,13 +604,14 @@
 
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, getDocs, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // App State
     let currentUser = null;
     let bagsData = [];
     let selectedBagIdForPay = null;
     let selectedBagColor = '';
+    const chartInstances = {};
 
     // Elements
     const profilePicImg = document.getElementById('header-profile-pic');
@@ -616,6 +622,18 @@
     const savedPic = localStorage.getItem('gooracProfilePic');
     if (savedPic) profilePicImg.src = savedPic;
 
+    // --- HELPER: SAFE AGGREGATION SERVER QUERY ---
+    // If you haven't created the Firebase Composite Index yet, this safely catches the error instead of breaking the app.
+    async function fetchAggregateSum(q) {
+        try {
+            const snap = await getAggregateFromServer(q, { total: sum('amount') });
+            return snap.data().total || 0;
+        } catch(e) {
+            console.warn("Index Required! Open Firebase Console to create the index for 'type' and 'timestamp':", e.message);
+            return 0;
+        }
+    }
+
     // --- 1. AUTH & ADMIN CHECK ---
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -623,35 +641,30 @@
         return;
       }
 
-      // Update Profile Pic globally
       if (user.photoURL) {
         profilePicImg.src = user.photoURL;
         localStorage.setItem('gooracProfilePic', user.photoURL);
       }
 
-      // Check Admin Status
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists() && userSnap.data().admin === true) {
         currentUser = user.uid;
         document.getElementById('view-denied').classList.remove('active');
-        // Ensure home is visible
         if(!document.querySelector('.page-view.active')) {
           document.getElementById('view-home').classList.add('active');
         }
-        initApp(); // Start loading data
+        initApp(); 
       } else {
-        // Not Admin - Hide everything and show denied
         document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
         document.getElementById('view-denied').classList.add('active');
-        mainNav.style.display = 'none'; // Hide nav for non-admins
+        mainNav.style.display = 'none'; 
       }
     });
 
     // --- 2. DATA SUBSCRIPTIONS ---
     function initApp() {
-      // Listen to active bags in real-time
       const q = query(collection(db, 'bags'), where('isActive', '==', true));
       onSnapshot(q, (snapshot) => {
         bagsData = [];
@@ -663,10 +676,9 @@
           totalNW += bag.currentBalance || 0;
         });
 
-        // Update UI removing skeletons
         totalNetWorthEl.textContent = `₹${totalNW.toLocaleString('en-IN')}`;
         renderBagsUI();
-        renderDummyChart('cashFlowChart'); 
+        loadRealDashboardData(); 
       });
     }
 
@@ -676,25 +688,18 @@
       const editList = document.getElementById('edit-bag-list');
       const manageList = document.getElementById('manage-bag-list');
       
-      homePills.innerHTML = '';
-      payList.innerHTML = '';
-      editList.innerHTML = '';
-      manageList.innerHTML = '';
+      homePills.innerHTML = ''; payList.innerHTML = ''; editList.innerHTML = ''; manageList.innerHTML = '';
 
       if (bagsData.length === 0) {
          const emptyHtml = `<div style="color:var(--text-muted); font-size:14px; padding:12px;">No bags created yet.</div>`;
-         homePills.innerHTML = emptyHtml;
-         payList.innerHTML = emptyHtml;
-         editList.innerHTML = emptyHtml;
-         manageList.innerHTML = emptyHtml;
+         homePills.innerHTML = emptyHtml; payList.innerHTML = emptyHtml;
+         editList.innerHTML = emptyHtml; manageList.innerHTML = emptyHtml;
          return;
       }
 
       bagsData.forEach(bag => {
-        // 1. Home Pills
         homePills.innerHTML += `<div class="bag-pill" style="background: ${bag.color}">${bag.name} - ₹${bag.currentBalance.toLocaleString('en-IN')}</div>`;
 
-        // 2. Pay List (Big colored buttons)
         payList.innerHTML += `
           <div class="list-item" style="background:${bag.color}; color:white; border-radius:16px; padding:24px; margin-bottom:16px; cursor:pointer; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" onclick="window.openPayModal('${bag.id}', '${bag.name}', '${bag.color}')">
             <div>
@@ -705,7 +710,6 @@
           </div>
         `;
 
-        // 3. Edit List (Page 3) - With Edit/Delete Batch actions
         editList.innerHTML += `
           <div class="list-item" style="border-radius:16px; background:var(--surface-color); padding:16px; margin-bottom:12px; border:1px solid var(--border-color);">
             <div style="display:flex; align-items:center; gap:12px;">
@@ -722,7 +726,6 @@
           </div>
         `;
 
-        // 4. Manage / Analytics List (Page 4) - Beautiful UI opening Graphs
         manageList.innerHTML += `
           <div class="premium-bag-card" style="background:${bag.color};" onclick="window.openBagDetails('${bag.id}', '${bag.name}', ${bag.currentBalance})">
              <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -736,10 +739,209 @@
       });
     }
 
+    // --- DASHBOARD CHARTS & CACHING ---
+    function renderDashboardDataUI(data) {
+        document.getElementById('status-week-value').textContent = `₹${data.thisWeekNet.toLocaleString('en-IN')}`;
+        document.getElementById('status-month-value').textContent = `₹${data.thisMonthNet.toLocaleString('en-IN')}`;
+
+        const weekTrendEl = document.getElementById('status-week-trend');
+        if (data.thisWeekNet >= data.lastWeekNet) {
+            weekTrendEl.className = 'status-card-trend trend-up';
+            weekTrendEl.textContent = `↑ vs last week (₹${data.lastWeekNet})`;
+        } else {
+            weekTrendEl.className = 'status-card-trend trend-down';
+            weekTrendEl.textContent = `↓ vs last week (₹${data.lastWeekNet})`;
+        }
+
+        const monthTrendEl = document.getElementById('status-month-trend');
+        if (data.thisMonthNet >= data.lastMonthNet) {
+            monthTrendEl.className = 'status-card-trend trend-up';
+            monthTrendEl.textContent = `↑ vs last month (₹${data.lastMonthNet})`;
+        } else {
+            monthTrendEl.className = 'status-card-trend trend-down';
+            monthTrendEl.textContent = `↓ vs last month (₹${data.lastMonthNet})`;
+        }
+
+        renderBarChart('dashboardBarChart', data.labels, data.barInc, data.barExp);
+        renderPieChart('dashboardPieChart', data.allInc, data.allExp);
+    }
+
+    async function loadRealDashboardData() {
+        const todayStr = new Date().toDateString();
+        const cached = localStorage.getItem('meena_dashboard_cache');
+        
+        // 0-Read Load from Cache if valid
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.date === todayStr) {
+                renderDashboardDataUI(parsed);
+                return;
+            }
+        }
+
+        // --- Execute Server-Side Aggregations (Only runs when cache is expired/missing) ---
+        const now = new Date();
+        const t7 = new Date(); t7.setDate(now.getDate() - 7);
+        const t14 = new Date(); t14.setDate(now.getDate() - 14);
+        const t30 = new Date(); t30.setDate(now.getDate() - 30);
+        const t60 = new Date(); t60.setDate(now.getDate() - 60);
+
+        const coll = collection(db, 'transactions');
+
+        // Parallel execution of all aggregate queries for maximum speed
+        const [
+            allInc, allExp,
+            thisMonthInc, thisMonthExp,
+            lastMonthInc, lastMonthExp,
+            thisWeekInc, thisWeekExp,
+            lastWeekInc, lastWeekExp
+        ] = await Promise.all([
+            fetchAggregateSum(query(coll, where('type','==','income'))),
+            fetchAggregateSum(query(coll, where('type','==','expense'))),
+
+            fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',t30))),
+            fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',t30))),
+
+            fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',t60), where('timestamp','<',t30))),
+            fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',t60), where('timestamp','<',t30))),
+
+            fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',t7))),
+            fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',t7))),
+
+            fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',t14), where('timestamp','<',t7))),
+            fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',t14), where('timestamp','<',t7)))
+        ]);
+
+        // 7 Day Daily Loop for Bar Chart
+        const labels = [];
+        const barInc = [];
+        const barExp = [];
+
+        for(let i=6; i>=0; i--) {
+            const dStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const dEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
+            labels.push(dStart.toLocaleDateString('en-US', {weekday:'short'}));
+
+            const dInc = await fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',dStart), where('timestamp','<=',dEnd)));
+            const dExp = await fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',dStart), where('timestamp','<=',dEnd)));
+            barInc.push(dInc);
+            barExp.push(dExp);
+        }
+
+        const dataObj = {
+            date: todayStr,
+            allInc, allExp,
+            thisMonthNet: thisMonthInc - thisMonthExp,
+            lastMonthNet: lastMonthInc - lastMonthExp,
+            thisWeekNet: thisWeekInc - thisWeekExp,
+            lastWeekNet: lastWeekInc - lastWeekExp,
+            labels, barInc, barExp
+        };
+
+        // Cache the newly calculated data
+        localStorage.setItem('meena_dashboard_cache', JSON.stringify(dataObj));
+        renderDashboardDataUI(dataObj);
+    }
+
+    // --- BAG ANALYTICS CHARTS ---
+    window.openBagDetails = async function(bagId, name, balance) {
+      document.getElementById('details-modal-title').textContent = name;
+      document.getElementById('details-modal-balance').textContent = `₹${balance.toLocaleString('en-IN')}`;
+      openModal('bag-details-modal');
+      
+      const todayStr = new Date().toDateString();
+      const cached = localStorage.getItem(`meena_bag_cache_${bagId}`);
+      
+      if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.date === todayStr) {
+             renderBarChart('bagDetailsBarChart', parsed.labels, parsed.barInc, parsed.barExp);
+             renderPieChart('bagDetailsPieChart', parsed.totalInc, parsed.totalExp);
+             return;
+          }
+      }
+
+      const now = new Date();
+      const t30 = new Date(); t30.setDate(now.getDate() - 30);
+      const coll = collection(db, 'transactions');
+
+      // 30-Day Pie Chart Aggregates
+      const [totalInc, totalExp] = await Promise.all([
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',t30))),
+          fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',t30)))
+      ]);
+
+      // 7-Day Bar Chart Aggregates
+      const labels = [];
+      const barInc = [];
+      const barExp = [];
+
+      for(let i=6; i>=0; i--) {
+          const dStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+          const dEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
+          labels.push(dStart.toLocaleDateString('en-US', {weekday:'short'}));
+
+          const dInc = await fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',dStart), where('timestamp','<=',dEnd)));
+          const dExp = await fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',dStart), where('timestamp','<=',dEnd)));
+          barInc.push(dInc);
+          barExp.push(dExp);
+      }
+
+      const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp };
+      localStorage.setItem(`meena_bag_cache_${bagId}`, JSON.stringify(dataObj));
+
+      renderBarChart('bagDetailsBarChart', labels, barInc, barExp);
+      renderPieChart('bagDetailsPieChart', totalInc, totalExp);
+    };
+
+    // --- CHART GENERATORS ---
+    function renderBarChart(canvasId, labels, incomeData, expenseData) {
+      const canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+      
+      chartInstances[canvasId] = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Income',
+            data: incomeData,
+            backgroundColor: '#2ea043',
+            borderRadius: 4
+          }, {
+            label: 'Expense',
+            data: expenseData,
+            backgroundColor: '#e41e3f',
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: {display:false} }, y: { display: false } } }
+      });
+    }
+
+    function renderPieChart(canvasId, incomeTotal, expenseTotal) {
+      const canvas = document.getElementById(canvasId);
+      if(!canvas) return;
+      if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+      
+      chartInstances[canvasId] = new Chart(canvas, {
+        type: 'pie',
+        data: {
+          labels: ['Income', 'Expense'],
+          datasets: [{
+            data: [incomeTotal, expenseTotal],
+            backgroundColor: ['#2ea043', '#e41e3f'],
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: {color: 'var(--text-muted)', font: {weight: 'bold'}} } } }
+      });
+    }
+
     // --- 3. CREATE BAG LOGIC ---
     let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
     
-    // Color Swatch Selection
     document.querySelectorAll('.color-swatch').forEach(swatch => {
       swatch.addEventListener('click', (e) => {
         document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
@@ -766,7 +968,6 @@
         createdAt: serverTimestamp()
       });
 
-      // If initial balance > 0, log it as an initial income
       if (initialBalance > 0) {
         const txRef = doc(collection(db, 'transactions'));
         batch.set(txRef, {
@@ -806,7 +1007,6 @@
       const bagRef = doc(db, 'bags', selectedBagIdForPay);
       const txRef = doc(collection(db, 'transactions'));
 
-      // Add to logs
       batch.set(txRef, {
         bagId: selectedBagIdForPay,
         amount: amount,
@@ -815,7 +1015,6 @@
         timestamp: serverTimestamp()
       });
 
-      // Update Running Total
       const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
       batch.update(bagRef, {
         currentBalance: increment(mathValue)
@@ -823,6 +1022,11 @@
 
       try {
         await batch.commit();
+        
+        // --- CRITICAL: Clear the caches so charts refresh next view ---
+        localStorage.removeItem('meena_dashboard_cache');
+        localStorage.removeItem(`meena_bag_cache_${selectedBagIdForPay}`);
+        
         closeModal();
         triggerGPayAnimation();
       } catch (err) {
@@ -832,12 +1036,12 @@
     });
 
     function triggerGPayAnimation() {
-      if ('vibrate' in navigator) navigator.vibrate([50]); // Haptic
+      if ('vibrate' in navigator) navigator.vibrate(); 
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
       setTimeout(() => {
         anim.classList.remove('active');
-        switchTab('home'); // Redirect back to home after payment
+        switchTab('home'); 
       }, 1500);
     }
 
@@ -865,7 +1069,6 @@
           count++;
         });
 
-        // Handle the main bag document
         const bagRef = doc(db, 'bags', bagId);
         if (operation === 'delete') {
           batch.delete(bagRef);
@@ -876,6 +1079,10 @@
         commitPromises.push(batch.commit());
         await Promise.all(commitPromises);
         
+        // Clear caches
+        localStorage.removeItem('meena_dashboard_cache');
+        localStorage.removeItem(`meena_bag_cache_${bagId}`);
+
         alert(`Successfully ${operation === 'delete' ? 'deleted' : 'updated'} bag and all related documents.`);
       } catch (e) {
         console.error("Batch operation error: ", e);
@@ -895,17 +1102,7 @@
       }
     };
 
-    // --- 6. BAG DETAILS MODAL ---
-    window.openBagDetails = function(bagId, name, balance) {
-      document.getElementById('details-modal-title').textContent = name;
-      document.getElementById('details-modal-balance').textContent = `₹${balance.toLocaleString('en-IN')}`;
-      openModal('bag-details-modal');
-      renderDummyChart('weeklyBagChart');
-      renderDummyChart('monthlyBagChart');
-    };
-
     // --- 7. UI TABS & MODALS (HISTORY API) ---
-    // 0ms Navigation switching class instant
     window.switchTab = function(tabId) {
       document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -915,11 +1112,13 @@
       if (event && event.currentTarget) {
           event.currentTarget.classList.add('active');
       } else {
-          // Fallback if not triggered by click event
           const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
           if (activeBtn) activeBtn.classList.add('active');
       }
       history.pushState({ page: tabId }, "", `#${tabId}`);
+      
+      // If switching to home, ensure data is fresh
+      if(tabId === 'home') loadRealDashboardData();
     };
 
     window.openModal = function(modalId) {
@@ -973,35 +1172,6 @@
         deferredPrompt = null;
       }
     });
-
-    // --- DUMMY CHART (Placeholder) ---
-    function renderDummyChart(canvasId) {
-      const canvas = document.getElementById(canvasId);
-      if(!canvas) return;
-      const ctx = canvas.getContext('2d');
-      
-      // Destroy existing chart if it exists to avoid overlapping render
-      if(window[canvasId + 'Instance']) {
-        window[canvasId + 'Instance'].destroy();
-      }
-      
-      window[canvasId + 'Instance'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: ['1', '2', '3', '4', '5', '6', '7'],
-          datasets: [{
-            label: 'Income',
-            data: Array.from({length: 7}, () => Math.floor(Math.random() * 3000)),
-            borderColor: '#2ea043', tension: 0.4
-          }, {
-            label: 'Expense',
-            data: Array.from({length: 7}, () => Math.floor(Math.random() * 2000)),
-            borderColor: '#e41e3f', tension: 0.4
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-      });
-    }
   </script>
 
   <script>
