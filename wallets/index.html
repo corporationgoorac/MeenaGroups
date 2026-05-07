@@ -1075,16 +1075,15 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
-            // FIX: Valid Date Object Creation using precise indices
+            // FIX: Match the exact 'dateStr' string format saved in the database
             const parts = dateVal.split('-');
             const year = parseInt(parts, 10);
             const month = parseInt(parts, 10) - 1; // Month is 0-indexed in JS Date
             const day = parseInt(parts, 10);
             
-            const startDay = new Date(year, month, day);
-            const endDay = new Date(year, month, day, 23, 59, 59, 999);
+            const targetDateStr = new Date(year, month, day).toLocaleDateString('en-US');
             
-            txQuery = query(txQuery, where('timestamp', '>=', startDay), where('timestamp', '<=', endDay), orderBy('timestamp', 'desc'));
+            txQuery = query(txQuery, where('dateStr', '==', targetDateStr), orderBy('timestamp', 'desc'));
         } else {
             txQuery = query(txQuery, orderBy('timestamp', 'desc'));
         }
