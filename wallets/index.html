@@ -362,9 +362,24 @@
     .btn-primary {
       width: 100%; padding: 16px; border-radius: 14px; border: none;
       background-color: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+      display: flex; justify-content: center; align-items: center; transition: opacity 0.2s;
     }
     .btn-danger {
       background-color: var(--danger); color: #fff;
+    }
+
+    /* Button Spinner */
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Color Picker Gradients */
@@ -1435,13 +1450,20 @@
       openModal('pay-modal');
     };
 
-    document.getElementById('submit-pay-btn').addEventListener('click', async () => {
+    document.getElementById('submit-pay-btn').addEventListener('click', async (e) => {
+      const btn = document.getElementById('submit-pay-btn');
       const amtVal = document.getElementById('pay-amount').value.replace(/,/g, '');
       const note = document.getElementById('pay-note').value.trim();
       const type = document.getElementById('pay-type').value;
       
       const amount = parseInt(amtVal);
       if (!amount || amount <= 0 || !selectedBagIdForPay) return;
+
+      // Start loading UI state immediately
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.innerHTML = '<div class="spinner"></div>';
 
       const batch = writeBatch(db);
       const bagRef = doc(db, 'bags', selectedBagIdForPay);
@@ -1463,26 +1485,34 @@
       });
 
       try {
-        await batch.commit();
+        await batch.commit(); // Only await the fast write operation
         
-        // --- CRITICAL: Clear the caches so charts refresh next view perfectly ---
-        localStorage.removeItem('meena_dashboard_cache');
-        localStorage.removeItem(`meena_bag_cache_${selectedBagIdForPay}`);
-        
-        // Aggressively load latest data immediately so UI is seamlessly updated ("new as good as possible")
-        await loadRealDashboardData();
-        
+        // --- INSTANT UI RESPONSE ---
         closeModal();
-        setTimeout(triggerGPayAnimation, 100);
+        setTimeout(triggerGPayAnimation, 50); // Show success animation right away
+        
+        // --- BACKGROUND PROCESSING (No await) ---
+        // Clear caches and aggressively load new data while the user sees the success animation
+        setTimeout(async () => {
+            localStorage.removeItem('meena_dashboard_cache');
+            localStorage.removeItem(`meena_bag_cache_${selectedBagIdForPay}`);
+            await loadRealDashboardData();
+        }, 0);
+        
       } catch (err) {
         console.error("Batch fail:", err);
         showCustomAlert("Transaction failed. Please try again.");
+      } finally {
+        // Reset the button state for the next time the modal opens
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.innerHTML = originalText;
       }
     });
 
     function triggerGPayAnimation() {
       // FIX: 3 Strong vibrations upon successful payment completion
-      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {} 
+      try { if ('vibrate' in navigator) navigator.vibrate([30, 50, 30]); } catch(e) {} 
       
       const anim = document.getElementById('gpay-animation');
       anim.classList.add('active');
@@ -1553,86 +1583,55 @@
     };
 
     window.clearBagHistoryBatch = function(bagId) {
-      showCustomConfirm("Are you sure you want to delete ALL transactions for this bag? The current balance will NOT change, but the history will be gone forever.", () => {
-          processBatchOperation(bagId, 'clear');
+      showCustomConfirm("Are you sure you want to delete ALL transactions for this bag? This cannot be undone.", () => {
+         processBatchOperation(bagId, 'clear');
       });
     };
 
     window.deleteBagBatch = function(bagId) {
-      showCustomConfirm("Are you sure you want to completely delete this bag and all its transactions? This action processes in batches and cannot be undone.", () => {
-          processBatchOperation(bagId, 'delete');
+      showCustomConfirm("Delete this bag and ALL its transactions? This action is permanent.", () => {
+         processBatchOperation(bagId, 'delete');
       });
     };
 
-    // --- 7. UI TABS & MODALS (HISTORY API) ---
+    // --- TAB SWITCHING & MODALS ---
     window.switchTab = function(tabId) {
-      // Vibrate shortly on UI tab switch 
-      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) {}
-
-      document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       
       document.getElementById(`view-${tabId}`).classList.add('active');
-      
-      if (typeof event !== 'undefined' && event && event.currentTarget) {
-          event.currentTarget.classList.add('active');
-      } else {
-          const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
-          if (activeBtn) activeBtn.classList.add('active');
+      document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+
+      if(tabId === 'home') {
+          // If the background task from submit-pay-btn already ran, this hits the cache instantly (0-read).
+          loadRealDashboardData();
       }
-      history.pushState({ page: tabId }, "", `#${tabId}`);
-      
-      // If switching to home, ensure data is fresh
-      if(tabId === 'home') loadRealDashboardData();
     };
 
     window.openModal = function(modalId) {
-      history.pushState({ modalId: modalId }, "", `#${modalId}`);
       document.getElementById('modal-overlay').classList.add('active');
       document.getElementById(modalId).classList.add('active');
     };
 
     window.closeModal = function() {
-      if (history.state && history.state.modalId) {
-        history.back();
-      } else {
-        forceCloseModals();
-      }
+      document.getElementById('modal-overlay').classList.remove('active');
+      document.querySelectorAll('.modal-sheet, .modal-full-screen, .modal-slide-side').forEach(el => el.classList.remove('active'));
     };
 
-    function forceCloseModals() {
-      document.getElementById('modal-overlay').classList.remove('active');
-      document.querySelectorAll('.modal-sheet, .modal-slide-side, .modal-full-screen').forEach(m => m.classList.remove('active'));
-    }
-
-    window.addEventListener('popstate', (e) => {
-      forceCloseModals();
-      if (e.state && e.state.modalId) {
-        document.getElementById('modal-overlay').classList.add('active');
-        document.getElementById(e.state.modalId).classList.add('active');
-      } else if (e.state && e.state.page) {
-        document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`view-${e.state.page}`).classList.add('active');
-        const activeBtn = document.querySelector(`.nav-btn[onclick="switchTab('${e.state.page}')"]`);
-        if (activeBtn) activeBtn.classList.add('active');
-      }
+    // Auto-Format input numbers
+    document.getElementById('pay-amount').addEventListener('input', function(e) {
+      let val = e.target.value.replace(/[^0-9]/g, '');
+      if (val) e.target.value = parseInt(val, 10).toLocaleString('en-IN');
+      else e.target.value = '';
+    });
+    
+    document.getElementById('new-bag-balance').addEventListener('input', function(e) {
+      let val = e.target.value.replace(/[^0-9]/g, '');
+      if (val) e.target.value = parseInt(val, 10).toLocaleString('en-IN');
+      else e.target.value = '';
     });
 
-    // --- REALTIME INR FORMATTING LISTENERS ---
-    // FIXED: Edge Case - Better regex replace logic inside format handling
-    function handleCurrencyInput(e) {
-      let value = e.target.value.replace(/[^0-9]/g, '');
-      if(value && !isNaN(parseInt(value, 10))) {
-          e.target.value = parseInt(value, 10).toLocaleString('en-IN');
-      } else {
-          e.target.value = '';
-      }
-    }
-    document.getElementById('new-bag-balance').addEventListener('input', handleCurrencyInput);
-    document.getElementById('pay-amount').addEventListener('input', handleCurrencyInput);
-
-    // --- 8. PWA INSTALL BANNER ---
+    // PWA Installation
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -1641,24 +1640,25 @@
     });
 
     document.getElementById('install-btn').addEventListener('click', async () => {
+      document.getElementById('install-banner').classList.remove('active');
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          document.getElementById('install-banner').classList.remove('active');
-        }
         deferredPrompt = null;
       }
     });
-  </script>
 
-  <script>
+    // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(console.error);
+        navigator.serviceWorker.register('./sw.js').then((registration) => {
+          console.log('SW registered: ', registration);
+        }).catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError);
+        });
       });
     }
-  </script>
 
+  </script>
 </body>
 </html>
