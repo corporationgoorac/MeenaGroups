@@ -72,6 +72,23 @@
       width: 100vw;
       overflow: hidden;
       transition: background-color 0.3s ease;
+      
+      /* PREVENT COPY & SELECTION (PRODUCTION READY) */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Re-enable selection for inputs so app remains functional */
+    input, select, textarea {
+      -webkit-user-select: auto;
+      -khtml-user-select: auto;
+      -moz-user-select: auto;
+      -ms-user-select: auto;
+      user-select: auto;
     }
 
     /* Top Header */
@@ -465,7 +482,41 @@
     .tx-exp { color: var(--text-main); } /* Dark text for expense looks cleaner than aggressive red everywhere */
   </style>
 </head>
-<body>
+<body oncopy="return false" oncut="return false" onpaste="return false">
+
+  <script>
+    // Prevent Right Click
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // Prevent dragging elements like images or highlighted text
+    document.addEventListener('dragstart', event => event.preventDefault());
+
+    // Prevent Copy/Paste/Cut keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Allow operations inside input, select, or textarea so users can still type/paste numbers
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+          return;
+      }
+      
+      // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+U (View Source), Ctrl+S (Save), F12 (Inspect)
+      if (
+        (e.ctrlKey || e.metaKey) && 
+        (e.key === 'c' || e.key === 'C' || 
+         e.key === 'v' || e.key === 'V' || 
+         e.key === 'x' || e.key === 'X' || 
+         e.key === 'a' || e.key === 'A' || 
+         e.key === 'u' || e.key === 'U' ||
+         e.key === 's' || e.key === 'S')
+      ) {
+          e.preventDefault();
+      }
+
+      // Block F12 specifically
+      if (e.key === 'F12') {
+          e.preventDefault();
+      }
+    });
+  </script>
 
   <div id="index-error-banner" class="install-banner" style="bottom: 90px; z-index: 9999; background-color: var(--danger); border-color: var(--danger);">
     <span class="install-text" style="color: white;">Missing Database Index</span>
