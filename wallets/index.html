@@ -72,23 +72,6 @@
       width: 100vw;
       overflow: hidden;
       transition: background-color 0.3s ease;
-      
-      /* PREVENT COPY & SELECTION (PRODUCTION READY) */
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-
-    /* Re-enable selection for inputs so app remains functional */
-    input, select, textarea {
-      -webkit-user-select: auto;
-      -khtml-user-select: auto;
-      -moz-user-select: auto;
-      -ms-user-select: auto;
-      user-select: auto;
     }
 
     /* Top Header */
@@ -482,41 +465,7 @@
     .tx-exp { color: var(--text-main); } /* Dark text for expense looks cleaner than aggressive red everywhere */
   </style>
 </head>
-<body oncopy="return false" oncut="return false" onpaste="return false">
-
-  <script>
-    // Prevent Right Click
-    document.addEventListener('contextmenu', event => event.preventDefault());
-
-    // Prevent dragging elements like images or highlighted text
-    document.addEventListener('dragstart', event => event.preventDefault());
-
-    // Prevent Copy/Paste/Cut keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-      // Allow operations inside input, select, or textarea so users can still type/paste numbers
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-          return;
-      }
-      
-      // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+U (View Source), Ctrl+S (Save), F12 (Inspect)
-      if (
-        (e.ctrlKey || e.metaKey) && 
-        (e.key === 'c' || e.key === 'C' || 
-         e.key === 'v' || e.key === 'V' || 
-         e.key === 'x' || e.key === 'X' || 
-         e.key === 'a' || e.key === 'A' || 
-         e.key === 'u' || e.key === 'U' ||
-         e.key === 's' || e.key === 'S')
-      ) {
-          e.preventDefault();
-      }
-
-      // Block F12 specifically
-      if (e.key === 'F12') {
-          e.preventDefault();
-      }
-    });
-  </script>
+<body>
 
   <div id="index-error-banner" class="install-banner" style="bottom: 90px; z-index: 9999; background-color: var(--danger); border-color: var(--danger);">
     <span class="install-text" style="color: white;">Missing Database Index</span>
@@ -1410,7 +1359,7 @@
           return;
       }
       
-      const initialBalance = balStr ? parseInt(balStr) : 0;
+      const initialBalance = balStr ? parseInt(balStr, 10) : 0;
       
       const batch = writeBatch(db);
       const newBagRef = doc(collection(db, 'bags'));
@@ -1507,7 +1456,7 @@
       const note = document.getElementById('pay-note').value.trim();
       const type = document.getElementById('pay-type').value;
       
-      const amount = parseInt(amtVal);
+      const amount = parseInt(amtVal, 10);
       if (!amount || amount <= 0 || !selectedBagIdForPay) return;
 
       // Start loading UI state immediately
@@ -1647,6 +1596,8 @@
 
     // --- TAB SWITCHING & MODALS ---
     window.switchTab = function(tabId) {
+      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) {} // Haptic feedback on nav press
+
       document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       
@@ -1660,14 +1611,25 @@
     };
 
     window.openModal = function(modalId) {
+      history.pushState({ modalOpen: true }, ""); // Push history state for back button closing
       document.getElementById('modal-overlay').classList.add('active');
       document.getElementById(modalId).classList.add('active');
     };
 
-    window.closeModal = function() {
+    window.closeModal = function(fromPopState = false) {
       document.getElementById('modal-overlay').classList.remove('active');
       document.querySelectorAll('.modal-sheet, .modal-full-screen, .modal-slide-side').forEach(el => el.classList.remove('active'));
+      
+      // If manually closed (not via back button), remove the state from history
+      if (!fromPopState && history.state && history.state.modalOpen) {
+          history.back();
+      }
     };
+
+    // Handle mobile back button press to close modals
+    window.addEventListener('popstate', (e) => {
+       window.closeModal(true);
+    });
 
     // Auto-Format input numbers
     document.getElementById('pay-amount').addEventListener('input', function(e) {
