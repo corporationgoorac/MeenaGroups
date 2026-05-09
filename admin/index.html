@@ -211,14 +211,19 @@
     /* Grid Layout for Cards */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
       gap: 24px;
       margin-bottom: 35px;
     }
 
-    /* KPI Cards - Glass/Gradient Redesign */
+    /* KPI Cards - Glass/Gradient Redesign + Grid Overlay */
     .kpi-card {
       background: linear-gradient(180deg, #161616 0%, #0d0d0d 100%);
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(180deg, #161616 0%, #0d0d0d 100%);
+      background-size: 15px 15px, 15px 15px, 100% 100%;
       border: 1px solid var(--card-border);
       border-top: 1px solid rgba(255, 255, 255, 0.15); /* Subtle top highlight */
       padding: 24px;
@@ -230,9 +235,9 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     
-    .kpi-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
-    .kpi-value { font-size: 2.5rem; font-weight: 900; color: #fff; margin: 12px 0; letter-spacing: -1px;}
-    .kpi-trend { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; font-weight: 500;}
+    .kpi-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; z-index: 2; }
+    .kpi-value { font-size: 2.3rem; font-weight: 900; color: #fff; margin: 12px 0; letter-spacing: -0.5px; z-index: 2;}
+    .kpi-trend { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; font-weight: 500; z-index: 2;}
     .trend-up { color: var(--primary); }
     .trend-down { color: var(--danger); }
 
@@ -275,6 +280,7 @@
       background: #000;
     }
     
+    .advice-content { flex: 1; }
     .advice-content h3 { margin: 0 0 8px 0; font-size: 1.3rem; color: #fff; font-weight: 800;}
     .advice-content p { margin: 0; color: var(--text-muted); font-size: 1rem; line-height: 1.6; }
     .advice-badge { 
@@ -287,7 +293,7 @@
     /* Charts Section */
     .charts-wrapper {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
       gap: 24px;
     }
     
@@ -299,7 +305,16 @@
       padding: 24px;
       height: 380px;
       position: relative;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+
+    .chart-box canvas {
+      flex: 1;
+      min-height: 0;
+      width: 100% !important;
     }
 
     /* Full width for the new comparison chart */
@@ -381,7 +396,7 @@
       .charts-wrapper { grid-template-columns: 1fr; }
       .chart-box { height: 320px; }
       .chart-box.full-width { height: 350px; }
-      .kpi-value { font-size: 2.2rem; }
+      .kpi-value { font-size: 2rem; }
       .advice-card { flex-direction: column; text-align: center; padding: 25px 20px; }
       .advice-card::before { width: 100%; height: 6px; border-radius: 0; border-top-left-radius: 24px; border-top-right-radius: 24px; }
       .advice-score-circle { margin-bottom: 5px; width: 80px; height: 80px; font-size: 1.5rem;}
@@ -918,10 +933,16 @@
       initCharts(data, recoveryRate);
     }
 
-    // Small animation for numbers
+    // Small animation for numbers, updated for proper Indian Rupee formats
     function animateValue(id, value, prefix = "") {
       const obj = document.getElementById(id);
-      obj.innerText = prefix + value.toLocaleString();
+      const formattedValue = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+      }).format(value);
+
+      obj.innerText = formattedValue;
       obj.style.opacity = 0;
       setTimeout(() => { obj.style.transition = "opacity 0.5s"; obj.style.opacity = 1; }, 50);
     }
@@ -945,12 +966,12 @@
       
       // Trend Analysis
       const dates = Object.keys(history || {});
-      let trendTxt = "Data insufficient for trend analysis.";
+      let trendTxt = "Data is currently insufficient for a comprehensive trend analysis.";
       if(dates.length > 1) {
          const last = history[dates[dates.length-1]].paid;
          const prev = history[dates[dates.length-2]].paid;
-         if(last > prev) trendTxt = "Recent collections are trending upwards 📈.";
-         else trendTxt = "Recent collections showed a slight dip compared to previous days.";
+         if(last > prev) trendTxt = "Recent metrics indicate a positive upward trajectory in collections.";
+         else trendTxt = "Recent metrics reflect a marginal deceleration compared to preceding periods.";
       }
 
       if (rate >= 80) {
@@ -959,9 +980,9 @@
         badgeEl.style.background = 'var(--primary-dim)';
         badgeEl.style.color = 'var(--primary)';
         badgeEl.style.borderColor = 'rgba(0, 230, 118, 0.3)';
-        badgeEl.innerText = 'EXCELLENT';
-        titleEl.innerText = 'Strong Performance';
-        textEl.innerText = `Recovery rate is exceptional. ${trendTxt} Low risk. Safe to expand high-value loans.`;
+        badgeEl.innerText = 'OPTIMAL';
+        titleEl.innerText = 'Strong Financial Posture';
+        textEl.innerText = `Recovery rate is exceptional at ${rate}%. ${trendTxt} The portfolio demonstrates low exposure risk, presenting a favorable environment for calculated expansion.`;
       } else if (rate >= 50) {
         card.style.setProperty('--primary', '#2979ff');
         scoreEl.style.borderColor = 'var(--secondary)';
@@ -969,8 +990,8 @@
         badgeEl.style.color = 'var(--secondary)';
         badgeEl.style.borderColor = 'rgba(41, 121, 255, 0.3)';
         badgeEl.innerText = 'STABLE';
-        titleEl.innerText = 'Balanced Growth';
-        textEl.innerText = `Steady collections. ${trendTxt} Maintain pace. Review older dues before aggressive expansion.`;
+        titleEl.innerText = 'Balanced Portfolio Performance';
+        textEl.innerText = `Collections maintain a steady velocity at ${rate}%. ${trendTxt} Strategic recommendation: Prioritize the reconciliation of aged receivables prior to aggressive credit expansion.`;
       } else {
         card.style.setProperty('--primary', '#ff1744');
         scoreEl.style.borderColor = 'var(--danger)';
@@ -978,8 +999,8 @@
         badgeEl.style.color = 'var(--danger)';
         badgeEl.style.borderColor = 'rgba(255, 23, 68, 0.3)';
         badgeEl.innerText = 'CRITICAL';
-        titleEl.innerText = 'High Risk Alert';
-        textEl.innerText = `Outstanding debt is high. ${trendTxt} Halt new loans immediately. Focus agents purely on recovery.`;
+        titleEl.innerText = 'Elevated Risk Alert';
+        textEl.innerText = `Outstanding exposure requires immediate intervention. ${trendTxt} Strategic recommendation: Restrict new credit issuance and reallocate resources strictly towards asset recovery operations.`;
       }
     }
 
