@@ -900,6 +900,7 @@
           </div>
         `;
 
+        // UPDATED: Replaced text buttons with sleek circular icon buttons
         editList.innerHTML += `
           <div class="list-item" style="border-radius:16px; background:var(--surface-color); padding:16px; margin-bottom:12px; border:1px solid var(--border-color);">
             <div style="display:flex; align-items:center; gap:12px;">
@@ -909,10 +910,16 @@
                 <div class="item-subtitle">Setup & Settings</div>
               </div>
             </div>
-            <div class="action-btns">
-              <button class="action-btn" onclick="window.openEditBagModal('${bag.id}', '${bag.name}', '${bag.color}')">Edit</button>
-              <button class="action-btn" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);" onclick="window.clearBagHistoryBatch('${bag.id}')">Clear Tx</button>
-              <button class="action-btn delete" onclick="window.deleteBagBatch('${bag.id}')">Delete</button>
+            <div class="action-btns" style="display:flex; gap:12px; align-items:center;">
+              <button class="action-btn" style="width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:50%; color:var(--primary); background:rgba(16, 185, 129, 0.1);" onclick="window.openEditBagModal('${bag.id}', '${bag.name}', '${bag.color}')" title="Edit">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="action-btn" style="width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:50%; color:#f59e0b; background:rgba(245, 158, 11, 0.1);" onclick="window.clearBagHistoryBatch('${bag.id}')" title="Clear Transactions">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z" opacity="0"/><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+              </button>
+              <button class="action-btn delete" style="width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:50%;" onclick="window.deleteBagBatch('${bag.id}')" title="Delete">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
             </div>
           </div>
         `;
@@ -979,8 +986,7 @@
 
         const coll = collection(db, 'transactions');
 
-        // OPTIMIZATION: Reduced 8 expensive aggregation queries and 14 loop queries 
-        // down to just the necessary high-level aggregates and 1 single query block for the 7-day splits.
+        // High-level aggregates
         const [
             allInc, allExp,
             thisMonthInc, thisMonthExp,
@@ -1000,42 +1006,45 @@
             fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',t14), where('timestamp','<',t7)))
         ]);
 
-        // OPTIMIZED 7-Day loop: Replaced 14 API calls with 1 fast document fetch and client-side binning.
+        // OPTIMIZED 7-Day loop: Using strict aggregation to minimize reads
         const labels = [];
         const barInc = [];
         const barExp = [];
-        const dayMap = {};
-
-        for(let i=6; i>=0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-            const dateKey = d.toLocaleDateString('en-US'); // Match format stored in db
-            labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
-            dayMap[dateKey] = { index: 6 - i };
-            barInc.push(0);
-            barExp.push(0);
-        }
+        const dayPromises = [];
 
         let thisWeekInc = 0;
         let thisWeekExp = 0;
 
-        try {
-            const d7Snap = await getDocs(query(coll, where('timestamp', '>=', t7)));
-            d7Snap.forEach(docSnap => {
-                const data = docSnap.data();
-                const amt = data.amount || 0;
-                
-                if(data.type === 'income') thisWeekInc += amt;
-                else if(data.type === 'expense') thisWeekExp += amt;
+        for(let i=6; i>=0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const startOfDay = new Date(d);
+            const endOfDay = new Date(d);
+            endOfDay.setDate(endOfDay.getDate() + 1);
+            
+            labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
+            const idx = 6 - i;
+            barInc.push(0);
+            barExp.push(0);
 
-                const txDateStr = data.dateStr;
-                if(dayMap[txDateStr] !== undefined) {
-                    const idx = dayMap[txDateStr].index;
-                    if(data.type === 'income') barInc[idx] += amt;
-                    else if(data.type === 'expense') barExp[idx] += amt;
-                }
-            });
+            // Fetch aggregate sum for this specific day to minimize index/document reads
+            dayPromises.push(
+                fetchAggregateSum(query(coll, where('type','==','income'), where('timestamp','>=',startOfDay), where('timestamp','<',endOfDay))).then(val => {
+                    barInc[idx] = val;
+                    thisWeekInc += val;
+                })
+            );
+            dayPromises.push(
+                fetchAggregateSum(query(coll, where('type','==','expense'), where('timestamp','>=',startOfDay), where('timestamp','<',endOfDay))).then(val => {
+                    barExp[idx] = val;
+                    thisWeekExp += val;
+                })
+            );
+        }
+
+        try {
+            await Promise.all(dayPromises);
         } catch(e) {
-            console.error("Dashboard fetch err: ", e);
+            console.error("Dashboard weekly aggregation err: ", e);
         }
 
         const dataObj = {
@@ -1091,42 +1100,44 @@
           fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',t14), where('timestamp','<',t7)))
       ]);
 
-      // OPTIMIZED: 7-Day Bar Chart single fetch
+      // OPTIMIZED: 7-Day Bar Chart using pure aggregation to minimize reads
       const labels = [];
       const barInc = [];
       const barExp = [];
-      const dayMap = {};
-
-      for(let i=6; i>=0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-          const dateKey = d.toLocaleDateString('en-US');
-          labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
-          dayMap[dateKey] = { index: 6 - i };
-          barInc.push(0);
-          barExp.push(0);
-      }
+      const dayPromises = [];
 
       let thisWeekBagInc = 0;
       let thisWeekBagExp = 0;
 
-      try {
-          const d7BagSnap = await getDocs(query(coll, where('bagId','==',bagId), where('timestamp','>=',t7)));
-          d7BagSnap.forEach(docSnap => {
-              const data = docSnap.data();
-              const amt = data.amount || 0;
-              
-              if(data.type === 'income') thisWeekBagInc += amt;
-              else if(data.type === 'expense') thisWeekBagExp += amt;
+      for(let i=6; i>=0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+          const startOfDay = new Date(d);
+          const endOfDay = new Date(d);
+          endOfDay.setDate(endOfDay.getDate() + 1);
 
-              const txDateStr = data.dateStr;
-              if(dayMap[txDateStr] !== undefined) {
-                  const idx = dayMap[txDateStr].index;
-                  if(data.type === 'income') barInc[idx] += amt;
-                  else if(data.type === 'expense') barExp[idx] += amt;
-              }
-          });
+          labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
+          const idx = 6 - i;
+          barInc.push(0);
+          barExp.push(0);
+
+          dayPromises.push(
+              fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','income'), where('timestamp','>=',startOfDay), where('timestamp','<',endOfDay))).then(val => {
+                  barInc[idx] = val;
+                  thisWeekBagInc += val;
+              })
+          );
+          dayPromises.push(
+              fetchAggregateSum(query(coll, where('bagId','==',bagId), where('type','==','expense'), where('timestamp','>=',startOfDay), where('timestamp','<',endOfDay))).then(val => {
+                  barExp[idx] = val;
+                  thisWeekBagExp += val;
+              })
+          );
+      }
+
+      try {
+          await Promise.all(dayPromises);
       } catch(e) {
-          console.error("Bag details fetch err: ", e);
+          console.error("Bag details weekly aggregation err: ", e);
       }
 
       const dataObj = { date: todayStr, totalInc, totalExp, labels, barInc, barExp, thisWeekExp: thisWeekBagExp, lastWeekExp: lastWeekBagExp, thisWeekInc: thisWeekBagInc, lastWeekInc: lastWeekBagInc };
@@ -1454,9 +1465,12 @@
       try {
         await batch.commit();
         
-        // --- CRITICAL: Clear the caches so charts refresh next view ---
+        // --- CRITICAL: Clear the caches so charts refresh next view perfectly ---
         localStorage.removeItem('meena_dashboard_cache');
         localStorage.removeItem(`meena_bag_cache_${selectedBagIdForPay}`);
+        
+        // Aggressively load latest data immediately so UI is seamlessly updated ("new as good as possible")
+        await loadRealDashboardData();
         
         closeModal();
         setTimeout(triggerGPayAnimation, 100);
