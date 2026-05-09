@@ -308,6 +308,20 @@
       z-index: 2001;
     }
     .modal-sheet.active { transform: translateY(0); }
+    
+    /* Full Screen Modal */
+    .modal-full-screen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+      background-color: var(--bg-color);
+      padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2001;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-full-screen.active { transform: translateY(0); }
 
     /* Slide from Side */
     .modal-slide-side {
@@ -392,7 +406,7 @@
     .item-subtitle { font-size: 13px; color: var(--text-muted); }
 
     .action-btns {
-      display: flex; gap: 8px;
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
     }
     .action-btn {
       background: var(--input-bg); border: none; padding: 6px 12px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-main);
@@ -628,7 +642,32 @@
     <button class="btn-primary" id="save-bag-btn">Create Bag</button>
   </div>
 
-  <div id="pay-modal" class="modal-sheet">
+  <div id="edit-bag-modal" class="modal-slide-side">
+    <div class="modal-header">
+      <div class="modal-title">Edit Bag</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <input type="hidden" id="edit-bag-id">
+    <input type="text" id="edit-bag-name" placeholder="Bag Name">
+    
+    <div style="font-size:14px; font-weight:600; margin-bottom:12px;">Select Theme</div>
+    <div class="color-picker" id="edit-bag-color-picker">
+      <div class="color-swatch" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="linear-gradient(135deg, #3b82f6, #1d4ed8)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #10b981, #047857);" data-color="linear-gradient(135deg, #10b981, #047857)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #8b5cf6, #5b21b6);" data-color="linear-gradient(135deg, #8b5cf6, #5b21b6)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #f59e0b, #b45309);" data-color="linear-gradient(135deg, #f59e0b, #b45309)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" data-color="linear-gradient(135deg, #ef4444, #b91c1c)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #ec4899, #be185d);" data-color="linear-gradient(135deg, #ec4899, #be185d)"></div>
+      <div class="color-swatch" style="background: linear-gradient(135deg, #1f2937, #030712);" data-color="linear-gradient(135deg, #1f2937, #030712)"></div>
+    </div>
+
+    <button class="btn-primary" id="update-bag-btn">Save Changes</button>
+  </div>
+
+  <div id="pay-modal" class="modal-full-screen">
     <div class="modal-header">
       <div class="modal-title" id="pay-modal-title">Log Entry</div>
       <button class="close-modal" onclick="closeModal()">
@@ -636,15 +675,17 @@
       </button>
     </div>
 
-    <input type="text" inputmode="numeric" id="pay-amount" class="big-amount-input" placeholder="₹0" autocomplete="nope">
-    <input type="text" id="pay-note" placeholder="What was this for?" autocomplete="nope">
-    
-    <select id="pay-type">
-      <option value="expense">Outcome (Expense)</option>
-      <option value="income">Income</option>
-    </select>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; margin-bottom: 24px;">
+      <input type="text" inputmode="numeric" id="pay-amount" class="big-amount-input" placeholder="₹0" autocomplete="nope">
+      <input type="text" id="pay-note" placeholder="What was this for?" autocomplete="nope">
+      
+      <select id="pay-type">
+        <option value="expense">Outcome (Expense)</option>
+        <option value="income">Income</option>
+      </select>
+    </div>
 
-    <button class="btn-primary" id="submit-pay-btn">Done</button>
+    <button class="btn-primary" id="submit-pay-btn" style="margin-top: auto;">Done</button>
   </div>
 
   <div id="bag-details-modal" class="modal-slide-side">
@@ -703,7 +744,7 @@
 
   <script type="module">
     import { db, auth, onAuthStateChanged } from './config.js';
-    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { doc, getDoc, collection, query, where, onSnapshot, writeBatch, serverTimestamp, increment, getAggregateFromServer, sum, getDocs, orderBy, limit, startAfter, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     // Custom Modal Handlers replacing system dialogs
     window.showCustomAlert = function(msg) {
@@ -869,7 +910,8 @@
               </div>
             </div>
             <div class="action-btns">
-              <button class="action-btn" onclick="window.editBagBatch('${bag.id}')">Edit</button>
+              <button class="action-btn" onclick="window.openEditBagModal('${bag.id}', '${bag.name}', '${bag.color}')">Edit</button>
+              <button class="action-btn" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);" onclick="window.clearBagHistoryBatch('${bag.id}')">Clear Tx</button>
               <button class="action-btn delete" onclick="window.deleteBagBatch('${bag.id}')">Delete</button>
             </div>
           </div>
@@ -1275,9 +1317,9 @@
     // --- 3. CREATE BAG LOGIC ---
     let newBagColor = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
     
-    document.querySelectorAll('.color-swatch').forEach(swatch => {
+    document.querySelectorAll('#bag-color-picker .color-swatch').forEach(swatch => {
       swatch.addEventListener('click', (e) => {
-        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        document.querySelectorAll('#bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
         e.target.classList.add('selected');
         newBagColor = e.target.getAttribute('data-color');
       });
@@ -1321,6 +1363,55 @@
       document.getElementById('new-bag-name').value = '';
       document.getElementById('new-bag-balance').value = '';
       closeModal();
+    });
+
+    // --- 3.5 EDIT BAG LOGIC (ZERO READS) ---
+    let currentEditBagColor = '';
+    
+    document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', (e) => {
+        document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => s.classList.remove('selected'));
+        e.target.classList.add('selected');
+        currentEditBagColor = e.target.getAttribute('data-color');
+      });
+    });
+
+    window.openEditBagModal = function(bagId, name, color) {
+      document.getElementById('edit-bag-id').value = bagId;
+      document.getElementById('edit-bag-name').value = name;
+      currentEditBagColor = color;
+      
+      document.querySelectorAll('#edit-bag-color-picker .color-swatch').forEach(s => {
+        s.classList.remove('selected');
+        if (s.getAttribute('data-color') === color) {
+            s.classList.add('selected');
+        }
+      });
+      
+      openModal('edit-bag-modal');
+    };
+
+    document.getElementById('update-bag-btn').addEventListener('click', async () => {
+      const bagId = document.getElementById('edit-bag-id').value;
+      const newName = document.getElementById('edit-bag-name').value.trim();
+      
+      if (!newName) {
+          showCustomAlert("Please enter a name for the bag.");
+          return;
+      }
+      
+      try {
+          const bagRef = doc(db, 'bags', bagId);
+          await updateDoc(bagRef, {
+              name: newName,
+              color: currentEditBagColor
+          });
+          closeModal();
+          showCustomAlert("Bag settings updated successfully.");
+      } catch (e) {
+          console.error("Error updating bag:", e);
+          showCustomAlert("Failed to update bag settings.");
+      }
     });
 
     // --- 4. PAY (LOG TRANSACTION) LOGIC ---
@@ -1387,8 +1478,8 @@
       }, 1500);
     }
 
-    // --- 5. BATCH OPERATIONS (EDIT / DELETE IN CHUNKS) ---
-    async function processBatchOperation(bagId, operation, newData = null) {
+    // --- 5. BATCH OPERATIONS (DELETE / CLEAR HISTORY IN CHUNKS) ---
+    async function processBatchOperation(bagId, operation) {
       try {
         const txQuery = query(collection(db, 'transactions'), where('bagId', '==', bagId));
         const snapshot = await getDocs(txQuery);
@@ -1398,14 +1489,12 @@
         let commitPromises = [];
 
         snapshot.docs.forEach((docSnap) => {
-          if (operation === 'delete') {
-            batch.delete(docSnap.ref);
-          } else if (operation === 'edit') {
-            batch.update(docSnap.ref, newData);
+          if (operation === 'delete' || operation === 'clear') {
+            batch.delete(docSnap.ref); // Delete the transaction
           }
           
           count++;
-          // FIXED LIMIT: Cut off at 495 to strictly leave room for parent bag update below without erroring out
+          // Cut off at 495 to strictly leave room for parent bag update below
           if (count >= 495) {
             commitPromises.push(batch.commit());
             batch = writeBatch(db); 
@@ -1413,32 +1502,45 @@
           }
         });
 
-        // Ensure Bag itself is modified in final batch
-        const bagRef = doc(db, 'bags', bagId);
-        if (operation === 'delete') {
-          batch.delete(bagRef);
-        } else if (operation === 'edit') {
-          batch.update(bagRef, newData); 
+        // Ensure Bag itself is modified in final batch (ONLY if not just 'clearing' history)
+        if (operation !== 'clear') {
+          const bagRef = doc(db, 'bags', bagId);
+          if (operation === 'delete') {
+            batch.delete(bagRef);
+          }
         }
         
+        // Commit any remaining operations in the final batch
         commitPromises.push(batch.commit());
         
         await Promise.all(commitPromises);
         
-        // Clear caches
+        // Clear caches so the charts refresh
         localStorage.removeItem('meena_dashboard_cache');
         localStorage.removeItem(`meena_bag_cache_${bagId}`);
 
-        showCustomAlert(`Successfully ${operation === 'delete' ? 'deleted' : 'updated'} bag and all linked records.`);
+        let successMsg = 'updated';
+        if (operation === 'delete') successMsg = 'deleted';
+        if (operation === 'clear') successMsg = 'cleared of all transactions';
+
+        showCustomAlert(`Successfully ${successMsg}.`);
       } catch (e) {
         console.error("Batch operation error: ", e);
         showCustomAlert("Error executing batch process.");
       }
     }
 
+    // NOTE: editBagBatch replaced by openEditBagModal above, preserved function structure for safety
     window.editBagBatch = function(bagId) {
       showCustomPrompt("Rename Bag", "Enter new name", (newName) => {
-          processBatchOperation(bagId, 'edit', { name: newName });
+          // This method is deprecated, strictly use openEditBagModal instead
+          console.warn('Deprecated method called');
+      });
+    };
+
+    window.clearBagHistoryBatch = function(bagId) {
+      showCustomConfirm("Are you sure you want to delete ALL transactions for this bag? The current balance will NOT change, but the history will be gone forever.", () => {
+          processBatchOperation(bagId, 'clear');
       });
     };
 
@@ -1486,7 +1588,7 @@
 
     function forceCloseModals() {
       document.getElementById('modal-overlay').classList.remove('active');
-      document.querySelectorAll('.modal-sheet, .modal-slide-side').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.modal-sheet, .modal-slide-side, .modal-full-screen').forEach(m => m.classList.remove('active'));
     }
 
     window.addEventListener('popstate', (e) => {
