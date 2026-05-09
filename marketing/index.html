@@ -105,7 +105,7 @@
             gap: 10px; /* Reduced gap to tighten icons on the right */
         }
 
-        .header-actions .material-symbols-outlined {
+        .header-actions .material-symbols-outlined, .header-actions span {
             font-size: 28px;
             color: var(--text-color);
             cursor: pointer;
@@ -322,8 +322,27 @@
             </div>
         </div>
         <div class="header-actions">
-            <span class="material-symbols-outlined" onclick="window.location.href='today.html'" style="color: #00c853;"></span>
-            <span class="material-symbols-outlined marketing-agent-btn" onclick="window.location.href='mrkting.html'"></span>
+            <!-- Dynamically loading SVGs via localStorage for 0ms render without span text popup -->
+            <script>
+                (function() {
+                    const svgData = {
+                        payments: '<svg xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 -960 960 960" width="28" fill="currentColor" style="transition: all 0.3s ease; flex-shrink: 0;"><path d="M140-160q-24.75 0-42.375-17.625T80-220v-520q0-24.75 17.625-42.375T140-800h680q24.75 0 42.375 17.625T880-740v520q0 24.75-17.625 42.375T820-160H140Zm0-60h680v-520H140v520Zm340-90q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM210-530h110v-160H210v160Zm430 0h110v-160H640v160ZM140-220v-520 520Z"/></svg>',
+                        campaign: '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="currentColor" style="transition: all 0.3s ease; flex-shrink: 0;"><path d="M800-440v-80h120v80H800Zm-60 270-80-60 84-112 80 60-84 112Zm84-482-80-60 84-112 80 60-84 112ZM160-320q-33 0-56.5-23.5T80-400v-160q0-33 23.5-56.5T160-640h120l186-186q12-12 28-13t28 11q12 12 12 28v560q0 16-12 28t-28 11q-12-1-28-13L280-320H160Zm300-112v-296l-114 114H160v60h186l114 114ZM686-220q-13 0-22.5-9.5T654-252q0-5 2-10t6-9q46-44 71-101.5T758-480q0-50-25-107.5T662-688q-4-4-6-9t-2-10q0-13 9.5-22.5T686-740q5 0 10.5 2t10.5 6q54 50 83.5 118.5T820-480q0 65-29.5 133.5T707-228q-5 4-10.5 6t-10.5 2Zm-92-94q-13 0-22.5-9.5T562-346q0-5 2-10t6-9q27-25 41.5-55.5T626-480q0-29-14.5-59.5T570-595q-4-4-6-9t-2-10q0-13 9.5-22.5T594-646q5 0 10.5 2t10.5 6q34 32 52 74t18 84q0 42-18 84t-52 74q-5 4-10.5 6t-10.5 2ZM310-480Z"/></svg>'
+                    };
+                    
+                    if (!localStorage.getItem('cached_svg_payments')) localStorage.setItem('cached_svg_payments', svgData.payments);
+                    if (!localStorage.getItem('cached_svg_campaign')) localStorage.setItem('cached_svg_campaign', svgData.campaign);
+                    
+                    document.write(`
+                        <span onclick="window.location.href='today.html'" style="color: #00c853; cursor: pointer; display: flex; align-items: center;" title="Today's Payments">
+                            ${localStorage.getItem('cached_svg_payments')}
+                        </span>
+                        <span class="marketing-agent-btn" onclick="window.location.href='mrkting.html'" style="cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Marketing Agent Dashboard">
+                            ${localStorage.getItem('cached_svg_campaign')}
+                        </span>
+                    `);
+                })();
+            </script>
         </div>
     </header>
 
@@ -416,6 +435,19 @@
     <div class="fab-left" onclick="window.location.href='inventory.html'">
         <span class="material-symbols-outlined">inventory_2</span>
     </div>
+
+    <script>
+        // Global Vibration Integration
+        // Automatically attach vibration to anything clickable on the dashboard
+        document.addEventListener('click', function(e) {
+            // Check if the clicked element is an anchor tag, button, fab, or action icon
+            const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]');
+            if (interactiveElement && navigator.vibrate) {
+                // Trigger a crisp 40ms haptic feedback
+                navigator.vibrate(40);
+            }
+        });
+    </script>
 
     <script type="module">
         // 1. Service Worker & PWA Installation Logic
