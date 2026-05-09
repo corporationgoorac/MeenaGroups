@@ -104,6 +104,7 @@
       align-items: center;
       justify-content: flex-end; 
       gap: 10px; /* Space between buttons */
+      flex-wrap: nowrap; /* Prevents wrapping to new line */
     }
 
 
@@ -396,7 +397,15 @@
     @media (max-width: 768px) {
       .desktop-nav-links { display: none; } 
       .mobile-nav { display: flex; } 
-      .app-header { padding: 16px 20px; background: rgba(10,10,10,0.9); }
+      /* FULL OVERRIDE FIX: Forces header to stretch to edges, minimal padding */
+      .app-header { 
+        padding: 12px 16px !important; 
+        background: rgba(10,10,10,0.9) !important; 
+        width: 100% !important; 
+        justify-content: space-between !important; 
+        display: flex !important; 
+        align-items: center !important;
+      }
       .charts-wrapper { grid-template-columns: 1fr; }
       .chart-box { height: 320px; }
       .chart-box.full-width { height: 350px; }
@@ -540,13 +549,13 @@
         <a href="report.html" class="desktop-link">Reports</a>
       </nav>
       
-      <a href="guide.html" class="header-guide-link" title="Agent Directory">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-      </a>
-
       <button class="header-sync-btn" onclick="manualSync()" title="Sync from Cloud">
         <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
       </button>
+
+      <a href="guide.html" class="header-guide-link" title="Agent Directory">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </a>
 
       <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" id="headerProfilePic" class="header-profile-pic" alt="Profile" title="My Account">
     </div>
@@ -605,7 +614,6 @@
 
     <div class="charts-wrapper">
       
-      <!-- NEW: Last Week vs This Week Comparison Chart -->
       <div class="chart-box full-width">
         <div class="chart-header">
           <span class="chart-title">Weekly Revenue Comparison (This vs Last Week)</span>
@@ -721,7 +729,7 @@
         document.getElementById('modalUserName').innerText = name;
         
         // Update greeting with user's name
-        document.getElementById('greetingTitle').innerText = "Welcome, " + name.split(' ')[0];
+        document.getElementById('greetingTitle').innerText = "Welcome, " + name.split(' ');
       }
     });
 
@@ -810,8 +818,8 @@
         let weekActivity = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 }; // Sun-Sat
 
         // NEW: For Comparison Bar Chart (Calculated inline, zero extra reads)
-        let thisWeekData = [0,0,0,0,0,0,0]; // M, T, W, T, F, S, S
-        let lastWeekData = [0,0,0,0,0,0,0]; 
+        let thisWeekData =; // M, T, W, T, F, S, S
+        let lastWeekData =; 
         const now = new Date();
 
         // --- STEP B: Iterate & Calculate ---
@@ -890,8 +898,8 @@
           history: compactHistory, 
           products: [productCounts['Loans'], productCounts['EMI'], productCounts['Ins.'], productCounts['Other']], 
           // Week activity array for bar chart
-          weekData: [weekActivity[1], weekActivity[2], weekActivity[3], weekActivity[4], weekActivity[5], weekActivity[6], weekActivity[0]],
-          efficiency: [85, 90, 75, 80, 88], // Derived or static for now
+          weekData: [weekActivity, weekActivity, weekActivity, weekActivity, weekActivity, weekActivity, weekActivity],
+          efficiency:, // Derived or static for now
           // NEW DATA: Extracted above
           thisWeek: thisWeekData,
           lastWeek: lastWeekData
@@ -1022,14 +1030,14 @@
           datasets: [
             {
               label: 'This Week (₹)',
-              data: data.thisWeek || [0,0,0,0,0,0,0],
+              data: data.thisWeek ||,
               backgroundColor: '#00e676',
               borderRadius: 6,
               borderSkipped: false
             },
             {
               label: 'Last Week (₹)',
-              data: data.lastWeek || [0,0,0,0,0,0,0],
+              data: data.lastWeek ||,
               backgroundColor: '#2979ff',
               borderRadius: 6,
               borderSkipped: false
@@ -1121,7 +1129,7 @@
           labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
           datasets: [{
             label: 'Transactions',
-            data: data.weekData || [0,0,0,0,0,0,0], 
+            data: data.weekData ||, 
             backgroundColor: '#2979ff',
             borderRadius: 6
           }]
