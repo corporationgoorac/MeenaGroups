@@ -1359,7 +1359,7 @@
           return;
       }
       
-      const initialBalance = balStr ? parseInt(balStr, 10) : 0;
+      const initialBalance = balStr ? parseInt(balStr) : 0;
       
       const batch = writeBatch(db);
       const newBagRef = doc(collection(db, 'bags'));
@@ -1456,7 +1456,7 @@
       const note = document.getElementById('pay-note').value.trim();
       const type = document.getElementById('pay-type').value;
       
-      const amount = parseInt(amtVal, 10);
+      const amount = parseInt(amtVal);
       if (!amount || amount <= 0 || !selectedBagIdForPay) return;
 
       // Start loading UI state immediately
@@ -1595,9 +1595,10 @@
     };
 
     // --- TAB SWITCHING & MODALS ---
-    window.switchTab = function(tabId) {
-      try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) {} // Haptic feedback on nav press
+    let modalStatePushed = false;
 
+    window.switchTab = function(tabId) {
+      try { if ('vibrate' in navigator) navigator.vibrate(30); } catch(e) {}
       document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       
@@ -1611,24 +1612,32 @@
     };
 
     window.openModal = function(modalId) {
-      history.pushState({ modalOpen: true }, ""); // Push history state for back button closing
+      if (!modalStatePushed) {
+        history.pushState({ modalOpen: true }, "");
+        modalStatePushed = true;
+      }
       document.getElementById('modal-overlay').classList.add('active');
       document.getElementById(modalId).classList.add('active');
     };
 
-    window.closeModal = function(fromPopState = false) {
+    window.closeModal = function() {
       document.getElementById('modal-overlay').classList.remove('active');
       document.querySelectorAll('.modal-sheet, .modal-full-screen, .modal-slide-side').forEach(el => el.classList.remove('active'));
       
-      // If manually closed (not via back button), remove the state from history
-      if (!fromPopState && history.state && history.state.modalOpen) {
+      if (modalStatePushed) {
+        modalStatePushed = false;
+        if (history.state && history.state.modalOpen) {
           history.back();
+        }
       }
     };
 
-    // Handle mobile back button press to close modals
-    window.addEventListener('popstate', (e) => {
-       window.closeModal(true);
+    window.addEventListener('popstate', (event) => {
+      if (modalStatePushed) {
+        modalStatePushed = false;
+        document.getElementById('modal-overlay').classList.remove('active');
+        document.querySelectorAll('.modal-sheet, .modal-full-screen, .modal-slide-side').forEach(el => el.classList.remove('active'));
+      }
     });
 
     // Auto-Format input numbers
