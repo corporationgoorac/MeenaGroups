@@ -25,14 +25,17 @@
     html, body {
       max-width: 100vw; /* Prevents horizontal stretching */
       overflow-x: hidden; /* Absolutely hides side scrollbar */
+      /* --- HIDE SCROLLBAR GLOBALLY --- */
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    /* --- HIDE SCROLLBAR WEB-KIT --- */
+    html::-webkit-scrollbar, body::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Edge */
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-    
-    /* --- HIDE SCROLLBAR GLOBALLY --- */
-    body::-webkit-scrollbar {
-      display: none; /* Chrome, Safari, Edge */
-    }
 
     body { 
       background: var(--bg); 
@@ -40,8 +43,6 @@
       font-family: Roboto, 'Segoe UI', sans-serif; 
       margin: 0; padding: 0; 
       padding-bottom: 80px; /* Space for bottom nav */
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
     }
 
     /* --- APP BAR --- */
@@ -49,7 +50,9 @@
       background: rgba(15, 15, 15, 0.98);
       padding: 15px 20px; 
       display: flex; justify-content: space-between; align-items: center;
-      position: sticky; top: 0; z-index: 100;
+      position: fixed; /* Changed from sticky to fixed for perfect UI */
+      top: 0; left: 0; width: 100%; /* Added width to span the screen */
+      z-index: 1000; /* Elevated z-index to stay above overlays safely */
       border-bottom: 1px solid rgba(255,255,255,0.1);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -78,7 +81,10 @@
     .profile-pic-header:active { transform: scale(0.85); }
 
     /* --- ANALYTICS CARD (Hero) --- */
-    .dashboard-container { padding: 20px; }
+    .dashboard-container { 
+      padding: 20px; 
+      padding-top: 85px; /* Added to offset the newly fixed header */
+    }
 
     .hero-card { 
       background: linear-gradient(145deg, var(--surface) 0%, #1e1e1e 100%);
@@ -352,6 +358,15 @@
     window.addEventListener('DOMContentLoaded', () => {
       if (cachedPic) {
         document.getElementById('headerProfilePic').src = cachedPic;
+      }
+    });
+
+    // --- NEW: GLOBAL HAPTIC FEEDBACK (VIBRATION) POLISH ---
+    document.addEventListener('click', (e) => {
+      // Trigger haptic on any interactable element click (if device supports it)
+      const interactable = e.target.closest('a, button, .profile-pic-header, .action-tile, .nav-item');
+      if (interactable && navigator.vibrate) {
+        navigator.vibrate(40); // Subtle, premium vibration tap
       }
     });
   </script>
