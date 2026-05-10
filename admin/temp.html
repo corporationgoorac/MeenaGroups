@@ -173,4 +173,63 @@
       try {
         const collections = Object.keys(jsonData);
 
-        for
+        for (const collectionName of collections) {
+          const documents = jsonData[collectionName];
+          if (typeof documents !== 'object' || documents === null) continue;
+
+          for (const docId in documents) {
+            // Validate IDs
+            if (!docId || docId.trim() === "") continue;
+
+            // Deep clone and format dates safely
+            const cleanData = formatFirestoreData(documents[docId]);
+
+            // Create reference and add to batch
+            const docRef = doc(db, String(collectionName), String(docId));
+            batch.set(docRef, cleanData);
+            currentBatchCount++;
+
+            // Yield thread for mobile responsiveness
+            if (currentBatchCount % 50 === 0) {
+              await new Promise(r => setTimeout(r, 0));
+            }
+
+            // Commit in strict chunks of 450
+            if (currentBatchCount >= 450) {
+              updateStatus(`Uploading Batch ${batchNumber}...`, "#ff9100", `Pushing ${currentBatchCount} docs...`);
+              
+              await safeCommit(batch, batchNumber);
+              
+              totalCommitted += currentBatchCount;
+              updateStatus(`Uploaded ${totalCommitted} docs...`, "#2979ff", `Batch ${batchNumber} successful.`);
+              
+              batch = writeBatch(db); 
+              currentBatchCount = 0; 
+              batchNumber++;
+              
+              // 1-second delay between batches ensures we don't overwhelm mobile connection
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+        }
+
+        // Commit remaining leftovers
+        if (currentBatchCount > 0) {
+          updateStatus(`Finishing final batch...`, "#ff9100", `Pushing final ${currentBatchCount} docs...`);
+          await safeCommit(batch, batchNumber);
+          totalCommitted += currentBatchCount;
+        }
+
+        updateStatus(`✅ Migration Complete!`, "#00e676", `Successfully migrated ${totalCommitted} total documents.`);
+        btnImport.innerText = "Done!";
+
+      } catch (error) {
+        console.error(error);
+        updateStatus("❌ Upload Error", "#ff1744", error.message);
+        btnImport.disabled = false;
+        fileInput.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
