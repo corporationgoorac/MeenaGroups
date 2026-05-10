@@ -23,14 +23,14 @@
     
     #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #status { font-weight: bold; font-size: 15px; word-wrap: break-word; color: #ff9100; margin-bottom: 5px;}
-    #logs { font-size: 12px; color: #888; max-height: 80px; overflow-y: auto; width: 100%; text-align: left; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; }
+    #logs { font-size: 11px; color: #888; max-height: 100px; overflow-y: auto; width: 100%; text-align: left; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; font-family: monospace; }
   </style>
 </head>
 <body>
 
   <div class="card">
     <h2>Step 2: India DB Migration</h2>
-    <p>Select your downloaded <b>.json</b> backup file.</p>
+    <p>Target Instance: <b>(default)</b></p>
     
     <input type="file" id="fileInput" accept=".json" />
     <button id="btnImport" class="import">⬆ Upload & Import Data</button>
@@ -43,7 +43,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, writeBatch, doc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, writeBatch, doc, setDoc, deleteDoc, Timestamp, enableNetwork } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // ⚠️ CONFIG: Your Firebase Configuration
     const firebaseConfig = {
@@ -56,67 +56,54 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app, "india-db");
+    // ✅ FIXED: Changed from "india-db" to default database
+    const db = getFirestore(app);
 
     const statusEl = document.getElementById("status");
     const logsEl = document.getElementById("logs");
     const btnImport = document.getElementById("btnImport");
     const fileInput = document.getElementById("fileInput");
 
-    // Helper: Safely cleans data and converts ISO Strings to Timestamps WITHOUT mutating original arrays
     function formatFirestoreData(data) {
       if (data === null || data === undefined) return null;
-      
-      if (Array.isArray(data)) {
-        return data.map(item => formatFirestoreData(item)); 
-      }
-      
+      if (Array.isArray(data)) return data.map(item => formatFirestoreData(item)); 
       if (typeof data === 'object') {
         const formattedObj = {};
         for (const key in data) {
           const val = data[key];
-          
           if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
             const parsedDate = new Date(val);
-            if (!isNaN(parsedDate.getTime())) {
-              formattedObj[key] = Timestamp.fromDate(parsedDate);
-            } else {
-              formattedObj[key] = val; 
-            }
+            formattedObj[key] = !isNaN(parsedDate.getTime()) ? Timestamp.fromDate(parsedDate) : val;
           } else {
             formattedObj[key] = formatFirestoreData(val);
           }
         }
         return formattedObj;
       }
-      
       return data; 
     }
 
     function updateStatus(msg, color, logDetail = null) {
       statusEl.innerText = msg;
       if (color) statusEl.style.color = color;
-      
       if (logDetail) {
         const logLine = document.createElement("div");
-        logLine.innerText = `[${new Date().toLocaleTimeString()}] > ${logDetail}`;
+        logLine.innerText = `[${new Date().toLocaleTimeString()}] ${logDetail}`;
         logsEl.appendChild(logLine);
         logsEl.scrollTop = logsEl.scrollHeight; 
       }
     }
 
-    // Wrap batch.commit in a timeout and add RETRY logic
     async function safeCommit(batch, batchNum, retryCount = 0) {
-      const MAX_RETRIES = 3;
+      const MAX_RETRIES = 2;
       return new Promise((resolve, reject) => {
-        // Increased timeout to 120 seconds (2 minutes) for unstable mobile connections
-        const timeoutLimit = 120000; 
+        const timeoutLimit = 40000; // 40s
         const timeout = setTimeout(() => {
           if (retryCount < MAX_RETRIES) {
-            updateStatus(`Retrying Batch ${batchNum}...`, "#ff9100", `Attempt ${retryCount + 1}: Timeout hit, retrying...`);
+            updateStatus(`Retrying...`, "#ff9100", `Retry ${retryCount+1} for Batch ${batchNum}`);
             resolve(safeCommit(batch, batchNum, retryCount + 1));
           } else {
-            reject(new Error(`Batch ${batchNum} timed out after ${MAX_RETRIES} retries. Check network.`));
+            reject(new Error("TIMED_OUT: Connection to (default) DB lost. Check your Rules."));
           }
         }, timeoutLimit);
 
@@ -125,57 +112,71 @@
           resolve();
         }).catch((err) => {
           clearTimeout(timeout);
-          // Retry on common network errors
-          if (retryCount < MAX_RETRIES && (err.code === 'unavailable' || err.code === 'deadline-exceeded')) {
-             updateStatus(`Retrying Batch ${batchNum}...`, "#ff9100", `Network error (${err.code}). Retrying...`);
-             resolve(safeCommit(batch, batchNum, retryCount + 1));
-          } else {
-            reject(err);
-          }
+          updateStatus("Batch Failed", "#ff1744", `Error: ${err.code} - ${err.message}`);
+          reject(err);
         });
       });
     }
 
-    btnImport.addEventListener("click", () => {
+    async function testConnection() {
+      updateStatus("Testing Connection...", "#2979ff", "Pinging (default) database...");
+      const testRef = doc(db, "_connection_test_", "ping");
+      try {
+        await setDoc(testRef, { time: Date.now() }, { merge: true });
+        await deleteDoc(testRef);
+        updateStatus("Connected!", "#00e676", "Database handshake successful.");
+        return true;
+      } catch (e) {
+        console.error(e);
+        updateStatus("Connection Failed", "#ff1744", `Error: ${e.code}`);
+        if (e.code === 'permission-denied') {
+          updateStatus("Rules Locked", "#ff1744", "Fix: Set Firestore Rules to 'allow read, write: if true;'");
+        } else {
+          updateStatus("Network Error", "#ff1744", "Check internet or Firebase project status.");
+        }
+        return false;
+      }
+    }
+
+    btnImport.addEventListener("click", async () => {
       const file = fileInput.files[0];
       if (!file) {
-        updateStatus("⚠️ Please select the JSON file first.", "#ff1744");
+        updateStatus("⚠️ Select JSON first.", "#ff1744");
         return;
       }
 
       btnImport.disabled = true;
       fileInput.disabled = true;
       logsEl.innerHTML = ""; 
-      updateStatus("Reading file...", "#2979ff", "Starting file reader...");
 
-      const reader = new FileReader();
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        btnImport.disabled = false;
+        fileInput.disabled = false;
+        return;
+      }
       
+      updateStatus("Reading file...", "#2979ff", "Parsing JSON data...");
+      const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          updateStatus("Parsing JSON...", "#2979ff", "File read successful.");
-          await new Promise(resolve => setTimeout(resolve, 50)); 
-          
           const jsonData = JSON.parse(e.target.result);
           await processImport(jsonData);
         } catch (error) {
-          console.error(error);
-          updateStatus("❌ Invalid JSON file format.", "#ff1744", error.message);
-          btnImport.disabled = false;
-          fileInput.disabled = false;
+          updateStatus("❌ JSON Error", "#ff1744", error.message);
+          resetUI();
         }
       };
-
-      reader.onerror = () => {
-        updateStatus("❌ Failed to read file from device.", "#ff1744");
-        btnImport.disabled = false;
-        fileInput.disabled = false;
-      };
-
       reader.readAsText(file);
     });
 
+    function resetUI() {
+      btnImport.disabled = false;
+      fileInput.disabled = false;
+    }
+
     async function processImport(jsonData) {
-      updateStatus("Preparing to upload...", "#ff9100", "Initializing Firestore batches...");
+      updateStatus("Importing...", "#ff9100", "Migrating documents...");
 
       let batch = writeBatch(db);
       let currentBatchCount = 0;
@@ -185,60 +186,40 @@
       try {
         const collections = Object.keys(jsonData);
 
-        for (const collectionName of collections) {
-          const documents = jsonData[collectionName];
+        for (const colName of collections) {
+          const documents = jsonData[colName];
           if (typeof documents !== 'object' || documents === null) continue;
 
-          updateStatus(`Processing: ${collectionName}`, "#2979ff", `Entering collection: ${collectionName}`);
-
           for (const docId in documents) {
-            if (!docId || docId.trim() === "") continue;
-
             const cleanData = formatFirestoreData(documents[docId]);
-            const docRef = doc(db, String(collectionName), String(docId));
+            const docRef = doc(db, String(colName), String(docId));
             
             batch.set(docRef, cleanData);
             currentBatchCount++;
 
-            // Breathing room for mobile UI
-            if (currentBatchCount % 20 === 0) {
-              await new Promise(r => setTimeout(r, 10));
-            }
-
-            // Optimized batch size for Mobile (200 docs instead of 450 to avoid timeout)
             if (currentBatchCount >= 200) {
-              updateStatus(`Uploading Batch ${batchNumber}...`, "#ff9100", `Pushing ${currentBatchCount} docs...`);
-              
+              updateStatus(`Uploading...`, "#ff9100", `Batch ${batchNumber} in progress...`);
               await safeCommit(batch, batchNumber);
-              
               totalCommitted += currentBatchCount;
-              updateStatus(`Uploaded ${totalCommitted} docs...`, "#2979ff", `Batch ${batchNumber} confirmed.`);
-              
               batch = writeBatch(db); 
               currentBatchCount = 0; 
               batchNumber++;
-              
-              // Prevent network throttling
-              await new Promise(r => setTimeout(r, 800));
             }
           }
         }
 
-        // Final commit for remaining documents
         if (currentBatchCount > 0) {
-          updateStatus(`Finishing final batch...`, "#ff9100", `Pushing final ${currentBatchCount} docs...`);
+          updateStatus(`Finishing...`, "#ff9100", `Uploading final documents...`);
           await safeCommit(batch, batchNumber);
           totalCommitted += currentBatchCount;
         }
 
-        updateStatus(`✅ Migration Complete!`, "#00e676", `SUCCESS: Migrated ${totalCommitted} total documents.`);
-        btnImport.innerText = "ALL DONE";
+        updateStatus(`✅ Migration Complete!`, "#00e676", `Successfully migrated ${totalCommitted} documents to (default) DB.`);
+        btnImport.innerText = "IMPORT SUCCESSFUL";
 
       } catch (error) {
-        console.error(error);
-        updateStatus("❌ Critical Upload Error", "#ff1744", `Error: ${error.message}`);
-        btnImport.disabled = false;
-        fileInput.disabled = false;
+        updateStatus("❌ Critical Error", "#ff1744", error.message);
+        resetUI();
       }
     }
   </script>
