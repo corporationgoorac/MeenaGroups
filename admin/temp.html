@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Goorac - Advanced DB Importer</title>
+  <title>Goorac - Mobile DB Importer</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
     .card { background: #1a1a1a; padding: 30px 25px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.8); border: 1px solid #333; }
@@ -14,31 +14,28 @@
       background: #2979ff; color: white; padding: 16px 20px; border: none; border-radius: 8px; 
       font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: all 0.2s;
     }
-    button.import:active { transform: scale(0.98); opacity: 0.8; }
-    button.import:disabled { background: #333; color: #777; cursor: not-allowed; transform: none; }
+    button.import:active { opacity: 0.8; }
+    button.import:disabled { background: #333; color: #777; cursor: not-allowed; }
     
     input[type="file"] { 
       margin: 0 0 20px 0; color: #fff; width: 100%; padding: 12px; background: #0a0a0a; border-radius: 8px; border: 1px dashed #555; box-sizing: border-box;
     }
     
-    #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; display: none; }
-    #status { font-weight: bold; font-size: 15px; word-wrap: break-word; margin-bottom: 5px; }
-    #progressBar { height: 6px; background: #222; border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
-    #progressFill { height: 100%; background: #00e676; width: 0%; transition: width 0.3s ease; }
+    #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; }
+    #status { font-weight: bold; font-size: 15px; word-wrap: break-word; }
   </style>
 </head>
 <body>
 
   <div class="card">
     <h2>Step 2: Import to India DB</h2>
-    <p>Select your downloaded <b>.json</b> backup file. The script will automatically chunk and push your data to the new server.</p>
+    <p>Select your downloaded <b>.json</b> backup file.</p>
     
     <input type="file" id="fileInput" accept=".json" />
     <button id="btnImport" class="import">⬆ Upload & Import Data</button>
     
     <div id="statusBox">
       <div id="status" style="color: #ff9100;">Ready.</div>
-      <div id="progressBar"><div id="progressFill"></div></div>
     </div>
   </div>
 
@@ -58,76 +55,53 @@
 
     const app = initializeApp(firebaseConfig);
     
-    // ⚠️ CRITICAL: If you named your new India database "india-db", leave the next line as is.
-    // If you did NOT give it a name and it is just the default database, change it to: getFirestore(app);
+    // Connect to the new database instance
     const db = getFirestore(app, "india-db");
 
     const statusEl = document.getElementById("status");
-    const statusBox = document.getElementById("statusBox");
-    const progressFill = document.getElementById("progressFill");
-    const progressBar = document.getElementById("progressBar");
     const btnImport = document.getElementById("btnImport");
+    const fileInput = document.getElementById("fileInput");
 
-    let isWorking = false;
-    window.onbeforeunload = function() {
-      if (isWorking) return "Data migration in progress! Are you sure you want to leave?";
-    };
-
-    function updateUI(disabled, msg, color, progressPercent = null) {
-      isWorking = disabled;
-      btnImport.disabled = disabled;
-      document.getElementById("fileInput").disabled = disabled;
-      
-      statusBox.style.display = "block";
-      statusEl.innerText = msg;
-      statusEl.style.color = color || "#ff9100";
-
-      if (progressPercent !== null) {
-        progressBar.style.display = "block";
-        progressFill.style.width = `${progressPercent}%`;
-      }
-    }
-
-    btnImport.addEventListener("click", () => {
-      // ✅ FIXED: Added to correctly select the file object from the array
-      const file = document.getElementById("fileInput").files;
+    btnImport.addEventListener("click", async () => {
+      // Safely grab the file
+      const file = fileInput.files;
       
       if (!file) {
-        updateUI(false, "⚠️ Please select the JSON file first.", "#ff1744");
+        statusEl.innerText = "⚠️ Please select the JSON file first.";
+        statusEl.style.color = "#ff1744";
         return;
       }
 
-      updateUI(true, "Reading local file into memory...", "#2979ff", 5);
+      // Lock UI
+      btnImport.disabled = true;
+      fileInput.disabled = true;
+      statusEl.innerText = "Reading file (Optimized for Mobile)...";
+      statusEl.style.color = "#2979ff";
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          updateUI(true, "Parsing JSON data...", "#2979ff", 10);
-          await new Promise(r => setTimeout(r, 50)); // Yield to allow UI update
-          
-          const jsonData = JSON.parse(e.target.result);
-          await processImport(jsonData);
-        } catch (err) {
-          console.error(err);
-          updateUI(false, "❌ Invalid JSON File or Memory Error!", "#ff1744", 0);
-        }
-      };
-      reader.readAsText(file);
+      try {
+        // ✅ THE FIX: Use modern file.text() to prevent mobile memory crashes
+        const textData = await file.text();
+        
+        statusEl.innerText = "Parsing database structure...";
+        
+        // Yield to let the phone screen update before the heavy lifting
+        await new Promise(resolve => setTimeout(resolve, 100)); 
+        
+        const jsonData = JSON.parse(textData);
+        await processImport(jsonData);
+
+      } catch (error) {
+        console.error(error);
+        statusEl.innerText = "❌ Error reading file: " + error.message;
+        statusEl.style.color = "#ff1744";
+        btnImport.disabled = false;
+        fileInput.disabled = false;
+      }
     });
 
     async function processImport(jsonData) {
-      updateUI(true, "Calculating total documents...", "#ff9100", 15);
-      
-      // 1. ADVANCED: Pre-calculate total documents for accurate progress
-      let totalDocsToImport = 0;
-      for (const collectionName in jsonData) {
-        totalDocsToImport += Object.keys(jsonData[collectionName]).length;
-      }
-
-      if (totalDocsToImport === 0) {
-        updateUI(false, "⚠️ No documents found in JSON file.", "#ff1744", 0);
-        return;
-      }
+      statusEl.innerText = "Preparing to upload...";
+      statusEl.style.color = "#ff9100";
 
       let batch = writeBatch(db);
       let currentBatchCount = 0;
@@ -144,37 +118,39 @@
             batch.set(docRef, docData);
             currentBatchCount++;
 
-            // Every 50 documents, yield processor to prevent mobile freezing
+            // Every 50 docs, let the phone breathe
             if (currentBatchCount % 50 === 0) {
               await new Promise(r => setTimeout(r, 0));
             }
 
-            // CHUNK AT 490: Commit to Firebase
+            // Chunk at 490
             if (currentBatchCount >= 490) {
+              statusEl.innerText = `Uploading... (${totalCommitted + currentBatchCount} documents done)`;
               await batch.commit();
               totalCommitted += currentBatchCount;
               
-              const percent = Math.floor((totalCommitted / totalDocsToImport) * 100);
-              updateUI(true, `Importing... (${totalCommitted} of ${totalDocsToImport})`, "#ff9100", percent);
-              
-              batch = writeBatch(db); // Reset Batch
+              batch = writeBatch(db); 
               currentBatchCount = 0; 
             }
           }
         }
 
-        // Commit any remaining documents in the final batch
+        // Commit leftovers
         if (currentBatchCount > 0) {
-          updateUI(true, `Committing final batch...`, "#ff9100", 95);
+          statusEl.innerText = `Finishing final batch...`;
           await batch.commit();
           totalCommitted += currentBatchCount;
         }
 
-        updateUI(false, `✅ Success! Migrated ${totalCommitted} documents.`, "#00e676", 100);
+        statusEl.innerText = `✅ Success! Migrated ${totalCommitted} documents to India safely.`;
+        statusEl.style.color = "#00e676";
 
       } catch (error) {
         console.error(error);
-        updateUI(false, "❌ Import Error: " + error.message, "#ff1744", 0);
+        statusEl.innerText = "❌ Firebase Upload Error: " + error.message;
+        statusEl.style.color = "#ff1744";
+        btnImport.disabled = false;
+        fileInput.disabled = false;
       }
     }
   </script>
