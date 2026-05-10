@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Goorac - Mobile DB Importer</title>
+  <title>Goorac - Advanced DB Importer</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
     .card { background: #1a1a1a; padding: 30px 25px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.8); border: 1px solid #333; box-sizing: border-box; }
@@ -21,14 +21,15 @@
       margin: 0 0 20px 0; color: #fff; width: 100%; padding: 12px; background: #0a0a0a; border-radius: 8px; border: 1px dashed #555; box-sizing: border-box;
     }
     
-    #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-    #status { font-weight: bold; font-size: 14px; word-wrap: break-word; color: #ff9100; }
+    #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #status { font-weight: bold; font-size: 15px; word-wrap: break-word; color: #ff9100; margin-bottom: 5px;}
+    #logs { font-size: 12px; color: #888; max-height: 60px; overflow-y: auto; width: 100%; text-align: left; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Step 2: Import to India DB</h2>
+    <h2>Step 2: India DB Migration</h2>
     <p>Select your downloaded <b>.json</b> backup file.</p>
     
     <input type="file" id="fileInput" accept=".json" />
@@ -36,6 +37,7 @@
     
     <div id="statusBox">
       <div id="status">Ready.</div>
+      <div id="logs"></div>
     </div>
   </div>
 
@@ -54,44 +56,75 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    
-    // Connect to the new database instance
     const db = getFirestore(app, "india-db");
 
     const statusEl = document.getElementById("status");
+    const logsEl = document.getElementById("logs");
     const btnImport = document.getElementById("btnImport");
     const fileInput = document.getElementById("fileInput");
 
-    // Helper: Recursively convert ISO strings to Firestore Timestamps
-    function convertToTimestamps(obj) {
-      if (obj === null || typeof obj !== 'object') return obj;
-
-      for (const key in obj) {
-        const val = obj[key];
-        // Check if value is a string that looks like a full ISO Date (YYYY-MM-DDTHH:mm:ss...)
-        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
-          obj[key] = Timestamp.fromDate(new Date(val));
-        } else if (typeof val === 'object') {
-          obj[key] = convertToTimestamps(val);
-        }
+    // Helper: Safely cleans data and converts ISO Strings to Timestamps WITHOUT mutating original arrays
+    function formatFirestoreData(data) {
+      if (data === null || data === undefined) return null;
+      
+      if (Array.isArray(data)) {
+        return data.map(item => formatFirestoreData(item)); // Safely map arrays
       }
-      return obj;
+      
+      if (typeof data === 'object') {
+        const formattedObj = {};
+        for (const key in data) {
+          const val = data[key];
+          
+          // Check for valid Date Strings
+          if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+            const parsedDate = new Date(val);
+            if (!isNaN(parsedDate.getTime())) {
+              formattedObj[key] = Timestamp.fromDate(parsedDate);
+            } else {
+              formattedObj[key] = val; // Fallback if JS can't parse it
+            }
+          } else {
+            formattedObj[key] = formatFirestoreData(val);
+          }
+        }
+        return formattedObj;
+      }
+      
+      return data; // Return primitives (strings, numbers, booleans)
     }
 
-    function updateStatus(msg, color) {
+    function updateStatus(msg, color, logDetail = null) {
       statusEl.innerText = msg;
       if (color) statusEl.style.color = color;
+      
+      if (logDetail) {
+        const logLine = document.createElement("div");
+        logLine.innerText = `> ${logDetail}`;
+        logsEl.appendChild(logLine);
+        logsEl.scrollTop = logsEl.scrollHeight; // Auto-scroll
+      }
     }
 
-    function resetUI() {
-      btnImport.disabled = false;
-      fileInput.disabled = false;
+    // Wrap batch.commit in a timeout so it NEVER hangs silently
+    async function safeCommit(batch, batchNum) {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Batch ${batchNum} timed out. Check network connection.`));
+        }, 20000); // 20 seconds timeout limit per batch
+
+        batch.commit().then(() => {
+          clearTimeout(timeout);
+          resolve();
+        }).catch((err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
     }
 
     btnImport.addEventListener("click", () => {
-      // ✅ FIXED: Grabbing the first file from the FileList
       const file = fileInput.files[0];
-      
       if (!file) {
         updateStatus("⚠️ Please select the JSON file first.", "#ff1744");
         return;
@@ -100,91 +133,44 @@
       // Lock UI
       btnImport.disabled = true;
       fileInput.disabled = true;
-      updateStatus("Reading file (Optimized for Mobile)...", "#2979ff");
+      logsEl.innerHTML = ""; // Clear old logs
+      updateStatus("Reading file...", "#2979ff", "Starting file reader...");
 
-      // Use FileReader for better memory management on mobile
       const reader = new FileReader();
       
       reader.onload = async (e) => {
         try {
-          updateStatus("Parsing database structure...", "#2979ff");
-          // Yield to let the phone screen update
+          updateStatus("Parsing JSON...", "#2979ff", "File read successful.");
           await new Promise(resolve => setTimeout(resolve, 50)); 
           
           const jsonData = JSON.parse(e.target.result);
           await processImport(jsonData);
         } catch (error) {
           console.error(error);
-          updateStatus("❌ Invalid JSON file: " + error.message, "#ff1744");
-          resetUI();
+          updateStatus("❌ Invalid JSON file format.", "#ff1744", error.message);
+          btnImport.disabled = false;
+          fileInput.disabled = false;
         }
       };
 
       reader.onerror = () => {
-        updateStatus("❌ Error reading file.", "#ff1744");
-        resetUI();
+        updateStatus("❌ Failed to read file from device.", "#ff1744");
+        btnImport.disabled = false;
+        fileInput.disabled = false;
       };
 
       reader.readAsText(file);
     });
 
     async function processImport(jsonData) {
-      updateStatus("Preparing to upload...", "#ff9100");
+      updateStatus("Preparing to upload...", "#ff9100", "Initializing Firestore batches...");
 
       let batch = writeBatch(db);
       let currentBatchCount = 0;
       let totalCommitted = 0;
+      let batchNumber = 1;
 
       try {
         const collections = Object.keys(jsonData);
 
-        for (const collectionName of collections) {
-          const documents = jsonData[collectionName];
-          if (typeof documents !== 'object') continue;
-
-          for (const docId in documents) {
-            let docData = documents[docId];
-            
-            // ✅ FIXED: Convert date strings back to Firestore Timestamps
-            docData = convertToTimestamps(docData);
-
-            const docRef = doc(db, collectionName, docId);
-            batch.set(docRef, docData);
-            currentBatchCount++;
-
-            // Every 50 docs, let the phone breathe
-            if (currentBatchCount % 50 === 0) {
-              await new Promise(r => setTimeout(r, 0));
-            }
-
-            // Chunk at 450 (Safe threshold under 500 limit)
-            if (currentBatchCount >= 450) {
-              updateStatus(`Uploading... (${totalCommitted + currentBatchCount} documents done)`, "#ff9100");
-              await batch.commit();
-              totalCommitted += currentBatchCount;
-              
-              batch = writeBatch(db); 
-              currentBatchCount = 0; 
-            }
-          }
-        }
-
-        // Commit leftovers
-        if (currentBatchCount > 0) {
-          updateStatus(`Finishing final batch...`, "#ff9100");
-          await batch.commit();
-          totalCommitted += currentBatchCount;
-        }
-
-        updateStatus(`✅ Success! Migrated ${totalCommitted} documents to India safely.`, "#00e676");
-        btnImport.innerText = "Import Complete";
-
-      } catch (error) {
-        console.error(error);
-        updateStatus("❌ Firebase Upload Error: " + error.message, "#ff1744");
-        resetUI();
-      }
-    }
-  </script>
-</body>
-</html>
+        for
