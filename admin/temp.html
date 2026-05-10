@@ -23,7 +23,7 @@
     
     #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #status { font-weight: bold; font-size: 15px; word-wrap: break-word; color: #ff9100; margin-bottom: 5px;}
-    #logs { font-size: 12px; color: #888; max-height: 60px; overflow-y: auto; width: 100%; text-align: left; }
+    #logs { font-size: 12px; color: #888; max-height: 80px; overflow-y: auto; width: 100%; text-align: left; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
       if (data === null || data === undefined) return null;
       
       if (Array.isArray(data)) {
-        return data.map(item => formatFirestoreData(item)); // Safely map arrays
+        return data.map(item => formatFirestoreData(item)); 
       }
       
       if (typeof data === 'object') {
@@ -76,13 +76,12 @@
         for (const key in data) {
           const val = data[key];
           
-          // Check for valid Date Strings
           if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
             const parsedDate = new Date(val);
             if (!isNaN(parsedDate.getTime())) {
               formattedObj[key] = Timestamp.fromDate(parsedDate);
             } else {
-              formattedObj[key] = val; // Fallback if JS can't parse it
+              formattedObj[key] = val; 
             }
           } else {
             formattedObj[key] = formatFirestoreData(val);
@@ -91,7 +90,7 @@
         return formattedObj;
       }
       
-      return data; // Return primitives (strings, numbers, booleans)
+      return data; 
     }
 
     function updateStatus(msg, color, logDetail = null) {
@@ -100,25 +99,39 @@
       
       if (logDetail) {
         const logLine = document.createElement("div");
-        logLine.innerText = `> ${logDetail}`;
+        logLine.innerText = `[${new Date().toLocaleTimeString()}] > ${logDetail}`;
         logsEl.appendChild(logLine);
-        logsEl.scrollTop = logsEl.scrollHeight; // Auto-scroll
+        logsEl.scrollTop = logsEl.scrollHeight; 
       }
     }
 
-    // Wrap batch.commit in a timeout so it NEVER hangs silently
-    async function safeCommit(batch, batchNum) {
+    // Wrap batch.commit in a timeout and add RETRY logic
+    async function safeCommit(batch, batchNum, retryCount = 0) {
+      const MAX_RETRIES = 3;
       return new Promise((resolve, reject) => {
+        // Increased timeout to 120 seconds (2 minutes) for unstable mobile connections
+        const timeoutLimit = 120000; 
         const timeout = setTimeout(() => {
-          reject(new Error(`Batch ${batchNum} timed out. Check network connection.`));
-        }, 20000); // 20 seconds timeout limit per batch
+          if (retryCount < MAX_RETRIES) {
+            updateStatus(`Retrying Batch ${batchNum}...`, "#ff9100", `Attempt ${retryCount + 1}: Timeout hit, retrying...`);
+            resolve(safeCommit(batch, batchNum, retryCount + 1));
+          } else {
+            reject(new Error(`Batch ${batchNum} timed out after ${MAX_RETRIES} retries. Check network.`));
+          }
+        }, timeoutLimit);
 
         batch.commit().then(() => {
           clearTimeout(timeout);
           resolve();
         }).catch((err) => {
           clearTimeout(timeout);
-          reject(err);
+          // Retry on common network errors
+          if (retryCount < MAX_RETRIES && (err.code === 'unavailable' || err.code === 'deadline-exceeded')) {
+             updateStatus(`Retrying Batch ${batchNum}...`, "#ff9100", `Network error (${err.code}). Retrying...`);
+             resolve(safeCommit(batch, batchNum, retryCount + 1));
+          } else {
+            reject(err);
+          }
         });
       });
     }
@@ -130,10 +143,9 @@
         return;
       }
 
-      // Lock UI
       btnImport.disabled = true;
       fileInput.disabled = true;
-      logsEl.innerHTML = ""; // Clear old logs
+      logsEl.innerHTML = ""; 
       updateStatus("Reading file...", "#2979ff", "Starting file reader...");
 
       const reader = new FileReader();
@@ -177,55 +189,54 @@
           const documents = jsonData[collectionName];
           if (typeof documents !== 'object' || documents === null) continue;
 
+          updateStatus(`Processing: ${collectionName}`, "#2979ff", `Entering collection: ${collectionName}`);
+
           for (const docId in documents) {
-            // Validate IDs
             if (!docId || docId.trim() === "") continue;
 
-            // Deep clone and format dates safely
             const cleanData = formatFirestoreData(documents[docId]);
-
-            // Create reference and add to batch
             const docRef = doc(db, String(collectionName), String(docId));
+            
             batch.set(docRef, cleanData);
             currentBatchCount++;
 
-            // Yield thread for mobile responsiveness
-            if (currentBatchCount % 50 === 0) {
-              await new Promise(r => setTimeout(r, 0));
+            // Breathing room for mobile UI
+            if (currentBatchCount % 20 === 0) {
+              await new Promise(r => setTimeout(r, 10));
             }
 
-            // Commit in strict chunks of 450
-            if (currentBatchCount >= 450) {
+            // Optimized batch size for Mobile (200 docs instead of 450 to avoid timeout)
+            if (currentBatchCount >= 200) {
               updateStatus(`Uploading Batch ${batchNumber}...`, "#ff9100", `Pushing ${currentBatchCount} docs...`);
               
               await safeCommit(batch, batchNumber);
               
               totalCommitted += currentBatchCount;
-              updateStatus(`Uploaded ${totalCommitted} docs...`, "#2979ff", `Batch ${batchNumber} successful.`);
+              updateStatus(`Uploaded ${totalCommitted} docs...`, "#2979ff", `Batch ${batchNumber} confirmed.`);
               
               batch = writeBatch(db); 
               currentBatchCount = 0; 
               batchNumber++;
               
-              // 1-second delay between batches ensures we don't overwhelm mobile connection
-              await new Promise(r => setTimeout(r, 1000));
+              // Prevent network throttling
+              await new Promise(r => setTimeout(r, 800));
             }
           }
         }
 
-        // Commit remaining leftovers
+        // Final commit for remaining documents
         if (currentBatchCount > 0) {
           updateStatus(`Finishing final batch...`, "#ff9100", `Pushing final ${currentBatchCount} docs...`);
           await safeCommit(batch, batchNumber);
           totalCommitted += currentBatchCount;
         }
 
-        updateStatus(`✅ Migration Complete!`, "#00e676", `Successfully migrated ${totalCommitted} total documents.`);
-        btnImport.innerText = "Done!";
+        updateStatus(`✅ Migration Complete!`, "#00e676", `SUCCESS: Migrated ${totalCommitted} total documents.`);
+        btnImport.innerText = "ALL DONE";
 
       } catch (error) {
         console.error(error);
-        updateStatus("❌ Upload Error", "#ff1744", error.message);
+        updateStatus("❌ Critical Upload Error", "#ff1744", `Error: ${error.message}`);
         btnImport.disabled = false;
         fileInput.disabled = false;
       }
