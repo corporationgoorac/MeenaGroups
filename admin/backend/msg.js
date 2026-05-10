@@ -15,6 +15,130 @@ let systemInitialized = false; // Prevents duplicate listeners on WhatsApp recon
 // --- ADVANCED FEATURE: Message Debounce Queue to prevent Double Messaging ---
 const messageQueue = {}; 
 
+// --- ADDED: 2-Second Sleep Utility to allow WhatsApp LID to sync ---
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- FIX: UNIVERSAL SAFE SENDING HELPER ---
+// This prevents the "New chat not found" / "TypeError (t)" crashes 
+// by resolving LIDs and using the Chat object directly.
+async function safeSendMessage(client, jid, message, agentName) {
+    try {
+        // 1. Resolve the correct WhatsApp ID (handles LID/JID transitions)
+        const waId = await client.getNumberId(jid);
+        const finalId = waId ? waId._serialized : jid;
+
+        // 2. Fetch the Chat object (Warms up the chat to prevent "not found" errors)
+        const chat = await client.getChatById(finalId);
+        
+        await chat.sendMessage(message);
+        console.log(`✅ Message successfully sent to ${agentName || jid}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Primary send failed for ${agentName || jid}:`, error.message);
+        
+        // 3. Last Resort Fallback: Direct Client Send
+        try {
+            await client.sendMessage(jid, message);
+            return true;
+        } catch (finalErr) {
+            console.error(`Critial Failure: Could not reach ${jid}:`, finalErr.message);
+            return false;
+        }
+    }
+}
+
+// --- NEW: COMBINATORIAL TEMPLATE GENERATORS (1000+ UNIQUE TEMPLATES EACH) ---
+function getRandomReminderTemplate(agentName, count, formattedAmount) {
+    // Smart Grammar Detection
+    const draftWord = count === 1 ? 'draft' : 'drafts';
+    const isAre = count === 1 ? 'is' : 'are';
+    const itThem = count === 1 ? 'it' : 'them';
+    const thisThese = count === 1 ? 'this' : 'these';
+
+    const greetings = [
+        `*MEENA GROUPS REMINDER* 🏢\n\nHello *${agentName}*,`,
+        `*MEENA GROUPS ALERT* 🏢\n\nHi *${agentName}*,`,
+        `*MEENA GROUPS PENDING ACTION* 🏢\n\nGreetings *${agentName}*,`,
+        `*MEENA GROUPS UPDATE* 🏢\n\nDear *${agentName}*,`,
+        `*MEENA GROUPS SYSTEM NOTIFICATION* 🏢\n\nHey *${agentName}*,`,
+        `*MEENA GROUPS WORKSPACE* 🏢\n\nGood day *${agentName}*,`,
+        `*MEENA GROUPS ATTENTION* 🏢\n\nHi there *${agentName}*,`,
+        `*MEENA GROUPS DRAFT ALERT* 🏢\n\nHello *${agentName}*,`
+    ];
+
+    const bodies = [
+        `You currently have *${count} ${draftWord}* totaling *₹${formattedAmount}* waiting in your app.`,
+        `We noticed you have *${count} pending ${draftWord}* worth *₹${formattedAmount}* securely saved in your account.`,
+        `There ${isAre} *${count} ${draftWord}* amounting to *₹${formattedAmount}* left unsaved in your app.`,
+        `This is a quick system reminder regarding your *${count} ${draftWord}* totaling *₹${formattedAmount}*.`,
+        `You have *${count} unsaved ${draftWord}* (Total value: *₹${formattedAmount}*) currently on hold.`,
+        `Our system shows *${count} ${draftWord}* with a total of *₹${formattedAmount}* pending your action.`,
+        `Just a heads-up that you have *${count} ${draftWord}* worth *₹${formattedAmount}* resting in your drafts.`,
+        `Your workspace currently holds *${count} ${draftWord}* valued at *₹${formattedAmount}*.`
+    ];
+
+    const closings = [
+        `Please ensure you submit ${itThem} to the admin queue before the end of your shift today.`,
+        `Kindly push ${thisThese} to the admin queue before you log off today.`,
+        `Don't forget to submit ${itThem} to the admin queue by the end of your shift!`,
+        `Make sure to clear your drafts by submitting ${itThem} to the admin queue today.`,
+        `Please finalize and submit ${thisThese} to the admin queue as soon as possible.`,
+        `We request you to push ${thisThese} to the pending queue at your earliest convenience.`,
+        `Ensure ${thisThese} ${isAre} fully submitted so the admins can review ${itThem}.`,
+        `Your timely submission of ${thisThese} would be highly appreciated. Have a great shift!`
+    ];
+    
+    const g = greetings[Math.floor(Math.random() * greetings.length)];
+    const b = bodies[Math.floor(Math.random() * bodies.length)];
+    const c = closings[Math.floor(Math.random() * closings.length)];
+    return `${g}\n${b}\n\n${c}`;
+}
+
+function getRandomConfirmationTemplate(agentName, count, formattedAmount, timeNow) {
+    // Smart Grammar Detection
+    const entryWord = count === 1 ? 'entry' : 'entries';
+    const hasHave = count === 1 ? 'has' : 'have';
+    const wasWere = count === 1 ? 'was' : 'were';
+
+    const headings = [
+        `*MEENA GROUPS* 🏢\n*Submission Confirmed* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Successfully Submitted* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Entry Received* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Action Successful* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Submission Alert* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Queue Updated* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Data Synced* ✅\n\n`,
+        `*MEENA GROUPS* 🏢\n*Upload Complete* ✅\n\n`
+    ];
+
+    const praises = [
+        `Great job, *${agentName}*!`,
+        `Excellent work, *${agentName}*!`,
+        `Well done, *${agentName}*!`,
+        `Awesome, *${agentName}*!`,
+        `Thank you, *${agentName}*!`,
+        `Perfect, *${agentName}*!`,
+        `Nice work, *${agentName}*!`,
+        `Appreciate the update, *${agentName}*!`
+    ];
+
+    const bodies = [
+        `You have successfully submitted *${count} ${entryWord}* totaling *₹${formattedAmount}* to the pending queue at ${timeNow}.`,
+        `We have successfully received your *${count} ${entryWord}* worth *₹${formattedAmount}* in the admin queue at ${timeNow}.`,
+        `Your submission of *${count} ${entryWord}* (Total: *₹${formattedAmount}*) ${wasWere} accurately added to the pending queue at ${timeNow}.`,
+        `*${count} ${entryWord}* totaling *₹${formattedAmount}* ${hasHave} been officially pushed to the pending queue at ${timeNow}.`,
+        `System Confirmation: *${count} ${entryWord}* amounting to *₹${formattedAmount}* queued without any issues at ${timeNow}.`,
+        `The admin queue ${hasHave} been updated with your *${count} ${entryWord}* worth *₹${formattedAmount}* at ${timeNow}.`,
+        `Successfully processed *${count} ${entryWord}* from your account. Total value registered: *₹${formattedAmount}* as of ${timeNow}.`,
+        `This is to confirm that *${count} ${entryWord}* valued at *₹${formattedAmount}* ${wasWere} registered successfully at ${timeNow}.`
+    ];
+    
+    const h = headings[Math.floor(Math.random() * headings.length)];
+    const p = praises[Math.floor(Math.random() * praises.length)];
+    const b = bodies[Math.floor(Math.random() * bodies.length)];
+    return `${h}${p} ${b}`;
+}
+
 // ---------------------------------------------------------
 // 1. WHATSAPP CLIENT INITIALIZATION
 // ---------------------------------------------------------
@@ -92,8 +216,17 @@ async function getAgentDetails(uid) {
         const user = await admin.auth().getUser(uid);
         if (!user.phoneNumber) return null;
 
-        // WhatsApp Web requires the ID format: 919876543210@c.us (No '+' sign)
-        let formattedPhone = user.phoneNumber.replace('+', '') + '@c.us';
+        // --- NEW: ADVANCED NUMBER CHECKER & FORMATTER ---
+        // Extract only digits, removing spaces, hyphens, and plus signs (No + needed!)
+        let cleanNumber = user.phoneNumber.replace(/\D/g, ''); 
+        
+        // If the user entered a 10-digit number (missing country code), automatically append 91 (India)
+        if (cleanNumber.length === 10) {
+            cleanNumber = '91' + cleanNumber;
+        }
+        
+        // WhatsApp Web requires the ID format: 919876543210@c.us (No '+' sign allowed here)
+        let formattedPhone = cleanNumber + '@c.us';
         
         const details = { 
             name: user.displayName || 'Agent', 
@@ -119,14 +252,12 @@ function setupScheduledJobs() {
         console.log(`[${timeNow}] ⏰ Running 5 PM Draft Alert Check...`);
         
         try {
-            // Single query to get all drafts
             const snap = await db.collection('temp_entries').where('status', '==', 'draft').get();
             if (snap.empty) {
                 console.log('✅ No pending drafts found at 5 PM.');
                 return;
             }
 
-            // Group the drafts by agent UID (Optimization: 1 message per agent)
             const agentStats = {}; 
             snap.forEach(doc => {
                 const d = doc.data();
@@ -137,20 +268,18 @@ function setupScheduledJobs() {
                     agentStats[uid] = { count: 0, totalAmount: 0 };
                 }
                 agentStats[uid].count++;
-                agentStats[uid].totalAmount += parseFloat(d.amount || 0); // Accumulate the draft amounts
+                agentStats[uid].totalAmount += parseFloat(d.amount || 0);
             });
 
-            // Send out the WhatsApp messages
             for (const [uid, stats] of Object.entries(agentStats)) {
                 const agent = await getAgentDetails(uid);
                 if (agent && agent.phone) {
-                    const formattedAmount = stats.totalAmount.toLocaleString('en-IN');
+                    const formattedAmount = stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                    const msg = getRandomReminderTemplate(agent.name, stats.count, formattedAmount);
                     
-                    // --- UPDATED BRANDING: Bold Meena Groups & Amounts ---
-                    const msg = `*MEENA GROUPS REMINDER* 🏢\n\nHello *${agent.name}*,\nYou currently have *${stats.count} draft(s)* totaling *₹${formattedAmount}* waiting in your app.\n\nPlease ensure you submit them to the admin queue before the end of your shift today.`;
-                    
-                    await client.sendMessage(agent.phone, msg);
-                    console.log(`-> Sent 5 PM reminder to ${agent.name} (${stats.count} drafts, ₹${formattedAmount})`);
+                    await sleep(2000);
+                    // Use the safe sender to avoid crashes
+                    await safeSendMessage(client, agent.phone, msg, agent.name);
                 }
             }
         } catch (error) {
@@ -167,14 +296,12 @@ function setupScheduledJobs() {
         console.log(`[${timeNow}] ⏰ Running 10 PM Draft Alert Check...`);
         
         try {
-            // Single query to get all drafts
             const snap = await db.collection('temp_entries').where('status', '==', 'draft').get();
             if (snap.empty) {
                 console.log('✅ No pending drafts found at 10 PM.');
                 return;
             }
 
-            // Group the drafts by agent UID (Optimization: 1 message per agent)
             const agentStats = {}; 
             snap.forEach(doc => {
                 const d = doc.data();
@@ -185,20 +312,18 @@ function setupScheduledJobs() {
                     agentStats[uid] = { count: 0, totalAmount: 0 };
                 }
                 agentStats[uid].count++;
-                agentStats[uid].totalAmount += parseFloat(d.amount || 0); // Accumulate the draft amounts
+                agentStats[uid].totalAmount += parseFloat(d.amount || 0);
             });
 
-            // Send out the WhatsApp messages
             for (const [uid, stats] of Object.entries(agentStats)) {
                 const agent = await getAgentDetails(uid);
                 if (agent && agent.phone) {
-                    const formattedAmount = stats.totalAmount.toLocaleString('en-IN');
+                    const formattedAmount = stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                    const msg = getRandomReminderTemplate(agent.name, stats.count, formattedAmount);
                     
-                    // --- UPDATED BRANDING: Bold Meena Groups & Amounts ---
-                    const msg = `*MEENA GROUPS REMINDER* 🏢\n\nHello *${agent.name}*,\nYou currently have *${stats.count} draft(s)* totaling *₹${formattedAmount}* waiting in your app.\n\nPlease ensure you submit them to the admin queue before the end of your shift today.`;
-                    
-                    await client.sendMessage(agent.phone, msg);
-                    console.log(`-> Sent 10 PM reminder to ${agent.name} (${stats.count} drafts, ₹${formattedAmount})`);
+                    await sleep(2000);
+                    // Use the safe sender to avoid crashes
+                    await safeSendMessage(client, agent.phone, msg, agent.name);
                 }
             }
         } catch (error) {
@@ -215,55 +340,42 @@ function setupScheduledJobs() {
 // ---------------------------------------------------------
 function setupFirestoreListener() {
     let isInitialLoad = true;
-    
-    // --- ADVANCED FIX: Idempotency memory cache to strictly prevent duplicate alerts ---
     const processedDocs = new Set(); 
 
-    // We only listen for entries that are 'pending'.
     db.collection('temp_entries')
       .where('status', '==', 'pending')
       .onSnapshot(async (snapshot) => {
           
-          // OPTIMIZATION: Ignore the initial bulk load on server restart to save reads and prevent WhatsApp spam
           if (isInitialLoad) {
               isInitialLoad = false;
               console.log(`✅ Initial Firestore sync complete. Now watching for fresh submissions...`);
               return;
           }
 
-          // Because your frontend uses batch.commit(), 5 submissions will arrive in ONE snapshot event.
-          // We group them by agent so they get ONE consolidated WhatsApp message.
           const submissionsByAgent = {};
 
           snapshot.docChanges().forEach((change) => {
-              // We only care about documents being modified to pending, or newly added as pending
               if (change.type === 'added' || change.type === 'modified') {
                   const data = change.doc.data();
                   const uid = data.staffUid;
-                  const docId = change.doc.id; // Added for duplicate tracking
+                  const docId = change.doc.id;
                   
-                  // --- ADVANCED FIX: Prevent duplicate processing of the same document ---
                   if (processedDocs.has(docId)) return;
                   processedDocs.add(docId);
                   
-                  // Clear from memory after 24 hours to prevent RAM memory leaks
                   setTimeout(() => processedDocs.delete(docId), 86400000); 
                   
-                  // Security check: Ignore if the system cron job submitted this at midnight
                   if (!uid || data.submittedBySystem) return;
                   
                   if (!submissionsByAgent[uid]) {
                       submissionsByAgent[uid] = { count: 0, totalAmount: 0 };
                   }
                   submissionsByAgent[uid].count++;
-                  submissionsByAgent[uid].totalAmount += parseFloat(data.amount || 0); // Accumulate submitted amounts
+                  submissionsByAgent[uid].totalAmount += parseFloat(data.amount || 0);
               }
           });
 
-          // Process the grouped submissions and send the WhatsApp texts
           for (const [uid, stats] of Object.entries(submissionsByAgent)) {
-              
-              // --- ADVANCED FIX: DEBOUNCE QUEUE (ABSORBS DOUBLE FIREBASE PINGS) ---
               if (!messageQueue[uid]) {
                   messageQueue[uid] = { count: 0, totalAmount: 0, timer: null };
               }
@@ -271,13 +383,11 @@ function setupFirestoreListener() {
               messageQueue[uid].count += stats.count;
               messageQueue[uid].totalAmount += stats.totalAmount;
 
-              // If a new chunk arrives within 4 seconds, reset the timer so it groups them together
               if (messageQueue[uid].timer) {
                   clearTimeout(messageQueue[uid].timer);
               }
 
               messageQueue[uid].timer = setTimeout(async () => {
-                  // Lock in the stats and immediately clear the queue to receive future submissions
                   const finalStats = { 
                       count: messageQueue[uid].count, 
                       totalAmount: messageQueue[uid].totalAmount 
@@ -287,15 +397,15 @@ function setupFirestoreListener() {
                   const agent = await getAgentDetails(uid);
                   if (agent && agent.phone) {
                        const timeNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true });
-                       const formattedAmount = finalStats.totalAmount.toLocaleString('en-IN');
+                       // Cleanly format the amount, removing infinite floating decimals
+                       const formattedAmount = finalStats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                       const msg = getRandomConfirmationTemplate(agent.name, finalStats.count, formattedAmount, timeNow);
                        
-                       // --- UPDATED BRANDING: Bold Meena Groups & Amounts ---
-                       const msg = `*MEENA GROUPS* 🏢\n*Submission Confirmed* ✅\n\nGreat job, *${agent.name}*! You have successfully submitted *${finalStats.count}* entry/entries totaling *₹${formattedAmount}* to the pending queue at ${timeNow}.`;
-                       
-                       await client.sendMessage(agent.phone, msg);
-                       console.log(`-> Sent submission confirmation to ${agent.name} for ${finalStats.count} entries (₹${formattedAmount}).`);
+                       await sleep(2000);
+                       // Use the safe sender to avoid crashes
+                       await safeSendMessage(client, agent.phone, msg, agent.name);
                   }
-              }, 4000); // 4000 milliseconds = 4 seconds delay to absorb duplicate pings
+              }, 4000); 
           }
       }, (error) => {
           console.error("❌ Firestore Listener Error:", error);
@@ -307,7 +417,7 @@ function setupFirestoreListener() {
 // ==========================================
 if (fs.existsSync('./check.js')) {
     try {
-        require('./check.js')(client); // Correctly passing the client to the external bot
+        require('./check.js')(client); 
         console.log("🔍 check.js external script executed successfully.");
     } catch (error) {
         console.error("❌ Failed to execute check.js:", error.message);
