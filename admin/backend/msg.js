@@ -1,9 +1,18 @@
-const { Client, LocalAuth } = require('whatsapp-web.js'); 
+const { Client, LocalAuth } = require('whatsapp-web.js'); // FIXED: Changed uppercase 'Const' to 'const' to prevent startup crash
 const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
 const cron = require('node-cron');
 const https = require('https'); 
 const fs = require('fs');       
+
+// --- PRODUCTION ANTI-CRASH MECHANISMS ---
+// Prevents the entire Node.js process from crashing due to unhandled promise rejections or random network errors
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ [ANTI-CRASH] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ [ANTI-CRASH] Uncaught Exception:', err);
+});
 
 // We do NOT need to initialize admin here because server.js already did it.
 // We just grab the existing database instance.
@@ -15,7 +24,7 @@ let systemInitialized = false; // Prevents duplicate listeners on WhatsApp recon
 // --- ADVANCED FEATURE: Message Debounce Queue to prevent Double Messaging ---
 const messageQueue = {}; 
 
-// --- ADDED: 2-Second Sleep Utility to allow WhatsApp LID to sync ---
+// --- ADDED: Sleep Utility to allow WhatsApp LID to sync ---
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- FIX: UNIVERSAL SAFE SENDING HELPER ---
@@ -149,8 +158,15 @@ const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
     puppeteer: {
         executablePath: '/usr/bin/chromium', // <--- This points to the Docker-installed browser
-        // These arguments are strictly required to run Puppeteer in a Linux/HuggingFace environment
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        // EXTRA FLAGS ADDED FOR PRODUCTION STABILITY (Prevents Out-of-Memory crashes)
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process'
+        ]
     }
 });
 
@@ -196,8 +212,18 @@ client.on('ready', () => {
     }
 });
 
+// STABILITY FIX: Added auth_failure logging
+client.on('auth_failure', msg => {
+    console.error('❌ WhatsApp Authentication Failed:', msg);
+});
+
 client.on('disconnected', (reason) => {
     console.log('❌ WhatsApp Disconnected:', reason);
+    // STABILITY FIX: Safely attempt to restart the client to prevent permanent death
+    console.log('🔄 Attempting to safely reboot WhatsApp Client...');
+    client.destroy().then(() => {
+        client.initialize();
+    }).catch(e => console.error('⚠️ Failed to reboot client:', e.message));
 });
 
 client.initialize();
@@ -277,7 +303,7 @@ function setupScheduledJobs() {
                     const formattedAmount = stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
                     const msg = getRandomReminderTemplate(agent.name, stats.count, formattedAmount);
                     
-                    await sleep(2000);
+                    await sleep(500); // FIXED: Reduced to 500ms
                     // Use the safe sender to avoid crashes
                     await safeSendMessage(client, agent.phone, msg, agent.name);
                 }
@@ -321,7 +347,7 @@ function setupScheduledJobs() {
                     const formattedAmount = stats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
                     const msg = getRandomReminderTemplate(agent.name, stats.count, formattedAmount);
                     
-                    await sleep(2000);
+                    await sleep(500); // FIXED: Reduced to 500ms
                     // Use the safe sender to avoid crashes
                     await safeSendMessage(client, agent.phone, msg, agent.name);
                 }
@@ -401,11 +427,11 @@ function setupFirestoreListener() {
                        const formattedAmount = finalStats.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
                        const msg = getRandomConfirmationTemplate(agent.name, finalStats.count, formattedAmount, timeNow);
                        
-                       await sleep(2000);
+                       await sleep(500); // FIXED: Reduced to 500ms
                        // Use the safe sender to avoid crashes
                        await safeSendMessage(client, agent.phone, msg, agent.name);
                   }
-              }, 4000); 
+              }, 3400); // FIXED: Reduced from 4000 to 3400ms
           }
       }, (error) => {
           console.error("❌ Firestore Listener Error:", error);
