@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Goorac - Advanced DB Importer</title>
+  <title>Goorac - 1-by-1 DB Importer</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
     .card { background: #1a1a1a; padding: 30px 25px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.8); border: 1px solid #333; box-sizing: border-box; }
@@ -23,14 +23,14 @@
     
     #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #status { font-weight: bold; font-size: 15px; word-wrap: break-word; color: #ff9100; margin-bottom: 5px;}
-    #logs { font-size: 12px; color: #888; max-height: 60px; overflow-y: auto; width: 100%; text-align: left; }
+    #logs { font-size: 12px; color: #888; max-height: 80px; overflow-y: auto; width: 100%; text-align: left; }
   </style>
 </head>
 <body>
 
   <div class="card">
     <h2>Step 2: India DB Migration</h2>
-    <p>Select your downloaded <b>.json</b> backup file.</p>
+    <p>Select your downloaded <b>.json</b> backup file. Data will be uploaded exactly one document at a time.</p>
     
     <input type="file" id="fileInput" accept=".json" />
     <button id="btnImport" class="import">⬆ Upload & Import Data</button>
@@ -43,7 +43,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, writeBatch, doc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // ⚠️ CONFIG: Your Firebase Configuration
     const firebaseConfig = {
@@ -63,12 +63,11 @@
     const btnImport = document.getElementById("btnImport");
     const fileInput = document.getElementById("fileInput");
 
-    // Helper: Safely cleans data and converts ISO Strings to Timestamps WITHOUT mutating original arrays
     function formatFirestoreData(data) {
       if (data === null || data === undefined) return null;
       
       if (Array.isArray(data)) {
-        return data.map(item => formatFirestoreData(item)); // Safely map arrays
+        return data.map(item => formatFirestoreData(item));
       }
       
       if (typeof data === 'object') {
@@ -76,13 +75,12 @@
         for (const key in data) {
           const val = data[key];
           
-          // Check for valid Date Strings
           if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
             const parsedDate = new Date(val);
             if (!isNaN(parsedDate.getTime())) {
               formattedObj[key] = Timestamp.fromDate(parsedDate);
             } else {
-              formattedObj[key] = val; // Fallback if JS can't parse it
+              formattedObj[key] = val;
             }
           } else {
             formattedObj[key] = formatFirestoreData(val);
@@ -91,7 +89,7 @@
         return formattedObj;
       }
       
-      return data; // Return primitives (strings, numbers, booleans)
+      return data;
     }
 
     function updateStatus(msg, color, logDetail = null) {
@@ -102,38 +100,20 @@
         const logLine = document.createElement("div");
         logLine.innerText = `> ${logDetail}`;
         logsEl.appendChild(logLine);
-        logsEl.scrollTop = logsEl.scrollHeight; // Auto-scroll
+        logsEl.scrollTop = logsEl.scrollHeight;
       }
     }
 
-    // Wrap batch.commit in a timeout so it NEVER hangs silently
-    async function safeCommit(batch, batchNum) {
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Batch ${batchNum} timed out. Check network connection.`));
-        }, 20000); // 20 seconds timeout limit per batch
-
-        batch.commit().then(() => {
-          clearTimeout(timeout);
-          resolve();
-        }).catch((err) => {
-          clearTimeout(timeout);
-          reject(err);
-        });
-      });
-    }
-
     btnImport.addEventListener("click", () => {
-      const file = fileInput.files[0];
+      const file = fileInput.files;
       if (!file) {
         updateStatus("⚠️ Please select the JSON file first.", "#ff1744");
         return;
       }
 
-      // Lock UI
       btnImport.disabled = true;
       fileInput.disabled = true;
-      logsEl.innerHTML = ""; // Clear old logs
+      logsEl.innerHTML = "";
       updateStatus("Reading file...", "#2979ff", "Starting file reader...");
 
       const reader = new FileReader();
@@ -163,64 +143,46 @@
     });
 
     async function processImport(jsonData) {
-      updateStatus("Preparing to upload...", "#ff9100", "Initializing Firestore batches...");
+      updateStatus("Preparing to upload...", "#ff9100", "Counting documents...");
 
-      let batch = writeBatch(db);
-      let currentBatchCount = 0;
-      let totalCommitted = 0;
-      let batchNumber = 1;
+      let totalDocs = 0;
+      for (const collection in jsonData) {
+        if (typeof jsonData[collection] === 'object' && jsonData[collection] !== null) {
+          totalDocs += Object.keys(jsonData[collection]).length;
+        }
+      }
+
+      if (totalDocs === 0) {
+        updateStatus("⚠️ No documents found.", "#ff1744");
+        return;
+      }
+
+      let processedCount = 0;
 
       try {
-        const collections = Object.keys(jsonData);
-
-        for (const collectionName of collections) {
+        for (const collectionName in jsonData) {
           const documents = jsonData[collectionName];
           if (typeof documents !== 'object' || documents === null) continue;
 
           for (const docId in documents) {
-            // Validate IDs
             if (!docId || docId.trim() === "") continue;
 
-            // Deep clone and format dates safely
             const cleanData = formatFirestoreData(documents[docId]);
-
-            // Create reference and add to batch
             const docRef = doc(db, String(collectionName), String(docId));
-            batch.set(docRef, cleanData);
-            currentBatchCount++;
 
-            // Yield thread for mobile responsiveness
-            if (currentBatchCount % 50 === 0) {
-              await new Promise(r => setTimeout(r, 0));
-            }
-
-            // Commit in strict chunks of 450
-            if (currentBatchCount >= 450) {
-              updateStatus(`Uploading Batch ${batchNumber}...`, "#ff9100", `Pushing ${currentBatchCount} docs...`);
-              
-              await safeCommit(batch, batchNumber);
-              
-              totalCommitted += currentBatchCount;
-              updateStatus(`Uploaded ${totalCommitted} docs...`, "#2979ff", `Batch ${batchNumber} successful.`);
-              
-              batch = writeBatch(db); 
-              currentBatchCount = 0; 
-              batchNumber++;
-              
-              // 1-second delay between batches ensures we don't overwhelm mobile connection
-              await new Promise(r => setTimeout(r, 1000));
+            // Upload exact document 1 by 1
+            await setDoc(docRef, cleanData);
+            
+            processedCount++;
+            
+            // Update UI every 5 documents to prevent screen flickering, or on the last document
+            if (processedCount % 5 === 0 || processedCount === totalDocs) {
+              updateStatus(`Uploading... (${processedCount} / ${totalDocs})`, "#2979ff", `Saved ${collectionName}/${docId}`);
             }
           }
         }
 
-        // Commit remaining leftovers
-        if (currentBatchCount > 0) {
-          updateStatus(`Finishing final batch...`, "#ff9100", `Pushing final ${currentBatchCount} docs...`);
-          await safeCommit(batch, batchNumber);
-          totalCommitted += currentBatchCount;
-        }
-
-        updateStatus(`✅ Migration Complete!`, "#00e676", `Successfully migrated ${totalCommitted} total documents.`);
+        updateStatus(`✅ Migration Complete!`, "#00e676", `Successfully uploaded ${processedCount} documents.`);
         btnImport.innerText = "Done!";
 
       } catch (error) {
