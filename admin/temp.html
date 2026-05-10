@@ -3,49 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Goorac - DB Migrator</title>
+  <title>Goorac - Advanced DB Importer</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 20px; text-align: center; }
-    .card { background: #1a1a1a; padding: 25px 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-    h2 { margin-top: 0; font-size: 22px; }
-    p { font-size: 14px; color: #bbb; margin-bottom: 20px; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #1a1a1a; padding: 30px 25px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.8); border: 1px solid #333; }
+    h2 { margin-top: 0; font-size: 24px; color: #2979ff; }
+    p { font-size: 14px; color: #bbb; margin-bottom: 25px; line-height: 1.5; }
     
-    button { 
-      background: #00e676; color: black; padding: 15px 20px; border: none; border-radius: 8px; 
-      font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: opacity 0.2s;
+    button.import { 
+      background: #2979ff; color: white; padding: 16px 20px; border: none; border-radius: 8px; 
+      font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: all 0.2s;
     }
-    button:active { opacity: 0.8; }
-    button:disabled { background: #555; color: #888; cursor: not-allowed; }
-    button.import { background: #2979ff; color: white; }
+    button.import:active { transform: scale(0.98); opacity: 0.8; }
+    button.import:disabled { background: #333; color: #777; cursor: not-allowed; transform: none; }
     
     input[type="file"] { 
-      margin: 15px 0; color: #fff; width: 100%; padding: 10px; background: #222; border-radius: 6px; border: 1px solid #333;
+      margin: 0 0 20px 0; color: #fff; width: 100%; padding: 12px; background: #0a0a0a; border-radius: 8px; border: 1px dashed #555; box-sizing: border-box;
     }
     
-    #status { margin-top: 15px; font-weight: bold; font-size: 15px; min-height: 20px; word-wrap: break-word; }
+    #statusBox { margin-top: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #222; display: none; }
+    #status { font-weight: bold; font-size: 15px; word-wrap: break-word; margin-bottom: 5px; }
+    #progressBar { height: 6px; background: #222; border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
+    #progressFill { height: 100%; background: #00e676; width: 0%; transition: width 0.3s ease; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Step 1: Export (US DB)</h2>
-    <p>Pulls data into local memory and downloads a JSON file safely.</p>
-    <button id="btnExport">⬇ Download JSON Backup</button>
-  </div>
-
-  <div class="card">
-    <h2>Step 2: Import (India DB)</h2>
-    <p>Upload JSON to push to the new server in safe 490-doc chunks.</p>
+    <h2>Step 2: Import to India DB</h2>
+    <p>Select your downloaded <b>.json</b> backup file. The script will automatically chunk and push your data to the new server.</p>
+    
     <input type="file" id="fileInput" accept=".json" />
     <button id="btnImport" class="import">⬆ Upload & Import Data</button>
-    <div id="status" style="color: #ff9100;">Ready.</div>
+    
+    <div id="statusBox">
+      <div id="status" style="color: #ff9100;">Ready.</div>
+      <div id="progressBar"><div id="progressFill"></div></div>
+    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getFirestore, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // ⚠️ CONFIG: Swap between US and India here!
+    // ⚠️ CONFIG: Your Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyD4swxPXGkuK4VaVvJKOBRkjAUIGfovZN8",
       authDomain: "meenagroupsgoorac.firebaseapp.com",
@@ -56,110 +57,80 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    
+    // ⚠️ CRITICAL: If you named your new India database "india-db", leave the next line as is.
+    // If you did NOT give it a name and it is just the default database, change it to: getFirestore(app);
+    const db = getFirestore(app, "india-db");
 
-    const collectionsList = ["customers", "agents", "reports"]; 
     const statusEl = document.getElementById("status");
-    const btnExport = document.getElementById("btnExport");
+    const statusBox = document.getElementById("statusBox");
+    const progressFill = document.getElementById("progressFill");
+    const progressBar = document.getElementById("progressBar");
     const btnImport = document.getElementById("btnImport");
 
-    // Prevent accidental reload during operations
     let isWorking = false;
     window.onbeforeunload = function() {
       if (isWorking) return "Data migration in progress! Are you sure you want to leave?";
     };
 
-    function toggleUI(disabled, msg, color) {
+    function updateUI(disabled, msg, color, progressPercent = null) {
       isWorking = disabled;
-      btnExport.disabled = disabled;
       btnImport.disabled = disabled;
       document.getElementById("fileInput").disabled = disabled;
-      if (msg) {
-        statusEl.innerText = msg;
-        statusEl.style.color = color || "#ff9100";
+      
+      statusBox.style.display = "block";
+      statusEl.innerText = msg;
+      statusEl.style.color = color || "#ff9100";
+
+      if (progressPercent !== null) {
+        progressBar.style.display = "block";
+        progressFill.style.width = `${progressPercent}%`;
       }
     }
 
-    // ==========================================
-    // EXPORT LOGIC
-    // ==========================================
-    btnExport.addEventListener("click", async () => {
-      toggleUI(true, "Fetching data... Please wait (Do not close app).", "#ff9100");
-      const backupData = {};
-
-      try {
-        for (const colName of collectionsList) {
-          backupData[colName] = {};
-          const querySnapshot = await getDocs(collection(db, colName));
-          
-          let docCount = 0;
-          querySnapshot.forEach((docSnap) => {
-            backupData[colName][docSnap.id] = docSnap.data();
-            docCount++;
-          });
-          
-          statusEl.innerText = `Read ${docCount} documents from '${colName}'...`;
-          // Anti-freeze yield for mobile browsers
-          await new Promise(r => setTimeout(r, 10)); 
-        }
-
-        statusEl.innerText = "Generating JSON file...";
-        await new Promise(r => setTimeout(r, 50)); // Allow UI to update before heavy stringify
-
-        const jsonString = JSON.stringify(backupData, null, 2);
-        const blob = new Blob([jsonString], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement("a");
-        a.href = url;
-        // Fixed the split array bug here -> split('T')
-        a.download = `MeenaGroups_Backup_${new Date().toISOString().split('T')}.json`;
-        a.click();
-        
-        URL.revokeObjectURL(url);
-        toggleUI(false, "✅ Export Successful! File Saved.", "#00e676");
-
-      } catch (error) {
-        console.error(error);
-        toggleUI(false, "❌ Export Failed: " + error.message, "#ff1744");
-      }
-    });
-
-    // ==========================================
-    // IMPORT LOGIC
-    // ==========================================
     btnImport.addEventListener("click", () => {
-      // Fixed critical bug: Added to grab the actual file object
+      // ✅ FIXED: Added to correctly select the file object from the array
       const file = document.getElementById("fileInput").files;
+      
       if (!file) {
-        statusEl.innerText = "⚠️ Please select the JSON file first.";
-        statusEl.style.color = "#ff9100";
+        updateUI(false, "⚠️ Please select the JSON file first.", "#ff1744");
         return;
       }
 
-      toggleUI(true, "Reading local file...", "#ff9100");
+      updateUI(true, "Reading local file into memory...", "#2979ff", 5);
 
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          statusEl.innerText = "Parsing JSON... (This might take a moment)";
-          await new Promise(r => setTimeout(r, 50)); // Yield thread
+          updateUI(true, "Parsing JSON data...", "#2979ff", 10);
+          await new Promise(r => setTimeout(r, 50)); // Yield to allow UI update
           
           const jsonData = JSON.parse(e.target.result);
           await processImport(jsonData);
         } catch (err) {
           console.error(err);
-          toggleUI(false, "❌ Invalid JSON File or Memory Error!", "#ff1744");
+          updateUI(false, "❌ Invalid JSON File or Memory Error!", "#ff1744", 0);
         }
       };
       reader.readAsText(file);
     });
 
     async function processImport(jsonData) {
-      statusEl.innerText = "Starting Import... Do not close window.";
+      updateUI(true, "Calculating total documents...", "#ff9100", 15);
       
+      // 1. ADVANCED: Pre-calculate total documents for accurate progress
+      let totalDocsToImport = 0;
+      for (const collectionName in jsonData) {
+        totalDocsToImport += Object.keys(jsonData[collectionName]).length;
+      }
+
+      if (totalDocsToImport === 0) {
+        updateUI(false, "⚠️ No documents found in JSON file.", "#ff1744", 0);
+        return;
+      }
+
       let batch = writeBatch(db);
-      let operationCount = 0;
+      let currentBatchCount = 0;
       let totalCommitted = 0;
 
       try {
@@ -171,35 +142,39 @@
             const docRef = doc(db, collectionName, docId);
             
             batch.set(docRef, docData);
-            operationCount++;
+            currentBatchCount++;
 
-            // Every 100 documents, give the mobile processor a tiny break
-            if (operationCount % 100 === 0) {
+            // Every 50 documents, yield processor to prevent mobile freezing
+            if (currentBatchCount % 50 === 0) {
               await new Promise(r => setTimeout(r, 0));
             }
 
-            if (operationCount >= 490) {
-              statusEl.innerText = `Committing batch... (${totalCommitted + operationCount} docs total)`;
+            // CHUNK AT 490: Commit to Firebase
+            if (currentBatchCount >= 490) {
               await batch.commit();
-              totalCommitted += operationCount;
+              totalCommitted += currentBatchCount;
               
-              batch = writeBatch(db); 
-              operationCount = 0; 
+              const percent = Math.floor((totalCommitted / totalDocsToImport) * 100);
+              updateUI(true, `Importing... (${totalCommitted} of ${totalDocsToImport})`, "#ff9100", percent);
+              
+              batch = writeBatch(db); // Reset Batch
+              currentBatchCount = 0; 
             }
           }
         }
 
-        if (operationCount > 0) {
-          statusEl.innerText = `Committing final batch...`;
+        // Commit any remaining documents in the final batch
+        if (currentBatchCount > 0) {
+          updateUI(true, `Committing final batch...`, "#ff9100", 95);
           await batch.commit();
-          totalCommitted += operationCount;
+          totalCommitted += currentBatchCount;
         }
 
-        toggleUI(false, `✅ Complete! Migrated ${totalCommitted} documents.`, "#00e676");
+        updateUI(false, `✅ Success! Migrated ${totalCommitted} documents.`, "#00e676", 100);
 
       } catch (error) {
         console.error(error);
-        toggleUI(false, "❌ Import Error: " + error.message, "#ff1744");
+        updateUI(false, "❌ Import Error: " + error.message, "#ff1744", 0);
       }
     }
   </script>
