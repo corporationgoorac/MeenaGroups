@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Meena Groups - Database Migrator</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; padding: 40px; text-align: center; }
+    .card { background: #1a1a1a; padding: 30px; border-radius: 12px; max-width: 500px; margin: 0 auto 20px; }
+    button { background: #00e676; color: black; padding: 12px 24px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; margin: 10px; width: 100%;}
+    button.import { background: #2979ff; color: white; }
+    input[type="file"] { margin: 20px 0; color: #888; }
+    #status { margin-top: 15px; color: #ff9100; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Step 1: Export Data (US)</h2>
+    <p>Downloads all collections to your device as a JSON file.</p>
+    <button id="btnExport">⬇ Download JSON Backup</button>
+  </div>
+
+  <div class="card">
+    <h2>Step 2: Import Data (India)</h2>
+    <p>Upload the JSON to copy data into the new region in chunks.</p>
+    <input type="file" id="fileInput" accept=".json" />
+    <button id="btnImport" class="import">⬆ Upload & Import Data</button>
+    <div id="status">Ready.</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // ⚠️ IMPORTANT: Swap this config!
+    // 1. Put US Config here to Export.
+    // 2. Then, change it to India Config and reload to Import.
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4swxPXGkuK4VaVvJKOBRkjAUIGfovZN8",
+      authDomain: "meenagroupsgoorac.firebaseapp.com",
+      projectId: "meenagroupsgoorac",
+      storageBucket: "meenagroupsgoorac.firebasestorage.app",
+      messagingSenderId: "589926126547",
+      appId: "1:589926126547:web:ffa93c5877b3ce6d40d526"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // List the collections you want to copy
+    const collectionsList = ["customers", "agents", "reports"]; 
+
+    const statusEl = document.getElementById("status");
+
+    // ==========================================
+    // EXPORT LOGIC
+    // ==========================================
+    document.getElementById("btnExport").addEventListener("click", async () => {
+      statusEl.innerText = "Fetching data from database... Please wait.";
+      const backupData = {};
+
+      try {
+        for (const colName of collectionsList) {
+          backupData[colName] = {};
+          const querySnapshot = await getDocs(collection(db, colName));
+          
+          querySnapshot.forEach((docSnap) => {
+            backupData[colName][docSnap.id] = docSnap.data();
+          });
+        }
+
+        // Convert to JSON and Trigger Download
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `MeenaGroups_Backup_${new Date().toISOString().split('T')}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        statusEl.innerText = "✅ Export Successful! File Downloaded.";
+        statusEl.style.color = "#00e676";
+
+      } catch (error) {
+        statusEl.innerText = "❌ Export Failed: " + error.message;
+        statusEl.style.color = "#ff1744";
+      }
+    });
+
+    // ==========================================
+    // IMPORT LOGIC (BATCH CHUNKING)
+    // ==========================================
+    document.getElementById("btnImport").addEventListener("click", () => {
+      const file = document.getElementById("fileInput").files;
+      if (!file) {
+        statusEl.innerText = "⚠️ Please select the JSON file first.";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          await processImport(jsonData);
+        } catch (err) {
+          statusEl.innerText = "❌ Invalid JSON File!";
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    async function processImport(jsonData) {
+      statusEl.innerText = "Starting Import... Do not close window.";
+      statusEl.style.color = "#ff9100";
+      
+      let batch = writeBatch(db);
+      let operationCount = 0;
+      let totalCommitted = 0;
+
+      try {
+        for (const collectionName in jsonData) {
+          const documents = jsonData[collectionName];
+
+          for (const docId in documents) {
+            const docData = documents[docId];
+            const docRef = doc(db, collectionName, docId);
+            
+            batch.set(docRef, docData);
+            operationCount++;
+
+            // Chunk at 490 to stay safely below the 500 limit
+            if (operationCount >= 490) {
+              await batch.commit();
+              totalCommitted += operationCount;
+              statusEl.innerText = `Importing... (${totalCommitted} documents done)`;
+              
+              batch = writeBatch(db); // Reset Batch
+              operationCount = 0; 
+            }
+          }
+        }
+
+        // Commit any leftovers in the final batch
+        if (operationCount > 0) {
+          await batch.commit();
+          totalCommitted += operationCount;
+        }
+
+        statusEl.innerText = `✅ Import Complete! Migrated ${totalCommitted} total documents.`;
+        statusEl.style.color = "#00e676";
+
+      } catch (error) {
+        statusEl.innerText = "❌ Import Error: " + error.message;
+        statusEl.style.color = "#ff1744";
+      }
+    }
+  </script>
+</body>
+</html>
