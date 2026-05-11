@@ -92,7 +92,13 @@
         .brand .meena { color: var(--meena-red); }
         .brand .marketing { color: var(--meena-white); }
 
-        .server-icon {
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .server-icon, .action-icon {
             cursor: pointer;
             padding: 8px;
             border-radius: 50%;
@@ -101,8 +107,8 @@
             justify-content: center;
             transition: background 0.2s;
         }
-        .server-icon:active { background: var(--yt-border); }
-        .server-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
+        .server-icon:active, .action-icon:active { background: var(--yt-border); }
+        .server-icon svg, .action-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
 
         /* GRID CONTENT */
         main {
@@ -186,7 +192,7 @@
         .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
         .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
 
-        /* SLIDE MODAL */
+        /* SLIDE MODAL RIGHT */
         .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -211,8 +217,24 @@
             flex-direction: column;
         }
 
+        /* SLIDE MODAL LEFT (NEW) */
+        .left-modal {
+            position: fixed;
+            top: 0; left: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100%;
+            background-color: var(--yt-card);
+            z-index: 101;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
         .overlay.active { opacity: 1; visibility: visible; }
         .modal.active { right: 0; }
+        .left-modal.active { left: 0; }
 
         .modal-header {
             padding: 20px;
@@ -276,6 +298,7 @@
             margin-bottom: 10px;
         }
         .btn-danger:active { background: rgba(255, 51, 51, 0.2); }
+        .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Loader for pagination */
         .loading-more {
@@ -359,8 +382,13 @@
                 <span class="meena">Meena</span> <span class="marketing">Marketing</span>
             </div>
         </div>
-        <div class="server-icon" id="btn-open-modal">
-            <svg viewBox="0 0 24 24"><path d="M4 11h16V5H4v6zm2-4h2v2H6V7zm-2 6h16v6H4v-6zm2 2h2v2H6v-2z"></path></svg>
+        <div class="header-actions">
+            <div class="action-icon" id="btn-open-left-modal">
+                <svg viewBox="0 0 24 24"><path d="M15 2H9c-1.1 0-2 .9-2 2v2H3v2h2v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V8h2V6h-4V4c0-1.1-.9-2-2-2zm-4 16H9V10h2v8zm4 0h-2V10h2v8zM15 6H9V4h6v2z"></path></svg>
+            </div>
+            <div class="server-icon" id="btn-open-modal">
+                <svg viewBox="0 0 24 24"><path d="M4 11h16V5H4v6zm2-4h2v2H6V7zm-2 6h16v6H4v-6zm2 2h2v2H6v-2z"></path></svg>
+            </div>
         </div>
     </header>
 
@@ -372,6 +400,26 @@
     </main>
 
     <div class="overlay" id="overlay"></div>
+    
+    <div class="left-modal" id="left-modal">
+        <div class="modal-header">
+            <button class="back-btn" id="btn-close-left-modal">&larr;</button>
+            <h2 style="font-size: 18px;">Storage Cleaner</h2>
+        </div>
+        <div class="modal-content">
+            <div class="stat-box">
+                <div class="stat-label">Old Sellings (> 2 Months)</div>
+                <div class="stat-value" id="ui-old-count">--</div>
+                <div style="font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px;">Old bills safely detected for removal.</div>
+            </div>
+
+            <div class="danger-zone">
+                <div class="stat-label" style="color: #ff3333;">Database Actions</div>
+                <button class="btn-danger" id="btn-delete-old" disabled>🗑️ Delete Old Documents</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="modal">
         <div class="modal-header">
             <button class="back-btn" id="btn-close-modal">&larr;</button>
@@ -416,7 +464,7 @@
 
     <script type="module">
         import { db } from './config.js';
-        import { doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // SMART BACK BUTTON LOGIC
         document.getElementById('smart-back-btn').addEventListener('click', function(e) {
@@ -431,9 +479,12 @@
         // DOM Elements
         const grid = document.getElementById('grid');
         const modal = document.getElementById('modal');
+        const leftModal = document.getElementById('left-modal');
         const overlay = document.getElementById('overlay');
         const btnOpen = document.getElementById('btn-open-modal');
         const btnClose = document.getElementById('btn-close-modal');
+        const btnOpenLeft = document.getElementById('btn-open-left-modal');
+        const btnCloseLeft = document.getElementById('btn-close-left-modal');
         const loadingMore = document.getElementById('loading-more');
         
         // Custom Dialog Elements
@@ -461,11 +512,86 @@
         function closeModal() {
             modal.classList.remove('active');
             overlay.classList.remove('active');
-            // Remove no-scroll if custom dialog is also not open
-            if (!dialogOverlay.classList.contains('active')) {
+            // Remove no-scroll if custom dialog and left modal are also not open
+            if (!dialogOverlay.classList.contains('active') && !leftModal.classList.contains('active')) {
                 document.body.classList.remove('no-scroll');
             }
         }
+
+        // LEFT MODAL & CLEANUP LOGIC (NEW)
+        const uiOldCount = document.getElementById('ui-old-count');
+        const btnDeleteOld = document.getElementById('btn-delete-old');
+        let oldSellingsDocs = [];
+
+        async function fetchOldSellings() {
+            uiOldCount.innerText = "Scanning...";
+            btnDeleteOld.disabled = true;
+            try {
+                const twoMonthsAgo = new Date();
+                twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+                const q = query(collection(db, "sellings"), where("createdAt", "<", twoMonthsAgo));
+                const snap = await getDocs(q);
+                
+                oldSellingsDocs = snap.docs;
+                uiOldCount.innerText = oldSellingsDocs.length;
+                
+                if(oldSellingsDocs.length > 0) {
+                    btnDeleteOld.disabled = false;
+                }
+            } catch (error) {
+                console.error(error);
+                uiOldCount.innerText = "Error";
+            }
+        }
+
+        function openLeftModal() {
+            leftModal.classList.add('active');
+            overlay.classList.add('active');
+            document.body.classList.add('no-scroll');
+            history.pushState({ leftModalOpen: true }, '');
+            
+            // READ OPTIMIZED: only check DB when the panel is actually opened
+            fetchOldSellings();
+        }
+
+        function closeLeftModal() {
+            leftModal.classList.remove('active');
+            overlay.classList.remove('active');
+            if (!dialogOverlay.classList.contains('active') && !modal.classList.contains('active')) {
+                document.body.classList.remove('no-scroll');
+            }
+        }
+
+        btnOpenLeft.addEventListener('click', openLeftModal);
+        btnCloseLeft.addEventListener('click', () => {
+            if (history.state?.leftModalOpen) history.back();
+            else closeLeftModal();
+        });
+
+        btnDeleteOld.addEventListener('click', () => {
+            showCustomDialog(`Are you sure you want to permanently delete ${oldSellingsDocs.length} old documents? This cannot be undone.`, false, async (confirmed) => {
+                if (confirmed) {
+                    btnDeleteOld.disabled = true;
+                    btnDeleteOld.innerText = "Deleting...";
+                    try {
+                        // Batch deletion loops to handle any size without breaching Firestore's 500 limit
+                        for (let i = 0; i < oldSellingsDocs.length; i += 500) {
+                            const batch = writeBatch(db);
+                            const chunk = oldSellingsDocs.slice(i, i + 500);
+                            chunk.forEach(d => batch.delete(d.ref));
+                            await batch.commit();
+                        }
+                        showCustomDialog("Successfully deleted old documents.", true);
+                        fetchOldSellings(); // Refresh the count
+                    } catch (err) {
+                        showCustomDialog("Error deleting documents: " + err.message, true);
+                    } finally {
+                        btnDeleteOld.innerHTML = "🗑️ Delete Old Documents";
+                    }
+                }
+            });
+        });
 
         // Custom Dialog Logic replacing system confirm/alert
         function showCustomDialog(message, isAlert, callback) {
@@ -496,8 +622,8 @@
         function closeCustomDialog(isConfirmed) {
             dialogOverlay.classList.remove('active');
             
-            // Remove no-scroll only if side modal is also closed
-            if (!modal.classList.contains('active')) {
+            // Remove no-scroll only if side modals are also closed
+            if (!modal.classList.contains('active') && !leftModal.classList.contains('active')) {
                 document.body.classList.remove('no-scroll');
             }
             
@@ -513,15 +639,20 @@
         dialogCancel.addEventListener('click', () => closeCustomDialog(false));
         dialogConfirm.addEventListener('click', () => closeCustomDialog(true));
         
-        // Listeners for side modal
+        // Listeners for right side modal
         btnOpen.addEventListener('click', openModal);
         btnClose.addEventListener('click', () => {
             if (history.state?.modalOpen) history.back();
             else closeModal();
         });
+        
         overlay.addEventListener('click', () => {
             if (history.state?.modalOpen) history.back();
-            else closeModal();
+            else if (history.state?.leftModalOpen) history.back();
+            else { 
+                closeModal(); 
+                closeLeftModal(); 
+            }
         });
 
         // Universal Popstate listener overriding previous basic one
@@ -529,13 +660,16 @@
             // First check if the custom dialog is open and close it
             if (dialogOverlay.classList.contains('active')) {
                 dialogOverlay.classList.remove('active');
-                if (!modal.classList.contains('active')) document.body.classList.remove('no-scroll');
+                if (!modal.classList.contains('active') && !leftModal.classList.contains('active')) {
+                    document.body.classList.remove('no-scroll');
+                }
                 if (dialogCallback) dialogCallback(false);
                 dialogCallback = null;
             } 
-            // If custom dialog wasn't open, check if modal needs closing
-            else if (!e.state?.modalOpen && modal.classList.contains('active')) {
-                closeModal();
+            // If custom dialog wasn't open, check if modals need closing
+            else {
+                if (!e.state?.modalOpen && modal.classList.contains('active')) closeModal();
+                if (!e.state?.leftModalOpen && leftModal.classList.contains('active')) closeLeftModal();
             }
         });
 
