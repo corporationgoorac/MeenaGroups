@@ -55,7 +55,16 @@
       padding: 0;
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
+      /* HIDE SCROLLBAR LOGIC START */
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
     }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    *::-webkit-scrollbar {
+      display: none;
+    }
+    /* HIDE SCROLLBAR LOGIC END */
 
     body {
       background-color: var(--bg-color);
@@ -116,8 +125,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-top: 40px;
+      margin-top: 20px;
       margin-bottom: 30px;
+      flex: 1; /* Makes it take up massive central space like GPay */
+      min-height: 25vh;
     }
 
     .amount-label {
@@ -129,9 +140,9 @@
       margin-bottom: 16px;
     }
 
-    /* Upgraded Big Seamless Input */
+    /* Upgraded Big Seamless Input - Google Pay Style */
     .big-amount-input {
-      font-size: 64px;
+      font-size: 84px; /* Increased massively */
       font-weight: 800;
       text-align: center;
       padding: 0;
@@ -140,11 +151,15 @@
       color: var(--text-main);
       width: 100%;
       outline: none;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       caret-color: var(--primary);
+      letter-spacing: -3px;
     }
     .big-amount-input::placeholder {
       color: var(--border-color);
+    }
+    .big-amount-input:focus {
+      transform: scale(1.03); /* Subtle pop on typing */
     }
     
     /* Bonus Feature: Quick Amount Chips */
@@ -200,7 +215,7 @@
       cursor: pointer;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="color"] {
       width: 100%;
       padding: 16px;
       border-radius: 14px;
@@ -402,9 +417,19 @@
 <body>
 
   <div class="top-nav">
-    <button class="back-btn" onclick="window.location.href='index.html'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    </button>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="back-btn" onclick="window.location.href='index.html'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      </button>
+      <!-- NEW: Sleek Icon for Brand Customization Modal -->
+      <button class="header-icon-btn" onclick="openModal('branding-modal')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+      </button>
+    </div>
+
     <div class="nav-title">Receive Payment</div>
     <button class="header-icon-btn" onclick="openModal('manage-upi-modal')">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -435,6 +460,12 @@
         <span id="selected-upi-display">Select an Account...</span>
         <span>▼</span>
       </div>
+    </div>
+    
+    <!-- NEW IDEA: Payment Note / Description Logic -->
+    <div class="input-group">
+      <label>Payment Note (Optional)</label>
+      <input type="text" id="payment-note" placeholder="e.g. Invoice #123" maxlength="50" style="padding: 16px; border-radius: 14px;">
     </div>
 
     <button class="btn-primary" id="generate-btn">Generate QR Code</button>
@@ -479,6 +510,34 @@
     </div>
   </div>
 
+  <!-- NEW: Brand Customization Modal -->
+  <div id="branding-modal" class="modal-slide-side">
+    <div class="modal-header">
+      <div class="modal-title">QR Customization</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    
+    <div style="margin-bottom: 24px;">
+      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Brand Name</label>
+      <input type="text" id="brand-name-input" placeholder="e.g. Meena Groups" style="margin-bottom: 16px;">
+      
+      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">To Text</label>
+      <input type="text" id="to-text-input" placeholder="e.g. To: Meena Groups" style="margin-bottom: 16px;">
+      
+      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">QR Color Config</label>
+      <input type="color" id="qr-color-input" value="#000000" style="padding: 0; border: none; height: 50px; cursor: pointer; margin-bottom: 16px;">
+      
+      <!-- NEW IDEA: QR Background Color Config -->
+      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">QR Background Color</label>
+      <input type="color" id="qr-bg-input" value="#ffffff" style="padding: 0; border: none; height: 50px; cursor: pointer; margin-bottom: 24px;">
+
+      <button class="btn-primary" id="save-branding-btn" style="padding: 12px;">Save Configurations</button>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; text-align: center;">Costs 0 extra reads. Saves directly alongside UPI Config.</p>
+    </div>
+  </div>
+
   <div id="manage-upi-modal" class="modal-slide-side">
     <div class="modal-header">
       <div class="modal-title">Manage UPI IDs</div>
@@ -507,14 +566,14 @@
     </div>
     
     <div class="qr-container" id="qr-export-area">
-      <div class="qr-branding">Meena Groups</div>
+      <div class="qr-branding" id="qr-branding-text">Meena Groups</div>
       <div class="qr-amount-display" id="display-qr-amount">₹0</div>
       
       <div class="qr-box">
         <img id="qr-image" src="" alt="QR Code">
       </div>
       
-      <div style="font-size:14px; font-weight:600; margin-bottom: 16px;">To: Meena Groups</div>
+      <div id="qr-to-text" style="font-size:14px; font-weight:600; margin-bottom: 16px;">To: Meena Groups</div>
       
       <div class="qr-powered">Powered by Goorac Pay Infrastructure</div>
     </div>
@@ -522,6 +581,12 @@
     <button class="btn-share" id="share-btn">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
       Share via WhatsApp
+    </button>
+    
+    <!-- NEW IDEA: Download Button -->
+    <button class="btn-share" id="download-btn" style="margin-top: 12px; background: var(--primary); color: white; border: none;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Download QR Code
     </button>
   </div>
 
@@ -551,11 +616,18 @@
     let upiData = [];
     let selectedUpiId = '';
     let rawQrCanvasData = null; // Store base QR without logo for share export
+    
+    // Global Config State (1 read architecture)
+    let globalBrandName = 'Meena Groups';
+    let globalToText = 'To: Meena Groups';
+    let globalQrColor = '#000000';
+    let globalQrBgColor = '#ffffff'; // NEW CUSTOMIZATION OPTION
 
     // Elements
     const amountInput = document.getElementById('receive-amount');
     const generateBtn = document.getElementById('generate-btn');
     const shareBtn = document.getElementById('share-btn');
+    const downloadBtn = document.getElementById('download-btn'); // NEW ELEMENT
     const selectedUpiDisplay = document.getElementById('selected-upi-display');
     const upiOptionsContainer = document.getElementById('upi-options-container');
     
@@ -631,19 +703,68 @@
       }
     });
 
+    // Integrated 1-Read Data Sync Structure 
     function loadUPIConfig() {
       const upiDocRef = doc(db, 'System', 'upiIDs');
       
       onSnapshot(upiDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          upiData = docSnap.data().ids || [];
+          const data = docSnap.data();
+          upiData = data.ids || [];
+          globalBrandName = data.brandName || 'Meena Groups';
+          globalToText = data.toText || 'To: Meena Groups';
+          globalQrColor = data.qrColor || '#000000';
+          globalQrBgColor = data.qrBgColor || '#ffffff'; // NEW DATA SYNC
+          
+          // Populate Branding Settings Modal seamlessly
+          document.getElementById('brand-name-input').value = globalBrandName;
+          document.getElementById('to-text-input').value = globalToText;
+          document.getElementById('qr-color-input').value = globalQrColor;
+          document.getElementById('qr-bg-input').value = globalQrBgColor; // POPULATE NEW FIELD
+
+          // Propagate variables dynamically to Front-end UI
+          document.getElementById('qr-branding-text').textContent = globalBrandName;
+          document.getElementById('qr-to-text').textContent = globalToText;
+          document.querySelector('.qr-box').style.backgroundColor = globalQrBgColor; // Update visual DOM element
+
         } else {
           upiData = [];
-          setDoc(upiDocRef, { ids: [] }); // Initialize if missing
+          setDoc(upiDocRef, { ids: [], brandName: 'Meena Groups', toText: 'To: Meena Groups', qrColor: '#000000', qrBgColor: '#ffffff' }); // Initialize if missing
         }
         renderUPIList();
       });
     }
+    
+    // NEW Feature: Save Brand Customization to DB (Updates same single document)
+    document.getElementById('save-branding-btn').addEventListener('click', async () => {
+      const bName = document.getElementById('brand-name-input').value.trim();
+      const tText = document.getElementById('to-text-input').value.trim();
+      const qColor = document.getElementById('qr-color-input').value;
+      const qBgColor = document.getElementById('qr-bg-input').value; // NEW VALUE RETRIEVAL
+      
+      if (!bName || !tText) {
+        showCustomAlert("Fields cannot be empty.");
+        return;
+      }
+
+      const btn = document.getElementById('save-branding-btn');
+      btn.textContent = 'Saving...';
+      
+      try {
+        await setDoc(doc(db, 'System', 'upiIDs'), { 
+           ids: upiData, 
+           brandName: bName, 
+           toText: tText, 
+           qrColor: qColor,
+           qrBgColor: qBgColor // SAVING NEW PROPERTY
+        });
+        showCustomAlert("Configurations Successfully Updated.");
+        closeModal();
+      } catch (e) {
+        showCustomAlert("Failed to save settings.");
+      }
+      btn.textContent = 'Save Configurations';
+    });
 
     window.selectUpi = function(upi, name) {
         selectedUpiId = upi;
@@ -684,7 +805,7 @@
       
       // Auto-select first item if nothing is selected
       if(upiData.length > 0 && !selectedUpiId) {
-          window.selectUpi(upiData.upi, upiData.name);
+          window.selectUpi(upiData[0].upi, upiData[0].name);
       } else if (upiData.length === 0) {
           selectedUpiId = '';
           selectedUpiDisplay.textContent = 'Select an Account...';
@@ -704,7 +825,13 @@
       const newArray = [...upiData, { name, upi }];
       
       try {
-        await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
+        await setDoc(doc(db, 'System', 'upiIDs'), { 
+            ids: newArray, 
+            brandName: globalBrandName, 
+            toText: globalToText, 
+            qrColor: globalQrColor,
+            qrBgColor: globalQrBgColor
+        });
         newUpiName.value = '';
         newUpiId.value = '';
       } catch (e) {
@@ -719,7 +846,13 @@
           newArray.splice(index, 1);
           
           try {
-            await setDoc(doc(db, 'System', 'upiIDs'), { ids: newArray });
+            await setDoc(doc(db, 'System', 'upiIDs'), { 
+                ids: newArray, 
+                brandName: globalBrandName, 
+                toText: globalToText, 
+                qrColor: globalQrColor,
+                qrBgColor: globalQrBgColor
+            });
             if(selectedUpiId === upiData[index].upi) selectedUpiId = ''; // reset if active deleted
           } catch(e) {
             showCustomAlert("Failed to remove.");
@@ -730,11 +863,13 @@
     // Advanced QR Generation with Center Logo Canvas Merging
     async function createCompositeQR(intentStr) {
        return new Promise((resolve) => {
-           // 1. Generate base QR
+           // 1. Generate base QR (Now with custom Color Config)
            const qr = new QRious({
                value: intentStr,
                size: 600, // Generate high-res base
-               level: 'H' // High error correction required so covering the center doesn't break it
+               level: 'H', // High error correction required so covering the center doesn't break it
+               foreground: globalQrColor, // Dynamic Custom Feature Addition
+               background: globalQrBgColor // NEW IDEA: Dynamic Background Hook
            });
            
            rawQrCanvasData = qr.toDataURL('image/png');
@@ -755,8 +890,8 @@
                const center = (600 - logoSize) / 2;
                const circleRadius = (logoSize / 2) + 10;
                
-               // Draw solid white circle behind logo to mask QR dots
-               ctx.fillStyle = '#ffffff';
+               // Draw solid background circle behind logo to mask QR dots
+               ctx.fillStyle = globalQrBgColor; // UPDATED to match background
                ctx.beginPath();
                ctx.arc(300, 300, circleRadius, 0, 2 * Math.PI);
                ctx.fill();
@@ -765,12 +900,14 @@
                if (logoEl.complete && logoEl.naturalHeight !== 0) {
                    ctx.drawImage(logoEl, center, center, logoSize, logoSize);
                } else {
-                   // Fallback Text Logo if image missing
-                   ctx.fillStyle = '#10b981';
+                   // Fallback Text Logo if image missing - Scaled Dynamically to new BrandName
+                   // ctx.fillStyle = var(--primary) || '#10b981'; // ORIGINAL BROKEN LINE (KEPT BUT COMMENTED AS INSTRUCTED)
+                   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#10b981'; // JS FIX APPLIED HERE
                    ctx.font = 'bold 24px Inter';
                    ctx.textAlign = 'center';
                    ctx.textBaseline = 'middle';
-                   ctx.fillText('MEENA', 300, 300);
+                   // Use first letter or word fallback mapping to global DB state
+                   ctx.fillText(globalBrandName.split(' ')[0].substring(0, 6).toUpperCase(), 300, 300);
                }
                
                resolve(canvas.toDataURL('image/png'));
@@ -780,6 +917,7 @@
 
     generateBtn.addEventListener('click', async () => {
       const rawAmt = amountInput.value.replace(/,/g, '');
+      const noteInputVal = document.getElementById('payment-note').value.trim(); // NEW FEATURE: Note string
 
       if (!rawAmt || parseInt(rawAmt) <= 0) {
         showCustomAlert("Please enter a valid amount.");
@@ -794,10 +932,11 @@
       
       generateBtn.textContent = 'Generating...';
 
-      // Standard UPI Intent URI string (Hardcoded Meena Groups)
-      const intentStr = `upi://pay?pa=${selectedUpiId}&pn=Meena%20Groups&am=${rawAmt}&cu=INR`;
+      // Advanced Upgrade: Fully dynamic Intent using DB Configuration Brand Name and added Note string
+      const noteStr = noteInputVal ? `&tn=${encodeURIComponent(noteInputVal)}` : '';
+      const intentStr = `upi://pay?pa=${selectedUpiId}&pn=${encodeURIComponent(globalBrandName)}&am=${rawAmt}&cu=INR${noteStr}`;
 
-      // Draw QR with custom Meena Groups center Logo
+      // Draw QR with custom dynamic center Logo
       const finalQrDataUrl = await createCompositeQR(intentStr);
       
       // Update Modal UI
@@ -808,18 +947,11 @@
       openModal('qr-display-modal');
       
       // Trigger strong vibration mapping to success
-      try { if ('vibrate' in navigator) navigator.vibrate(); } catch(e) {}
+      try { if ('vibrate' in navigator) navigator.vibrate([200]); } catch(e) {}
     });
 
-    // High Resolution Sharing Logic via Canvas API
-    shareBtn.addEventListener('click', async () => {
-      const rawAmt = amountInput.value.replace(/,/g, '');
-      const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
-      
-      shareBtn.innerHTML = 'Generating...';
-      shareBtn.disabled = true;
-
-      try {
+    // Extracting core poster generation logic to a reusable function to DRY up code
+    async function createHighResPosterCanvas(rawAmt, formattedAmt) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = 1080;
@@ -832,9 +964,12 @@
         
         ctx.fillStyle = '#050505';
         ctx.font = 'bold 72px Inter, sans-serif';
-        ctx.fillText('Meena Groups', canvas.width / 2, 250);
+        // Now fully dynamic replacing static text
+        ctx.fillText(globalBrandName, canvas.width / 2, 250);
 
-        ctx.fillStyle = '#10b981';
+        // Fetch primary color using the fixed js-computed strategy 
+        const primeColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#10b981';
+        ctx.fillStyle = primeColor;
         ctx.font = '900 130px Inter, sans-serif';
         ctx.fillText(`₹${formattedAmt}`, canvas.width / 2, 420);
 
@@ -847,7 +982,7 @@
         const boxX = (canvas.width - boxSize) / 2;
         const boxY = 550;
         
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = globalQrBgColor; // Matched to new custom bg feature
         ctx.shadowColor = 'rgba(0,0,0,0.1)';
         ctx.shadowBlur = 40;
         ctx.shadowOffsetY = 15;
@@ -866,19 +1001,36 @@
         ctx.fillStyle = '#65676b';
         ctx.font = 'bold 32px Inter, sans-serif';
         ctx.fillText('POWERED BY GOORAC PAY INFRASTRUCTURE', canvas.width / 2, 1350);
+        
+        return canvas;
+    }
+
+    // High Resolution Sharing Logic via Canvas API
+    shareBtn.addEventListener('click', async () => {
+      const rawAmt = amountInput.value.replace(/,/g, '');
+      const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
+      
+      shareBtn.innerHTML = 'Generating...';
+      shareBtn.disabled = true;
+
+      try {
+        const canvas = await createHighResPosterCanvas(rawAmt, formattedAmt);
 
         canvas.toBlob(async (blob) => {
-          const file = new File([blob], `Meena_Groups_Payment_₹${rawAmt}.png`, { type: 'image/png' });
+          // Dynamic filename updated
+          const safeFileName = globalBrandName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          const file = new File([blob], `${safeFileName}_Payment_₹${rawAmt}.png`, { type: 'image/png' });
+          
           const shareData = {
-            title: 'Meena Groups Payment',
-            text: `Please complete the payment of ₹${formattedAmt} to Meena Groups using the attached QR code.`,
+            title: `${globalBrandName} Payment`,
+            text: `Please complete the payment of ₹${formattedAmt} to ${globalBrandName} using the attached QR code.`,
             files: [file]
           };
 
           if (navigator.canShare && navigator.canShare(shareData)) {
             await navigator.share(shareData);
           } else {
-            showCustomAlert("Your device doesn't support direct image sharing. You can long-press the QR code above to save it.");
+            showCustomAlert("Your device doesn't support direct image sharing. Use the Download button instead.");
           }
           
           shareBtn.innerHTML = `
@@ -893,6 +1045,36 @@
         showCustomAlert("Failed to generate sharing image.");
         shareBtn.innerHTML = `Share via WhatsApp`;
         shareBtn.disabled = false;
+      }
+    });
+    
+    // NEW IDEA LOGIC: Download High-Res Poster to Device directly
+    downloadBtn.addEventListener('click', async () => {
+      const rawAmt = amountInput.value.replace(/,/g, '');
+      const formattedAmt = parseInt(rawAmt).toLocaleString('en-IN');
+      
+      downloadBtn.innerHTML = 'Saving...';
+      downloadBtn.disabled = true;
+
+      try {
+        const canvas = await createHighResPosterCanvas(rawAmt, formattedAmt);
+        const dataURL = canvas.toDataURL('image/png');
+        
+        const a = document.createElement('a');
+        const safeFileName = globalBrandName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        a.download = `${safeFileName}_Payment_₹${rawAmt}.png`;
+        a.href = dataURL;
+        a.click();
+        
+      } catch (err) {
+        console.error(err);
+        showCustomAlert("Failed to download image.");
+      } finally {
+        downloadBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download QR Code
+        `;
+        downloadBtn.disabled = false;
       }
     });
 
