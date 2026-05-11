@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
@@ -19,15 +19,15 @@
       --surface-color: #f9fafb;
       --text-main: #050505;
       --text-muted: #65676b;
-      --primary: #10b981;
-      --primary-hover: #059669;
+      --primary: #1a73e8; /* Google Pay Blue styling */
+      --primary-hover: #1557b0;
       --danger: #e41e3f;
       --danger-bg: #ffe4e8;
-      --border-color: #ced0d4;
-      --input-bg: #f0f2f5;
+      --border-color: #e0e0e0;
+      --input-bg: #ffffff;
       --input-text: #050505;
-      --nav-bg: rgba(255, 255, 255, 0.85);
-      --modal-overlay: rgba(0,0,0,0.4);
+      --nav-bg: rgba(255, 255, 255, 0.95);
+      --modal-overlay: rgba(0,0,0,0.5);
       --skeleton-bg: #e2e5e7;
     }
 
@@ -35,16 +35,16 @@
       :root {
         --bg-color: #121212;
         --surface-color: #1e1e1e;
-        --text-main: #e4e6eb;
-        --text-muted: #a3a3a3;
-        --primary: #2ea043;
-        --border-color: #333333;
-        --input-bg: #2d2d2d;
-        --input-text: #e4e6eb;
-        --nav-bg: rgba(18, 18, 18, 0.85);
-        --danger: #ff6b6b;
-        --danger-bg: rgba(255, 107, 107, 0.1);
-        --modal-overlay: rgba(0,0,0,0.7);
+        --text-main: #e8eaed;
+        --text-muted: #9aa0a6;
+        --primary: #8ab4f8;
+        --border-color: #3c4043;
+        --input-bg: #1e1e1e;
+        --input-text: #e8eaed;
+        --nav-bg: rgba(18, 18, 18, 0.95);
+        --danger: #f28b82;
+        --danger-bg: rgba(242, 139, 130, 0.1);
+        --modal-overlay: rgba(0,0,0,0.8);
         --skeleton-bg: #2d2d2d;
       }
     }
@@ -53,25 +53,23 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      /* HIDE SCROLLBAR LOGIC START */
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
     
-    /* Hide scrollbar for Chrome, Safari and Opera */
     *::-webkit-scrollbar {
       display: none;
     }
-    /* HIDE SCROLLBAR LOGIC END */
 
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
       display: flex;
       flex-direction: column;
-      height: 100%; /* Changed to 100dvh for better mobile keyboard handling */
+      /* 100dvh is critical for mobile browsers to avoid hiding bottom elements */
+      height: 100dvh; 
       width: 100vw;
       overflow: hidden;
       transition: background-color 0.3s ease;
@@ -82,16 +80,19 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 18px;
-      background-color: var(--bg-color);
+      padding: max(16px, env(safe-area-inset-top)) 20px 16px 20px;
+      background-color: var(--nav-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       z-index: 10;
       flex-shrink: 0;
+      border-bottom: 1px solid transparent; /* Keeps it clean */
     }
 
     .nav-title {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
     }
 
     .back-btn, .header-icon-btn {
@@ -101,150 +102,164 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      padding: 8px 0;
-      transition: transform 0.2s;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      transition: background-color 0.2s, transform 0.2s;
     }
     .header-icon-btn:active, .back-btn:active {
-      transform: scale(0.9);
+      background-color: var(--surface-color);
+      transform: scale(0.95);
     }
 
-    /* Main Container */
- .app-container {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  /* Use env(safe-area-inset-bottom) to respect the home bar on iOS/Android */
-  padding: 20px 24px calc(24px + env(safe-area-inset-bottom)) 24px; 
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow-y: auto;
-  /* Smooth scrolling for iOS */
-  -webkit-overflow-scrolling: touch; 
-}
+    /* Main Container layout fixed for flex structure */
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; 
+    }
 
-
+    /* Google Pay style amount centering */
     .amount-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 5px;
-  flex: 1;
-  min-height: 150px; /* Ensures it doesn't collapse, but doesn't force overflow */
-}
-
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 200px;
+      padding: 20px;
+    }
 
     .amount-label {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 15px;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
     }
 
-    /* Upgraded Big Seamless Input - Google Pay Style */
+    /* Google Pay Style Input */
     .big-amount-input {
-      font-size: 72px; /* Adjusted slightly so big numbers fit mobile screens */
-      font-weight: 800;
+      font-size: 80px; 
+      font-weight: 700;
       text-align: center;
-      padding: 10px 0;
+      padding: 0;
       background: transparent;
       border: none;
       box-shadow: none;
       color: var(--text-main);
       width: 100%;
       outline: none;
-      transition: opacity 0.2s, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       caret-color: var(--primary);
       -webkit-appearance: none;
+      letter-spacing: -2px;
     }
     .big-amount-input::placeholder {
       color: var(--border-color);
     }
     .big-amount-input:focus {
-      transform: scale(1.03); /* Subtle pop on typing */
+      transform: scale(1.02);
     }
 
-    .input-group {
-      margin-bottom: 24px;
+    /* Bottom Controls Grouping */
+    .controls-section {
+      padding: 0 24px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
+
     .input-group label {
       display: block;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--text-main);
+      color: var(--text-muted);
       margin-bottom: 8px;
+      margin-left: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    /* Custom Dropdown Trigger Replacing Select */
-    .custom-select-trigger {
+    /* Refined form inputs */
+    .custom-select-trigger, input[type="text"]:not(.big-amount-input), input[type="color"] {
       width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      border: 2px solid var(--border-color);
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
       background-color: var(--input-bg);
       color: var(--input-text);
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .custom-select-trigger {
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
     }
 
-    input[type="text"], input[type="color"] {
-      width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      border: 2px solid transparent;
-      background-color: var(--input-bg);
-      color: var(--input-text);
-      font-size: 16px;
-      font-weight: 600;
-      outline: none;
-    }
-    input[type="text"]:focus {
+    input[type="text"]:not(.big-amount-input):focus {
       border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
+    }
+
+    /* Fixed Bottom Action Bar for PWA standard */
+    .bottom-action-bar {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      /* Env handles iOS home bar spacing */
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      background-color: var(--bg-color);
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
     }
 
     .btn-primary {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  border: none;
-  background-color: var(--primary);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(46, 160, 67, 0.2);
-  transition: transform 0.2s;
-  flex-shrink: 0; /* ADD THIS */
-}
-
-    
-    /* Fixed Button to Bottom */
-    #generate-btn {
-      margin-top: auto;
+      width: 100%;
+      padding: 18px;
+      border-radius: 100px; /* Google Pay pill shape */
+      border: none;
+      background-color: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+      transition: transform 0.2s, background-color 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    
     .btn-primary:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
+      background-color: var(--primary-hover);
     }
+    
     .btn-danger {
       background-color: var(--danger);
-      color: white;
+      box-shadow: 0 4px 12px rgba(228, 30, 63, 0.2);
     }
 
-    /* Modals */
+    /* Modals Restyling */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background-color: var(--modal-overlay);
       opacity: 0; visibility: hidden;
       transition: opacity 0.3s ease; z-index: 2000;
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
     .modal-overlay.active { opacity: 1; visibility: visible; }
 
@@ -253,7 +268,7 @@
       background-color: var(--bg-color);
       padding: 24px; overflow-y: auto;
       transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       z-index: 2001;
       box-shadow: -5px 0 25px rgba(0,0,0,0.1);
     }
@@ -262,43 +277,44 @@
     .modal-sheet {
       position: fixed; bottom: 0; left: 0; right: 0;
       background-color: var(--bg-color);
-      border-top-left-radius: 24px; border-top-right-radius: 24px;
-      padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom));
+      border-top-left-radius: 28px; border-top-right-radius: 28px;
+      padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom));
       transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       z-index: 2001;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
       display: flex;
       flex-direction: column;
+      max-height: 90dvh;
     }
-    .modal-sheet.full-height { height: 90vh; }
+    .modal-sheet.full-height { height: 95dvh; }
     .modal-sheet.active { transform: translateY(0); }
-    
-    /* Top tier z-index for alerts */
     .modal-sheet.alert-level { z-index: 3000; }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .modal-title { font-size: 20px; font-weight: 700; }
     .close-modal {
-      background: var(--input-bg); border: none; border-radius: 50%;
-      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      background: var(--surface-color); border: none; border-radius: 50%;
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
       color: var(--text-main); cursor: pointer;
     }
 
-    /* UPI Selector List */
+    /* UPI Option Styling */
     .upi-option-item {
-      padding: 16px;
+      padding: 18px 16px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       cursor: pointer;
+      transition: background-color 0.2s;
+      border-radius: 12px;
     }
+    .upi-option-item:hover { background-color: var(--surface-color); }
     .upi-option-item:last-child { border-bottom: none; }
-    .upi-option-name { font-weight: 700; font-size: 16px; }
-    .upi-option-id { font-size: 13px; color: var(--text-muted); }
+    .upi-option-name { font-weight: 600; font-size: 16px; }
+    .upi-option-id { font-size: 14px; color: var(--text-muted); }
 
-    /* UPI Management List */
     .upi-list {
       margin-top: 24px;
       border-top: 1px solid var(--border-color);
@@ -307,7 +323,7 @@
     .upi-item {
       background: var(--surface-color);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 16px;
       margin-bottom: 12px;
       display: flex;
@@ -315,71 +331,72 @@
       align-items: center;
     }
     .upi-item-info { display: flex; flex-direction: column; gap: 4px; }
-    .upi-item-name { font-weight: 700; font-size: 15px; }
+    .upi-item-name { font-weight: 600; font-size: 15px; }
     .upi-item-id { font-size: 13px; color: var(--text-muted); }
     .btn-remove {
       background: var(--danger-bg);
       color: var(--danger);
       border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 100px;
+      font-weight: 600;
       font-size: 12px;
       cursor: pointer;
     }
 
-    /* Google Pay Style QR UI */
+    /* QR UI Overhaul */
     .qr-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: var(--surface-color);
+      background-color: var(--bg-color);
       border-radius: 24px;
-      padding: 32px 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-      border: 1px solid var(--border-color);
+      padding: 20px;
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
     }
     
     .qr-branding {
-      font-size: 24px;
-      font-weight: 800;
+      font-size: 20px;
+      font-weight: 600;
       margin-bottom: 8px;
       text-align: center;
+      color: var(--text-muted);
     }
     .qr-amount-display {
-      font-size: 42px;
-      font-weight: 800;
-      color: var(--primary);
-      margin-bottom: 24px;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 32px;
       text-align: center;
+      letter-spacing: -1px;
     }
     
     .qr-box {
       background: #ffffff; 
       padding: 16px;
-      border-radius: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border-radius: 24px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
       margin-bottom: 24px;
-      border: 2px solid #e2e5e7;
+      border: 1px solid var(--border-color);
       position: relative;
     }
     .qr-box img {
       display: block;
-      width: 240px;
-      height: 240px;
+      width: 260px;
+      height: 260px;
     }
 
     .qr-powered {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-top: auto;
+      padding-top: 24px;
     }
 
     .btn-share {
@@ -387,16 +404,20 @@
       color: var(--text-main);
       border: 1px solid var(--border-color);
       width: 100%;
-      padding: 16px;
-      border-radius: 14px;
+      padding: 18px;
+      border-radius: 100px;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 12px;
+      transition: transform 0.2s;
+    }
+    .btn-share:active {
+      transform: scale(0.97);
     }
 
   </style>
@@ -404,24 +425,21 @@
 <body>
 
   <div class="top-nav">
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <button class="back-btn" onclick="window.location.href='index.html'">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-      </button>
-    </div>
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
 
     <div class="nav-title">Receive Payment</div>
     
-    <!-- Relocated icons to the right side -->
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 4px;">
       <button class="header-icon-btn" onclick="openModal('branding-modal')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 20h9"></path>
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
         </svg>
       </button>
       <button class="header-icon-btn" onclick="openModal('manage-upi-modal')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="5" width="20" height="14" rx="2"></rect>
           <line x1="2" y1="10" x2="22" y2="10"></line>
           <line x1="7" y1="15" x2="7.01" y2="15"></line>
@@ -437,20 +455,26 @@
       <input type="text" inputmode="numeric" id="receive-amount" class="big-amount-input" placeholder="₹0">
     </div>
 
-    <div class="input-group">
-      <label>Receive to Account</label>
-      <div class="custom-select-trigger" onclick="openModal('select-upi-modal')">
-        <span id="selected-upi-display">Select an Account...</span>
-        <span>▼</span>
+    <div class="controls-section">
+      <div class="input-group">
+        <label>Receive to Account</label>
+        <div class="custom-select-trigger" onclick="openModal('select-upi-modal')">
+          <span id="selected-upi-display">Select an Account...</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label>Payment Note (Optional)</label>
+        <input type="text" id="payment-note" placeholder="What's this for?" maxlength="50">
       </div>
     </div>
-    
-    <div class="input-group">
-      <label>Payment Note (Optional)</label>
-      <input type="text" id="payment-note" placeholder="e.g. Invoice #123" maxlength="50" style="padding: 16px; border-radius: 14px;">
-    </div>
   </div>
+
+  <div class="bottom-action-bar">
     <button class="btn-primary" id="generate-btn">Generate QR Code</button>
+  </div>
+
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
 
   <div id="custom-alert-modal" class="modal-sheet alert-level">
@@ -460,7 +484,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
-    <p id="custom-alert-text" style="margin-bottom: 24px; line-height: 1.5;"></p>
+    <p id="custom-alert-text" style="margin-bottom: 24px; line-height: 1.5; font-size: 16px;"></p>
     <button class="btn-primary" onclick="closeModal()">OK</button>
   </div>
 
@@ -473,7 +497,7 @@
     </div>
     <p id="custom-confirm-text" style="margin-bottom: 24px; line-height: 1.5; color: var(--danger); font-weight: 600;"></p>
     <div style="display: flex; gap: 12px;">
-      <button class="btn-primary" style="background: var(--input-bg); color: var(--text-main);" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" style="background: var(--surface-color); color: var(--text-main); box-shadow: none; border: 1px solid var(--border-color);" onclick="closeModal()">Cancel</button>
       <button class="btn-primary btn-danger" id="custom-confirm-btn">Yes, Remove</button>
     </div>
   </div>
@@ -499,28 +523,28 @@
     </div>
     
     <div style="margin-bottom: 24px;">
-      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Brand Name</label>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">BRAND NAME</label>
       <input type="text" id="brand-name-input" placeholder="e.g. Meena Groups" style="margin-bottom: 16px;">
       
-      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">To Text</label>
+      <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">TO TEXT</label>
       <input type="text" id="to-text-input" placeholder="e.g. To: Meena Groups" style="margin-bottom: 16px;">
       
       <div style="display: flex; gap: 12px; margin-bottom: 16px;">
         <div style="flex: 1;">
-          <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Gradient Start</label>
-          <input type="color" id="qr-color-input" value="#000000" style="padding: 0; border: none; height: 50px; cursor: pointer;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">GRADIENT START</label>
+          <input type="color" id="qr-color-input" value="#000000" style="padding: 0; border: none; height: 50px; cursor: pointer; border-radius: 12px; width: 100%;">
         </div>
         <div style="flex: 1;">
-          <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Gradient End</label>
-          <input type="color" id="qr-color-input-2" value="#10b981" style="padding: 0; border: none; height: 50px; cursor: pointer;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">GRADIENT END</label>
+          <input type="color" id="qr-color-input-2" value="#10b981" style="padding: 0; border: none; height: 50px; cursor: pointer; border-radius: 12px; width: 100%;">
         </div>
       </div>
       
-      <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">QR Background Color</label>
-      <input type="color" id="qr-bg-input" value="#ffffff" style="padding: 0; border: none; height: 50px; cursor: pointer; margin-bottom: 24px;">
+      <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">QR BACKGROUND COLOR</label>
+      <input type="color" id="qr-bg-input" value="#ffffff" style="padding: 0; border: none; height: 50px; cursor: pointer; border-radius: 12px; width: 100%; margin-bottom: 24px;">
 
-      <button class="btn-primary" id="save-branding-btn" style="padding: 12px;">Save Configurations</button>
-      <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; text-align: center;">Costs 0 extra reads. Saves directly alongside UPI Config.</p>
+      <button class="btn-primary" id="save-branding-btn">Save Configurations</button>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 16px; text-align: center;">Costs 0 extra reads. Saves directly alongside UPI Config.</p>
     </div>
   </div>
 
@@ -534,8 +558,8 @@
     
     <div style="margin-bottom: 24px;">
       <input type="text" id="new-upi-name" placeholder="Display Name (e.g. HDFC Current)" style="margin-bottom: 12px;">
-      <input type="text" id="new-upi-id" placeholder="UPI ID (e.g. you@bank)" style="margin-bottom: 12px;">
-      <button class="btn-primary" id="add-upi-btn" style="padding: 12px;">Add Account</button>
+      <input type="text" id="new-upi-id" placeholder="UPI ID (e.g. you@bank)" style="margin-bottom: 16px;">
+      <button class="btn-primary" id="add-upi-btn">Add Account</button>
     </div>
 
     <div class="upi-list" id="upi-list-container">
@@ -544,7 +568,7 @@
   </div>
 
   <div id="qr-display-modal" class="modal-sheet full-height">
-    <div class="modal-header" style="margin-bottom: 16px;">
+    <div class="modal-header" style="margin-bottom: 0;">
       <div class="modal-title">Scan to Pay</div>
       <button class="close-modal" onclick="closeModal()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -559,20 +583,22 @@
         <img id="qr-image" src="" alt="QR Code">
       </div>
       
-      <div id="qr-to-text" style="font-size:14px; font-weight:600; margin-bottom: 16px;">To: Meena Groups</div>
+      <div id="qr-to-text" style="font-size:16px; font-weight:600; margin-bottom: 16px; color: var(--text-main);">To: Meena Groups</div>
       
       <div class="qr-powered">Powered by Goorac Pay Infrastructure</div>
     </div>
 
-    <button class="btn-share" id="share-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-      Share via WhatsApp
-    </button>
-    
-    <button class="btn-share" id="download-btn" style="margin-top: 12px; background: var(--primary); color: white; border: none;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-      Download QR Code
-    </button>
+    <div style="padding-top: 16px;">
+      <button class="btn-share" id="share-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        Share via WhatsApp
+      </button>
+      
+      <button class="btn-share" id="download-btn" style="background: var(--primary); color: white; border: none; box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Download QR Code
+      </button>
+    </div>
   </div>
 
   <img id="center-qr-logo" src="qr-logo.png" style="display: none;" alt="logo">
