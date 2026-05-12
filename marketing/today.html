@@ -1422,10 +1422,17 @@
             btnPrint.disabled = true;
 
             try {
-                // Ignore date range entirely as requested. Fetching whole DB collection.
-                const q = collection(db, "sellings");
-                
+            // NEW LOGIC: Query Firestore directly using string comparison to save reads
+            // We assume your exact bill format starts with "GST-"
+            const targetInvString = "GST-" + targetInvNum; 
+
+            const q = query(
+                collection(db, "sellings"),
+                where("invoiceNo", ">=", targetInvString),
+                orderBy("invoiceNo", "asc")
+            );
                 const snap = await getDocs(q);
+
                 let matchCount = 0;
 
                 // Push valid records into array to SORT them sequentially
