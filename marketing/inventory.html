@@ -90,11 +90,11 @@
         .inv-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: var(--shadow-lg); background: var(--surface-hover); }
         .inv-card.out-of-stock { opacity: 0.7; border-color: rgba(239, 68, 68, 0.4); }
         
-        /* Model number long text UI fix */
+        /* Model number long text UI fix - UPDATED FOR MULTILINE WRAPPING */
         .inv-info { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0; } /* min-width:0 crucial for ellipsis */
         .inv-name { font-size: 1.15em; font-weight: 600; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
-        /* Sleek model ID badge that truncates gracefully */
-        .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.5px; text-transform: uppercase;}
+        /* Sleek model ID badge that wraps gracefully */
+        .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; display: inline-block; width: fit-content; max-width: 100%; white-space: normal; word-wrap: break-word; word-break: break-word; border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4; }
         
         .inv-price { color: var(--success-color); font-weight: 700; font-size: 1.1em; margin-top: 6px; display: flex; align-items: center; gap: 8px;}
         .inv-mrp { text-decoration: line-through; font-size: 0.75em; color: var(--text-secondary); font-weight: 500; }
@@ -114,11 +114,12 @@
         
         .fab-add { background: linear-gradient(135deg, var(--accent-color), #0f766e); box-shadow: 0 8px 20px rgba(13, 148, 136, 0.4); }
         .fab-bill { background: linear-gradient(135deg, var(--success-color), #059669); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); }
-        .fab-warn { background: linear-gradient(135deg, var(--warning-color), #d97706); position: absolute; bottom: 75px; left: 25px; width: 48px; height: 48px; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4); }
+        /* FAB Alignment Updated for perfect centering (58-48)/2 = 5px offset */
+        .fab-warn { background: linear-gradient(135deg, var(--warning-color), #d97706); position: absolute; bottom: 75px; left: 5px; width: 48px; height: 48px; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4); }
         .fab-warn .material-symbols-outlined { font-size: 24px; }
         
         /* New Today FAB CSS */
-        .fab-today { background: linear-gradient(135deg, #8b5cf6, #6d28d9); position: absolute; bottom: 75px; right: 8px; width: 48px; height: 48px; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4); }
+        .fab-today { background: linear-gradient(135deg, #8b5cf6, #6d28d9); position: absolute; bottom: 75px; right: 5px; width: 48px; height: 48px; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4); }
         .fab-today .material-symbols-outlined { font-size: 24px; }
 
         /* Slide-in Modal - Advanced styling */
@@ -230,7 +231,7 @@
             </div>
         </div>
         <div class="header-actions">
-            <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="openAdminPanel()" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">admin_panel_settings</span>
+            <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="vibrateApp(40); openAdminPanel()" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">admin_panel_settings</span>
         </div>
     </header>
 
@@ -260,19 +261,19 @@
 
     <div class="fab-container">
         <div style="position: relative;">
-            <div class="fab fab-bill" onclick="window.location.href='../billing/bill.html'" title="Create Bill">
+            <div class="fab fab-bill" onclick="vibrateApp(40); window.location.href='../billing/bill.html'" title="Create Bill">
                 <span class="material-symbols-outlined">receipt_long</span>
             </div>
-            <div class="fab fab-warn" onclick="filterLowStock()" id="btnLowStock" title="Low Stock Alerts">
+            <div class="fab fab-warn" onclick="vibrateApp(40); filterLowStock()" id="btnLowStock" title="Low Stock Alerts">
                 <span class="material-symbols-outlined">warning</span>
             </div>
         </div>
         
         <div style="position: relative;">
-            <div class="fab fab-today" onclick="window.location.href='today.html'" title="Today's View">
+            <div class="fab fab-today" onclick="vibrateApp(40); window.location.href='today.html'" title="Today's View">
                 <span class="material-symbols-outlined">calendar_today</span>
             </div>
-            <div class="fab fab-add" onclick="openModal('modalAddInventory')" title="Add Products">
+            <div class="fab fab-add" onclick="vibrateApp(40); openModal('modalAddInventory')" title="Add Products">
                 <span class="material-symbols-outlined">add</span>
             </div>
         </div>
@@ -280,7 +281,7 @@
 
     <div class="modal" id="modalAddInventory">
         <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
             <h2>Add to Inventory</h2>
         </div>
         
@@ -334,7 +335,7 @@
 
     <div class="modal" id="modalEditInventory">
         <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
             <h2>Edit Inventory</h2>
         </div>
         
@@ -375,7 +376,7 @@
 
     <div class="modal" id="modalProductInfo">
         <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
             <h2>Product History</h2>
         </div>
         <div class="form-group">
@@ -406,7 +407,7 @@
 
     <div class="modal" id="modalAdmin">
         <div class="modal-header">
-            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
             <h2>Admin Control Panel</h2>
         </div>
         
@@ -469,12 +470,19 @@
     </div>
 
     <script type="module">
+        // 0. Global Vibration Helper
+        window.vibrateApp = function(pattern) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        };
+
         // 1. Service Worker Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installPopup.style.display = 'flex'; });
-        document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
-        document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { vibrateApp(50); installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+        document.getElementById('closeBtn').addEventListener('click', () => { vibrateApp(50); installPopup.style.display = 'none'; });
 
         // 2. Firebase Imports 
         import { db } from './config.js';
@@ -546,6 +554,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
+            vibrateApp(type === "error" ? [50, 50, 100] : [40, 50]);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -558,6 +567,7 @@
 
         // Modal Logic
         window.openModal = function(modalId) {
+            vibrateApp(20);
             document.getElementById(modalId).classList.add('active');
             history.pushState({ modal: modalId }, '', `#${modalId}`);
         };
@@ -587,6 +597,7 @@
         }
 
         window.pressAdminKey = function(val) {
+            vibrateApp(15);
             if (val === 'C') {
                 currentAdminPin = "";
             } else if (val === 'D') {
@@ -599,6 +610,7 @@
 
             if (currentAdminPin.length === 4) {
                 if (currentAdminPin === CORRECT_PIN) {
+                    vibrateApp([30, 50]);
                     setTimeout(unlockAdminDashboard, 200);
                 } else {
                     showToast("Incorrect PIN. Access Denied.", "error");
@@ -650,6 +662,7 @@
         }
 
         window.triggerMassDelete = async function() {
+            vibrateApp([100, 50, 100, 50, 200]);
             const countStr = document.getElementById('deadStockCount').innerText;
             const count = parseInt(countStr);
             if (isNaN(count) || count === 0) return;
@@ -721,6 +734,7 @@
         // --- NEW: CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL ---
         let confirmResolve = null;
         window.openConfirmModal = function(title, message, isPrompt = false, defaultValue = "", confirmColor = "var(--meena-red)", confirmText = "Confirm") {
+            vibrateApp(40);
             return new Promise((resolve) => {
                 document.getElementById('confirmTitle').innerText = title;
                 document.getElementById('confirmMessage').innerText = message;
@@ -754,6 +768,7 @@
 
                 const onPopState = () => {
                     if (confirmResolve) {
+                        vibrateApp(20);
                         confirmResolve(null); 
                         cleanup();
                     }
@@ -769,9 +784,23 @@
                 };
             });
         };
+        
+        document.getElementById('btnCancelConfirm').addEventListener('click', () => { vibrateApp(20); if(confirmResolve) confirmResolve(null); });
+        document.getElementById('btnAcceptConfirm').addEventListener('click', () => { 
+            vibrateApp(30);
+            if(confirmResolve) {
+                const input = document.getElementById('confirmInput');
+                if(input.style.display !== 'none') {
+                    confirmResolve(input.value);
+                } else {
+                    confirmResolve(true);
+                }
+            } 
+        });
 
         // --- NEW: OPEN INFO MODAL (WITH 12-HR FORMAT) ---
         window.openInfoModal = function(id) {
+            vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
@@ -823,6 +852,7 @@
 
         // --- EDIT AND DELETE FUNCTIONS ---
         window.editQty = async function(id, currentQty) {
+            vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
@@ -852,6 +882,7 @@
         };
 
         window.editItemFull = async function(id) {
+            vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
@@ -866,6 +897,7 @@
         };
 
         document.getElementById('btnSaveEditItem').addEventListener('click', async () => {
+            vibrateApp(40);
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
             const newModel = document.getElementById('editModel').value.trim();
@@ -916,6 +948,7 @@
         });
 
         window.deleteItem = async function(id, name) {
+            vibrateApp(40);
             const isConfirmed = await openConfirmModal("Delete Product", `Are you sure you want to completely delete "${name}"? This action cannot be undone.`, false, "", "var(--meena-red)", "Delete Product");
             if (!isConfirmed) return;
             
@@ -1122,9 +1155,9 @@
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
-                                <button class="action-btn info" onclick="openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
-                                <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
-                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                                <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
+                                <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </div>
                         <div class="inv-qty ${qtyClass}">
@@ -1167,9 +1200,9 @@
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
-                                <button class="action-btn info" onclick="openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
-                                <button class="action-btn edit" onclick="editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
-                                <button class="action-btn delete" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                                <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
+                                <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </div>
                         <div class="inv-qty ${qtyClass}">
@@ -1184,6 +1217,7 @@
 
         // --- MODIFIED Low Stock Filter Logic (Now Uses Pagination Engine) ---
         window.filterLowStock = async function() {
+            vibrateApp(40);
             const btn = document.getElementById('btnLowStock');
             const searchBox = document.getElementById('searchInventory');
             
@@ -1285,6 +1319,7 @@
         let pendingCart = [];
 
         document.getElementById('btnAddToList').addEventListener('click', async () => {
+            vibrateApp(40);
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
             const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
@@ -1357,6 +1392,7 @@
         });
 
         window.removePendingItem = function(index) {
+            vibrateApp(30);
             pendingCart.splice(index, 1);
             renderPendingList();
         };
@@ -1395,6 +1431,7 @@
 
         // Final Save to Firestore
         document.getElementById('btnSaveInventory').addEventListener('click', async () => {
+            vibrateApp([50, 50]);
             if (pendingCart.length === 0) return;
             
             const btnSave = document.getElementById('btnSaveInventory');
