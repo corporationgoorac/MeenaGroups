@@ -237,33 +237,18 @@
 
         async function fetchLastBillAndProcess() {
             try {
-                let snapshot;
-                
-                // 1st Attempt: Assume your collection has a proper timestamp field
-                let q = query(collection(db, "sellings"), orderBy("timestamp", "desc"), limit(1));
-                snapshot = await getDocs(q);
+                // FIXED LOGIC: Based exactly on today.html (using orderBy "date" instead of "timestamp")
+                const q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(1));
+                const snapshot = await getDocs(q);
 
-                // 2nd Attempt: If the timestamp is missing, Firestore drops the documents. So we fetch without the timestamp filter.
-                if (snapshot.empty) {
-                    q = query(collection(db, "sellings"));
-                    snapshot = await getDocs(q);
-                }
-
-                // 3rd Attempt: In case your collection is named 'seeling' instead of 'sellings'
-                if (snapshot.empty) {
-                    q = query(collection(db, "seeling"));
-                    snapshot = await getDocs(q);
-                }
-
-                // If ALL fail, the database is truly empty
                 if (snapshot.empty) {
                     showError("No recent sales found.");
                     return;
                 }
 
-                // CRITICAL FIX: Extract the last document from the snapshot array perfectly
+                // Get the exact document data
                 const docsArray = snapshot.docs;
-                const lastSale = docsArray[docsArray.length - 1].data();
+                const lastSale = docsArray.data();
                 
                 processRewards(lastSale);
 
@@ -274,10 +259,25 @@
         }
 
         function processRewards(saleData) {
-            const customerName = saleData.customerName || "Walk-in Customer";
+            // Updated to handle exact data structure commonly found in today.html/bill.html
+            const customerName = saleData.customer?.name || saleData.customerName || "Walk-in Customer";
             const invoiceNo = saleData.invoiceNo || "N/A";
-            const grandTotal = parseFloat(saleData.grandTotal) || 0;
-            const billDiscount = parseFloat(saleData.discount) || 0;
+            
+            // Handles both grandTotal stored directly or inside a totals object
+            let grandTotal = 0;
+            if (saleData.totals && saleData.totals.grand) {
+                grandTotal = parseFloat(saleData.totals.grand);
+            } else {
+                grandTotal = parseFloat(saleData.grandTotal || 0);
+            }
+
+            // Handle discount
+            let billDiscount = 0;
+            if (saleData.totals && saleData.totals.discount) {
+                billDiscount = parseFloat(saleData.totals.discount);
+            } else {
+                billDiscount = parseFloat(saleData.discount || 0);
+            }
 
             const subTotalBeforeDiscount = grandTotal + billDiscount;
             const discountPercentage = subTotalBeforeDiscount > 0 ? (billDiscount / subTotalBeforeDiscount) * 100 : 0;
@@ -295,7 +295,6 @@
             const aiAlertBox = document.getElementById('aiAlertBox');
             const aiAlertText = document.getElementById('aiAlertText');
 
-            // CRITICAL FIX: Re-added the,, index numbers to the array selection
             if (grandTotal >= 20000) {
                 earnedCards = [VOUCHER_CARDS, VOUCHER_CARDS, VOUCHER_CARDS, VOUCHER_CARDS];
             } else if (grandTotal >= 15000) {
@@ -313,7 +312,7 @@
                 aiAlertBox.style.display = 'flex';
             } 
             else if (discountPercentage >= 5 && earnedCards.length > 0) {
-                earnedCards = [VOUCHER_CARDS]; // Fixed index here as well
+                earnedCards = [VOUCHER_CARDS]; 
                 aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Existing counter discount detected. Reward scaled down to Base Tier (Card 1).";
                 aiAlertBox.style.display = 'flex';
             }
