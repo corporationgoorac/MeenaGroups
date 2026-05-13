@@ -12,7 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700;900&display=swap" rel="stylesheet" />
 
     <style>
-        /* Shared Core Theme (App UI) */
+        * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }
+        
+        /* Shared Core Theme (Matching today.html) */
         :root {
             --bg-color: #121212;
             --surface-color: #212121;
@@ -20,57 +22,60 @@
             --text-color: #ffffff;
             --text-secondary: #aaaaaa;
             --meena-red: #ff3333;
+            --marketing-white: #ffffff;
             --accent-color: #0056b3;
             --success-color: #00c853;
             --warning-color: #ff9800;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
             --border-color: #333333;
         }
 
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Noto Sans Tamil', sans-serif;
-        }
-
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        
         body { 
+            font-family: 'Segoe UI', 'Noto Sans Tamil', sans-serif; 
             background-color: var(--bg-color); 
             color: var(--text-color); 
-            margin: 0; 
-            padding: 20px;
             display: flex; 
             flex-direction: column; 
+        }
+
+        /* Standard App Header (Copied exactly from today.html) */
+        header { 
+            background-color: var(--surface-color); 
+            padding: 12px 20px; 
+            display: flex; 
+            justify-content: space-between; 
             align-items: center; 
-            min-height: 100vh;
-        }
-
-        .container { 
-            background: var(--surface-color); 
-            border: 1px solid var(--border-color); 
-            border-radius: 12px; 
-            padding: 20px; 
+            position: sticky; 
+            top: 0; 
+            z-index: 500; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5); 
+            flex-shrink: 0; 
             width: 100%; 
-            max-width: 500px; 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            margin-top: 10px;
         }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
+        .brand-container { display: flex; align-items: center; gap: 10px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+        
+        .header-right { display: flex; align-items: center; }
 
-        .brand-header {
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+        /* Main Center Container */
+        .container { 
+            padding: 20px; 
+            max-width: 500px; /* Kept slim for the rewards cards layout */
+            margin: 20px auto; 
+            width: 100%; 
+            background: var(--bg-color); 
+            border-radius: 12px; 
         }
-
-        .brand-header h1 {
-            margin: 0;
-            font-size: 1.5em;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .brand-header span.meena { color: var(--meena-red); }
 
         /* Skeleton Loading Styles */
         .skeleton-wrapper { display: block; }
@@ -85,38 +90,40 @@
             100% { background-position: -200% 0; }
         }
         .sk-title { height: 24px; width: 60%; margin: 0 auto 15px auto; }
-        .sk-box { height: 80px; width: 100%; margin-bottom: 20px; border-radius: 8px; }
-        .sk-card { height: 100px; width: 100%; margin-bottom: 15px; border-radius: 12px; }
+        .sk-box { height: 110px; width: 100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .sk-card { height: 90px; width: 100%; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
 
         /* Actual Content Styles */
         .content-wrapper { display: none; }
 
         .bill-summary {
-            background: var(--surface-light);
+            background: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
             text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        .bill-summary h2 { margin: 0 0 5px 0; font-size: 1.2em; color: var(--success-color); }
+        .bill-summary h2 { margin: 0 0 8px 0; font-size: 1.2em; color: var(--success-color); display: flex; align-items: center; justify-content: center; gap: 6px; }
         .bill-summary p { margin: 5px 0; color: var(--text-secondary); font-size: 0.95em; }
-        .bill-summary .total { font-size: 1.3em; font-weight: bold; color: #fff; margin-top: 10px;}
+        .bill-summary .total { font-size: 1.5em; font-weight: 900; color: var(--marketing-white); margin-top: 10px; letter-spacing: 0.5px;}
         .bill-summary .discount-warning { color: var(--warning-color); font-size: 0.85em; margin-top: 5px; }
 
         .ai-alert {
             background: rgba(255, 152, 0, 0.1);
             border: 1px solid var(--warning-color);
             color: var(--warning-color);
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px 15px;
+            border-radius: 8px;
             font-size: 0.85em;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: none;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             text-align: left;
+            line-height: 1.4;
         }
 
         /* Voucher Cards Grid */
@@ -130,7 +137,7 @@
             background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
             border: 1px dashed var(--warning-color);
             border-radius: 12px;
-            padding: 15px 20px;
+            padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -141,40 +148,21 @@
         }
 
         .card-left { text-align: left; }
-        .card-name { font-size: 1.1em; font-weight: bold; color: #fff; margin-bottom: 5px; }
-        .card-rules { font-size: 0.75em; color: var(--text-secondary); line-height: 1.4; }
+        .card-name { font-size: 1.2em; font-weight: bold; color: var(--marketing-white); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+        .card-rules { font-size: 0.75em; color: var(--text-secondary); line-height: 1.5; }
         
         .card-right { text-align: right; }
         .card-value { font-size: 1.8em; font-weight: 900; color: var(--warning-color); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
 
         .no-voucher {
             text-align: center;
-            padding: 20px;
-            background: var(--surface-light);
-            border-radius: 8px;
+            padding: 30px 20px;
+            background: var(--surface-color);
+            border-radius: 12px;
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-
-        .btn-back {
-            background: var(--surface-light);
-            color: #fff;
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1em;
-            margin-top: 25px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            transition: background 0.2s;
-        }
-
-        .btn-back:hover { background: #333; }
 
         @keyframes slideUp {
             to { transform: translateY(0); opacity: 1; }
@@ -183,14 +171,28 @@
 </head>
 <body>
 
-    <div class="container">
-        <div class="brand-header">
-            <h1><span class="meena">Meena</span> Marketing</h1>
+    <header>
+        <div class="header-left">
+            <a href="bill.html" class="back-btn">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <div class="brand-container">
+                <div class="brand-text">
+                    <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                    <span class="page-title">Smart Rewards</span>
+                </div>
+            </div>
         </div>
+        <div class="header-right">
+            <span class="material-symbols-outlined" style="color: var(--warning-color);">workspace_premium</span>
+        </div>
+    </header>
 
+    <div class="container">
+        
         <div class="skeleton-wrapper" id="skeletonLoader">
-            <div class="skeleton sk-title"></div>
             <div class="skeleton sk-box"></div>
+            <div class="skeleton sk-title" style="margin-top: 20px;"></div>
             <div class="skeleton sk-card"></div>
             <div class="skeleton sk-card"></div>
         </div>
@@ -198,29 +200,27 @@
         <div class="content-wrapper" id="mainContent">
             
             <div class="bill-summary">
-                <h2 id="uiStatus">Reward Analysis</h2>
-                <p id="uiCustomerName">Customer Name</p>
+                <h2 id="uiStatus"><span class="material-symbols-outlined">check_circle</span> Analysis Complete</h2>
+                <p id="uiCustomerName">Fetching Name...</p>
                 <p id="uiInvoice">Inv: ---</p>
                 <div class="total" id="uiTotal">₹0.00</div>
                 <div class="discount-warning" id="uiDiscountInfo"></div>
             </div>
 
             <div class="ai-alert" id="aiAlertBox">
-                <span class="material-symbols-outlined">smart_toy</span>
+                <span class="material-symbols-outlined" style="font-size: 1.5em;">smart_toy</span>
                 <span id="aiAlertText"></span>
             </div>
 
-            <h3 id="rewardTitle" style="display:none; font-size:1.1em; margin-bottom: 10px; text-align: center;">Vouchers Unlocked:</h3>
+            <h3 id="rewardTitle" style="display:none; font-size:1em; margin-bottom: 12px; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Vouchers Unlocked</h3>
+            
             <div class="cards-container" id="cardsContainer"></div>
 
             <div class="no-voucher" id="noVoucherBox" style="display:none;">
-                <span class="material-symbols-outlined" style="font-size: 2.5em; color: #555; margin-bottom: 10px;">remove_shopping_cart</span>
-                <br>No eligible rewards for this purchase.
+                <span class="material-symbols-outlined" style="font-size: 2.5em; color: #555; margin-bottom: 10px;">block</span>
+                <br>No eligible rewards available for this specific purchase.
             </div>
 
-            <a href="bill.html" class="btn-back">
-                <span class="material-symbols-outlined">arrow_back</span> Back to Billing
-            </a>
         </div>
     </div>
 
@@ -228,7 +228,6 @@
         import { db } from './config.js';
         import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        // Define the cards array based on your exact amounts
         const VOUCHER_CARDS = [
             { name: "Card 1", amount: 150 },
             { name: "Card 2", amount: 200 },
@@ -246,6 +245,7 @@
                     return;
                 }
 
+                // FIXED TYPO: accessing the specific document
                 const lastSale = snapshot.docs.data();
                 processRewards(lastSale);
 
@@ -261,20 +261,18 @@
             const grandTotal = parseFloat(saleData.grandTotal) || 0;
             const billDiscount = parseFloat(saleData.discount) || 0;
 
-            // Calculate original total to find discount percentage
             const subTotalBeforeDiscount = grandTotal + billDiscount;
             const discountPercentage = subTotalBeforeDiscount > 0 ? (billDiscount / subTotalBeforeDiscount) * 100 : 0;
 
-            // Update UI with Bill Data
+            // UI Update
             document.getElementById('uiCustomerName').innerText = customerName;
             document.getElementById('uiInvoice').innerText = `Invoice: ${invoiceNo}`;
             document.getElementById('uiTotal').innerText = `₹${grandTotal.toFixed(2)}`;
             
             if (billDiscount > 0) {
-                document.getElementById('uiDiscountInfo').innerText = `Counter Discount Given: ₹${billDiscount.toFixed(2)} (${discountPercentage.toFixed(1)}%)`;
+                document.getElementById('uiDiscountInfo').innerText = `Counter Discount: ₹${billDiscount.toFixed(2)} (${discountPercentage.toFixed(1)}%)`;
             }
 
-            // --- ADVANCED REWARD LOGIC ---
             let earnedCards = [];
             const aiAlertBox = document.getElementById('aiAlertBox');
             const aiAlertText = document.getElementById('aiAlertText');
@@ -290,24 +288,20 @@
                 earnedCards = [VOUCHER_CARDS];
             }
 
-            // 2. The Discount Penalty Logic
+            // 2. Discount Penalty Logic
             if (discountPercentage >= 10) {
-                // If they got >= 10% discount, wipe out all cards.
                 earnedCards = [];
-                aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Customer received maximum counter discount. Additional vouchers disabled to protect margins.";
+                aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Maximum counter discount detected. Additional vouchers disabled to protect margins.";
                 aiAlertBox.style.display = 'flex';
             } 
             else if (discountPercentage >= 5 && earnedCards.length > 0) {
-                // If they got >= 5% discount, drop them to just Card 1 (₹150) no matter how much they spent.
                 earnedCards = [VOUCHER_CARDS];
                 aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Existing counter discount detected. Reward scaled down to Base Tier (Card 1).";
                 aiAlertBox.style.display = 'flex';
             }
 
-            // Render the UI
             renderCards(earnedCards);
             
-            // Hide Skeleton, Show Content
             document.getElementById('skeletonLoader').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
         }
@@ -317,7 +311,7 @@
             const noVoucherBox = document.getElementById('noVoucherBox');
             const rewardTitle = document.getElementById('rewardTitle');
             
-            container.innerHTML = ''; // Clear previous
+            container.innerHTML = ''; 
 
             if (cardsArray.length === 0) {
                 noVoucherBox.style.display = 'block';
@@ -329,11 +323,11 @@
             cardsArray.forEach((card, index) => {
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'voucher-card';
-                cardDiv.style.animationDelay = `${index * 0.15}s`; // Stagger animation
+                cardDiv.style.animationDelay = `${index * 0.15}s`; 
                 
                 cardDiv.innerHTML = `
                     <div class="card-left">
-                        <div class="card-name">${card.name}</div>
+                        <div class="card-name"><span class="material-symbols-outlined" style="font-size: 1.1em; color: var(--success-color);">redeem</span> ${card.name}</div>
                         <div class="card-rules">
                             • Valid for 2 Months<br>
                             • One coupon per purchase
@@ -350,15 +344,15 @@
         function showError(msg) {
             document.getElementById('skeletonLoader').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('uiStatus').innerText = "System Error";
+            document.getElementById('uiStatus').innerHTML = '<span class="material-symbols-outlined">error</span> System Error';
             document.getElementById('uiStatus').style.color = "var(--meena-red)";
             document.getElementById('uiCustomerName').innerText = msg;
             document.getElementById('uiTotal').style.display = 'none';
         }
 
-        // Simulate network delay to show off the skeleton loading effect, then fetch data
+        // Slight network delay to simulate processing and trigger skeleton load perfectly
         window.onload = () => {
-            setTimeout(fetchLastBillAndProcess, 1000); 
+            setTimeout(fetchLastBillAndProcess, 800); 
         };
     </script>
 </body>
