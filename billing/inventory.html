@@ -38,6 +38,23 @@
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
+        /* USER-SELECT: NONE applied to header, icons, floating action buttons to disable copy */
+        header, 
+        .brand-container, 
+        .brand-text, 
+        .logo-img, 
+        .material-symbols-outlined, 
+        .fab-container, 
+        .fab, 
+        .action-btn, 
+        .header-actions {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+            -webkit-touch-callout: none; /* iOS Safari */
+        }
+
         /* Standard Header with Glassmorphism */
         header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
         .brand-container { display: flex; align-items: center; gap: 14px; }
@@ -77,8 +94,8 @@
         .search-bar-container input { border: none; background: transparent; width: 100%; padding: 18px 12px; color: white; font-size: 1.05em; outline: none; font-family: 'Inter', sans-serif;}
         .search-bar-container input::placeholder { color: var(--text-secondary); }
 
-        /* Skeleton Loading Animation */
-        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, #1e293b 0px, #334155 40px, #1e293b 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        /* Skeleton Loading Animation - Improved for smoother shimmer */
+        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
         /* Inventory List Grid (Fixed Side Scroll) */
@@ -231,7 +248,10 @@
             </div>
         </div>
         <div class="header-actions">
-            <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="vibrateApp(40); openAdminPanel()" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">admin_panel_settings</span>
+            <!-- Admin Icon Hidden as Requested -->
+            <span class="material-symbols-outlined" style="display: none; cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="vibrateApp(40); openAdminPanel()" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">admin_panel_settings</span>
+            <!-- New Sleek Offer Icon -->
+            <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--warning-color); transition: all 0.2s ease; filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));" onclick="vibrateApp(40); window.location.href='offer.html'" onmouseover="this.style.color='white'; this.style.transform='scale(1.1)'" onmouseout="this.style.color='var(--warning-color)'; this.style.transform='scale(1)'">local_offer</span>
         </div>
     </header>
 
@@ -979,13 +999,16 @@
             let skeletonHtml = '';
             for(let i=0; i<6; i++) {
                 skeletonHtml += `
-                <div class="inv-card">
-                    <div class="inv-info" style="width:100%">
-                        <div class="skeleton" style="height:22px; width:75%; margin-bottom:8px; border-radius:6px;"></div>
-                        <div class="skeleton" style="height:18px; width:45%; margin-bottom:12px; border-radius:6px;"></div>
-                        <div class="skeleton" style="height:20px; width:35%; border-radius:6px;"></div>
+                <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4);">
+                    <div class="inv-info" style="width:100%; justify-content: center;">
+                        <div class="skeleton" style="height:24px; width:85%; margin-bottom:12px; border-radius:6px;"></div>
+                        <div class="skeleton" style="height:18px; width:45%; margin-bottom:14px; border-radius:6px;"></div>
+                        <div style="display: flex; gap: 8px;">
+                            <div class="skeleton" style="height:20px; width:25%; border-radius:6px;"></div>
+                            <div class="skeleton" style="height:20px; width:35%; border-radius:6px;"></div>
+                        </div>
                     </div>
-                    <div class="skeleton" style="height:55px; width:55px; border-radius:12px; margin-left:15px; flex-shrink:0;"></div>
+                    <div class="skeleton" style="height:65px; width:65px; border-radius:14px; margin-left:15px; flex-shrink:0;"></div>
                 </div>`;
             }
             grid.innerHTML = skeletonHtml;
