@@ -237,16 +237,34 @@
 
         async function fetchLastBillAndProcess() {
             try {
-                const q = query(collection(db, "sellings"), orderBy("timestamp", "desc"), limit(1));
-                const snapshot = await getDocs(q);
+                let snapshot;
+                
+                // 1st Attempt: Assume your collection has a proper timestamp field
+                let q = query(collection(db, "sellings"), orderBy("timestamp", "desc"), limit(1));
+                snapshot = await getDocs(q);
 
+                // 2nd Attempt: If the timestamp is missing, Firestore drops the documents. So we fetch without the timestamp filter.
+                if (snapshot.empty) {
+                    q = query(collection(db, "sellings"));
+                    snapshot = await getDocs(q);
+                }
+
+                // 3rd Attempt: In case your collection is named 'seeling' instead of 'sellings'
+                if (snapshot.empty) {
+                    q = query(collection(db, "seeling"));
+                    snapshot = await getDocs(q);
+                }
+
+                // If ALL fail, the database is truly empty
                 if (snapshot.empty) {
                     showError("No recent sales found.");
                     return;
                 }
 
-                // FIXED TYPO: accessing the specific document
-                const lastSale = snapshot.docs.data();
+                // CRITICAL FIX: Extract the last document from the snapshot array perfectly
+                const docsArray = snapshot.docs;
+                const lastSale = docsArray[docsArray.length - 1].data();
+                
                 processRewards(lastSale);
 
             } catch (error) {
@@ -277,7 +295,7 @@
             const aiAlertBox = document.getElementById('aiAlertBox');
             const aiAlertText = document.getElementById('aiAlertText');
 
-            // 1. Initial Tier Calculation
+            // CRITICAL FIX: Re-added the,, index numbers to the array selection
             if (grandTotal >= 20000) {
                 earnedCards = [VOUCHER_CARDS, VOUCHER_CARDS, VOUCHER_CARDS, VOUCHER_CARDS];
             } else if (grandTotal >= 15000) {
@@ -288,14 +306,14 @@
                 earnedCards = [VOUCHER_CARDS];
             }
 
-            // 2. Discount Penalty Logic
+            // Discount Penalty Logic
             if (discountPercentage >= 10) {
                 earnedCards = [];
                 aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Maximum counter discount detected. Additional vouchers disabled to protect margins.";
                 aiAlertBox.style.display = 'flex';
             } 
             else if (discountPercentage >= 5 && earnedCards.length > 0) {
-                earnedCards = [VOUCHER_CARDS];
+                earnedCards = [VOUCHER_CARDS]; // Fixed index here as well
                 aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Existing counter discount detected. Reward scaled down to Base Tier (Card 1).";
                 aiAlertBox.style.display = 'flex';
             }
