@@ -14,21 +14,24 @@
     <style>
         * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }
         
-        /* Shared Core Theme (Matching today.html) */
+        /* Shared Core Theme */
         :root {
-            --bg-color: #121212;
-            --surface-color: #212121;
+            --bg-color: #0f0f0f;
+            --surface-color: #1a1a1a;
             --surface-light: #2a2a2a;
             --text-color: #ffffff;
             --text-secondary: #aaaaaa;
             --meena-red: #ff3333;
             --marketing-white: #ffffff;
-            --accent-color: #0056b3;
-            --success-color: #00c853;
+            --success-color: #00e676;
             --warning-color: #ff9800;
-            --nav-bg: #1a1a1a;
-            --input-bg: #2a2a2a;
             --border-color: #333333;
+            
+            /* Tier Colors */
+            --tier-silver: #c0c0c0;
+            --tier-gold: #ffd700;
+            --tier-platinum: #e5e4e2;
+            --tier-diamond: #00e5ff;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -40,21 +43,22 @@
             color: var(--text-color); 
             display: flex; 
             flex-direction: column; 
+            /* ANTI-COPY & SELECT PROTECTIONS */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-touch-callout: none;
         }
 
-        /* Standard App Header (Copied exactly from today.html) */
+        /* Standard App Header */
         header { 
             background-color: var(--surface-color); 
             padding: 12px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            position: sticky; 
-            top: 0; 
-            z-index: 500; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5); 
-            flex-shrink: 0; 
-            width: 100%; 
+            display: flex; justify-content: space-between; align-items: center; 
+            position: sticky; top: 0; z-index: 500; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8); 
+            width: 100%; border-bottom: 1px solid #333;
         }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
@@ -64,112 +68,157 @@
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
-        
         .header-right { display: flex; align-items: center; }
 
         /* Main Center Container */
-        .container { 
-            padding: 20px; 
-            max-width: 500px; /* Kept slim for the rewards cards layout */
-            margin: 20px auto; 
-            width: 100%; 
-            background: var(--bg-color); 
-            border-radius: 12px; 
-        }
+        .container { padding: 20px; max-width: 500px; margin: 10px auto; width: 100%; }
 
-        /* Skeleton Loading Styles */
+        /* --- SKELETON REDESIGN --- */
         .skeleton-wrapper { display: block; }
         .skeleton {
-            background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+            background: linear-gradient(90deg, #1f1f1f 25%, #333 50%, #1f1f1f 75%);
             background-size: 200% 100%;
             animation: skeleton-loading 1.5s infinite;
-            border-radius: 6px;
+            border-radius: 12px;
         }
         @keyframes skeleton-loading {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
-        .sk-title { height: 24px; width: 60%; margin: 0 auto 15px auto; }
-        .sk-box { height: 110px; width: 100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .sk-card { height: 90px; width: 100%; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .sk-hero { height: 160px; width: 100%; margin-bottom: 25px; border-radius: 16px; border: 1px solid var(--border-color); }
+        .sk-alert { height: 50px; width: 100%; margin-bottom: 20px; border-radius: 8px; }
+        .sk-card { height: 85px; width: 100%; margin-bottom: 15px; border-radius: 12px; }
 
         /* Actual Content Styles */
         .content-wrapper { display: none; }
 
+        /* --- TIERED CUSTOMER BILL SUMMARY --- */
         .bill-summary {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
+            background: #151515;
+            border-radius: 16px;
+            padding: 25px 20px;
             margin-bottom: 25px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+            transition: all 0.4s ease;
         }
 
-        .bill-summary h2 { margin: 0 0 8px 0; font-size: 1.2em; color: var(--success-color); display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .bill-summary p { margin: 5px 0; color: var(--text-secondary); font-size: 0.95em; }
-        .bill-summary .total { font-size: 1.5em; font-weight: 900; color: var(--marketing-white); margin-top: 10px; letter-spacing: 0.5px;}
-        .bill-summary .discount-warning { color: var(--warning-color); font-size: 0.85em; margin-top: 5px; }
+        /* Tier Dynamic Borders & Glows */
+        .bill-summary.tier-none {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .bill-summary.tier-silver {
+            border: 2px dashed var(--tier-silver);
+            box-shadow: 0 0 20px rgba(192, 192, 192, 0.15), inset 0 0 10px rgba(192, 192, 192, 0.05);
+        }
+        .bill-summary.tier-gold {
+            border: 3px dotted var(--tier-gold);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.25), inset 0 0 15px rgba(255, 215, 0, 0.1);
+        }
+        .bill-summary.tier-platinum {
+            border: 4px double var(--tier-platinum);
+            box-shadow: 0 0 30px rgba(229, 228, 226, 0.35), inset 0 0 20px rgba(229, 228, 226, 0.15);
+        }
+        .bill-summary.tier-diamond {
+            border: 2px solid var(--tier-diamond);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4), inset 0 0 25px rgba(0, 229, 255, 0.2);
+            animation: diamondPulse 2s infinite alternate;
+        }
 
+        @keyframes diamondPulse {
+            0% { box-shadow: 0 0 25px rgba(0, 229, 255, 0.4), inset 0 0 15px rgba(0, 229, 255, 0.2); }
+            100% { box-shadow: 0 0 45px rgba(0, 229, 255, 0.7), inset 0 0 30px rgba(0, 229, 255, 0.4); }
+        }
+
+        /* Customer Profile Typography */
+        .tier-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface-color);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: none;
+        }
+        .bill-summary.tier-silver .tier-badge { display: inline-block; color: var(--tier-silver); border: 1px dashed var(--tier-silver); }
+        .bill-summary.tier-gold .tier-badge { display: inline-block; color: var(--tier-gold); border: 1px dotted var(--tier-gold); }
+        .bill-summary.tier-platinum .tier-badge { display: inline-block; color: #333; background: var(--tier-platinum); }
+        .bill-summary.tier-diamond .tier-badge { display: inline-block; color: #000; background: var(--tier-diamond); text-shadow: none; box-shadow: 0 0 10px var(--tier-diamond); }
+
+        .bill-summary h2 { margin: 10px 0 5px 0; font-size: 1.6em; color: var(--marketing-white); font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .bill-summary p.invoice-meta { margin: 0; color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px;}
+        .bill-summary .total { font-size: 2.2em; font-weight: 900; color: var(--success-color); margin-top: 15px; letter-spacing: 0.5px; text-shadow: 0 0 15px rgba(0, 230, 118, 0.2);}
+        .bill-summary .discount-warning { color: var(--warning-color); font-size: 0.85em; margin-top: 8px; font-weight: bold; background: rgba(255, 152, 0, 0.1); display: inline-block; padding: 4px 12px; border-radius: 6px;}
+
+        /* AI Alert Box */
         .ai-alert {
-            background: rgba(255, 152, 0, 0.1);
-            border: 1px solid var(--warning-color);
-            color: var(--warning-color);
-            padding: 12px 15px;
-            border-radius: 8px;
+            padding: 14px 16px;
+            border-radius: 10px;
             font-size: 0.85em;
             margin-bottom: 25px;
             display: none;
-            align-items: center;
-            gap: 10px;
+            align-items: flex-start;
+            gap: 12px;
             text-align: left;
-            line-height: 1.4;
+            line-height: 1.5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
         }
+        .ai-alert.bad { background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); color: #ff6b6b; }
+        .ai-alert.warn { background: rgba(255, 152, 0, 0.1); border: 1px solid var(--warning-color); color: #ffb74d; }
+        .ai-alert.good { background: rgba(0, 230, 118, 0.1); border: 1px solid var(--success-color); color: #69f0ae; }
 
         /* Voucher Cards Grid */
-        .cards-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .cards-container { display: flex; flex-direction: column; gap: 15px; }
 
         .voucher-card {
-            background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
-            border: 1px dashed var(--warning-color);
+            background: linear-gradient(145deg, #222, #111);
+            border: 1px solid #444;
             border-radius: 12px;
-            padding: 18px 20px;
+            padding: 16px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: slideUp 0.4s ease-out forwards;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(30px);
+            position: relative;
+            overflow: hidden;
         }
 
-        .card-left { text-align: left; }
-        .card-name { font-size: 1.2em; font-weight: bold; color: var(--marketing-white); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+        /* Subtle shine effect over cards */
+        .voucher-card::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            animation: shine 4s infinite;
+        }
+
+        @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+
+        .card-left { text-align: left; z-index: 1; }
+        .card-name { font-size: 1.15em; font-weight: 900; color: var(--marketing-white); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
         .card-rules { font-size: 0.75em; color: var(--text-secondary); line-height: 1.5; }
         
-        .card-right { text-align: right; }
-        .card-value { font-size: 1.8em; font-weight: 900; color: var(--warning-color); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .card-right { text-align: right; z-index: 1; }
+        .card-value { font-size: 1.9em; font-weight: 900; color: var(--success-color); text-shadow: 0 2px 5px rgba(0,0,0,0.9); }
 
         .no-voucher {
-            text-align: center;
-            padding: 30px 20px;
-            background: var(--surface-color);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
+            text-align: center; padding: 40px 20px; background: var(--surface-color);
+            border-radius: 16px; border: 1px solid var(--border-color); color: var(--text-secondary);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        @keyframes slideUp {
-            to { transform: translateY(0); opacity: 1; }
-        }
+        @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
 
     <header>
         <div class="header-left">
@@ -184,41 +233,42 @@
             </div>
         </div>
         <div class="header-right">
-            <span class="material-symbols-outlined" style="color: var(--warning-color);">workspace_premium</span>
+            <span class="material-symbols-outlined" style="color: var(--tier-gold);">workspace_premium</span>
         </div>
     </header>
 
     <div class="container">
         
         <div class="skeleton-wrapper" id="skeletonLoader">
-            <div class="skeleton sk-box"></div>
-            <div class="skeleton sk-title" style="margin-top: 20px;"></div>
+            <div class="skeleton sk-hero"></div>
+            <div class="skeleton sk-alert"></div>
             <div class="skeleton sk-card"></div>
             <div class="skeleton sk-card"></div>
         </div>
 
         <div class="content-wrapper" id="mainContent">
             
-            <div class="bill-summary">
-                <h2 id="uiStatus"><span class="material-symbols-outlined">check_circle</span> Analysis Complete</h2>
-                <p id="uiCustomerName">Fetching Name...</p>
-                <p id="uiInvoice">Inv: ---</p>
+            <div class="bill-summary tier-none" id="customerHeroBox">
+                <div class="tier-badge" id="uiTierBadge">Tier</div>
+                <p class="invoice-meta" id="uiInvoice">Inv: ---</p>
+                <h2 id="uiCustomerName">Fetching Name...</h2>
                 <div class="total" id="uiTotal">₹0.00</div>
-                <div class="discount-warning" id="uiDiscountInfo"></div>
+                <div class="discount-warning" id="uiDiscountInfo" style="display:none;"></div>
             </div>
 
             <div class="ai-alert" id="aiAlertBox">
-                <span class="material-symbols-outlined" style="font-size: 1.5em;">smart_toy</span>
+                <span class="material-symbols-outlined" style="font-size: 1.8em; margin-top: 2px;" id="aiIcon">smart_toy</span>
                 <span id="aiAlertText"></span>
             </div>
 
-            <h3 id="rewardTitle" style="display:none; font-size:1em; margin-bottom: 12px; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Vouchers Unlocked</h3>
+            <h3 id="rewardTitle" style="display:none; font-size:0.9em; margin-bottom: 15px; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Unlocked Rewards</h3>
             
             <div class="cards-container" id="cardsContainer"></div>
 
             <div class="no-voucher" id="noVoucherBox" style="display:none;">
-                <span class="material-symbols-outlined" style="font-size: 2.5em; color: #555; margin-bottom: 10px;">block</span>
-                <br>No eligible rewards available for this specific purchase.
+                <span class="material-symbols-outlined" style="font-size: 3em; color: #444; margin-bottom: 12px;">remove_shopping_cart</span>
+                <br><span style="font-size: 1.1em; font-weight: bold; color: #ccc;">No Eligible Rewards</span>
+                <p style="font-size: 0.85em; margin-top: 8px;">Criteria not met for this specific transaction.</p>
             </div>
 
         </div>
@@ -228,16 +278,21 @@
         import { db } from './config.js';
         import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+        // Anti-Inspect script fallbacks
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) { e.preventDefault(); }
+        });
+
         const VOUCHER_CARDS = [
-            { name: "Card 1", amount: 150 },
-            { name: "Card 2", amount: 200 },
-            { name: "Card 3", amount: 250 },
-            { name: "Card 4", amount: 300 }
+            { name: "Silver Voucher", amount: 150, color: "var(--tier-silver)", icon: "military_tech" },
+            { name: "Gold Voucher", amount: 200, color: "var(--tier-gold)", icon: "workspace_premium" },
+            { name: "Platinum Voucher", amount: 250, color: "var(--tier-platinum)", icon: "diamond" },
+            { name: "Diamond Voucher", amount: 300, color: "var(--tier-diamond)", icon: "stars" }
         ];
 
         async function fetchLastBillAndProcess() {
             try {
-                // Fetching the last bill accurately ordered by date descending
+                // Highly optimized 1-read query 
                 const q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(1));
                 const snapshot = await getDocs(q);
 
@@ -246,9 +301,7 @@
                     return;
                 }
 
-                // FIXED CRASH HERE: Extracted data from the first document object in the array
                 const lastSale = snapshot.docs[0].data(); 
-                
                 processRewards(lastSale);
 
             } catch (error) {
@@ -258,67 +311,119 @@
         }
 
         function processRewards(saleData) {
-            // Updated to accurately reflect the data structure built in bill.html
             const customerName = saleData.customer?.name || "Walk-in Customer";
             const invoiceNo = saleData.invoiceNo || "N/A";
             
-            // Handles data nested in totals object
-            let grandTotal = 0;
-            if (saleData.totals && saleData.totals.grand) {
-                grandTotal = parseFloat(saleData.totals.grand);
-            } else {
-                grandTotal = parseFloat(saleData.grandTotal || 0);
-            }
+            const grandTotal = parseFloat(saleData.totals?.grand || 0);
+            const billDiscount = parseFloat(saleData.totals?.discount || 0);
+            const grossTotal = grandTotal + billDiscount; // Total before counter discount
 
-            // Handle discount extraction
-            let billDiscount = 0;
-            if (saleData.totals && saleData.totals.discount) {
-                billDiscount = parseFloat(saleData.totals.discount);
-            } else {
-                billDiscount = parseFloat(saleData.discount || 0);
-            }
-
-            const subTotalBeforeDiscount = grandTotal + billDiscount;
-            const discountPercentage = subTotalBeforeDiscount > 0 ? (billDiscount / subTotalBeforeDiscount) * 100 : 0;
-
-            // UI Update
+            // Update Basic UI
             document.getElementById('uiCustomerName').innerText = customerName;
-            document.getElementById('uiInvoice').innerText = `Invoice: ${invoiceNo}`;
-            document.getElementById('uiTotal').innerText = `₹${grandTotal.toFixed(2)}`;
+            document.getElementById('uiInvoice').innerText = `Invoice Number: ${invoiceNo}`;
+            document.getElementById('uiTotal').innerText = `₹${grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
             
+            const discountInfoBox = document.getElementById('uiDiscountInfo');
             if (billDiscount > 0) {
-                document.getElementById('uiDiscountInfo').innerText = `Counter Discount: ₹${billDiscount.toFixed(2)} (${discountPercentage.toFixed(1)}%)`;
+                discountInfoBox.style.display = 'inline-block';
+                discountInfoBox.innerText = `Counter Discount: -₹${billDiscount.toLocaleString('en-IN')}`;
             }
 
+            // --- ADVANCED PRODUCTION AI LOGIC ---
+            let activeTier = "none";
             let earnedCards = [];
-            const aiAlertBox = document.getElementById('aiAlertBox');
-            const aiAlertText = document.getElementById('aiAlertText');
-
-            // FIXED BLANK CARD BUG: Providing exact array items instead of nested arrays
+            
+            // 1. Determine Raw Base Tier based on Final Grand Total
             if (grandTotal >= 20000) {
+                activeTier = "diamond";
                 earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1], VOUCHER_CARDS[2], VOUCHER_CARDS[3]];
-            } else if (grandTotal >= 15000) {
-                earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1], VOUCHER_CARDS[2]];
             } else if (grandTotal >= 10000) {
+                activeTier = "platinum";
+                earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1], VOUCHER_CARDS[2]];
+            } else if (grandTotal >= 5000) {
+                activeTier = "gold";
                 earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1]];
             } else if (grandTotal >= 2000) {
+                activeTier = "silver";
                 earnedCards = [VOUCHER_CARDS[0]];
             }
 
-            // Discount Penalty Logic
-            if (discountPercentage >= 10) {
-                earnedCards = [];
-                aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Maximum counter discount detected. Additional vouchers disabled to protect margins.";
+            // 2. Margin Protection Cross-Referencing
+            let alertType = 'good';
+            let alertMsg = '';
+
+            if (billDiscount > 0) {
+                const discountRatio = grossTotal > 0 ? (billDiscount / grossTotal) : 0;
+
+                /* RULE A (SEVERE ALARM): Profit Margin Destroyed.
+                  If discount is > 8% of total bill OR the flat discount is huge (>₹400) on any bill.
+                  Action: Strip all rewards and remove tier glow.
+                */
+                if (discountRatio > 0.08 || billDiscount >= 400) {
+                    activeTier = "none";
+                    earnedCards = [];
+                    alertType = 'bad';
+                    alertMsg = `<strong>Margin Critical Alert:</strong> A disproportionate counter discount (₹${billDiscount.toFixed(0)}) was applied. System has voided all tier rewards to protect overall store profitability.`;
+                } 
+                /* RULE B (MODERATE ADJUSTMENT): Profit Margin Squeezed.
+                  If discount is > 4.5% of total bill OR flat discount is >₹150.
+                  Action: If they were getting rewards, downgrade them strictly to Base/Silver Tier.
+                */
+                else if (discountRatio > 0.045 || billDiscount >= 150) {
+                    if (earnedCards.length > 0) {
+                        activeTier = "silver";
+                        earnedCards = [VOUCHER_CARDS[0]];
+                        alertType = 'warn';
+                        alertMsg = `<strong>Reward Scaled Down:</strong> A moderate discount (₹${billDiscount.toFixed(0)}) was applied at the counter. System has downgraded rewards to the Base Tier (Silver) to balance margins.`;
+                    } else {
+                        // They didn't qualify for anything anyway, hide alert
+                        alertType = 'none'; 
+                    }
+                } 
+                /* RULE C (ACCEPTABLE/MINOR): Normal minor rounding or small discount.
+                  Action: Keep full raw tier rewards intact.
+                */
+                else if (earnedCards.length > 0) {
+                    alertType = 'good';
+                    alertMsg = `<strong>Margin Check Passed:</strong> Minor discount detected. Full ${activeTier.charAt(0).toUpperCase() + activeTier.slice(1)} tier rewards have been securely processed.`;
+                } else {
+                    alertType = 'none';
+                }
+            } else if (earnedCards.length > 0) {
+                // No discount given, perfect margin.
+                alertType = 'good';
+                alertMsg = `<strong>Perfect Margin:</strong> Full price sale detected. Maximum authorized ${activeTier.charAt(0).toUpperCase() + activeTier.slice(1)} rewards processed.`;
+            } else {
+                alertType = 'none'; // No discount, no rewards = normal small purchase.
+            }
+
+            // 3. Apply calculated styling to UI
+            const heroBox = document.getElementById('customerHeroBox');
+            const tierBadge = document.getElementById('uiTierBadge');
+            
+            heroBox.className = `bill-summary tier-${activeTier}`;
+            if (activeTier !== "none") {
+                tierBadge.innerText = `${activeTier.toUpperCase()} TIER`;
+            }
+
+            // Handle Alert Box
+            const aiAlertBox = document.getElementById('aiAlertBox');
+            const aiAlertText = document.getElementById('aiAlertText');
+            const aiIcon = document.getElementById('aiIcon');
+
+            if (alertType !== 'none') {
                 aiAlertBox.style.display = 'flex';
-            } 
-            else if (discountPercentage >= 5 && earnedCards.length > 0) {
-                earnedCards = [VOUCHER_CARDS[0]]; // FIXED BLANK CARD BUG: Accessing correct base tier object
-                aiAlertText.innerHTML = "<strong>System Adjustment:</strong> Existing counter discount detected. Reward scaled down to Base Tier (Card 1).";
-                aiAlertBox.style.display = 'flex';
+                aiAlertBox.className = `ai-alert ${alertType}`;
+                aiAlertText.innerHTML = alertMsg;
+                
+                if (alertType === 'bad') aiIcon.innerText = 'gpp_bad';
+                if (alertType === 'warn') aiIcon.innerText = 'warning';
+                if (alertType === 'good') aiIcon.innerText = 'gpp_good';
             }
 
             renderCards(earnedCards);
             
+            // Switch UI states
             document.getElementById('skeletonLoader').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
         }
@@ -341,13 +446,17 @@
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'voucher-card';
                 cardDiv.style.animationDelay = `${index * 0.15}s`; 
+                cardDiv.style.borderColor = card.color;
                 
                 cardDiv.innerHTML = `
                     <div class="card-left">
-                        <div class="card-name"><span class="material-symbols-outlined" style="font-size: 1.1em; color: var(--success-color);">redeem</span> ${card.name}</div>
+                        <div class="card-name" style="color: ${card.color};">
+                            <span class="material-symbols-outlined" style="font-size: 1.2em;">${card.icon}</span> 
+                            ${card.name}
+                        </div>
                         <div class="card-rules">
                             • Valid for 2 Months<br>
-                            • One coupon per purchase
+                            • One coupon per future purchase
                         </div>
                     </div>
                     <div class="card-right">
@@ -361,15 +470,14 @@
         function showError(msg) {
             document.getElementById('skeletonLoader').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('uiStatus').innerHTML = '<span class="material-symbols-outlined">error</span> System Error';
-            document.getElementById('uiStatus').style.color = "var(--meena-red)";
             document.getElementById('uiCustomerName').innerText = msg;
+            document.getElementById('uiCustomerName').style.color = "var(--meena-red)";
             document.getElementById('uiTotal').style.display = 'none';
         }
 
-        // Slight network delay to simulate processing and trigger skeleton load perfectly
+        // Network delay to simulate AI processing/Skeleton loading
         window.onload = () => {
-            setTimeout(fetchLastBillAndProcess, 800); 
+            setTimeout(fetchLastBillAndProcess, 1000); 
         };
     </script>
 </body>
