@@ -307,8 +307,9 @@
 
         async function fetchLastBillAndProcess() {
             try {
-                // Highly optimized 1-read query 
-                const q = query(collection(db, "sellings"), orderBy("date", "desc"), limit(1));
+                // BUG FIX: Changed orderBy("date", "desc") to orderBy("createdAt", "desc")
+                // Because 'date' can be overridden by the user to a future date, 'createdAt' represents the exact millisecond the server received the bill.
+                const q = query(collection(db, "sellings"), orderBy("createdAt", "desc"), limit(1));
                 const snapshot = await getDocs(q);
 
                 if (snapshot.empty) {
@@ -321,7 +322,7 @@
 
             } catch (error) {
                 console.error("Firestore Error:", error);
-                showError("Database connection failed.");
+                showError("Database connection failed. Check console for details.");
             }
         }
 
