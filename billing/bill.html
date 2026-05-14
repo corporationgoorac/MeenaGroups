@@ -112,6 +112,10 @@
         .btn-print { background: var(--accent-color); color: white; display: none; }
         .btn-print:hover { background: #004494; }
 
+        /* Loading Spinner CSS Fix */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; }
+
         /* Toasts */
         .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s;}
         .toast-msg.error { background: var(--meena-red); }
@@ -394,10 +398,10 @@
             </div>
 
             <div class="totals-box">
-                <div class="t-row"><span>Subtotal:</span> <span id="uiSub">₹0</span></div>
-                <div class="t-row"><span>Total GST:</span> <span id="uiGst">₹0</span></div>
-                <div class="t-row" id="uiDiscountRow" style="display:none; color: var(--meena-red);"><span>Total Discount:</span> <span id="uiDiscount">-₹0</span></div>
-                <div class="t-row grand"><span>Grand Total:</span> <span id="uiGrand">₹0</span></div>
+                <div class="t-row"><span>Subtotal:</span> <span id="uiSub">₹0.00</span></div>
+                <div class="t-row"><span>Total GST:</span> <span id="uiGst">₹0.00</span></div>
+                <div class="t-row" id="uiDiscountRow" style="display:none; color: var(--meena-red);"><span>Total Discount:</span> <span id="uiDiscount">-₹0.00</span></div>
+                <div class="t-row grand"><span>Grand Total:</span> <span id="uiGrand">₹0.00</span></div>
             </div>
 
             <div class="bottom-actions">
@@ -546,6 +550,9 @@
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
+
+        // UI Formatter for Currencies
+        const formatCurrency = (val) => Number(val).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         // --- INJECTED: LISTEN FOR LATEST INVOICE COUNTERS FOR GST/NORMAL ---
         let nextGstNo = 1;
@@ -719,78 +726,6 @@
             }
         });
 
-        // --- OLD SEARCH LISTENER COMMENTED OUT ---
-        /*
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const val = e.target.value.trim().toLowerCase();
-            
-            if(val.length < 2) {
-                suggestionsBox.style.display = 'none';
-                return;
-            }
-
-            searchTimeout = setTimeout(async () => {
-                suggestionsBox.style.display = 'block';
-                suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">Searching...</div>';
-
-                const searchWord = val.split(/[\s\-_]+/)[0];
-                if (!searchWord) return;
-
-                try {
-                    // Ask Firestore directly using the exact same keyword prefix array we generated earlier
-                    const q = query(
-                        collection(db, "inventory"), 
-                        where("searchKeywords", "array-contains", searchWord),
-                        limit(8) // Only show top 8 results for the dropdown
-                    );
-                    
-                    const snap = await getDocs(q);
-                    const filteredData = [];
-                    snap.forEach(doc => filteredData.push({ id: doc.id, ...doc.data() }));
-
-                    suggestionsBox.innerHTML = '';
-                    if(filteredData.length === 0) {
-                        suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No items found. Check "Non-Stock" to add manually.</div>';
-                        return;
-                    }
-
-                    filteredData.forEach(d => {
-                        const stockClass = d.qty <= 0 ? 'zero' : '';
-                        const stockText = d.qty <= 0 ? 'Out of Stock' : `${d.qty} in stock`;
-                        
-                        const div = document.createElement('div'); 
-                        div.className = 'suggestion-item';
-                        div.innerHTML = `
-                            <div>
-                                <div class="s-name">${d.name}</div>
-                                <div style="font-size:0.8em; color:var(--text-secondary);">${d.model || 'No ID'} • Price: ₹${d.price}</div>
-                            </div>
-                            <div class="s-stock ${stockClass}">${stockText}</div>
-                        `;
-                        div.onclick = () => {
-                            document.getElementById('pInvId').value = d.id;
-                            document.getElementById('pCurrentStock').value = d.qty || 0;
-                            document.getElementById('pName').value = d.name;
-                            document.getElementById('pModel').value = d.model || '';
-                            document.getElementById('pPrice').value = d.price || '';
-                            document.getElementById('pQty').value = 1;
-                            document.getElementById('pDiscount').value = '0'; 
-                            document.getElementById('pNonStock').checked = false; 
-                            
-                            searchInput.value = '';
-                            suggestionsBox.style.display = 'none';
-                        };
-                        suggestionsBox.appendChild(div);
-                    });
-                } catch (error) {
-                    console.error("Search error:", error);
-                    suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--meena-red);">Error searching database.</div>';
-                }
-            }, 400); // Wait 400ms before hitting Firebase to save read costs
-        });
-        */
-
         // --- NEW PAGINATED SEARCH LISTENER ---
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
@@ -858,10 +793,12 @@
             }
 
             // Calculate amounts (Price is considered INCLUSIVE of GST, but discount is reduced first)
+            // Fix applied: Using strict rounding Number(.toFixed(2)) to prevent float errors on GST breakdown
             const grossTotal = price * qty;
             const finalTotal = Math.max(0, grossTotal - discount); 
-            const baseTotal = finalTotal / (1 + (gstPercent / 100));
-            const gstAmount = finalTotal - baseTotal;
+            const baseTotal = Number((finalTotal / (1 + (gstPercent / 100))).toFixed(2));
+            const gstAmount = Number((finalTotal - baseTotal).toFixed(2));
+            const originalUnitPriceBase = Number((price / (1 + (gstPercent / 100))).toFixed(2));
 
             if (existingItemIndex > -1) {
                 // If the product is already in the cart, merge quantities (No Duplicates)
@@ -869,13 +806,13 @@
                 item.qty += qty;
                 item.discount += discount; 
                 item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); 
-                item.baseTotal = item.finalTotal / (1 + (item.gstPercent / 100));
-                item.gstAmount = item.finalTotal - item.baseTotal;
+                item.baseTotal = Number((item.finalTotal / (1 + (item.gstPercent / 100))).toFixed(2));
+                item.gstAmount = Number((item.finalTotal - item.baseTotal).toFixed(2));
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
                     invId: isNonStock ? null : invId,
-                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock 
+                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock, originalUnitPriceBase
                 });
             }
 
@@ -909,10 +846,10 @@
 
             if (cartItems.length === 0) {
                 list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Bill is empty</div>';
-                document.getElementById('uiSub').innerText = '₹0';
-                document.getElementById('uiGst').innerText = '₹0';
+                document.getElementById('uiSub').innerText = '₹0.00';
+                document.getElementById('uiGst').innerText = '₹0.00';
                 document.getElementById('uiDiscountRow').style.display = 'none'; 
-                document.getElementById('uiGrand').innerText = '₹0';
+                document.getElementById('uiGrand').innerText = '₹0.00';
                 btnSave.disabled = true;
                 
                 document.getElementById('invoiceNoContainer').style.display = 'none';
@@ -939,9 +876,9 @@
                     <div class="cart-item">
                         <div class="c-details">
                             <div class="c-title">${item.name} x${item.qty}</div>
-                            <div class="c-meta">${item.model ? item.model + ' • ' : ''}₹${item.price.toLocaleString()} / unit ${tags}</div>
+                            <div class="c-meta">${item.model ? item.model + ' • ' : ''}₹${formatCurrency(item.price)} / unit ${tags}</div>
                         </div>
-                        <div class="c-price">₹${item.finalTotal.toLocaleString()}</div>
+                        <div class="c-price">₹${formatCurrency(item.finalTotal)}</div>
                         <button class="c-del" onclick="removeCartItem(${i})"><span class="material-symbols-outlined">delete</span></button>
                     </div>
                 `;
@@ -973,23 +910,27 @@
                 }
             }
 
-            document.getElementById('uiSub').innerText = `₹${billTotals.sub.toLocaleString()}`;
-            document.getElementById('uiGst').innerText = `₹${billTotals.gst.toLocaleString()}`;
+            document.getElementById('uiSub').innerText = `₹${formatCurrency(billTotals.sub)}`;
+            document.getElementById('uiGst').innerText = `₹${formatCurrency(billTotals.gst)}`;
             
             const uiDiscRow = document.getElementById('uiDiscountRow');
             if (billTotals.discount > 0) {
                 uiDiscRow.style.display = 'flex';
-                document.getElementById('uiDiscount').innerText = `-₹${billTotals.discount.toLocaleString()}`;
+                document.getElementById('uiDiscount').innerText = `-₹${formatCurrency(billTotals.discount)}`;
             } else {
                 uiDiscRow.style.display = 'none';
             }
 
-            document.getElementById('uiGrand').innerText = `₹${billTotals.grand.toLocaleString()}`;
+            document.getElementById('uiGrand').innerText = `₹${formatCurrency(billTotals.grand)}`;
             btnSave.disabled = false;
         }
 
         // --- SAVE BILL & DEDUCT INVENTORY ---
+        let isSavingBill = false; // Flag to prevent duplicate submissions race conditions
+        
         document.getElementById('btnSaveBill').addEventListener('click', async () => {
+            if (isSavingBill) return; 
+
             const cName = document.getElementById('cName').value.trim();
             const cPhone = document.getElementById('cPhone').value.trim();
             const cAddress = document.getElementById('cAddress').value.trim();
@@ -999,9 +940,11 @@
             if (!cName) { showToast("Customer Name is required."); return; }
             if (cartItems.length === 0) return;
 
+            isSavingBill = true;
             const btnSave = document.getElementById('btnSaveBill');
             btnSave.disabled = true;
-            btnSave.innerHTML = "Saving...";
+            btnSave.style.pointerEvents = 'none';
+            btnSave.innerHTML = '<span class="spinner"></span> Saving...';
 
             try {
                 const batch = writeBatch(db);
@@ -1028,21 +971,6 @@
                 } else {
                     invNo = hasGst ? `GST-${nextGstNo.toString().padStart(4, '0')}` : `INV-${nextNormalNo.toString().padStart(4, '0')}`;
                 }
-
-                // --- COMMENTED OUT OLD BATCH SET LOGIC ---
-                /*
-                const sellRef = doc(collection(db, "sellings"));
-                batch.set(sellRef, {
-                    invoiceNo: invNo,
-                    invoiceType: hasGst ? 'GST' : 'NORMAL', // TYPE LOG
-                    customer: { name: cName, phone: cPhone, address: cAddress },
-                    paymentMode: cPaymentMode,
-                    date: cDate ? new Date(cDate) : serverTimestamp(),
-                    items: cartItems,
-                    totals: billTotals,
-                    createdAt: serverTimestamp()
-                });
-                */
 
                 // --- NEW BATCH SET LOGIC FOR 2000-READ OPTIMIZATION ---
                 const sellRef = doc(collection(db, "sellings"));
@@ -1095,7 +1023,11 @@
             } catch (err) {
                 console.error("Billing Error", err);
                 showToast("Error processing bill.");
+                
+                // Release Lock On Error
+                isSavingBill = false;
                 btnSave.disabled = false;
+                btnSave.style.pointerEvents = 'auto';
                 btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save Bill`;
             }
         });
@@ -1136,11 +1068,12 @@
                     <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
+                // Fix: Prints originalUnitPriceBase so Unit Price column math looks correct even if discount applied
                 tbody.innerHTML += `
                     <tr>
                         <td>${num}.</td>
                         <td>${desc}</td>
-                        <td class="text-right">₹${(item.baseTotal / item.qty).toFixed(2)}</td>
+                        <td class="text-right">₹${item.originalUnitPriceBase.toFixed(2)}</td>
                         <td class="text-center">${item.qty.toString().padStart(2, '0')}</td>
                         <td class="text-right" style="font-weight:bold; color:#000;">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
@@ -1150,10 +1083,11 @@
             // Fill Totals
             document.getElementById('prSubTotal').innerText = `₹${billTotals.sub.toFixed(2)}`;
             
-            // CGST and SGST are half of the total GST each
-            const halfGst = billTotals.gst / 2;
+            // CGST and SGST precision split math trick to ensure exact match of total GST
+            const halfGst = Number((billTotals.gst / 2).toFixed(2));
+            const sgst = Number((billTotals.gst - halfGst).toFixed(2));
             document.getElementById('prCgstTotal').innerText = `₹${halfGst.toFixed(2)}`;
-            document.getElementById('prSgstTotal').innerText = `₹${halfGst.toFixed(2)}`;
+            document.getElementById('prSgstTotal').innerText = `₹${sgst.toFixed(2)}`;
             
             document.getElementById('prGstTotal').innerText = `₹${billTotals.gst.toFixed(2)}`;
 
@@ -1186,10 +1120,14 @@
                 cartItems.splice(0, cartItems.length);
                 renderCart();
 
-                // 3. Swap buttons back to default state
+                // 3. Swap buttons back to default state and release locks
                 btnPrint.style.display = "none";
                 btnSave.style.display = "flex";
+                
+                btnSave.disabled = true; // Disabled because cart is completely empty now
+                btnSave.style.pointerEvents = 'auto';
                 btnSave.innerHTML = '<span class="material-symbols-outlined">save</span> Save Bill';
+                isSavingBill = false;
             }
         });
 
