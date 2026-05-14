@@ -6,43 +6,48 @@
     <title>Customer Rewards - Meena Marketing</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#121212">
+    <meta name="theme-color" content="#0b111a">
     
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
     <style>
         * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }
         
-        /* Shared Core Theme */
+        /* Shared Core Theme matched to Inventory */
         :root {
-            --bg-color: #0f0f0f;
-            --surface-color: #1a1a1a;
-            --surface-light: #2a2a2a;
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
             --text-color: #ffffff;
-            --text-secondary: #aaaaaa;
-            --meena-red: #ff3333;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
             --marketing-white: #ffffff;
-            --success-color: #00e676;
-            --warning-color: #ff9800;
-            --border-color: #333333;
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --input-border: #334155;
+            --nav-bg: rgba(19, 27, 38, 0.85);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
             
-            /* Tier Colors */
-            --tier-silver: #c0c0c0;
-            --tier-gold: #ffd700;
-            --tier-platinum: #e5e4e2;
-            --tier-diamond: #00e5ff;
+            /* Enhanced Tier Colors to pop against Midnight Blue */
+            --tier-silver: #94a3b8;
+            --tier-gold: #fbbf24;
+            --tier-platinum: #e2e8f0;
+            --tier-diamond: #06b6d4;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
         
         body { 
-            font-family: 'Segoe UI', 'Noto Sans Tamil', sans-serif; 
+            font-family: 'Inter', sans-serif; 
             background-color: var(--bg-color); 
             color: var(--text-color); 
             display: flex; 
             flex-direction: column; 
+            -webkit-font-smoothing: antialiased;
             /* ANTI-COPY & SELECT PROTECTIONS */
             user-select: none;
             -webkit-user-select: none;
@@ -51,23 +56,27 @@
             -webkit-touch-callout: none;
         }
 
-        /* Standard App Header */
+        /* Glassmorphism Header */
         header { 
-            background-color: var(--surface-color); 
-            padding: 12px 20px; 
+            background-color: var(--nav-bg); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            padding: 14px 20px; 
             display: flex; justify-content: space-between; align-items: center; 
             position: sticky; top: 0; z-index: 500; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8); 
-            width: 100%; border-bottom: 1px solid #333;
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            box-shadow: var(--shadow-md);
+            width: 100%;
         }
         .header-left { display: flex; align-items: center; gap: 15px; }
-        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; transition: color 0.2s;}
+        .back-btn:hover { color: var(--accent-color); }
         .brand-container { display: flex; align-items: center; gap: 10px; }
-        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-        .brand-title { font-size: 1.2em; font-weight: bold; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1.25em; font-weight: 700; letter-spacing: -0.02em;}
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
-        .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+        .page-title { font-size: 0.75em; color: var(--success-color); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
         .header-right { display: flex; align-items: center; }
 
         /* Main Center Container */
@@ -76,16 +85,15 @@
         /* --- SKELETON REDESIGN --- */
         .skeleton-wrapper { display: block; }
         .skeleton {
-            background: linear-gradient(90deg, #1f1f1f 25%, #333 50%, #1f1f1f 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
+            background: #1e293b; 
+            background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); 
+            background-size: 200% 100%; 
+            animation: shimmer 1.5s infinite linear;
             border-radius: 12px;
         }
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        .sk-hero { height: 160px; width: 100%; margin-bottom: 25px; border-radius: 16px; border: 1px solid var(--border-color); }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        
+        .sk-hero { height: 160px; width: 100%; margin-bottom: 25px; border-radius: 16px; border: 1px solid var(--input-border); }
         .sk-alert { height: 50px; width: 100%; margin-bottom: 20px; border-radius: 8px; }
         .sk-card { height: 85px; width: 100%; margin-bottom: 15px; border-radius: 12px; }
 
@@ -94,7 +102,7 @@
 
         /* --- TIERED CUSTOMER BILL SUMMARY --- */
         .bill-summary {
-            background: #151515;
+            background: var(--surface-color);
             border-radius: 16px;
             padding: 25px 20px;
             margin-bottom: 25px;
@@ -103,32 +111,36 @@
             transition: all 0.4s ease;
         }
 
-        /* Tier Dynamic Borders & Glows */
+        /* Tier Dynamic Borders & Glows tuned for dark background */
         .bill-summary.tier-none {
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid var(--input-border);
+            box-shadow: var(--shadow-md);
         }
         .bill-summary.tier-silver {
             border: 2px dashed var(--tier-silver);
-            box-shadow: 0 0 20px rgba(192, 192, 192, 0.15), inset 0 0 10px rgba(192, 192, 192, 0.05);
+            background: linear-gradient(180deg, rgba(148, 163, 184, 0.05) 0%, transparent 100%);
+            box-shadow: 0 0 20px rgba(148, 163, 184, 0.15);
         }
         .bill-summary.tier-gold {
             border: 3px dotted var(--tier-gold);
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.25), inset 0 0 15px rgba(255, 215, 0, 0.1);
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.05) 0%, transparent 100%);
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.15);
         }
         .bill-summary.tier-platinum {
             border: 4px double var(--tier-platinum);
-            box-shadow: 0 0 30px rgba(229, 228, 226, 0.35), inset 0 0 20px rgba(229, 228, 226, 0.15);
+            background: linear-gradient(180deg, rgba(226, 232, 240, 0.1) 0%, transparent 100%);
+            box-shadow: 0 0 30px rgba(226, 232, 240, 0.2);
         }
         .bill-summary.tier-diamond {
             border: 2px solid var(--tier-diamond);
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4), inset 0 0 25px rgba(0, 229, 255, 0.2);
+            background: linear-gradient(180deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.25);
             animation: diamondPulse 2s infinite alternate;
         }
 
         @keyframes diamondPulse {
-            0% { box-shadow: 0 0 25px rgba(0, 229, 255, 0.4), inset 0 0 15px rgba(0, 229, 255, 0.2); }
-            100% { box-shadow: 0 0 45px rgba(0, 229, 255, 0.7), inset 0 0 30px rgba(0, 229, 255, 0.4); }
+            0% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.2); }
+            100% { box-shadow: 0 0 45px rgba(6, 182, 212, 0.4); }
         }
 
         /* Customer Profile Typography */
@@ -137,82 +149,85 @@
             top: -14px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--surface-color);
+            background: var(--bg-color);
             padding: 4px 16px;
             border-radius: 20px;
             font-size: 0.75em;
-            font-weight: 900;
+            font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
             display: none;
         }
         .bill-summary.tier-silver .tier-badge { display: inline-block; color: var(--tier-silver); border: 1px dashed var(--tier-silver); }
         .bill-summary.tier-gold .tier-badge { display: inline-block; color: var(--tier-gold); border: 1px dotted var(--tier-gold); }
-        .bill-summary.tier-platinum .tier-badge { display: inline-block; color: #333; background: var(--tier-platinum); }
-        .bill-summary.tier-diamond .tier-badge { display: inline-block; color: #000; background: var(--tier-diamond); text-shadow: none; box-shadow: 0 0 10px var(--tier-diamond); }
+        .bill-summary.tier-platinum .tier-badge { display: inline-block; color: #1e293b; background: var(--tier-platinum); }
+        .bill-summary.tier-diamond .tier-badge { display: inline-block; color: #000; background: var(--tier-diamond); text-shadow: none; box-shadow: 0 0 15px rgba(6, 182, 212, 0.5); }
 
-        .bill-summary h2 { margin: 10px 0 5px 0; font-size: 1.6em; color: var(--marketing-white); font-weight: 900; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-        .bill-summary p.invoice-meta { margin: 0; color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px;}
-        .bill-summary .total { font-size: 2.2em; font-weight: 900; color: var(--success-color); margin-top: 15px; letter-spacing: 0.5px; text-shadow: 0 0 15px rgba(0, 230, 118, 0.2);}
-        .bill-summary .discount-warning { color: var(--warning-color); font-size: 0.85em; margin-top: 8px; font-weight: bold; background: rgba(255, 152, 0, 0.1); display: inline-block; padding: 4px 12px; border-radius: 6px;}
+        .bill-summary h2 { margin: 10px 0 5px 0; font-size: 1.5em; color: var(--marketing-white); font-weight: 700; letter-spacing: -0.02em; }
+        .bill-summary p.invoice-meta { margin: 0; color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;}
+        .bill-summary .total { font-size: 2.2em; font-weight: 900; color: var(--success-color); margin-top: 15px; letter-spacing: -0.5px; text-shadow: 0 0 15px rgba(16, 185, 129, 0.3);}
+        .bill-summary .discount-warning { color: var(--warning-color); font-size: 0.85em; margin-top: 8px; font-weight: 700; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); display: inline-block; padding: 4px 12px; border-radius: 8px;}
 
         /* AI Alert Box */
         .ai-alert {
-            padding: 14px 16px;
-            border-radius: 10px;
-            font-size: 0.85em;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.9em;
             margin-bottom: 25px;
             display: none;
             align-items: flex-start;
             gap: 12px;
             text-align: left;
             line-height: 1.5;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            box-shadow: var(--shadow-sm);
         }
-        .ai-alert.bad { background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); color: #ff6b6b; }
-        .ai-alert.warn { background: rgba(255, 152, 0, 0.1); border: 1px solid var(--warning-color); color: #ffb74d; }
-        .ai-alert.good { background: rgba(0, 230, 118, 0.1); border: 1px solid var(--success-color); color: #69f0ae; }
+        .ai-alert.bad { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; }
+        .ai-alert.warn { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); color: #fcd34d; }
+        .ai-alert.good { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+        .ai-alert strong { color: white; font-weight: 700; }
 
         /* Voucher Cards Grid */
         .cards-container { display: flex; flex-direction: column; gap: 15px; }
 
         .voucher-card {
-            background: linear-gradient(145deg, #222, #111);
-            border: 1px solid #444;
-            border-radius: 12px;
-            padding: 16px 20px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid var(--input-border);
+            border-radius: 14px;
+            padding: 18px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            box-shadow: var(--shadow-md);
             animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             opacity: 0;
             transform: translateY(30px);
             position: relative;
             overflow: hidden;
+            transition: transform 0.2s;
         }
+        .voucher-card:hover { transform: translateY(-3px) scale(1.02); }
 
         /* Subtle shine effect over cards */
         .voucher-card::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg);
-            animation: shine 4s infinite;
+            animation: shine 5s infinite;
         }
 
         @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
 
         .card-left { text-align: left; z-index: 1; }
-        .card-name { font-size: 1.15em; font-weight: 900; color: var(--marketing-white); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-        .card-rules { font-size: 0.75em; color: var(--text-secondary); line-height: 1.5; }
+        .card-name { font-size: 1.15em; font-weight: 800; color: var(--marketing-white); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em;}
+        .card-rules { font-size: 0.75em; color: var(--text-secondary); line-height: 1.5; font-weight: 500;}
         
         .card-right { text-align: right; z-index: 1; }
-        .card-value { font-size: 1.9em; font-weight: 900; color: var(--success-color); text-shadow: 0 2px 5px rgba(0,0,0,0.9); }
+        .card-value { font-size: 1.9em; font-weight: 900; color: var(--success-color); text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 
         .no-voucher {
             text-align: center; padding: 40px 20px; background: var(--surface-color);
-            border-radius: 16px; border: 1px solid var(--border-color); color: var(--text-secondary);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-radius: 16px; border: 1px solid var(--input-border); color: var(--text-secondary);
+            box-shadow: var(--shadow-md);
         }
 
         @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
@@ -261,14 +276,14 @@
                 <span id="aiAlertText"></span>
             </div>
 
-            <h3 id="rewardTitle" style="display:none; font-size:0.9em; margin-bottom: 15px; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Unlocked Rewards</h3>
+            <h3 id="rewardTitle" style="display:none; font-size:0.85em; margin-bottom: 15px; text-align: left; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Unlocked Rewards</h3>
             
             <div class="cards-container" id="cardsContainer"></div>
 
             <div class="no-voucher" id="noVoucherBox" style="display:none;">
-                <span class="material-symbols-outlined" style="font-size: 3em; color: #444; margin-bottom: 12px;">remove_shopping_cart</span>
-                <br><span style="font-size: 1.1em; font-weight: bold; color: #ccc;">No Eligible Rewards</span>
-                <p style="font-size: 0.85em; margin-top: 8px;">Criteria not met for this specific transaction.</p>
+                <span class="material-symbols-outlined" style="font-size: 3.5em; color: rgba(255,255,255,0.1); margin-bottom: 12px;">remove_shopping_cart</span>
+                <br><span style="font-size: 1.1em; font-weight: 700; color: var(--marketing-white);">No Eligible Rewards</span>
+                <p style="font-size: 0.85em; margin-top: 8px; font-weight: 500;">Criteria not met for this specific transaction.</p>
             </div>
 
         </div>
@@ -318,6 +333,12 @@
             const billDiscount = parseFloat(saleData.totals?.discount || 0);
             const grossTotal = grandTotal + billDiscount; // Total before counter discount
 
+            // Edge Case Failsafe: Handle returns or zero-total bills
+            if (grandTotal <= 0 || grossTotal <= 0) {
+                updateUIForError(customerName, invoiceNo, "Invalid transaction amount. Rewards voided.");
+                return;
+            }
+
             // Update Basic UI
             document.getElementById('uiCustomerName').innerText = customerName;
             document.getElementById('uiInvoice').innerText = `Invoice Number: ${invoiceNo}`;
@@ -329,81 +350,95 @@
                 discountInfoBox.innerText = `Counter Discount: -₹${billDiscount.toLocaleString('en-IN')}`;
             }
 
-            // --- ADVANCED PRODUCTION AI LOGIC ---
+            // --- HIGHLY ADVANCED LOGIC (GRADUAL DOWNGRADE + FLAT CAP) ---
+            
+            // 1. Determine Initial Base Level based on grandTotal
+            // 4 = Diamond, 3 = Platinum, 2 = Gold, 1 = Silver, 0 = None
+            let rawLevel = 0;
+            if (grandTotal >= 20000) rawLevel = 4;
+            else if (grandTotal >= 10000) rawLevel = 3;
+            else if (grandTotal >= 5000) rawLevel = 2;
+            else if (grandTotal >= 2000) rawLevel = 1;
+
+            let finalLevel = rawLevel;
+            let alertType = 'none';
+            let alertMsg = '';
+
+            // 2. Margin Protection Cross-Referencing
+            if (billDiscount > 0 && rawLevel > 0) {
+                const discountRatio = (billDiscount / grossTotal);
+                const discountPercent = (discountRatio * 100).toFixed(1);
+                
+                let penaltySteps = 0;
+
+                // Rule A: Flat Maximum Cap (Prevents edge case of massive flat loss on huge bills)
+                if (billDiscount >= 1500) {
+                    penaltySteps = rawLevel; // Instant wipe regardless of percentage
+                    alertType = 'bad';
+                    alertMsg = `<strong>Critical Margin Alert:</strong> A massive flat discount (₹${billDiscount.toFixed(0)}) exceeded system limits. All tier rewards voided to protect profitability.`;
+                }
+                // Rule B: Step-by-step percentage calculation
+                else {
+                    if (discountRatio > 0.10) {
+                        penaltySteps = rawLevel; // >10% discount: Wipe all rewards (Level 0)
+                    } else if (discountRatio > 0.07) {
+                        penaltySteps = 3;        // 7%-10% discount: Downgrade 3 tiers
+                    } else if (discountRatio > 0.04) {
+                        penaltySteps = 2;        // 4%-7% discount: Downgrade 2 tiers
+                    } else if (discountRatio > 0.02) {
+                        penaltySteps = 1;        // 2%-4% discount: Downgrade 1 tier
+                    } // 0 - 2% discount: 0 Penalty (Safe rounding)
+
+                    // Apply penalty, keeping it from dropping below 0
+                    finalLevel = Math.max(0, rawLevel - penaltySteps);
+                    const tierNames = ["None", "Silver", "Gold", "Platinum", "Diamond"];
+
+                    if (finalLevel === 0 && rawLevel > 0) {
+                        alertType = 'bad';
+                        alertMsg = `<strong>Margin Critical Alert:</strong> A high discount of ${discountPercent}% (₹${billDiscount.toFixed(0)}) voided all tier rewards to protect overall store profitability.`;
+                    } else if (penaltySteps > 0) {
+                        alertType = 'warn';
+                        alertMsg = `<strong>Reward Scaled Down:</strong> A ${discountPercent}% discount (₹${billDiscount.toFixed(0)}) was applied at the counter. System dynamically downgraded rewards from ${tierNames[rawLevel]} to ${tierNames[finalLevel]} Tier to balance margins.`;
+                    } else {
+                        alertType = 'good';
+                        alertMsg = `<strong>Margin Check Passed:</strong> Minor rounding discount detected (${discountPercent}%). Full ${tierNames[rawLevel]} tier rewards have been securely processed.`;
+                    }
+                }
+            } else if (rawLevel > 0) {
+                // No discount given, perfect margin.
+                const tierNames = ["None", "Silver", "Gold", "Platinum", "Diamond"];
+                alertType = 'good';
+                alertMsg = `<strong>Perfect Margin:</strong> Full price sale detected. Maximum authorized ${tierNames[rawLevel]} rewards processed.`;
+            }
+
+            // 3. Assign Final Tier Strings & Cards
             let activeTier = "none";
             let earnedCards = [];
-            
-            // 1. Determine Raw Base Tier based on Final Grand Total
-            if (grandTotal >= 20000) {
+
+            if (finalLevel === 4) {
                 activeTier = "diamond";
                 earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1], VOUCHER_CARDS[2], VOUCHER_CARDS[3]];
-            } else if (grandTotal >= 10000) {
+            } else if (finalLevel === 3) {
                 activeTier = "platinum";
                 earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1], VOUCHER_CARDS[2]];
-            } else if (grandTotal >= 5000) {
+            } else if (finalLevel === 2) {
                 activeTier = "gold";
                 earnedCards = [VOUCHER_CARDS[0], VOUCHER_CARDS[1]];
-            } else if (grandTotal >= 2000) {
+            } else if (finalLevel === 1) {
                 activeTier = "silver";
                 earnedCards = [VOUCHER_CARDS[0]];
             }
 
-            // 2. Margin Protection Cross-Referencing
-            let alertType = 'good';
-            let alertMsg = '';
-
-            if (billDiscount > 0) {
-                const discountRatio = grossTotal > 0 ? (billDiscount / grossTotal) : 0;
-
-                /* RULE A (SEVERE ALARM): Profit Margin Destroyed.
-                  If discount is > 8% of total bill OR the flat discount is huge (>₹400) on any bill.
-                  Action: Strip all rewards and remove tier glow.
-                */
-                if (discountRatio > 0.08 || billDiscount >= 400) {
-                    activeTier = "none";
-                    earnedCards = [];
-                    alertType = 'bad';
-                    alertMsg = `<strong>Margin Critical Alert:</strong> A disproportionate counter discount (₹${billDiscount.toFixed(0)}) was applied. System has voided all tier rewards to protect overall store profitability.`;
-                } 
-                /* RULE B (MODERATE ADJUSTMENT): Profit Margin Squeezed.
-                  If discount is > 4.5% of total bill OR flat discount is >₹150.
-                  Action: If they were getting rewards, downgrade them strictly to Base/Silver Tier.
-                */
-                else if (discountRatio > 0.045 || billDiscount >= 150) {
-                    if (earnedCards.length > 0) {
-                        activeTier = "silver";
-                        earnedCards = [VOUCHER_CARDS[0]];
-                        alertType = 'warn';
-                        alertMsg = `<strong>Reward Scaled Down:</strong> A moderate discount (₹${billDiscount.toFixed(0)}) was applied at the counter. System has downgraded rewards to the Base Tier (Silver) to balance margins.`;
-                    } else {
-                        // They didn't qualify for anything anyway, hide alert
-                        alertType = 'none'; 
-                    }
-                } 
-                /* RULE C (ACCEPTABLE/MINOR): Normal minor rounding or small discount.
-                  Action: Keep full raw tier rewards intact.
-                */
-                else if (earnedCards.length > 0) {
-                    alertType = 'good';
-                    alertMsg = `<strong>Margin Check Passed:</strong> Minor discount detected. Full ${activeTier.charAt(0).toUpperCase() + activeTier.slice(1)} tier rewards have been securely processed.`;
-                } else {
-                    alertType = 'none';
-                }
-            } else if (earnedCards.length > 0) {
-                // No discount given, perfect margin.
-                alertType = 'good';
-                alertMsg = `<strong>Perfect Margin:</strong> Full price sale detected. Maximum authorized ${activeTier.charAt(0).toUpperCase() + activeTier.slice(1)} rewards processed.`;
-            } else {
-                alertType = 'none'; // No discount, no rewards = normal small purchase.
-            }
-
-            // 3. Apply calculated styling to UI
+            // 4. Apply calculated styling to UI
             const heroBox = document.getElementById('customerHeroBox');
             const tierBadge = document.getElementById('uiTierBadge');
             
             heroBox.className = `bill-summary tier-${activeTier}`;
             if (activeTier !== "none") {
                 tierBadge.innerText = `${activeTier.toUpperCase()} TIER`;
+                tierBadge.style.display = 'inline-block';
+            } else {
+                tierBadge.style.display = 'none';
             }
 
             // Handle Alert Box
@@ -437,16 +472,18 @@
 
             if (cardsArray.length === 0) {
                 noVoucherBox.style.display = 'block';
+                rewardTitle.style.display = 'none';
                 return;
             }
 
+            noVoucherBox.style.display = 'none';
             rewardTitle.style.display = 'block';
 
             cardsArray.forEach((card, index) => {
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'voucher-card';
                 cardDiv.style.animationDelay = `${index * 0.15}s`; 
-                cardDiv.style.borderColor = card.color;
+                cardDiv.style.borderLeft = `4px solid ${card.color}`;
                 
                 cardDiv.innerHTML = `
                     <div class="card-left">
@@ -467,11 +504,29 @@
             });
         }
 
+        function updateUIForError(name, invoice, msg) {
+            document.getElementById('uiCustomerName').innerText = name;
+            document.getElementById('uiInvoice').innerText = `Invoice Number: ${invoice}`;
+            document.getElementById('uiTotal').style.display = 'none';
+            
+            const aiAlertBox = document.getElementById('aiAlertBox');
+            aiAlertBox.style.display = 'flex';
+            aiAlertBox.className = `ai-alert bad`;
+            document.getElementById('aiAlertText').innerHTML = `<strong>Error:</strong> ${msg}`;
+            document.getElementById('aiIcon').innerText = 'gpp_bad';
+            
+            document.getElementById('noVoucherBox').style.display = 'block';
+            
+            document.getElementById('skeletonLoader').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
         function showError(msg) {
             document.getElementById('skeletonLoader').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('uiCustomerName').innerText = msg;
+            document.getElementById('uiCustomerName').innerText = "System Notice";
             document.getElementById('uiCustomerName').style.color = "var(--meena-red)";
+            document.getElementById('uiInvoice').innerText = msg;
             document.getElementById('uiTotal').style.display = 'none';
         }
 
