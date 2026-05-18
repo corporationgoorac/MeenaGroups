@@ -212,6 +212,10 @@
         .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
         .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
         .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
+        
+        /* NEW: Days pending element */
+        .pay-summary-days { font-size: 14px; font-weight: bold; color: var(--meena-white); margin-bottom: 10px; background: rgba(255,51,51,0.15); display: inline-block; padding: 4px 10px; border-radius: 15px; border: 1px solid rgba(255,51,51,0.3); }
+
         .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
 
         .btn-full-width {
@@ -230,6 +234,35 @@
         }
         .search-input::placeholder { color: var(--yt-text-secondary); }
         .empty-state { text-align: center; color: var(--yt-text-secondary); margin-top: 40px; }
+
+        /* NEW: PROFESSIONAL MINI MODAL */
+        .mini-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+        }
+        .mini-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .mini-modal-card {
+            background: var(--yt-card); border: 1px solid var(--yt-border);
+            width: 90%; max-width: 340px; border-radius: 12px; padding: 20px;
+            transform: scale(0.9); transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .mini-modal-overlay.active .mini-modal-card { transform: scale(1); }
+        
+        .mini-modal-card h3 { font-size: 18px; margin-bottom: 10px; color: var(--yt-text-primary); }
+        .mini-modal-card p { font-size: 15px; color: var(--yt-text-secondary); margin-bottom: 24px; line-height: 1.4; }
+        
+        .mini-modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+        .mini-modal-btn {
+            padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; outline: none;
+            font-size: 14px;
+        }
+        .mini-modal-btn:active { opacity: 0.7; }
+        .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
+        .btn-mini-confirm { background: var(--accent-color); color: white; }
 
     </style>
 </head>
@@ -319,6 +352,7 @@
                 <div class="pay-summary-name" id="pay-ui-name">-</div>
                 <div class="pay-summary-inv" id="pay-ui-inv">-</div>
                 <div class="pay-summary-amount" id="pay-ui-pending">-</div>
+                <div class="pay-summary-days" id="pay-ui-days">-</div>
                 <div class="pay-summary-total" id="pay-ui-total">-</div>
             </div>
 
@@ -363,6 +397,17 @@
         </div>
     </div>
 
+    <div class="mini-modal-overlay" id="mini-modal">
+        <div class="mini-modal-card">
+            <h3 id="mini-modal-title">Title</h3>
+            <p id="mini-modal-message">Message</p>
+            <div class="mini-modal-actions">
+                <button class="mini-modal-btn btn-mini-cancel" id="mini-modal-cancel">Cancel</button>
+                <button class="mini-modal-btn btn-mini-confirm" id="mini-modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { db } from './config.js';
         import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -387,12 +432,63 @@
         // STATE MANAGEMENT
         let pendingData = []; 
         let currentSearchResults = [];
-        let currentEditRecord = null; // Holds the record currently being processed in pay-modal
+        let currentEditRecord = null; 
         
         // PAGINATION SETTINGS
         const ITEMS_PER_PAGE = 15;
         let mainCurrentPage = 1;
         let searchCurrentPage = 1;
+
+        // --- NEW: DAYS PENDING CALCULATOR ---
+        function getDaysText(dateString) {
+            const invoiceDate = new Date(dateString);
+            const today = new Date();
+            invoiceDate.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+            const diffTime = today - invoiceDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if(diffDays === 0) return "Today";
+            if(diffDays === 1) return "1 Day";
+            if(diffDays < 0) return "Upcoming";
+            return diffDays + " Days";
+        }
+
+        // --- NEW: MINI MODAL SYSTEM ---
+        let activeConfirmCallback = null;
+        
+        function openMiniModal(title, message, isAlert = false, callback = null) {
+            document.getElementById('mini-modal-title').innerHTML = title;
+            document.getElementById('mini-modal-message').innerHTML = message;
+            
+            activeConfirmCallback = callback;
+            
+            if (isAlert) {
+                document.getElementById('mini-modal-cancel').style.display = 'none';
+                document.getElementById('mini-modal-confirm').innerText = 'OK';
+            } else {
+                document.getElementById('mini-modal-cancel').style.display = 'block';
+                document.getElementById('mini-modal-confirm').innerText = 'Confirm';
+            }
+            
+            const modalEl = document.getElementById('mini-modal');
+            modalEl.classList.add('active');
+            history.pushState({ miniModalOpen: true }, '');
+        }
+
+        function closeMiniModal() {
+            document.getElementById('mini-modal').classList.remove('active');
+        }
+
+        document.getElementById('mini-modal-cancel').addEventListener('click', () => {
+            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
+        });
+
+        document.getElementById('mini-modal-confirm').addEventListener('click', () => {
+            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
+            if (activeConfirmCallback) activeConfirmCallback();
+        });
+
 
         // --- MOBILE BACK BUTTON & MODAL LOGIC ---
         function openModal(modalEl, stateName) {
@@ -434,10 +530,12 @@
             if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
         });
 
+        // Popstate Engine updated to handle Mini Modal
         window.addEventListener('popstate', (e) => {
             if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
             if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
             if (!e.state?.payOpen && payModal.classList.contains('active')) closeModal(payModal);
+            if (!e.state?.miniModalOpen && document.getElementById('mini-modal').classList.contains('active')) closeMiniModal();
         });
 
 
@@ -476,16 +574,16 @@
 
         // --- GLOBAL FUNCTION FOR CLICKING A CARD ---
         window.openPaymentManager = function(recordId) {
-            // Find the record
             const record = pendingData.find(r => r.id === recordId);
             if(!record) return;
             
             currentEditRecord = record;
 
-            // Populate Modal UI
+            // Populate Modal UI & Calculate Days Pending
             document.getElementById('pay-ui-name').innerText = record.customerName;
             document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber}`;
             document.getElementById('pay-ui-pending').innerText = `₹${Number(record.pendingAmount).toLocaleString('en-IN')} Pending`;
+            document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
             document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${Number(record.totalAmount).toLocaleString('en-IN')}`;
             
             // Reset input
@@ -503,7 +601,7 @@
                 await updateDoc(docRef, { records: newArray });
                 if (history.state?.payOpen) history.back(); else closeModal(payModal);
             } catch (err) {
-                alert("Error updating data: " + err.message);
+                openMiniModal("Error", "Error updating data: " + err.message, true);
             } finally {
                 btnEl.disabled = false;
                 btnEl.innerHTML = originalText;
@@ -522,11 +620,10 @@
             
             let updatedRecords;
             if(newPending <= 0) {
-                // Fully paid now, remove from list
                 updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                alert(`Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`);
+                // Swapped native alert for Professional Mini Modal
+                openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
             } else {
-                // Update object in array
                 updatedRecords = pendingData.map(r => 
                     r.id === currentEditRecord.id ? { ...r, pendingAmount: newPending } : r
                 );
@@ -536,11 +633,17 @@
 
         // 2. Mark Full Payment (Removes from array automatically)
         document.getElementById('btn-mark-full').addEventListener('click', function() {
-            if(confirm(`Mark ₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')} as fully paid for ${currentEditRecord.customerName}?`)) {
-                // Filters out the document with this specific ID, effectively deleting it from the database array
-                const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                updateFirebaseRecords(updatedRecords, this);
-            }
+            const btnEl = this;
+            // Swapped native confirm for Professional Mini Modal
+            openMiniModal(
+                "Confirm Full Payment", 
+                `Mark <b>₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')}</b> as fully paid for ${currentEditRecord.customerName}?`, 
+                false, 
+                () => {
+                    const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                    updateFirebaseRecords(updatedRecords, btnEl);
+                }
+            );
         });
 
 
@@ -570,7 +673,7 @@
                 document.getElementById('add-form').reset();
                 if (history.state?.addOpen) history.back(); else closeModal(addModal);
             } catch (err) {
-                alert("Error adding record: " + err.message);
+                openMiniModal("Error", "Error adding record: " + err.message, true);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Add Record";
@@ -658,12 +761,12 @@
                 const cleanPhone = item.phone.replace(/[^0-9]/g, '');
                 const dateObj = new Date(item.date);
                 const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                const daysPendingText = getDaysText(item.date);
                 
                 const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
                 const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
 
-                // We wrap the upper portion in a clickable div for the payment manager
-                // We use stopPropagation on the lower action buttons so they don't trigger the modal
+                // Card output modified to include Days Pending dynamically inline with the date
                 return `
                 <div class="card" style="animation: fadeIn 0.3s ease ${index % ITEMS_PER_PAGE * 0.03}s both;">
                     <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
@@ -672,7 +775,9 @@
                                 <div class="customer-name">${item.customerName}</div>
                                 <div class="invoice-number">${item.invoiceNumber}</div>
                             </div>
-                            <div class="invoice-date">${dateStr}</div>
+                            <div class="invoice-date">
+                                ${dateStr} • <span style="color: var(--meena-red); font-weight: bold;">${daysPendingText}</span>
+                            </div>
                         </div>
                         
                         <div>
