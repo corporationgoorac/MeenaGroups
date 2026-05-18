@@ -544,17 +544,20 @@
 
     // Firebase Optimized Reads Logic for Pending Accounts
     window.loadPending = async () => {
-      // Optimization Strategy: If whole dataset was downloaded during current active lifecycle, use that array to drop API overhead to zero
-      if (loadedData.length === 0) {
-        uiLoading();
-        try {
-          const snap = await getDocs(collection(db, "customers"));
-          loadedData = [];
-          snap.forEach(d => loadedData.push(d.data()));
-        } catch (e) {
-          alert("Error fetching records: " + e.message);
-          return;
-        }
+      // Prompt confirmation to alert user about reading the whole database and potential read limits
+      if (!confirm("⚠️ This action will read the entire database to evaluate pending balances. This can consume high data and read limits if your collection is large. Proceed?")) {
+        return;
+      }
+
+      uiLoading();
+      try {
+        // Explicitly force clean database pull directly from Firestore each time
+        const snap = await getDocs(collection(db, "customers"));
+        loadedData = [];
+        snap.forEach(d => loadedData.push(d.data()));
+      } catch (e) {
+        alert("Error fetching records: " + e.message);
+        return;
       }
 
       // Compute precise temporal delta milestone matching 30 complete days back from today
