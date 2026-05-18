@@ -147,16 +147,18 @@
             /* Show only the Print Area */
             #printArea, #printArea * { visibility: visible; }
             #printArea { 
-                display: flex !important; 
-                position: absolute; 
+                /* BUG FIX: Changed from flex to block to prevent Chrome's flex-pagination tearing 
+                   and premature page breaks that push the footer to the next page incorrectly */
+                display: block !important; 
+                position: relative; /* BUG FIX: Changed from absolute */
                 left: 0; top: 0; 
                 width: 100%; 
                 max-width: 210mm; 
-                min-height: 100vh; /* Pushes layout to match full A4 physical page height */
+                /* min-height: 100vh; REMOVED - Using vh in print causes strict viewport height limits, breaking the layout to a new page */
                 margin: 0 auto; 
                 padding: 0; 
                 background: white; color: #000;
-                flex-direction: column;
+                /* flex-direction: column; REMOVED */
                 box-sizing: border-box;
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important;
@@ -199,8 +201,16 @@
             .invoice-date-box div strong { font-size: 12px; font-weight: bold; color: #000;}
 
             /* Table Layout */
-            .print-table-container { padding: 0 40px; flex-grow: 1; display: flex; flex-direction: column; }
-            .print-table { width: 100%; border-collapse: collapse; margin-bottom: auto; } /* 'auto' forces all blank space beneath the items, pushing the footer strictly to the bottom */
+            .print-table-container { 
+                padding: 0 40px; 
+                display: block; /* BUG FIX: Changed from flex */
+                /* flex-grow: 1; display: flex; flex-direction: column; REMOVED */
+            }
+            .print-table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 30px; /* BUG FIX: Changed from auto */
+            } 
             .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
             .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
@@ -242,7 +252,7 @@
             .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: #000;}
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
-            /* Absolute Footer (Powered By Goorac) */
+            /* Absolute Footer */
             .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; page-break-inside: avoid; break-inside: avoid; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
@@ -517,7 +527,7 @@
         </div>
 
         <div class="print-absolute-footer">
-            <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
+            <p>System Generated Invoice • Powered by Quantum Software Solutions</p>
         </div>
     </div>
 
@@ -779,8 +789,8 @@
                     showToast("Please select a product from the search dropdown, or mark as 'Non-Stock'."); return;
                 }
                 
-                // Check if this exact item is already in the cart so we don't duplicate rows
-                existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent);
+                // BUG FIX: Added item.price === price constraint so items with manually updated prices don't merge incorrectly
+                existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent && item.price === price);
                 let existingCartQty = existingItemIndex > -1 ? cartItems[existingItemIndex].qty : 0;
                 
                 // Validate against the realtime DB stock limit
