@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>MeenaGroups | Quantum Analytics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#09090b">
   <link rel="manifest" href="manifest.json">
 
   <meta name="robots" content="noindex, nofollow">
 
-  
+  <!-- Core Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
   <style>
-    /* * ==========================================
+    /* ==========================================
      * 1. CORE THEME & VARIABLES (PREMIUM DARK UI)
      * ==========================================
      */
@@ -35,13 +35,17 @@
       --text-sub: #a1a1aa;      /* Zinc 400 */
       --border: #3f3f46;        /* Zinc 700 */
       
-      --glass: rgba(24, 24, 27, 0.7);
-      --blur: 16px;
+      --glass: rgba(24, 24, 27, 0.75);
+      --blur: 20px;
       
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent; 
+      outline: none; 
+    }
     
     body {
       background: var(--bg-root);
@@ -51,15 +55,17 @@
       height: 100vh;
       display: flex; flex-direction: column;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     /* Scrollbar Polish - Enhanced for smoother feel */
-    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar { width: 8px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg-root); border-radius: 8px; }
     ::-webkit-scrollbar-thumb { background: #52525b; border-radius: 8px; border: 2px solid var(--bg-root); }
     ::-webkit-scrollbar-thumb:hover { background: #71717a; }
 
-    /* * ==========================================
+    /* ==========================================
      * 2. HEADER & NAVIGATION
      * ==========================================
      */
@@ -67,7 +73,7 @@
       background: var(--glass);
       backdrop-filter: blur(var(--blur));
       -webkit-backdrop-filter: blur(var(--blur));
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
       padding: 16px 24px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 50; flex-shrink: 0;
@@ -81,7 +87,7 @@
     }
     .brand span { 
       font-size: 0.7rem; color: var(--primary); 
-      letter-spacing: 0.1em; font-weight: 600; text-transform: uppercase; 
+      letter-spacing: 0.12em; font-weight: 600; text-transform: uppercase; 
     }
 
     .nav-actions { display: flex; gap: 12px; }
@@ -90,13 +96,13 @@
       width: 44px; height: 44px; border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
       color: var(--text-main); cursor: pointer; transition: 0.2s var(--ease);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
-    .icon-btn:hover { background: #3f3f46; transform: translateY(-1px); }
+    .icon-btn:hover { background: #3f3f46; transform: translateY(-1px); border-color: #52525b; }
     .icon-btn:active { transform: scale(0.96); }
 
-    /* * ==========================================
+    /* ==========================================
      * 3. SEARCH & CONTROLS
      * ==========================================
      */
@@ -116,12 +122,12 @@
     .search-wrap input {
       width: 100%; background: var(--bg-surface); border: 1px solid var(--border);
       color: var(--text-main); padding: 16px 16px 16px 48px; border-radius: 16px;
-      font-size: 1rem; transition: 0.3s;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+      font-size: 1rem; transition: all 0.3s var(--ease);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
     }
     .search-wrap input:focus { 
       border-color: var(--primary); 
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); 
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), inset 0 2px 4px rgba(0,0,0,0.2); 
       background: var(--bg-input);
     }
     .search-wrap input::placeholder { color: var(--text-sub); }
@@ -138,10 +144,10 @@
       background: var(--bg-surface); border: 1px solid var(--border);
       color: var(--text-main); padding: 10px 18px; border-radius: 100px;
       font-size: 0.875rem; font-weight: 500; white-space: nowrap;
-      cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;
+      cursor: pointer; transition: all 0.2s var(--ease); display: flex; align-items: center; gap: 8px;
     }
     .chip svg { width: 18px; height: 18px; fill: currentColor; }
-    .chip:hover { filter: brightness(1.2); }
+    .chip:hover { filter: brightness(1.2); transform: translateY(-1px); }
     .chip:active { transform: scale(0.96); }
     
     .chip.primary { color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); background: rgba(59, 130, 246, 0.1); }
@@ -149,7 +155,7 @@
     .chip.danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.1); }
     .chip.warning { color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1); }
 
-    /* * ==========================================
+    /* ==========================================
      * 4. MAIN LIST (CARDS) - REDESIGNED FOR VISIBILITY
      * ==========================================
      */
@@ -164,35 +170,35 @@
     .card {
       background: var(--bg-surface); 
       border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 20px; padding: 28px; /* Increased padding to make box bigger */
-      display: flex; flex-direction: column; align-items: stretch; gap: 16px; /* Increased gap */
-      position: relative; transition: all 0.2s var(--ease);
+      border-radius: 20px; padding: 28px; 
+      display: flex; flex-direction: column; align-items: stretch; gap: 16px; 
+      position: relative; transition: all 0.25s var(--ease);
       cursor: pointer; overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      min-height: 140px; /* Force larger height to display everything */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      min-height: 140px; 
     }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); }
-    .card:active { transform: scale(0.98); }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.12); }
+    .card:active { transform: scale(0.99); }
     
     /* Status Indicator Bar */
     .card::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; /* slightly thicker */
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; 
     }
     .card.paid::before { background: var(--success); }
     .card.due::before { background: var(--danger); }
 
     .c-details { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-    .c-details h3 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+    .c-details h3 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.01em; }
     .c-details p { margin: 0; font-size: 1.05rem; color: var(--text-sub); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .c-details .cid { font-family: monospace; background: rgba(255,255,255,0.1); padding: 6px 10px; border-radius: 8px; font-weight: 600; color: var(--text-main); }
+    .c-details .cid { font-family: monospace; background: rgba(255,255,255,0.08); padding: 6px 10px; border-radius: 8px; font-weight: 600; color: var(--text-main); border: 1px solid rgba(255,255,255,0.04); }
 
     .c-meta { display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 4px; }
     .badge {
       padding: 8px 16px; border-radius: 10px; font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;
       backdrop-filter: blur(4px); white-space: nowrap;
     }
-    .badge.due { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
-    .badge.paid { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .badge.due { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .badge.paid { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.25); }
     .c-date { font-size: 0.95rem; color: #a1a1aa; text-align: left; line-height: 1.4; }
 
     /* Empty State */
@@ -203,23 +209,23 @@
     .empty-icon { width: 80px; height: 80px; fill: #3f3f46; margin-bottom: 8px; }
     .empty-state p { font-size: 1.1rem; line-height: 1.5; margin: 0; }
 
-    /* * ==========================================
+    /* ==========================================
      * 5. DRAWER (DETAILS)
      * ==========================================
      */
     .overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       backdrop-filter: blur(8px); opacity: 0; pointer-events: none;
-      transition: opacity 0.3s; z-index: 99;
+      transition: opacity 0.3s ease; z-index: 99;
     }
     .overlay.active { opacity: 1; pointer-events: auto; }
 
     .drawer {
       position: fixed; inset: 0; left: auto; width: 100%; max-width: 600px;
-      background: var(--bg-surface); border-left: 1px solid rgba(255,255,255,0.05);
+      background: var(--bg-surface); border-left: 1px solid rgba(255,255,255,0.06);
       transform: translateX(100%); transition: transform 0.4s var(--ease);
       display: flex; flex-direction: column; z-index: 100;
-      box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+      box-shadow: -10px 0 40px rgba(0,0,0,0.6);
     }
     .drawer.active { transform: translateX(0); }
 
@@ -228,26 +234,26 @@
       padding: 24px; background: var(--bg-root); border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .dh-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-    .dh-title h2 { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
+    .dh-title h2 { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.01em; }
     .dh-title span { color: var(--primary); font-family: monospace; font-size: 0.9rem; font-weight: 600; }
     
     .btn-close { 
       background: var(--bg-surface); border: 1px solid var(--border); 
       width: 36px; height: 36px; border-radius: 50%; 
       color: var(--text-main); cursor: pointer; display: grid; place-items: center; font-size: 1.2rem;
-      transition: 0.2s;
+      transition: all 0.2s var(--ease);
     }
-    .btn-close:hover { background: #3f3f46; }
+    .btn-close:hover { background: #3f3f46; border-color: #52525b; color: #fff; }
 
     /* Info Grid */
     .d-grid { 
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;
     }
-    .info-box { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .info-box { background: rgba(255,255,255,0.02); padding: 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
     .info-box label { display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.5px; }
     .info-box div { font-size: 1rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Action Buttons */
+    /* Action Buttons Area */
     .d-actions { display: none !important; gap: 12px; } /* Changed to display:none to hide items without removing code */
     .act-btn {
       flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border);
@@ -264,8 +270,9 @@
     
     .prod-item { 
       background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; 
-      margin-bottom: 16px; overflow: hidden; transition: 0.2s;
+      margin-bottom: 16px; overflow: hidden; transition: border-color 0.2s;
     }
+    .prod-item:hover { border-color: rgba(255,255,255,0.1); }
     .pi-header { 
       padding: 16px 20px; display: flex; align-items: center; gap: 16px; 
       cursor: pointer; background: transparent; transition: 0.2s;
@@ -276,37 +283,39 @@
     .chk-wrap { position: relative; width: 22px; height: 22px; }
     .custom-chk { 
       width: 100%; height: 100%; appearance: none; border: 2px solid #52525b; 
-      border-radius: 6px; background: transparent; transition: 0.2s; cursor: pointer;
+      border-radius: 6px; background: transparent; transition: all 0.2s var(--ease); cursor: pointer;
+      margin: 0; display: block;
     }
     .custom-chk:checked { background: var(--primary); border-color: var(--primary); }
     .custom-chk:checked::after {
       content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      color: #fff; font-size: 14px; font-weight: bold; pointer-events: none;
+      color: #fff; font-size: 13px; font-weight: bold; pointer-events: none;
     }
 
-    .pi-info { flex: 1; }
+    .pi-info { flex: 1; min-width: 0; }
     .pi-title { font-weight: 600; font-size: 1rem; margin-bottom: 4px; color: var(--text-main); }
     .pi-sub { font-size: 0.8rem; color: var(--text-sub); font-family: monospace; }
     
     .pi-stat { 
       font-size: 0.8rem; font-weight: 700; padding: 6px 10px; border-radius: 8px; 
-      background: rgba(0,0,0,0.2); border: 1px solid transparent; 
+      background: rgba(0,0,0,0.25); border: 1px solid transparent; white-space: nowrap;
     }
-    .pi-stat.red { color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
-    .pi-stat.green { color: #6ee7b7; border-color: rgba(16, 185, 129, 0.3); }
+    .pi-stat.red { color: #fca5a5; border-color: rgba(239, 68, 68, 0.25); }
+    .pi-stat.green { color: #6ee7b7; border-color: rgba(16, 185, 129, 0.25); }
 
     /* Ledger Expansion */
     .pi-ledger { 
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-      background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); 
+      max-height: 0; overflow: hidden; transition: max-height 0.35s var(--ease); 
+      background: rgba(0,0,0,0.15); border-top: 1px solid rgba(255,255,255,0.04); 
     }
     .pi-ledger.open { max-height: 600px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     
     .led-row { 
-      display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 12px 20px;
+      display: grid; grid-template-columns: 0.6fr 1.4fr 1fr 1fr; padding: 12px 20px;
       font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); color: #d4d4d8;
+      align-items: center;
     }
-    .led-row { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.5px;}
+    .led-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 0.5px;}
 
     /* Footer Buttons (UPDATED TO SMALLER ICON BUTTONS) */
     .d-foot { 
@@ -316,40 +325,42 @@
     }
     .btn-main {
       border: none; border-radius: 50%; width: 52px; height: 52px; padding: 0;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s var(--ease);
     }
-    .btn-main:active { transform: scale(0.95); }
-    .btn-main.primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-    .btn-main.primary:hover { background: var(--primary-hover); }
+    .btn-main:active { transform: scale(0.92); }
+    .btn-main.primary { background: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35); }
+    .btn-main.primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
     .btn-main.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-    .btn-main.secondary:hover { background: rgba(255,255,255,0.05); }
+    .btn-main.secondary:hover { background: rgba(255,255,255,0.06); border-color: #52525b; }
 
-    /* * ==========================================
-     * 6. ANALYTICS POPUP
+    /* ==========================================
+     * 6. MODALS POPUPS
      * ==========================================
      */
     .modal {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
-      width: 90%; max-width: 500px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px; opacity: 0; pointer-events: none; transition: 0.3s var(--ease);
-      z-index: 200; box-shadow: 0 24px 60px rgba(0,0,0,0.6); overflow: hidden;
+      width: 90%; max-width: 500px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px; opacity: 0; pointer-events: none; transition: all 0.3s var(--ease);
+      z-index: 200; box-shadow: 0 24px 60px rgba(0,0,0,0.65); overflow: hidden;
     }
     .modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
     
     .m-head { padding: 20px 24px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;}
-    .m-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-main); letter-spacing: 0.5px; }
+    .m-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-main); letter-spacing: 0.5px; text-transform: uppercase; }
     
     .m-body { padding: 24px; }
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: rgba(255,255,255,0.02); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+    .stat-card { background: rgba(255,255,255,0.01); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
     .stat-card h4 { margin: 0; font-size: 0.75rem; text-transform: uppercase; color: var(--text-sub); letter-spacing: 1px; font-weight: 600; }
     .stat-card .val { font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-top: 8px; font-family: monospace; }
     
-    .chart-box { height: 260px; background: rgba(0,0,0,0.2); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    .chart-box { height: 260px; background: rgba(0,0,0,0.15); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); }
 
-    /* Responsive */
+    /* Responsive adjustments */
     @media (max-width: 768px) {
-      .stat-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: 1fr; gap: 12px; }
+      .content-area { padding: 16px; gap: 14px; }
+      .card { padding: 20px; }
     }
   </style>
 </head>
@@ -405,6 +416,7 @@
 
   <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
+  <!-- Drawer View Component -->
   <div class="drawer" id="customerDrawer">
     <div class="d-head">
       <div class="dh-top">
@@ -446,8 +458,7 @@
       </div>
     </div>
 
-    <div class="d-body" id="productContainer">
-      </div>
+    <div class="d-body" id="productContainer"></div>
 
     <div class="d-foot">
       <button class="btn-main primary" onclick="downloadSelected()" title="Download Selected">
@@ -459,6 +470,7 @@
     </div>
   </div>
 
+  <!-- Analytics View Component Modal -->
   <div class="modal" id="analyticsPopup">
     <div class="m-head">
       <h3>BUSINESS PULSE</h3>
@@ -481,6 +493,7 @@
     </div>
   </div>
 
+  <!-- Edit Product Sheet Component Modal -->
   <div class="modal" id="editProductModal" style="z-index: 250;">
     <div class="m-head">
       <h3>Edit Product</h3>
@@ -500,8 +513,7 @@
         <span>Payments / Dues</span>
         <span id="editCalcTotal" style="color: var(--primary);">Paid: ₹0 | Bal: ₹0</span>
       </div>
-      <div id="editPaymentsList" style="display: flex; flex-direction: column; gap: 8px;">
-        </div>
+      <div id="editPaymentsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
 
       <button onclick="saveProductEdits()" style="width: 100%; padding: 14px; margin-top: 24px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;">Save Changes</button>
     </div>
@@ -516,7 +528,7 @@
     <div class="m-body">
       <p id="customAlertMessage" style="color: var(--text-main); font-size: 1rem; line-height: 1.5; margin: 0 0 24px 0;"></p>
       <div id="customAlertActionRow" style="display: flex; gap: 12px; justify-content: flex-end;">
-        <button id="customAlertCancelBtn" onclick="closeCustomAlert()" style="display: none; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">Cancel</button>
+        <button id="customAlertCancelBtn" onclick="closeCustomAlert()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">Cancel</button>
         <button id="customAlertConfirmBtn" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer;">OK</button>
       </div>
     </div>
@@ -535,8 +547,9 @@
     let currentEditProductIndex = -1;
     let tempPayments = [];
 
-    // Custom Modal System Implementation
+    // Custom Modal System Implementation Safe Triggers
     let alertConfirmCallback = null;
+    let activeStateFlag = { drawer: false, analytics: false, edit: false, alert: false };
 
     window.customAlert = (title, message) => {
       document.getElementById("customAlertTitle").innerText = title;
@@ -547,7 +560,10 @@
       confBtn.innerText = "OK";
       confBtn.onclick = () => closeCustomAlert();
 
-      window.history.pushState({ customAlert: true }, "");
+      if (!activeStateFlag.alert) {
+        window.history.pushState({ customAlert: true }, "");
+        activeStateFlag.alert = true;
+      }
       document.getElementById("overlay").classList.add("active");
       document.getElementById("customAlertModal").classList.add("active");
     };
@@ -566,7 +582,10 @@
         closeCustomAlert();
       };
 
-      window.history.pushState({ customAlert: true }, "");
+      if (!activeStateFlag.alert) {
+        window.history.pushState({ customAlert: true }, "");
+        activeStateFlag.alert = true;
+      }
       document.getElementById("overlay").classList.add("active");
       document.getElementById("customAlertModal").classList.add("active");
     };
@@ -574,19 +593,19 @@
     window.closeCustomAlert = () => {
       document.getElementById("customAlertModal").classList.remove("active");
       alertConfirmCallback = null;
-      if (history.state && history.state.customAlert) {
-        history.back();
-      } else {
-        // If drawer or other items aren't active, ensure overlay clears
-        if (!document.getElementById("customerDrawer").classList.contains("active") && 
-            !document.getElementById("analyticsPopup").classList.contains("active") && 
-            !document.getElementById("editProductModal").classList.contains("active")) {
-          document.getElementById("overlay").classList.remove("active");
+      if (activeStateFlag.alert) {
+        activeStateFlag.alert = false;
+        if (history.state && history.state.customAlert) {
+          history.back();
         }
+      }
+      // UI Safety Checks for Background Overlay Clearance
+      if (!activeStateFlag.drawer && !activeStateFlag.analytics && !activeStateFlag.edit) {
+        document.getElementById("overlay").classList.remove("active");
       }
     };
 
-    // Helper to extract timestamp cleanly across multiple date standard profiles
+    // Helper to extract timestamp cleanly across multiple date profiles
     function parseToTimestamp(dateStr) {
       if (!dateStr) return 0;
       if (typeof dateStr === 'number') return dateStr;
@@ -618,11 +637,11 @@
         const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(n));
         const snap = await getDocs(q);
         processData(snap);
-      } catch (e) { window.customAlert("Sync Failure", "Error loading: " + e.message); }
+      } catch (e) { window.customAlert("Sync Failure", "Error loading data: " + e.message); }
     };
 
     window.loadAll = () => {
-      window.customConfirm("Load Entire Database", "⚠️ Load ALL records? This may consume data.", async () => {
+      window.customConfirm("Load Entire Database", "⚠️ Load ALL records? This may consume data quotas.", async () => {
         uiLoading();
         try {
           const snap = await getDocs(collection(db, "customers"));
@@ -631,7 +650,7 @@
       });
     };
 
-    // Firebase Optimized Reads Logic for Pending Accounts - FIXED
+    // Firebase Optimized Reads Logic for Pending Accounts
     window.loadPending = () => {
       window.customConfirm("Evaluate Overdue Accounts", "⚠️ This action will scan records to evaluate active pending balances against aging criteria. Proceed?", async () => {
         uiLoading();
@@ -648,13 +667,12 @@
             let cumulativeInvoiceValue = 0;
             let cumulativePaymentsValue = 0;
             
-            // Fallback initialization to customer creation timestamp
             let latestActivityTimestamp = c.createdAt ? parseToTimestamp(c.createdAt) : 0;
             
             if (c.products) {
               c.products.forEach(p => {
-                cumulativeInvoiceValue += parseFloat(p.total || 0);
-                cumulativePaymentsValue += parseFloat(p.paid || 0);
+                cumulativeInvoiceValue += parseFloat(p.total || 0) || 0;
+                cumulativePaymentsValue += parseFloat(p.paid || 0) || 0;
                 
                 if (p.payments) {
                   p.payments.forEach(pay => {
@@ -669,7 +687,6 @@
 
             const outstandingBalanceDue = cumulativeInvoiceValue - cumulativePaymentsValue;
             
-            // Fixed conditions: Accounts with active debt balance remaining AND whose latest activity is older than 30 days
             const hasActiveDebt = outstandingBalanceDue > 1;
             const meetsAgingConditions = latestActivityTimestamp < oneMonthAgoTimestamp;
 
@@ -707,29 +724,24 @@
           return;
         }
         searchCloud(v);
-      }, 400); // 400ms debounce
+      }, 400);
     };
 
-    // Performs actual Firebase global queries
+    // Performs actual Firebase global indexing queries
     window.searchCloud = async (v) => {
       uiLoading();
       const colRef = collection(db, "customers");
       
       try {
-        // Parallel Queries for better coverage
         const promises = [
-          // 1. ID Match (Prefix)
           getDocs(query(colRef, where("id", ">=", v), where("id", "<=", v + '\uf8ff'), limit(10))),
-          // 2. Name Match (Simple Case Sensitive Prefix)
           getDocs(query(colRef, where("name", ">=", v), where("name", "<=", v + '\uf8ff'), limit(10))),
-          // 3. Phone Match (Exact)
           getDocs(query(colRef, where("phone", "==", v)))
         ];
 
         const snapshots = await Promise.all(promises);
-        
-        // Merge results using Map to prevent duplicates
         const resultMap = new Map();
+        
         snapshots.forEach(snap => {
           snap.forEach(doc => resultMap.set(doc.id, doc.data()));
         });
@@ -743,14 +755,13 @@
               <button class="chip primary" onclick="loadAll()" style="margin-top: 10px;">Load Entire Database Instead</button>
             </div>`;
         } else {
-          loadedData = results; // Store globally
+          loadedData = results; 
           renderList(loadedData);
           calcStats();
         }
       } catch (e) { window.customAlert("Search Error", e.message); }
     };
 
-    // Kept to prevent breaking external calls, but replaced by triggerGlobalSearch
     window.filterLocalData = () => {
        triggerGlobalSearch();
     };
@@ -759,7 +770,6 @@
       document.getElementById("resultContainer").innerHTML = `<div style="text-align:center;padding:50px;color:var(--text-sub);font-size:1.1rem;font-weight:500;">Syncing Database...</div>`;
     }
 
-    // Handles both Snapshot or Array
     function processData(snap) {
       loadedData = [];
       snap.forEach(d => loadedData.push(d.data()));
@@ -773,7 +783,7 @@
     }
 
     // ------------------------------------------
-    // 2. RENDERING
+    // 2. RENDERING Engine
     // ------------------------------------------
 
     function renderList(data) {
@@ -787,7 +797,7 @@
 
       data.forEach(c => {
         let totalVal = 0, totalPaid = 0;
-        if(c.products) c.products.forEach(p => { totalVal += (p.total||0); totalPaid += (p.paid||0); });
+        if(c.products) c.products.forEach(p => { totalVal += parseFloat(p.total || 0) || 0; totalPaid += parseFloat(p.paid || 0) || 0; });
         
         const bal = totalVal - totalPaid;
         const status = bal > 1 ? 'due' : 'paid';
@@ -796,12 +806,11 @@
         card.className = `card ${status}`;
         card.onclick = () => openDrawer(c);
         
-        // Redesigned Card Inner HTML for full visibility (Bigger box, displays everything)
         card.innerHTML = `
           <div class="c-details">
-            <h3 style="font-size: 1.6rem; margin-bottom: 4px;">${c.name}</h3>
+            <h3 style="font-size: 1.6rem; margin-bottom: 4px;">${c.name || 'Unknown'}</h3>
             <p style="font-size: 1rem; color: #a1a1aa; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-              <span class="cid" style="font-size: 0.95rem; background: rgba(255,255,255,0.1); padding: 6px 10px; border-radius: 8px;">${c.id}</span>
+              <span class="cid" style="font-size: 0.95rem; background: rgba(255,255,255,0.1); padding: 6px 10px; border-radius: 8px;">${c.id || '-'}</span>
               <span style="display:inline-flex; align-items:center; gap:6px;"><svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg> ${c.phone || '-'}</span>
               <span style="display:inline-flex; align-items:center; gap:6px;"><svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${c.place || 'Unknown City'}</span>
             </p>
@@ -812,7 +821,7 @@
                <span style="color: var(--text-main); font-weight: 500;">Active Products: ${(c.products || []).length}</span>
             </div>
             <span class="badge ${bal > 1 ? 'due' : 'paid'}" style="font-size: 1.15rem; padding: 10px 18px;">
-              ${bal > 1 ? '₹' + bal.toLocaleString() : 'CLEARED'}
+              ${bal > 1 ? '₹' + Math.round(bal).toLocaleString() : 'CLEARED'}
             </span>
           </div>
         `;
@@ -821,25 +830,26 @@
     }
 
     // ------------------------------------------
-    // 3. DRAWER & INTERACTIONS
+    // 3. DRAWER & SYSTEM INTERACTIONS
     // ------------------------------------------
 
     window.openDrawer = (c) => {
       currentCustomer = c;
-      window.history.pushState({ drawer: true }, "");
+      if (!activeStateFlag.drawer) {
+        window.history.pushState({ drawer: true }, "");
+        activeStateFlag.drawer = true;
+      }
 
-      // Populate Header
-      document.getElementById("drawName").innerText = c.name;
-      document.getElementById("drawId").innerText = "ID: " + c.id;
+      document.getElementById("drawName").innerText = c.name || 'Unknown';
+      document.getElementById("drawId").innerText = "ID: " + (c.id || '-');
       document.getElementById("drawPhone").innerText = c.phone || '-';
       document.getElementById("drawPlace").innerText = c.place || '-';
       document.getElementById("drawJoin").innerText = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '-';
       document.getElementById("drawCount").innerText = (c.products || []).length;
       
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
+      document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
 
-      // Populate Products
       const container = document.getElementById("productContainer");
       container.innerHTML = "";
       
@@ -847,22 +857,20 @@
         container.innerHTML = "<div style='text-align:center;color:var(--text-sub);padding:40px;font-size:1.1rem;'>No Products Registered</div>";
       } else {
         c.products.forEach((p, idx) => {
-          const bal = (p.total||0) - (p.paid||0);
-          
-          // Ledger Logic
-          const sorted = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
+          const bal = parseFloat(p.total || 0) - parseFloat(p.paid || 0);
+          const sorted = (p.payments || []).sort((a,b) => (parseInt(a.dueNumber || 0) - parseInt(b.dueNumber || 0)));
           let running = 0;
           let rows = "";
           
           sorted.forEach(pay => {
-            running += parseFloat(pay.amount);
-            const curBal = p.total - running;
+            running += parseFloat(pay.amount || 0) || 0;
+            const curBal = parseFloat(p.total || 0) - running;
             rows += `
               <div class="led-row">
                 <span style="color:#71717a">#${pay.dueNumber||'-'}</span>
-                <span>${pay.date}</span>
-                <span style="color:#34d399; font-weight:600;">₹${pay.amount}</span>
-                <span style="text-align:right; font-weight:600; color:#fff;">₹${curBal}</span>
+                <span>${pay.date || '-'}</span>
+                <span style="color:#34d399; font-weight:600;">₹${pay.amount || 0}</span>
+                <span style="text-align:right; font-weight:600; color:#fff;">₹${Math.round(curBal)}</span>
               </div>`;
           });
 
@@ -877,15 +885,15 @@
               </div>
               <div class="pi-info">
                 <div class="pi-title" style="display:flex; justify-content:space-between; align-items:center;">
-                  ${p.name}
+                  <span>${p.name || 'Unnamed Product'}</span>
                   <button onclick="openEditProduct(${idx}, event)" style="background:transparent; border:none; color:var(--primary); cursor:pointer; padding:4px;">
                     <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                   </button>
                 </div>
-                <div class="pi-sub">Total Value: ₹${(p.total||0).toLocaleString()}</div>
+                <div class="pi-sub">Total Value: ₹${(parseFloat(p.total || 0)).toLocaleString()}</div>
               </div>
               <div class="pi-stat ${bal > 1 ? 'red' : 'green'}">
-                ${bal > 1 ? '₹'+bal.toLocaleString() : 'PAID'}
+                ${bal > 1 ? '₹'+Math.round(bal).toLocaleString() : 'PAID'}
               </div>
             </div>
             <div class="pi-ledger">
@@ -902,7 +910,6 @@
       document.getElementById("overlay").classList.add("active");
       document.getElementById("customerDrawer").classList.add("active");
 
-      // Auto scroll smoothly to the very bottom and open the last ledger 
       setTimeout(() => {
         const ledgers = document.querySelectorAll('.pi-ledger');
         if (ledgers.length > 0) {
@@ -921,32 +928,39 @@
     };
 
     window.closeAll = () => {
-      if (document.getElementById("customAlertModal").classList.contains("active")) {
-         closeCustomAlert();
-         return;
-      }
-      if (document.getElementById("editProductModal").classList.contains("active")) {
-         closeEditModal();
-         return;
-      }
+      if (activeStateFlag.alert) { closeCustomAlert(); return; }
+      if (activeStateFlag.edit) { closeEditModal(); return; }
+      
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
       document.getElementById("analyticsPopup").classList.remove("active");
-      if(history.state) history.back();
+      
+      if(activeStateFlag.drawer || activeStateFlag.analytics) {
+        activeStateFlag.drawer = false;
+        activeStateFlag.analytics = false;
+        if(history.state && (history.state.drawer || history.state.modal)) history.back();
+      }
     };
 
-    window.onpopstate = () => {
+    window.onpopstate = (event) => {
+      // Direct history state tracking mechanics integration
       if (document.getElementById("customAlertModal").classList.contains("active")) {
          document.getElementById("customAlertModal").classList.remove("active");
-         return;
+         activeStateFlag.alert = false;
       }
       if (document.getElementById("editProductModal").classList.contains("active")) {
          document.getElementById("editProductModal").classList.remove("active");
-         return;
+         activeStateFlag.edit = false;
       }
-      document.getElementById("overlay").classList.remove("active");
+      
       document.getElementById("customerDrawer").classList.remove("active");
       document.getElementById("analyticsPopup").classList.remove("active");
+      activeStateFlag.drawer = false;
+      activeStateFlag.analytics = false;
+      
+      if (!activeStateFlag.alert && !activeStateFlag.edit) {
+         document.getElementById("overlay").classList.remove("active");
+      }
     };
 
     // ------------------------------------------
@@ -961,12 +975,13 @@
       document.getElementById('editProdName').value = p.name || '';
       document.getElementById('editProdTotal').value = p.total || 0;
       
-      // Deep copy payments to avoid modifying original until save
       tempPayments = JSON.parse(JSON.stringify(p.payments || []));
-      
       renderEditPayments();
       
-      window.history.pushState({ editModal: true }, "");
+      if (!activeStateFlag.edit) {
+        window.history.pushState({ editModal: true }, "");
+        activeStateFlag.edit = true;
+      }
       document.getElementById("overlay").classList.add("active");
       document.getElementById("editProductModal").classList.add("active");
     };
@@ -979,19 +994,19 @@
       let totalPaid = 0;
 
       tempPayments.forEach((pay, pIdx) => {
-        totalPaid += parseFloat(pay.amount || 0);
+        totalPaid += parseFloat(pay.amount || 0) || 0;
         
         const row = document.createElement("div");
-        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px;";
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 8px;";
         row.innerHTML = `
           <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#${pay.dueNumber || '-'}</span>
-              <input type="number" value="${pay.amount}" onchange="updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+              <input type="number" value="${pay.amount}" onchange="window.updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
             </div>
-            <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date} | ${pay.type || 'Cash'}</span>
+            <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date || '-'} | ${pay.type || 'Cash'}</span>
           </div>
-          <button onclick="deleteTempPayment(${pIdx})" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+          <button onclick="window.deleteTempPayment(${pIdx})" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
             <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           </button>
         `;
@@ -1012,7 +1027,7 @@
     };
 
     window.deleteTempPayment = (pIdx) => {
-      window.customConfirm("Delete Payment", "Remove this payment record?", () => {
+      window.customConfirm("Delete Payment", "Remove this payment record permanently?", () => {
         tempPayments.splice(pIdx, 1);
         renderEditPayments();
       });
@@ -1027,9 +1042,8 @@
       }
 
       let newPaid = 0;
-      tempPayments.forEach(p => { newPaid += parseFloat(p.amount || 0); });
+      tempPayments.forEach(p => { newPaid += parseFloat(p.amount || 0) || 0; });
 
-      // Update local object
       currentCustomer.products[currentEditProductIndex].name = newName;
       currentCustomer.products[currentEditProductIndex].total = newTotal;
       currentCustomer.products[currentEditProductIndex].paid = newPaid;
@@ -1044,7 +1058,6 @@
         const cusRef = doc(db, "customers", currentCustomer.id);
         await updateDoc(cusRef, { products: currentCustomer.products });
         
-        // Refresh local data list safely
         const indexInLoaded = loadedData.findIndex(c => c.id === currentCustomer.id);
         if(indexInLoaded > -1) loadedData[indexInLoaded] = currentCustomer;
         
@@ -1052,9 +1065,9 @@
         calcStats();
         
         closeEditModal();
-        openDrawer(currentCustomer); // re-render drawer
+        openDrawer(currentCustomer); 
       } catch (e) {
-        window.customAlert("Error", "Error saving: " + e.message);
+        window.customAlert("Error", "Error saving alterations: " + e.message);
       } finally {
         btn.innerText = oldText;
         btn.disabled = false;
@@ -1063,37 +1076,40 @@
 
     window.closeEditModal = () => {
       document.getElementById("editProductModal").classList.remove("active");
+      activeStateFlag.edit = false;
       if(history.state && history.state.editModal) history.back();
+      if(activeStateFlag.drawer) {
+        document.getElementById("overlay").classList.add("active");
+      }
     };
 
     // ------------------------------------------
-    // 4. PDF GENERATION (SINGLE & MASTER)
+    // 4. PDF GENERATION ENGINE (SINGLE & MASTER)
     // ------------------------------------------
 
     window.downloadAllPDF = () => {
       if(!currentCustomer) return;
-      generatePDF(currentCustomer, currentCustomer.products);
+      window.generatePDF(currentCustomer, currentCustomer.products);
     };
 
     window.downloadSelected = () => {
       if(!currentCustomer) return;
       const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-      if(checkboxes.length === 0) return window.customAlert("Selection Required", "Select at least one product.");
+      if(checkboxes.length === 0) return window.customAlert("Selection Required", "Select at least one product checkbox to proceed.");
       
       const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
       const selectedProducts = currentCustomer.products.filter((_, i) => selectedIndices.includes(i));
-      generatePDF(currentCustomer, selectedProducts);
+      window.generatePDF(currentCustomer, selectedProducts);
     };
 
     window.generatePDF = (c, products) => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Modern Header
       doc.setFillColor(24, 24, 27);
       doc.rect(0, 0, 210, 40, 'F');
       
-      doc.setTextColor(59, 130, 246); // Brand Blue
+      doc.setTextColor(59, 130, 246); 
       doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
       doc.text("MeenaGroups", 14, 22);
@@ -1104,57 +1120,56 @@
       doc.text("ACCOUNT STATEMENT", 14, 30);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 30);
 
-      // Customer Info
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text(c.name.toUpperCase(), 14, 55);
+      doc.text((c.name || 'UNKNOWN').toUpperCase(), 14, 55);
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80, 80, 80);
-      doc.text(`ID: ${c.id}`, 14, 62);
+      doc.text(`ID: ${c.id || '-'}`, 14, 62);
       doc.text(`Mobile: ${c.phone || '-'}`, 60, 62);
       doc.text(`City: ${c.place || '-'}`, 120, 62);
 
       let yPos = 75;
 
       products.forEach(p => {
-        // Product Title Bar
+        if (yPos > doc.internal.pageSize.height - 40) { doc.addPage(); yPos = 20; }
+        
         doc.setFillColor(244, 244, 245);
         doc.rect(14, yPos, 182, 10, 'F');
         
         doc.setTextColor(0,0,0);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.text(p.name, 16, yPos + 7);
-        doc.text(`Value: Rs.${p.total}`, 160, yPos + 7);
+        doc.text(p.name || 'Product Ledger', 16, yPos + 7);
+        doc.text(`Total Value: Rs.${p.total || 0}`, 150, yPos + 7);
         
         yPos += 12;
 
-        // Table Data
         const rows = [];
         let running = 0;
-        const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
+        const payments = (p.payments || []).sort((a,b) => (parseInt(a.dueNumber||0)-parseInt(b.dueNumber||0)));
 
         if(payments.length === 0) {
-           rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]);
+           rows.push(['-', '-', 'No Payments Recorded', '-', `Rs.${p.total || 0}`]);
         } else {
            payments.forEach(pay => {
-             running += parseFloat(pay.amount);
+             running += parseFloat(pay.amount || 0) || 0;
              rows.push([ 
                `#${pay.dueNumber||'-'}`, 
-               pay.date, 
+               pay.date || '-', 
                pay.type||'Cash', 
-               `Rs.${pay.amount}`, 
-               `Rs.${p.total - running}` 
+               `Rs.${pay.amount || 0}`, 
+               `Rs.${Math.round(parseFloat(p.total || 0) - running)}` 
              ]);
            });
         }
 
         doc.autoTable({
           startY: yPos,
-          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']],
+          head: [['Due #', 'Payment Date', 'Transaction Mode', 'Amount Paid', 'Remaining Balance']],
           body: rows,
           theme: 'grid',
           headStyles: { fillColor: [39, 39, 42], textColor: 255 },
@@ -1169,21 +1184,20 @@
         yPos = doc.lastAutoTable.finalY + 15;
       });
 
-      // Footer
       const h = doc.internal.pageSize.height;
       doc.setDrawColor(200);
       doc.line(14, h - 20, 196, h - 20);
       doc.setFontSize(8);
       doc.setTextColor(100);
-      doc.text("Thank you for your business.", 14, h - 12);
-      doc.text("Powered by Goorac", 170, h - 12); // Replaced static url string
+      doc.text("Thank you for your continuous business.", 14, h - 12);
+      doc.text("Powered by Goorac", 170, h - 12);
 
-      doc.save(`Statement_${c.id}.pdf`);
+      doc.save(`Statement_${c.id || 'Customer'}.pdf`);
     };
 
-    // --- NEW: PORTRAIT MASTER REPORT GENERATOR BY CUSTOMER DETAILS ---
+    // PORTRAIT MASTER COMPREHENSIVE ENGINE
     window.downloadMasterReport = () => {
-      window.customConfirm("Generate Master Report", "Generate Master Report? This will fetch all records and create a comprehensive PDF.", async () => {
+      window.customConfirm("Generate Master Report", "Generate Master Ledger Report? This will safely query all local cached systems and assemble a structural PDF map.", async () => {
         uiLoading();
         
         try {
@@ -1192,40 +1206,41 @@
           snap.forEach(d => allCustomers.push(d.data()));
           
           if(allCustomers.length === 0) {
-            window.customAlert("Report Empty", "No data available to generate report.");
+            window.customAlert("Report Empty", "No records found matching tracking scope criteria.");
             loadRecent(15);
             return;
           }
 
           const { jsPDF } = window.jspdf;
-          const doc = new jsPDF('p', 'mm', 'a4'); // Set to Portrait
+          const doc = new jsPDF('p', 'mm', 'a4'); 
           const pageWidth = doc.internal.pageSize.width;
           const pageHeight = doc.internal.pageSize.height;
 
-          let yPos = 20;
+          let yPos = 35;
 
-          // Master Header
-          doc.setFillColor(24, 24, 27);
-          doc.rect(0, 0, pageWidth, 25, 'F');
-          doc.setTextColor(59, 130, 246);
-          doc.setFontSize(16);
-          doc.setFont("helvetica", "bold");
-          doc.text("MEENA GROUPS - MASTER OUTSTANDING REPORT", 14, 16);
-          doc.setTextColor(200, 200, 200);
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
-          doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 16, { align: 'right' });
+          // Header Function for Multi-Page Safe Assembles
+          const drawMasterHeader = (targetDoc) => {
+            targetDoc.setFillColor(24, 24, 27);
+            targetDoc.rect(0, 0, pageWidth, 25, 'F');
+            targetDoc.setTextColor(59, 130, 246);
+            targetDoc.setFontSize(14);
+            targetDoc.setFont("helvetica", "bold");
+            targetDoc.text("MEENA GROUPS - COMPREHENSIVE OUTSTANDING REPORT", 14, 16);
+            targetDoc.setTextColor(180, 180, 180);
+            targetDoc.setFontSize(9);
+            targetDoc.setFont("helvetica", "normal");
+            targetDoc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 16, { align: 'right' });
+          };
 
-          yPos = 35;
+          drawMasterHeader(doc);
 
           allCustomers.forEach((c) => {
-              // Add new page if close to bottom
-              if (yPos > pageHeight - 40) {
+              if (yPos > pageHeight - 45) {
                   doc.addPage();
-                  yPos = 20;
+                  drawMasterHeader(doc);
+                  yPos = 35;
               }
 
-              // Customer Name & Contact Info Dark Header Strip
               doc.setFillColor(39, 39, 42);
               doc.rect(14, yPos - 5, pageWidth - 28, 10, 'F');
               doc.setTextColor(255, 255, 255);
@@ -1238,28 +1253,28 @@
               yPos += 10;
 
               if(!c.products || c.products.length === 0) {
-                  doc.setTextColor(100);
+                  doc.setTextColor(140);
                   doc.setFontSize(9);
-                  doc.text("No products or dues recorded.", 16, yPos);
+                  doc.text("   No items or historical logs matching profiles.", 16, yPos);
                   yPos += 10;
               } else {
                   c.products.forEach(p => {
                       let running = 0;
-                      const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
+                      const payments = (p.payments || []).sort((a,b) => (parseInt(a.dueNumber||0)-parseInt(b.dueNumber||0)));
                       const rows = [];
 
                       if(payments.length === 0) {
-                          rows.push(['-', '-', 'No Records', '-', `Rs. ${p.total}`]);
+                          rows.push(['-', '-', 'No Verified Logs Found', '-', `Rs. ${p.total || 0}`]);
                       } else {
                           payments.forEach(pay => {
-                              running += parseFloat(pay.amount);
-                              rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs. ${pay.amount}`, `Rs. ${p.total - running}` ]);
+                              running += parseFloat(pay.amount || 0) || 0;
+                              rows.push([ `#${pay.dueNumber||'-'}`, pay.date || '-', pay.type||'Cash', `Rs. ${pay.amount || 0}`, `Rs. ${Math.round(parseFloat(p.total || 0) - running)}` ]);
                           });
                       }
 
                       doc.autoTable({
                           startY: yPos,
-                          head: [[`${p.name} (Total: Rs. ${p.total})`, 'Date', 'Mode', 'Paid', 'Balance']],
+                          head: [[`${p.name || 'Item'} (Total Setup: Rs. ${p.total || 0})`, 'Date', 'Mode', 'Collected', 'Balance']],
                           body: rows,
                           theme: 'grid',
                           headStyles: { fillColor: [244, 244, 245], textColor: [0,0,0], fontStyle: 'bold' },
@@ -1270,36 +1285,37 @@
                       yPos = doc.lastAutoTable.finalY + 8;
                   });
               }
-              yPos += 5; // Extra spacing between customers
+              yPos += 6; 
           });
 
-          // Add "Powered by Goorac" watermark footer to ALL pages generated
           const pages = doc.internal.getNumberOfPages();
           for(let j = 1; j <= pages; j++) {
               doc.setPage(j);
-              doc.setTextColor(150);
+              doc.setTextColor(140);
               doc.setFontSize(8);
               doc.text("Powered by Goorac", pageWidth / 2, pageHeight - 10, { align: 'center' });
+              doc.text(`Page ${j} of ${pages}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
           }
 
           doc.save(`Master_Report_${new Date().getTime()}.pdf`);
-          
-          // Restore view
           processData(snap); 
           
         } catch (e) {
-          window.customAlert("Error", "Error generating master report: " + e.message);
+          window.customAlert("Error", "Error compiling structural layout sheets: " + e.message);
           loadRecent(15);
         }
       });
     };
 
     // ------------------------------------------
-    // 5. ANALYTICS
+    // 5. ANALYTICS PIPELINES
     // ------------------------------------------
 
     window.openAnalytics = () => {
-      window.history.pushState({ modal: true }, "");
+      if (!activeStateFlag.analytics) {
+        window.history.pushState({ modal: true }, "");
+        activeStateFlag.analytics = true;
+      }
       calcStats();
       document.getElementById("overlay").classList.add("active");
       document.getElementById("analyticsPopup").classList.add("active");
@@ -1309,20 +1325,22 @@
       let activeTargetData = customSourceDataset || loadedData;
       let paid = 0, total = 0;
       activeTargetData.forEach(c => {
-        if(c.products) c.products.forEach(p => { paid += (p.paid||0); total += (p.total||0); });
+        if(c.products) c.products.forEach(p => { paid += parseFloat(p.paid || 0) || 0; total += parseFloat(p.total || 0) || 0; });
       });
       const due = total - paid;
       
-      document.getElementById("anaPaid").innerText = "₹" + paid.toLocaleString();
-      document.getElementById("anaDue").innerText = "₹" + due.toLocaleString();
+      document.getElementById("anaPaid").innerText = "₹" + Math.round(paid).toLocaleString();
+      document.getElementById("anaDue").innerText = "₹" + Math.round(due).toLocaleString();
 
-      const ctx = document.getElementById("financeChart").getContext("2d");
+      const canvasElement = document.getElementById("financeChart");
+      if (!canvasElement) return;
+      const ctx = canvasElement.getContext("2d");
       if(chartInstance) chartInstance.destroy();
       
       chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ['Collected', 'Pending'],
+          labels: ['Collected', 'Pending Balance'],
           datasets: [{ 
             data: [paid, due], 
             backgroundColor: ['#10b981', '#ef4444'],
@@ -1333,15 +1351,15 @@
         options: { 
           responsive: true, 
           maintainAspectRatio: false,
-          cutout: '70%',
+          cutout: '72%',
           plugins: { 
-            legend: { position: 'bottom', labels: { color: '#f4f4f5', font: {size: 12, family: "'Inter', sans-serif"} } } 
+            legend: { position: 'bottom', labels: { color: '#f4f4f5', font: {size: 12, family: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif"} } } 
           }
         }
       });
     }
 
-    // Init
+    // Initialize System Stack Engine
     loadRecent(15);
   </script>
 </body>
