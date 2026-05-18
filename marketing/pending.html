@@ -250,8 +250,6 @@
         .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
         .btn-mini-confirm { background: var(--accent-color); color: white; }
 
-        /* INFINITE SCROLL SENTINEL STYLE */
-        .scroll-sentinel { height: 20px; width: 100%; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -277,7 +275,6 @@
         </div>
         
         <div class="customer-grid" id="main-grid"></div>
-        <div id="main-sentinel" class="scroll-sentinel"></div>
     </main>
 
     <div class="fab" id="btn-open-add">
@@ -381,7 +378,6 @@
         </div>
         <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
             <div class="customer-grid" id="search-results"></div>
-            <div id="search-sentinel" class="scroll-sentinel"></div>
         </div>
     </div>
 
@@ -425,29 +421,53 @@
         const ITEMS_PER_PAGE = 15;
         let mainVisibleCount = ITEMS_PER_PAGE;
         let searchVisibleCount = ITEMS_PER_PAGE;
+        let isLoadingMain = false;
+        let isLoadingSearch = false;
 
-        // --- INFINITE SCROLL OBSERVERS ---
-        // FIX: Changed from entries.isIntersecting to entries.isIntersecting
-        const mainObserver = new IntersectionObserver((entries) => {
-            if (entries.isIntersecting && mainVisibleCount < pendingData.length) {
+        // --- BULLETPROOF SCROLL LISTENERS ---
+        // 1. For the main dashboard page
+        window.addEventListener('scroll', () => {
+            if (isLoadingMain) return;
+            
+            // If user scrolls within 600px of the bottom of the page
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
+                if (mainVisibleCount < pendingData.length) {
+                    isLoadingMain = true;
+                    const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
+                    renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
+                    mainVisibleCount += ITEMS_PER_PAGE;
+                    
+                    setTimeout(() => { isLoadingMain = false; }, 50);
+                }
+            }
+        });
+
+        // 2. For the search modal (which scrolls internally)
+        const searchContentBox = document.querySelector('#search-modal .modal-content');
+        searchContentBox.addEventListener('scroll', () => {
+            if (isLoadingSearch) return;
+
+            if (searchContentBox.scrollTop + searchContentBox.clientHeight >= searchContentBox.scrollHeight - 600) {
+                if (searchVisibleCount < currentSearchResults.length) {
+                    isLoadingSearch = true;
+                    const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
+                    renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
+                    searchVisibleCount += ITEMS_PER_PAGE;
+                    
+                    setTimeout(() => { isLoadingSearch = false; }, 50);
+                }
+            }
+        });
+
+        // Check if items don't even fill the screen (on very large monitors)
+        function checkFillScreen() {
+            if (mainVisibleCount < pendingData.length && document.body.offsetHeight <= window.innerHeight + 100) {
                 const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
                 renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
                 mainVisibleCount += ITEMS_PER_PAGE;
+                setTimeout(checkFillScreen, 100);
             }
-        }, { rootMargin: '200px' });
-        
-        setTimeout(() => mainObserver.observe(document.getElementById('main-sentinel')), 100);
-
-        // FIX: Changed from entries.isIntersecting to entries.isIntersecting
-        const searchObserver = new IntersectionObserver((entries) => {
-            if (entries.isIntersecting && searchVisibleCount < currentSearchResults.length) {
-                const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
-                renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
-                searchVisibleCount += ITEMS_PER_PAGE;
-            }
-        }, { rootMargin: '200px' });
-        
-        setTimeout(() => searchObserver.observe(document.getElementById('search-sentinel')), 100);
+        }
 
 
         // --- NEW: DAYS PENDING CALCULATOR ---
@@ -569,6 +589,9 @@
                 if(mainVisibleCount < ITEMS_PER_PAGE) mainVisibleCount = ITEMS_PER_PAGE;
                 
                 renderGrid(pendingData.slice(0, mainVisibleCount), 'main-grid', 0, false);
+                
+                // If on a huge screen, auto-load enough to scroll
+                setTimeout(checkFillScreen, 200);
                 
                 // Update search dynamically if open
                 if(searchModal.classList.contains('active')) handleSearch();
