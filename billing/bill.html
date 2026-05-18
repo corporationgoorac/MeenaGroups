@@ -205,7 +205,7 @@
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
 
-            /* --- Added Page Break Pagination Logic --- */
+            /* --- Added Page Break Pagination Logic with STRICT Heights --- */
             .print-table tbody tr:nth-child(5n):not(:last-child) {
                 page-break-after: always;
                 break-after: page;
@@ -213,10 +213,17 @@
             .print-table tbody tr {
                 page-break-inside: avoid;
                 break-inside: avoid;
+                height: 28mm !important; /* FIXED ROW HEIGHT ENFORCEMENT */
+                max-height: 28mm !important; 
+                overflow: hidden;
             }
 
-            /* Middle Section (Totals & Thanks) */
-            .print-middle-section { display: flex; justify-content: space-between; padding: 0 40px; margin-top: 10px; page-break-inside: avoid; break-inside: avoid; }
+            /* Middle Section (Totals & Thanks) - FORCED FIXED BOTTOM */
+            .print-middle-section { 
+                display: flex; justify-content: space-between; padding: 15px 40px; margin-top: 0; 
+                page-break-inside: avoid; break-inside: avoid; 
+                position: fixed !important; bottom: 105px; left: 0; right: 0; width: 100%; box-sizing: border-box; background-color: #fff; z-index: 999;
+            }
             
             .print-left-footer-info { width: 45%; }
             .thanks-box { background-color: #eee !important; padding: 12px; margin-bottom: 15px; border-left: 4px solid #d32f2f;} /* RED BORDER */
@@ -234,15 +241,23 @@
             .totals-grid .t-grand-row { background-color: #cccccc !important; border-top: 2px solid #000;}
             .totals-grid .t-grand-row td { font-size: 16px; font-weight: 900; color: #d32f2f !important; padding: 12px 10px; } /* LAL (RED) AND BIGGER */
 
-            /* Signature Area */
-            .print-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 25px; page-break-inside: avoid; break-inside: avoid; }
+            /* Signature Area - FORCED FIXED BOTTOM */
+            .print-signature-area { 
+                display: flex; justify-content: flex-end; padding: 0 40px; margin-top: 0; 
+                page-break-inside: avoid; break-inside: avoid; 
+                position: fixed !important; bottom: 35px; left: 0; right: 0; width: 100%; box-sizing: border-box; background-color: #fff; z-index: 999;
+            }
             .sign-box { text-align: center; width: 200px; }
             .sign-box div.sign-placeholder { border-bottom: 1px solid #000; height: 35px; margin-bottom: 5px; width: 100%; }
             .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: #000;}
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
-            /* Absolute Footer (Powered By Goorac) */
-            .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; page-break-inside: avoid; break-inside: avoid; }
+            /* Absolute Footer (Powered By Goorac) - FORCED FIXED BOTTOM */
+            .print-absolute-footer { 
+                background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 0; 
+                page-break-inside: avoid; break-inside: avoid; 
+                position: fixed !important; bottom: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; z-index: 999;
+            }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
     </style>
@@ -1066,8 +1081,9 @@
             printItems.forEach((item, index) => {
                 if (item.isEmptyRow) {
                     // Inject invisible spacing row to maintain physical space for pagination structure
+                    // FIXED: Strictly enforced 28mm height exactly matching CSS
                     tbody.innerHTML += `
-                        <tr style="height: 32mm;">
+                        <tr style="height: 28mm; max-height: 28mm;">
                             <td style="border-bottom: 1px solid #ddd;"></td>
                             <td style="border-bottom: 1px solid #ddd;"></td>
                             <td style="border-bottom: 1px solid #ddd;"></td>
@@ -1089,9 +1105,9 @@
                     <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
-                // Fix: Removed strict 32mm height from populated rows to eliminate ugly gaps between products
+                // FIXED: Enforced strict 28mm height for populated rows to eliminate layout shifting 
                 tbody.innerHTML += `
-                    <tr>
+                    <tr style="height: 28mm; max-height: 28mm;">
                         <td>${num}.</td>
                         <td>${desc}</td>
                         <td class="text-right">₹${item.originalUnitPriceBase.toFixed(2)}</td>
