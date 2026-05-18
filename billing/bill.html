@@ -128,13 +128,15 @@
         #printArea { display: none; }
 
         @media print {
+            /* Safely hide app UI without relying on absolute positioning overlays */
+            header, #installPopup, .main-scroll-area, .toast-msg { display: none !important; }
+
             /* Force 1 page and remove browser headers/footers */
             @page {
                 size: A4 portrait;
                 margin: 0mm; 
             }
             
-            /* Hide the entire App UI */
             body * { visibility: hidden; }
             body { 
                 background: white; color: black; 
@@ -147,16 +149,13 @@
             /* Show only the Print Area */
             #printArea, #printArea * { visibility: visible; }
             #printArea { 
-                display: flex !important; 
-                position: absolute; 
-                left: 0; top: 0; 
+                display: block !important; 
+                position: relative; 
                 width: 100%; 
                 max-width: 210mm; 
-                min-height: 100vh; /* Pushes layout to match full A4 physical page height */
                 margin: 0 auto; 
                 padding: 0; 
                 background: white; color: #000;
-                flex-direction: column;
                 box-sizing: border-box;
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important;
@@ -199,8 +198,8 @@
             .invoice-date-box div strong { font-size: 12px; font-weight: bold; color: #000;}
 
             /* Table Layout */
-            .print-table-container { padding: 0 40px; flex-grow: 1; display: flex; flex-direction: column; }
-            .print-table { width: 100%; border-collapse: collapse; margin-bottom: auto; } /* 'auto' forces all blank space beneath the items, pushing the footer strictly to the bottom */
+            .print-table-container { padding: 0 40px; display: block; }
+            .print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
             .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
             .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
@@ -530,10 +529,7 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // --- COMMENTED OUT OLD FIREBASE IMPORT ---
-        // import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        
-        // --- NEW IMPORT WITH PAGINATION SUPPORT ---
+        // --- IMPORT WITH PAGINATION SUPPORT ---
         import { db } from './config.js';
         import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -1032,7 +1028,7 @@
             }
         });
 
-        // --- UPDATED JS FOR 5-COLUMN PRINT LAYOUT ---
+        // --- UPDATED JS FOR 5-COLUMN PRINT LAYOUT WITH FIXED PAGINATION ---
         function buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPaymentMode) {
             // Fill Customer & Meta
             document.getElementById('prName').innerText = cName;
@@ -1053,14 +1049,39 @@
             const tbody = document.getElementById('prTableBody');
             tbody.innerHTML = '';
             
-            cartItems.forEach((item, index) => {
-                const num = (index + 1).toString().padStart(2, '0');
+            // --- SMART ALGORITHM: Pad items to strictly force 5 items per chunk ---
+            // This guarantees the printed middle height is ALWAYS identical, flawlessly pushing 
+            // the footer securely to the bottom of the last page, regardless of whether you print 2 or 6 items.
+            let printItems = [...cartItems];
+            const maxRowsPerPage = 5;
+            const remainder = printItems.length % maxRowsPerPage;
+            
+            if (remainder !== 0 || printItems.length === 0) {
+                const padCount = printItems.length === 0 ? maxRowsPerPage : (maxRowsPerPage - remainder);
+                for(let i = 0; i < padCount; i++) {
+                    printItems.push({ isEmptyRow: true });
+                }
+            }
+
+            printItems.forEach((item, index) => {
+                if (item.isEmptyRow) {
+                    // Inject invisible spacing row to maintain physical space for pagination structure
+                    tbody.innerHTML += `
+                        <tr style="height: 32mm;">
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                        </tr>
+                    `;
+                    return;
+                }
                 
-                // The non-stock flag is kept internally in item.isNonStock but removed from the print output here
+                const num = (index + 1).toString().padStart(2, '0');
                 
                 // Moved GST info into description so the table strictly has 5 columns like the image
                 const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
-                
                 const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
                 
                 const desc = `
@@ -1068,9 +1089,9 @@
                     <span style="font-size:10px; color:#555;">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
-                // Fix: Prints originalUnitPriceBase so Unit Price column math looks correct even if discount applied
+                // Fix: Uses strict 32mm height to safely lock the 5-row structure to the page space available
                 tbody.innerHTML += `
-                    <tr>
+                    <tr style="height: 32mm;">
                         <td>${num}.</td>
                         <td>${desc}</td>
                         <td class="text-right">₹${item.originalUnitPriceBase.toFixed(2)}</td>
