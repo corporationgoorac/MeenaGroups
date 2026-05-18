@@ -93,7 +93,7 @@
       overflow-y: auto; 
       overflow-x: hidden; 
       padding: 24px;
-      display: flex; flex-direction: column; gap: 20px;
+      display: block; /* Changed to block to prevent flex-overlap bugs on mobile */
       background: var(--bg-root);
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
@@ -105,6 +105,7 @@
       border: 1px solid rgba(255,255,255,0.05);
       border-radius: 20px; padding: 24px;
       display: flex; flex-direction: column; align-items: stretch; gap: 16px;
+      margin-bottom: 20px; /* Guarantees spacing without flex gap bugs */
       position: relative; transition: all 0.2s var(--ease);
       cursor: pointer; overflow: hidden;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
@@ -131,14 +132,7 @@
     .all-clear-state .empty-icon { fill: var(--success); opacity: 0.8; }
     .all-clear-state h3 { color: var(--text-main); margin: 0; font-size: 1.3rem; }
 
-    .loader-row { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.95rem; font-weight: 500; width: 100%; }
-    .manual-load-btn {
-      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
-      color: #60a5fa; padding: 14px 24px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
-      cursor: pointer; transition: 0.2s; margin: 10px auto; display: block;
-    }
-    .manual-load-btn:hover { background: rgba(59, 130, 246, 0.2); }
-    .manual-load-btn:active { transform: scale(0.96); }
+    .loader-row { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.95rem; font-weight: 500; }
 
     /* ==========================================
      * 4. DRAWER & MODALS
@@ -176,7 +170,7 @@
 
     .d-body { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg-root); scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
     
-    .prod-item { background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
+    .prod-item { background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 16px; overflow: hidden; flex-shrink: 0; }
     .pi-header { padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; background: transparent; transition: 0.2s; }
     .pi-header:hover { background: rgba(255,255,255,0.02); }
     
@@ -204,12 +198,6 @@
     .btn-main:active { transform: scale(0.95); }
     .btn-main.primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
     .btn-main.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-
-    .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); width: 90%; max-width: 500px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; opacity: 0; pointer-events: none; transition: 0.3s var(--ease); z-index: 200; box-shadow: 0 24px 60px rgba(0,0,0,0.6); overflow: hidden; }
-    .modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
-    .m-head { padding: 20px 24px; background: rgba(239, 68, 68, 0.2); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;}
-    .m-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #f87171; }
-    .m-body { padding: 24px; }
   </style>
 </head>
 <body>
@@ -227,7 +215,7 @@
   <div id="resultContainer" class="content-area">
     <div class="empty-state" id="initialLoader">
       <svg class="empty-icon" style="animation: spin 1s linear infinite;" viewBox="0 0 24 24"><path d="M12 2v4c4.41 0 8 3.59 8 8s-3.59 8-8 8-8-3.59-8-8H2c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2z"/></svg>
-      <p>Scanning Records...</p>
+      <p>Scanning all records...</p>
       <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
     </div>
   </div>
@@ -269,70 +257,24 @@
     </div>
   </div>
 
-  <div class="modal" id="indexModal">
-    <div class="m-head" style="background: rgba(239, 68, 68, 0.2);">
-      <h3 style="color: #f87171;">Firebase Action Required</h3>
-      <button class="btn-close" onclick="closeAll()">×</button>
-    </div>
-    <div class="m-body">
-      <p style="font-size: 0.95rem; line-height: 1.5; color: var(--text-sub); margin-bottom: 20px;">
-        A composite index is required in Firebase to perform this specific query efficiently. Please click the button below to generate it automatically in your console.
-      </p>
-      <a id="indexLink" href="#" target="_blank" style="display: block; text-align: center; padding: 14px; background: var(--primary); color: #fff; border-radius: 12px; text-decoration: none; font-weight: 600; transition: 0.2s;">
-        Create Firebase Index
-      </a>
-    </div>
-  </div>
-
   <script type="module">
     import { db } from "./config.js";
-    // CRITICAL FIX: Firebase version reverted strictly to 12.9.0 to match your config.js environment and prevent core crashing.
-    import { collection, query, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ------------------------------------------
-    // STATE & CONFIG
-    // ------------------------------------------
-    let loadedData = [];
     let currentCustomer = null;
-    let lastVisibleDoc = null;
-    let isFetching = false;
-    let hasMoreDocs = true;
-    let totalScanned = 0;
-    
-    const BATCH_SIZE = 50; 
 
-    // Rigorously rewritten Date Parser to guarantee precise detection of stored dates vs server times
     function parseSafeDate(dStr) {
       if (!dStr) return 0;
-      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime(); 
+      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime();
       if (typeof dStr === 'number') return dStr;
       
       const s = String(dStr).trim();
-      if (!s) return 0;
-
-      // 1. Check if it's already a universally parseable format
-      const rawParsed = Date.parse(s);
-      if (!isNaN(rawParsed)) return rawParsed;
-
-      // 2. Check for DD/MM/YYYY or DD-MM-YYYY formats safely
       const parts = s.split(/[-/]/);
       if (parts.length === 3) {
-        let y, m, d;
-        if (parts[0].length === 4) {
-          y = parseInt(parts[0], 10);
-          m = parseInt(parts[1], 10) - 1;
-          d = parseInt(parts[2], 10);
-        } else {
-          d = parseInt(parts[0], 10);
-          m = parseInt(parts[1], 10) - 1;
-          y = parseInt(parts[2], 10);
-          if (y < 100) y += 2000; // Handle YY formats
-        }
-        const manualDate = new Date(y, m, d).getTime();
-        if (!isNaN(manualDate)) return manualDate;
+        if (parts.length === 4) return new Date(s).getTime(); 
+        return new Date(`${parts}-${parts}-${parts}`).getTime(); 
       }
-      
-      return 0; // Failsafe return
+      return new Date(s).getTime();
     }
 
     function checkPendingStatus(customer) {
@@ -357,162 +299,72 @@
       const balance = totalVal - totalPaid;
       if (balance <= 1) return { isPending: false }; 
 
-      // Strictly utilize stored initial creation date if no explicit payment history exists
       if (lastActivityTime === 0 && customer.createdAt) {
         lastActivityTime = parseSafeDate(customer.createdAt);
       }
       
       if (lastActivityTime === 0 || isNaN(lastActivityTime)) {
-         lastActivityTime = 0; 
+         lastActivityTime = Date.now(); 
       }
 
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      // Calculates if the latest stored activity is older than exactly 1 month from current execution time
       const isPending = lastActivityTime < oneMonthAgo.getTime();
       
       return { 
         isPending: isPending, 
         balance: balance, 
-        latestDate: lastActivityTime > 0 ? new Date(lastActivityTime) : null 
+        latestDate: new Date(lastActivityTime) 
       };
     }
 
-    async function loadNextPendingBatch() {
-      if (isFetching || !hasMoreDocs) return;
-      isFetching = true;
-      
+    async function loadAllPendingCustomers() {
       const container = document.getElementById("resultContainer");
-      
-      if (document.getElementById('initialLoader')) document.getElementById('initialLoader').remove();
-      if (document.getElementById('manualLoadBtn')) document.getElementById('manualLoadBtn').remove();
-      
-      if (!document.getElementById('scrollLoader')) {
-        const loader = document.createElement("div");
-        loader.id = "scrollLoader"; 
-        loader.className = "empty-state"; 
-        loader.innerHTML = `
-          <svg class="empty-icon" style="animation: spin 1s linear infinite;" viewBox="0 0 24 24"><path d="M12 2v4c4.41 0 8 3.59 8 8s-3.59 8-8 8-8-3.59-8-8H2c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2z"/></svg>
-          <p>Scanning database... <br><span id="scanCount" style="color:var(--primary); font-weight:bold;">${totalScanned}</span> records checked.</p>
-        `;
-        container.appendChild(loader);
-      }
-
-      let newlyFound = [];
-      let batchesScanned = 0;
-      const MAX_BATCHES = 10; // Capped background iterations so it won't infinite-loop large databases
+      let allPendingFound = [];
       
       try {
-        while (hasMoreDocs && newlyFound.length < 5 && batchesScanned < MAX_BATCHES) {
-          batchesScanned++;
-          let q;
-          if (lastVisibleDoc) {
-            q = query(collection(db, "customers"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(BATCH_SIZE));
-          } else {
-            q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(BATCH_SIZE));
+        const snap = await getDocs(collection(db, "customers"));
+        
+        snap.forEach(docSnap => {
+          const data = docSnap.data();
+          const status = checkPendingStatus(data);
+          if (status.isPending) {
+            data._calculatedBalance = status.balance;
+            data._lastActivity = status.latestDate;
+            allPendingFound.push(data);
           }
+        });
 
-          const snap = await getDocs(q);
-          
-          if (snap.empty) {
-            hasMoreDocs = false;
-            break;
-          } else {
-            lastVisibleDoc = snap.docs[snap.docs.length - 1];
-            totalScanned += snap.size;
+        container.innerHTML = ""; 
 
-            if (document.getElementById('scanCount')) {
-              document.getElementById('scanCount').innerText = totalScanned;
-            }
-
-            snap.forEach(docSnap => {
-              const data = docSnap.data();
-              const status = checkPendingStatus(data);
-              if (status.isPending) {
-                data._calculatedBalance = status.balance;
-                data._lastActivity = status.latestDate;
-                newlyFound.push(data);
-              }
-            });
-          }
-
-          // A micro-pause to prevent the app UI from completely freezing during massive loops
-          await new Promise(resolve => setTimeout(resolve, 30));
-        }
-
-        if (document.getElementById('scrollLoader')) document.getElementById('scrollLoader').remove();
-
-        if (newlyFound.length > 0) {
-          loadedData = [...loadedData, ...newlyFound];
-          appendToList(newlyFound);
-        }
-
-        if (!hasMoreDocs) {
-          if (loadedData.length === 0) {
-            container.innerHTML = `
-              <div class="empty-state all-clear-state">
-                <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                <h3>All Up To Date!</h3>
-                <p>No pending collections older than 1 month found across all ${totalScanned} scanned records.</p>
-              </div>`;
-          } else if (!document.getElementById('endMsg')) {
-            const endMsg = document.createElement("div");
-            endMsg.id = "endMsg";
-            endMsg.className = "loader-row";
-            endMsg.innerText = `End of database reached. (${totalScanned} records scanned)`;
-            container.appendChild(endMsg);
-          }
+        if (allPendingFound.length > 0) {
+          allPendingFound.sort((a, b) => a._lastActivity - b._lastActivity);
+          appendToList(allPendingFound);
         } else {
-          if (!document.getElementById('manualLoadBtn')) {
-            const btn = document.createElement("button");
-            btn.id = "manualLoadBtn";
-            btn.className = "manual-load-btn";
-            btn.innerText = `Scan More Records`;
-            btn.onclick = loadNextPendingBatch;
-            container.appendChild(btn);
-          }
+          container.innerHTML = `
+            <div class="empty-state all-clear-state">
+              <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <h3>All Up To Date!</h3>
+              <p>No pending collections older than 1 month found.</p>
+            </div>`;
         }
 
       } catch (e) {
-        if (document.getElementById('scrollLoader')) document.getElementById('scrollLoader').remove();
-        if (e.message && e.message.includes("indexes?create_composite=")) {
-          const urlMatch = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-          if (urlMatch) {
-            document.getElementById("indexLink").href = urlMatch[0];
-            document.getElementById("overlay").classList.add("active");
-            document.getElementById("indexModal").classList.add("active");
-          }
-        } else {
-          alert("Database Access Error: " + e.message);
-        }
-      } finally {
-        isFetching = false;
+        container.innerHTML = `<div class="loader-row" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
       }
     }
-    window.loadNextPendingBatch = loadNextPendingBatch;
+    window.loadAllPendingCustomers = loadAllPendingCustomers;
 
-    document.getElementById("resultContainer").addEventListener('scroll', function() {
-      if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
-        if(!isFetching && hasMoreDocs) {
-           loadNextPendingBatch();
-        }
-      }
-    });
-
-    function appendToList(dataBatch) {
+    function appendToList(dataList) {
       const div = document.getElementById("resultContainer");
 
-      dataBatch.forEach(c => {
-        const btn = document.getElementById("manualLoadBtn");
-        const endMsg = document.getElementById("endMsg");
-        const refNode = btn || endMsg || null;
-
+      dataList.forEach(c => {
         const card = document.createElement("div");
         card.className = "card"; 
         card.onclick = () => openDrawer(c);
         
-        const activityStr = c._lastActivity ? c._lastActivity.toLocaleDateString() : 'No Activity';
+        const activityStr = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
 
         card.innerHTML = `
           <div class="c-details">
@@ -531,11 +383,7 @@
             <span class="badge due">₹${(c._calculatedBalance).toLocaleString()}</span>
           </div>
         `;
-        if (refNode) {
-          div.insertBefore(card, refNode);
-        } else {
-          div.appendChild(card);
-        }
+        div.appendChild(card);
       });
     }
 
@@ -547,12 +395,11 @@
       document.getElementById("drawId").innerText = "ID: " + c.id;
       document.getElementById("drawPhone").innerText = c.phone || '-';
       document.getElementById("drawPlace").innerText = c.place || '-';
-      document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : 'No Activity';
+      document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
       document.getElementById("drawCount").innerText = (c.products || []).length;
       
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      // MAP LINK TYPO RESOLVED
-      document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
+      document.getElementById("btnMap").href = c.place ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
 
       const container = document.getElementById("productContainer");
       container.innerHTML = "";
@@ -605,7 +452,6 @@
     function closeAll() {
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
-      document.getElementById("indexModal").classList.remove("active");
       if(history.state) history.back();
     }
     window.closeAll = closeAll;
@@ -613,7 +459,6 @@
     window.onpopstate = () => {
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
-      document.getElementById("indexModal").classList.remove("active");
     };
 
     function downloadAllPDF() { 
@@ -651,13 +496,11 @@
         else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
 
         doc.autoTable({
-          startY: yPos, 
-          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], 
-          body: rows,
+          startY: yPos, head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], body: rows,
           theme: 'grid', 
-          headStyles: { fillColor: [59, 130, 246], textColor: 255 }, 
+          headStyles: { fillColor:, textColor: 255 }, 
           styles: { fontSize: 9, cellPadding: 4 },
-          columnStyles: { 3: { fontStyle: 'bold', textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } }, 
+          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, 
           margin: { left: 14, right: 14 }
         });
         yPos = doc.lastAutoTable.finalY + 15;
@@ -671,8 +514,7 @@
     }
     window.generatePDF = generatePDF;
 
-    // Initiate First Load
-    loadNextPendingBatch();
+    loadAllPendingCustomers();
   </script>
 </body>
 </html>
