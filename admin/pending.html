@@ -286,7 +286,6 @@
 
   <script type="module">
     import { db } from "./config.js";
-    // FIX 1: Updated Firebase URL to a stable v10 version. 12.9.0 does not exist and caused a 404 block.
     import { collection, query, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // ------------------------------------------
@@ -301,38 +300,67 @@
     
     const BATCH_SIZE = 10; 
 
+    // Helper: Safely parse standard Indian date strings (DD/MM/YYYY) and Firebase Timestamps
+    function parseSafeDate(dStr) {
+      if (!dStr) return 0;
+      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime(); // Firebase timestamp
+      if (typeof dStr === 'number') return dStr;
+      
+      const s = String(dStr).trim();
+      const parts = s.split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts.length === 4) return new Date(s).getTime(); // YYYY-MM-DD
+        return new Date(`${parts}-${parts}-${parts}`).getTime(); // DD-MM-YYYY -> YYYY-MM-DD
+      }
+      return new Date(s).getTime();
+    }
+
+    // UPDATED LOGIC: Accurately find if balance > 0 AND last activity is strictly older than 1 month
     function checkPendingStatus(customer) {
-      let totalVal = 0, totalPaid = 0, latestDate = new Date(0); 
+      let totalVal = 0, totalPaid = 0;
+      let lastActivityTime = 0;
+      
       if (!customer.products || customer.products.length === 0) return { isPending: false };
 
       customer.products.forEach(p => {
-        totalVal += (p.total || 0);
-        totalPaid += (p.paid || 0);
+        totalVal += (Number(p.total) || 0);
+        totalPaid += (Number(p.paid) || 0);
         if (p.payments && p.payments.length > 0) {
           p.payments.forEach(pay => {
             if (pay.date) {
-              const payDate = new Date(pay.date);
-              if (payDate > latestDate) latestDate = payDate;
+              const pTime = parseSafeDate(pay.date);
+              if (pTime && pTime > lastActivityTime) lastActivityTime = pTime;
             }
           });
         }
       });
 
       const balance = totalVal - totalPaid;
-      if (balance <= 1) return { isPending: false };
+      if (balance <= 1) return { isPending: false }; // Paid in full
 
-      if (latestDate.getTime() === 0) {
-        latestDate = customer.createdAt ? new Date(customer.createdAt) : new Date();
+      // If no valid payments were found, use their account creation date as the 'last activity'
+      if (lastActivityTime === 0 && customer.createdAt) {
+        lastActivityTime = parseSafeDate(customer.createdAt);
+      }
+      
+      // Safety fallback
+      if (lastActivityTime === 0 || isNaN(lastActivityTime)) {
+         lastActivityTime = Date.now(); 
       }
 
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      return { isPending: latestDate < oneMonthAgo, balance: balance, latestDate: latestDate };
+      // Only true if their LAST payment (or start date) is strictly older than 1 month ago
+      const isPending = lastActivityTime < oneMonthAgo.getTime();
+      
+      return { 
+        isPending: isPending, 
+        balance: balance, 
+        latestDate: new Date(lastActivityTime) 
+      };
     }
 
-    // FIX 2: Defined functions properly and then attached them to window 
-    // to fix strictly-scoped module ReferenceErrors when called from HTML
     async function loadNextPendingBatch() {
       if (isFetching || !hasMoreDocs) return;
       isFetching = true;
@@ -402,7 +430,6 @@
           btn.id = "manualLoadBtn";
           btn.className = "manual-load-btn";
           btn.innerText = `Scan Next 10 Records`;
-          // Attach proper scoped reference
           btn.onclick = loadNextPendingBatch;
           container.appendChild(btn);
         }
@@ -574,10 +601,14 @@
         if(payments.length === 0) { rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]); } 
         else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
 
+        // FIX 1: Fixed the broken JS Syntax here.
         doc.autoTable({
           startY: yPos, head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], body: rows,
-          theme: 'grid', headStyles: { fillColor:, textColor: 255 }, styles: { fontSize: 9, cellPadding: 4 },
-          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, margin: { left: 14, right: 14 }
+          theme: 'grid', 
+          headStyles: { fillColor:, textColor: 255 }, 
+          styles: { fontSize: 9, cellPadding: 4 },
+          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, 
+          margin: { left: 14, right: 14 }
         });
         yPos = doc.lastAutoTable.finalY + 15;
       });
