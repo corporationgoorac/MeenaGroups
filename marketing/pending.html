@@ -193,7 +193,7 @@
         /* PAYMENT MODAL SPECIFIC */
         .pay-summary-card {
             background: var(--yt-card); border: 1px solid var(--yt-border);
-            padding: 20px; border-radius: 12px; margin-bottom: 25px; text-align: center;
+            padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
         }
         .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
         .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
@@ -204,6 +204,15 @@
 
         .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
 
+        /* NEW: PRODUCT ITEMS STYLING */
+        .products-container { margin-bottom: 25px; }
+        .products-title { font-size: 12px; font-weight: 600; color: var(--yt-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .product-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--meena-white); }
+        .skeleton-pill { height: 30px; border-radius: 20px; background: linear-gradient(90deg, var(--yt-card) 25%, var(--yt-border) 50%, var(--yt-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .no-products { font-size: 14px; color: var(--yt-text-secondary); font-style: italic; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px dashed var(--yt-border);}
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
         .btn-full-width {
             width: 100%; padding: 14px; border: none; border-radius: 8px;
             font-size: 16px; font-weight: bold; margin-top: 12px; cursor: pointer;
@@ -211,6 +220,9 @@
         }
         .btn-primary { background-color: var(--accent-color); }
         .btn-success { background-color: var(--success-color); color: #000; }
+
+        /* Live Preview for Amount */
+        .live-preview { font-size: 13.5px; margin-top: 8px; min-height: 20px; transition: color 0.2s; }
 
         /* SEARCH BAR OVERRIDES */
         .search-input-wrapper { flex: 1; }
@@ -250,6 +262,14 @@
         .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
         .btn-mini-confirm { background: var(--accent-color); color: white; }
 
+        /* INFINITE SCROLL SENTINEL STYLE */
+        .scroll-sentinel { height: 20px; width: 100%; flex-shrink: 0; }
+        
+        /* IMPROVED PAGINATION ANIMATION */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -275,6 +295,7 @@
         </div>
         
         <div class="customer-grid" id="main-grid"></div>
+        <div id="main-sentinel" class="scroll-sentinel"></div>
     </main>
 
     <div class="fab" id="btn-open-add">
@@ -341,10 +362,13 @@
                 <div class="pay-summary-total" id="pay-ui-total">-</div>
             </div>
 
+            <div id="purchased-products-container" class="products-container"></div>
+
             <form id="pay-form">
                 <div class="form-group">
                     <label class="form-label">Amount Received Today (₹)</label>
                     <input type="number" id="pay-input-amount" class="form-input" placeholder="e.g. 1000" inputmode="numeric" min="1">
+                    <div id="pay-live-preview" class="live-preview"></div>
                 </div>
                 
                 <button type="submit" class="btn-full-width btn-primary" id="btn-update-partial">
@@ -394,7 +418,8 @@
 
     <script type="module">
         import { db } from './config.js';
-        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // ADDED collection, query, where, limit, getDocs for targeted single-read fetch
+        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // SMART BACK BUTTON
         document.getElementById('smart-back-btn').addEventListener('click', function(e) {
@@ -548,6 +573,27 @@
             if (history.state?.payOpen) history.back(); else closeModal(payModal);
         });
 
+        // Live Preview Amount Listener
+        document.getElementById('pay-input-amount').addEventListener('input', function() {
+            let val = parseFloat(this.value);
+            let current = parseFloat(currentEditRecord?.pendingAmount || 0);
+            const previewBox = document.getElementById('pay-live-preview');
+            
+            if (val > 0) {
+                let remains = current - val;
+                if (remains <= 0) {
+                    previewBox.innerHTML = "Bill will be <b>Fully Paid</b>";
+                    previewBox.style.color = "var(--success-color)";
+                } else {
+                    // Correct mathematical processing ensuring decimal robustness in half/partial calculations
+                    previewBox.innerHTML = "Remaining balance will be: <b>₹" + remains.toLocaleString('en-IN', {maximumFractionDigits: 2}) + "</b>";
+                    previewBox.style.color = "var(--call-blue)";
+                }
+            } else {
+                previewBox.innerHTML = "";
+            }
+        });
+
         // Search Listeners
         document.getElementById('btn-open-search').addEventListener('click', () => {
             searchInput.value = '';
@@ -579,10 +625,10 @@
                 // Sort Oldest at the top
                 pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
                 
-                // Render Dashboard Stats
-                const totalPending = pendingData.reduce((sum, item) => sum + Number(item.pendingAmount), 0);
+                // Render Dashboard Stats (Robust Amount Calculation)
+                const totalPending = pendingData.reduce((sum, item) => sum + (parseFloat(item.pendingAmount) || 0), 0);
                 document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
-                document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN')}`;
+                document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
                 
                 // Ensure visible count doesn't reset to 15 if user has already scrolled down, 
                 // keeping their scroll context alive during background database updates.
@@ -604,6 +650,57 @@
             }
         });
 
+        // --- FETCH PRODUCTS DYNAMICALLY (1 Read Limit) ---
+        async function fetchProductsForInvoice(invoiceNumber) {
+            const productsContainer = document.getElementById('purchased-products-container');
+            
+            // Show Skeleton Loader
+            productsContainer.innerHTML = `
+                <div class="products-title">Purchased Items</div>
+                <div class="product-tags">
+                    <div class="skeleton-pill" style="width: 80px;"></div>
+                    <div class="skeleton-pill" style="width: 130px;"></div>
+                    <div class="skeleton-pill" style="width: 100px;"></div>
+                </div>
+            `;
+
+            try {
+                // Execute highly targeted 1-read query against sellings collection
+                const q = query(collection(db, 'sellings'), where('invoiceNo', '==', invoiceNumber), limit(1));
+                const snap = await getDocs(q);
+                
+                if (snap.empty) {
+                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Product not found.</div>`;
+                    return;
+                }
+                
+                const data = snap.docs.data();
+                const productsArray = data.purchasedProductNames || [];
+                
+                if (productsArray.length === 0) {
+                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">No products registered on this bill.</div>`;
+                    return;
+                }
+                
+                // Render pills safely
+                const pillsHtml = productsArray.map(pName => {
+                    // Cleanse XSS potential just in case data isn't sanitised
+                    const safeName = document.createElement('div');
+                    safeName.innerText = pName;
+                    return `<div class="product-pill">${safeName.innerHTML}</div>`;
+                }).join('');
+                
+                productsContainer.innerHTML = `
+                    <div class="products-title">Purchased Items</div>
+                    <div class="product-tags">${pillsHtml}</div>
+                `;
+                
+            } catch (err) {
+                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products" style="color: var(--meena-red);">Error loading products</div>`;
+                console.error("Fetch products error:", err);
+            }
+        }
+
         // --- GLOBAL FUNCTION FOR CLICKING A CARD ---
         window.openPaymentManager = function(recordId) {
             const record = pendingData.find(r => r.id === recordId);
@@ -614,12 +711,16 @@
             // Populate Modal UI & Calculate Days Pending
             document.getElementById('pay-ui-name').innerText = record.customerName;
             document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber}`;
-            document.getElementById('pay-ui-pending').innerText = `₹${Number(record.pendingAmount).toLocaleString('en-IN')} Pending`;
+            document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
             document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
-            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${Number(record.totalAmount).toLocaleString('en-IN')}`;
+            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
             
-            // Reset input
+            // Reset input and preview
             document.getElementById('pay-input-amount').value = '';
+            document.getElementById('pay-live-preview').innerHTML = '';
+
+            // Trigger the 1-read targeted fetch for products
+            fetchProductsForInvoice(record.invoiceNumber);
 
             openModal(payModal, 'payOpen');
         };
@@ -640,15 +741,16 @@
             }
         }
 
-        // 1. Partial Payment Logic
+        // 1. Partial Payment Logic (Robust processing)
         document.getElementById('pay-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-update-partial');
-            const amountReceived = Number(document.getElementById('pay-input-amount').value);
+            const amountReceived = parseFloat(document.getElementById('pay-input-amount').value);
             
-            if(!amountReceived || amountReceived <= 0) return;
+            if(isNaN(amountReceived) || amountReceived <= 0) return;
 
-            let newPending = Number(currentEditRecord.pendingAmount) - amountReceived;
+            let currentPending = parseFloat(currentEditRecord.pendingAmount);
+            let newPending = currentPending - amountReceived;
             
             let updatedRecords;
             if(newPending <= 0) {
@@ -656,7 +758,7 @@
                 openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
             } else {
                 updatedRecords = pendingData.map(r => 
-                    r.id === currentEditRecord.id ? { ...r, pendingAmount: newPending } : r
+                    r.id === currentEditRecord.id ? { ...r, pendingAmount: Number(newPending.toFixed(2)) } : r
                 );
             }
             updateFirebaseRecords(updatedRecords, btn);
@@ -667,7 +769,7 @@
             const btnEl = this;
             openMiniModal(
                 "Confirm Full Payment", 
-                `Mark <b>₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')}</b> as fully paid for ${currentEditRecord.customerName}?`, 
+                `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
                 false, 
                 () => {
                     const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
@@ -694,8 +796,8 @@
                 phone: document.getElementById('add-phone').value,
                 invoiceNumber: combinedInvoiceString, 
                 date: document.getElementById('add-date').value,
-                totalAmount: Number(document.getElementById('add-total').value),
-                pendingAmount: Number(document.getElementById('add-pending').value),
+                totalAmount: parseFloat(document.getElementById('add-total').value),
+                pendingAmount: parseFloat(document.getElementById('add-pending').value),
             };
 
             try {
@@ -745,25 +847,24 @@
         });
 
 
-        // --- UI RENDERER (Supports Infinite Scroll Appending) ---
+        // --- UI RENDERER (Supports Infinite Scroll Appending with Improved Animation) ---
         function renderGrid(dataArray, targetContainerId, startIndex = 0, isAppend = false) {
             const container = document.getElementById(targetContainerId);
             
             const html = dataArray.map((item, i) => {
-                const globalIndex = startIndex + i;
                 const cleanPhone = item.phone.replace(/[^0-9]/g, '');
                 const dateObj = new Date(item.date);
                 const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                 const daysPendingText = getDaysText(item.date);
                 
-                const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
-                const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
+                const formattedPending = parseFloat(item.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2});
+                const formattedTotal = parseFloat(item.totalAmount).toLocaleString('en-IN', {maximumFractionDigits: 2});
 
-                // Staggered animation based on its index
-                const delay = (globalIndex % ITEMS_PER_PAGE) * 0.03;
+                // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
+                const delay = i * 0.05;
 
                 return `
-                <div class="card" style="animation: fadeIn 0.3s ease ${delay}s both;">
+                <div class="card" style="animation: slideUpFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s both;">
                     <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
                         <div class="card-header">
                             <div>
@@ -802,11 +903,6 @@
                 container.innerHTML = html;
             }
         }
-
-        // Global animation class
-        const style = document.createElement('style');
-        style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`;
-        document.head.appendChild(style);
 
     </script>
 </body>
