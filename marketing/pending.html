@@ -18,6 +18,7 @@
             --wa-green: #25D366;
             --call-blue: #3ea6ff;
             --accent-color: #ff3333;
+            --success-color: #25D366;
         }
 
         * {
@@ -106,25 +107,31 @@
             flex-direction: column;
             gap: 12px;
             border: 1px solid var(--yt-border);
+            position: relative;
         }
 
+        /* Clickable area for payment modal */
+        .card-body-clickable { cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+        .card-body-clickable:active { opacity: 0.7; }
+
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .customer-name { font-size: 16px; font-weight: 600; color: var(--yt-text-primary); }
-        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;}
+        .customer-name { font-size: 17px; font-weight: 600; color: var(--yt-text-primary); }
+        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; background: rgba(255,255,255,0.1); padding: 3px 6px; border-radius: 4px; display: inline-block;}
         .invoice-date { font-size: 12px; color: var(--yt-text-secondary); }
 
         .amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         .pending-amt { font-size: 18px; font-weight: bold; color: var(--meena-red); }
         .total-amt { font-size: 14px; color: var(--yt-text-secondary); }
 
-        .actions { display: flex; gap: 10px; margin-top: auto; }
+        .actions { display: flex; gap: 10px; margin-top: auto; z-index: 2; }
 
         .btn {
             flex: 1; display: flex; align-items: center; justify-content: center;
             gap: 8px; padding: 10px; border-radius: 20px; text-decoration: none;
-            font-size: 14px; font-weight: 600; cursor: pointer; border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer; border: none; outline: none;
         }
         .btn:active { opacity: 0.7; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-call { background-color: rgba(62, 166, 255, 0.15); color: var(--call-blue); }
         .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
         .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
@@ -132,22 +139,13 @@
 
         /* PAGINATION STYLES */
         .pagination-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-top: 30px;
-            padding-bottom: 20px;
+            display: flex; justify-content: center; align-items: center;
+            gap: 15px; margin-top: 30px; padding-bottom: 20px;
         }
         .page-btn {
-            background-color: var(--yt-card);
-            border: 1px solid var(--yt-border);
-            color: var(--yt-text-primary);
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            background-color: var(--yt-card); border: 1px solid var(--yt-border);
+            color: var(--yt-text-primary); padding: 8px 16px; border-radius: 6px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
         }
         .page-btn:active { background-color: var(--yt-border); }
         .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -155,38 +153,27 @@
 
         /* FLOATING ACTION BUTTON (FAB) */
         .fab {
-            position: fixed;
-            bottom: 25px; right: 25px;
-            width: 56px; height: 56px;
-            background-color: var(--accent-color);
-            color: white;
-            border-radius: 50%;
+            position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px;
+            background-color: var(--accent-color); color: white; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4);
-            cursor: pointer;
-            z-index: 40;
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4); cursor: pointer;
+            z-index: 40; transition: transform 0.2s;
         }
         .fab:active { transform: scale(0.9); }
         .fab svg { fill: white; width: 24px; height: 24px; }
 
-        /* FULL PAGE MODALS (Add & Search) */
+        /* FULL PAGE MODALS (Add, Search & Pay) */
         .full-modal {
-            position: fixed;
-            top: 0; left: 100%;
-            width: 100%; height: 100%;
-            background-color: var(--yt-bg);
-            z-index: 100;
+            position: fixed; top: 0; left: 100%; width: 100%; height: 100%;
+            background-color: var(--yt-bg); z-index: 100;
             transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
             display: flex; flex-direction: column;
         }
         .full-modal.active { left: 0; }
 
         .modal-header {
-            background-color: var(--yt-card);
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--yt-border);
-            display: flex; align-items: center; gap: 15px;
+            background-color: var(--yt-card); padding: 12px 20px;
+            border-bottom: 1px solid var(--yt-border); display: flex; align-items: center; gap: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
         
@@ -200,34 +187,38 @@
 
         .modal-content { padding: 20px; flex: 1; overflow-y: auto; }
 
-        /* FORMS */
+        /* FORMS & INPUTS */
         .form-group { margin-bottom: 16px; }
         .form-label { display: block; font-size: 13px; color: var(--yt-text-secondary); margin-bottom: 6px; }
         .form-input {
-            width: 100%;
-            background-color: var(--yt-bg);
-            border: 1px solid var(--yt-border);
-            color: var(--yt-text-primary);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
+            width: 100%; background-color: var(--yt-bg); border: 1px solid var(--yt-border);
+            color: var(--yt-text-primary); padding: 12px; border-radius: 8px;
+            font-size: 16px; outline: none; transition: border-color 0.2s;
         }
         .form-input:focus { border-color: var(--accent-color); }
         
-        /* INVOICE INPUT GROUP (Dropdown + Input) */
         .input-group { display: flex; gap: 10px; }
         .input-group select { width: 90px; cursor: pointer; }
         .input-group input { flex: 1; }
         
-        .btn-submit {
-            width: 100%; padding: 14px; background-color: var(--accent-color); color: white;
-            border: none; border-radius: 8px; font-size: 16px; font-weight: bold;
-            margin-top: 10px; cursor: pointer;
+        /* PAYMENT MODAL SPECIFIC */
+        .pay-summary-card {
+            background: var(--yt-card); border: 1px solid var(--yt-border);
+            padding: 20px; border-radius: 12px; margin-bottom: 25px; text-align: center;
         }
-        .btn-submit:active { opacity: 0.8; }
-        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+        .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
+        .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
+        .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
+
+        .btn-full-width {
+            width: 100%; padding: 14px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: bold; margin-top: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; color: white;
+        }
+        .btn-primary { background-color: var(--accent-color); }
+        .btn-success { background-color: var(--success-color); color: #000; }
+        .btn-danger-outline { background-color: transparent; border: 1px solid var(--meena-red); color: var(--meena-red); margin-top: 30px;}
 
         /* SEARCH BAR OVERRIDES */
         .search-input-wrapper { flex: 1; }
@@ -262,9 +253,7 @@
             <span id="quick-stats-total" style="font-weight: bold; color: var(--meena-white);"></span>
         </div>
         
-        <div class="customer-grid" id="main-grid">
-            </div>
-
+        <div class="customer-grid" id="main-grid"></div>
         <div class="pagination-container" id="main-pagination"></div>
     </main>
 
@@ -283,13 +272,12 @@
             <form id="add-form">
                 <div class="form-group">
                     <label class="form-label">Customer Name</label>
-                    <input type="text" id="add-name" class="form-input" required placeholder="e.g. Rahul Kumar">
+                    <input type="text" id="add-name" class="form-input" required placeholder="e.g. Rahul Kumar" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Phone Number</label>
-                    <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210">
+                    <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210" inputmode="numeric" pattern="[0-9]*" maxlength="15">
                 </div>
-                
                 <div class="form-group">
                     <label class="form-label">Invoice / GST Number</label>
                     <div class="input-group">
@@ -297,24 +285,65 @@
                             <option value="INV">INV</option>
                             <option value="GST">GST</option>
                         </select>
-                        <input type="text" id="add-invoice-num" class="form-input" required placeholder="e.g. 2026-001">
+                        <input type="text" id="add-invoice-num" class="form-input" required placeholder="e.g. 2026" inputmode="numeric">
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Invoice Date</label>
                     <input type="date" id="add-date" class="form-input" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Total Amount (₹)</label>
-                    <input type="number" id="add-total" class="form-input" required placeholder="e.g. 15000">
+                    <input type="number" id="add-total" class="form-input" required placeholder="e.g. 15000" inputmode="numeric" min="0">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Pending Amount (₹)</label>
-                    <input type="number" id="add-pending" class="form-input" required placeholder="e.g. 5000">
+                    <input type="number" id="add-pending" class="form-input" required placeholder="e.g. 5000" inputmode="numeric" min="0">
                 </div>
-                <button type="submit" class="btn-submit" id="btn-submit-add">Add Record</button>
+                <button type="submit" class="btn-full-width btn-primary" id="btn-submit-add">Add Record</button>
             </form>
+        </div>
+    </div>
+
+    <div class="full-modal" id="pay-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-pay">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <h2 style="font-size: 18px;">Update Payment</h2>
+        </div>
+        <div class="modal-content">
+            <div class="pay-summary-card">
+                <div class="pay-summary-name" id="pay-ui-name">-</div>
+                <div class="pay-summary-inv" id="pay-ui-inv">-</div>
+                <div class="pay-summary-amount" id="pay-ui-pending">-</div>
+                <div class="pay-summary-total" id="pay-ui-total">-</div>
+            </div>
+
+            <form id="pay-form">
+                <div class="form-group">
+                    <label class="form-label">Amount Received Today (₹)</label>
+                    <input type="number" id="pay-input-amount" class="form-input" placeholder="e.g. 1000" inputmode="numeric" min="1">
+                </div>
+                
+                <button type="submit" class="btn-full-width btn-primary" id="btn-update-partial">
+                    Reduce Pending Amount
+                </button>
+            </form>
+
+            <div style="margin: 25px 0; text-align: center; color: var(--yt-text-secondary); font-size: 12px; position: relative;">
+                <hr style="border: 0; border-top: 1px solid var(--yt-border); position: absolute; width: 100%; top: 50%; z-index: -1;">
+                <span style="background: var(--yt-bg); padding: 0 10px;">OR</span>
+            </div>
+
+            <button class="btn-full-width btn-success" id="btn-mark-full">
+                <svg viewBox="0 0 24 24" style="fill: #000; width: 20px; height: 20px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                Mark Full Payment Done
+            </button>
+
+            <button class="btn-full-width btn-danger-outline" id="btn-delete-record">
+                Delete Record entirely
+            </button>
         </div>
     </div>
 
@@ -324,7 +353,7 @@
                 <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
             </button>
             <div class="search-input-wrapper">
-                <input type="text" id="search-input" class="search-input" placeholder="Search name or bill number..." autocomplete="off">
+                <input type="text" id="search-input" class="search-input" placeholder="Search name or bill..." autocomplete="off">
             </div>
             <div id="btn-clear-search" style="cursor: pointer; padding: 5px; display: none;">
                 <svg viewBox="0 0 24 24" style="fill: var(--yt-text-secondary); width: 20px; height: 20px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
@@ -332,7 +361,6 @@
         </div>
         <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
             <div class="customer-grid" id="search-results"></div>
-            
             <div class="pagination-container" id="search-pagination"></div>
         </div>
     </div>
@@ -353,6 +381,7 @@
 
         // DOM ELEMENTS
         const addModal = document.getElementById('add-modal');
+        const payModal = document.getElementById('pay-modal');
         const searchModal = document.getElementById('search-modal');
         const searchInput = document.getElementById('search-input');
         const btnClearSearch = document.getElementById('btn-clear-search');
@@ -360,6 +389,7 @@
         // STATE MANAGEMENT
         let pendingData = []; 
         let currentSearchResults = [];
+        let currentEditRecord = null; // Holds the record currently being processed in pay-modal
         
         // PAGINATION SETTINGS
         const ITEMS_PER_PAGE = 15;
@@ -379,6 +409,7 @@
             document.body.classList.remove('no-scroll');
         }
 
+        // Add Listeners
         document.getElementById('btn-open-add').addEventListener('click', () => {
             document.getElementById('add-date').valueAsDate = new Date();
             openModal(addModal, 'addOpen');
@@ -387,6 +418,12 @@
             if (history.state?.addOpen) history.back(); else closeModal(addModal);
         });
 
+        // Pay Listeners
+        document.getElementById('btn-close-pay').addEventListener('click', () => {
+            if (history.state?.payOpen) history.back(); else closeModal(payModal);
+        });
+
+        // Search Listeners
         document.getElementById('btn-open-search').addEventListener('click', () => {
             searchInput.value = '';
             currentSearchResults = [];
@@ -402,7 +439,9 @@
         window.addEventListener('popstate', (e) => {
             if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
             if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
+            if (!e.state?.payOpen && payModal.classList.contains('active')) closeModal(payModal);
         });
+
 
         // --- FIREBASE LOGIC (1 Read/Write Constraint) ---
         const docRef = doc(db, 'pending_payments', 'all_data');
@@ -437,6 +476,82 @@
             }
         });
 
+        // --- GLOBAL FUNCTION FOR CLICKING A CARD ---
+        window.openPaymentManager = function(recordId) {
+            // Find the record
+            const record = pendingData.find(r => r.id === recordId);
+            if(!record) return;
+            
+            currentEditRecord = record;
+
+            // Populate Modal UI
+            document.getElementById('pay-ui-name').innerText = record.customerName;
+            document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber}`;
+            document.getElementById('pay-ui-pending').innerText = `₹${Number(record.pendingAmount).toLocaleString('en-IN')} Pending`;
+            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${Number(record.totalAmount).toLocaleString('en-IN')}`;
+            
+            // Reset input
+            document.getElementById('pay-input-amount').value = '';
+
+            openModal(payModal, 'payOpen');
+        };
+
+        // --- PAYMENT MODAL ACTIONS ---
+        async function updateFirebaseRecords(newArray, btnEl) {
+            const originalText = btnEl.innerHTML;
+            btnEl.disabled = true;
+            btnEl.innerHTML = "Processing...";
+            try {
+                await updateDoc(docRef, { records: newArray });
+                if (history.state?.payOpen) history.back(); else closeModal(payModal);
+            } catch (err) {
+                alert("Error updating data: " + err.message);
+            } finally {
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalText;
+            }
+        }
+
+        // 1. Partial Payment Logic
+        document.getElementById('pay-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-update-partial');
+            const amountReceived = Number(document.getElementById('pay-input-amount').value);
+            
+            if(!amountReceived || amountReceived <= 0) return;
+
+            let newPending = Number(currentEditRecord.pendingAmount) - amountReceived;
+            
+            let updatedRecords;
+            if(newPending <= 0) {
+                // Fully paid now, remove from list
+                updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                alert(`Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`);
+            } else {
+                // Update object in array
+                updatedRecords = pendingData.map(r => 
+                    r.id === currentEditRecord.id ? { ...r, pendingAmount: newPending } : r
+                );
+            }
+            updateFirebaseRecords(updatedRecords, btn);
+        });
+
+        // 2. Mark Full Payment (Removes from array)
+        document.getElementById('btn-mark-full').addEventListener('click', function() {
+            if(confirm(`Mark ₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')} as fully paid for ${currentEditRecord.customerName}?`)) {
+                const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                updateFirebaseRecords(updatedRecords, this);
+            }
+        });
+
+        // 3. Delete Record Entirely
+        document.getElementById('btn-delete-record').addEventListener('click', function() {
+            if(confirm("Are you sure you want to delete this record entirely?")) {
+                const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                updateFirebaseRecords(updatedRecords, this);
+            }
+        });
+
 
         // --- FORM SUBMIT (ADD DATA) ---
         document.getElementById('add-form').addEventListener('submit', async (e) => {
@@ -445,7 +560,6 @@
             btn.disabled = true;
             btn.innerText = "Adding...";
 
-            // Construct combined Invoice String (INV-123 or GST-123)
             const type = document.getElementById('add-invoice-type').value;
             const num = document.getElementById('add-invoice-num').value.trim();
             const combinedInvoiceString = `${type}-${num}`;
@@ -485,14 +599,13 @@
                 return;
             }
 
-            // The .includes() inherently finds "123" inside "gst-123" securely!
             currentSearchResults = pendingData.filter(item => 
                 item.customerName.toLowerCase().includes(query) || 
                 item.invoiceNumber.toLowerCase().includes(query) ||
                 item.phone.includes(query)
             );
 
-            searchCurrentPage = 1; // Reset to page 1 on new search
+            searchCurrentPage = 1; 
 
             if (currentSearchResults.length === 0) {
                 document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
@@ -523,10 +636,8 @@
             const endIndex = startIndex + ITEMS_PER_PAGE;
             const pageData = dataArray.slice(startIndex, endIndex);
 
-            // 1. Render the HTML grid
             renderGrid(pageData, gridId);
 
-            // 2. Render Pagination Controls
             const pagContainer = document.getElementById(paginationId);
             if (dataArray.length <= ITEMS_PER_PAGE) {
                 pagContainer.innerHTML = '';
@@ -560,24 +671,28 @@
                 const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
                 const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
 
+                // We wrap the upper portion in a clickable div for the payment manager
+                // We use stopPropagation on the lower action buttons so they don't trigger the modal
                 return `
                 <div class="card" style="animation: fadeIn 0.3s ease ${index % ITEMS_PER_PAGE * 0.03}s both;">
-                    <div class="card-header">
-                        <div>
-                            <div class="customer-name">${item.customerName}</div>
-                            <div class="invoice-number">${item.invoiceNumber}</div>
+                    <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
+                        <div class="card-header">
+                            <div>
+                                <div class="customer-name">${item.customerName}</div>
+                                <div class="invoice-number">${item.invoiceNumber}</div>
+                            </div>
+                            <div class="invoice-date">${dateStr}</div>
                         </div>
-                        <div class="invoice-date">${dateStr}</div>
-                    </div>
-                    
-                    <div>
-                        <div class="amount-row">
-                            <span class="total-amt">Total: ₹${formattedTotal}</span>
-                            <span class="pending-amt">₹${formattedPending} Pending</span>
+                        
+                        <div>
+                            <div class="amount-row">
+                                <span class="total-amt">Total: ₹${formattedTotal}</span>
+                                <span class="pending-amt">₹${formattedPending}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="actions">
+                    <div class="actions" onclick="event.stopPropagation()">
                         <a href="tel:+91${cleanPhone}" class="btn btn-call">
                             <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
                             Call
