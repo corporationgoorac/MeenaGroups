@@ -147,18 +147,16 @@
             /* Show only the Print Area */
             #printArea, #printArea * { visibility: visible; }
             #printArea { 
-                /* BUG FIX: Changed from flex to block to prevent Chrome's flex-pagination tearing 
-                   and premature page breaks that push the footer to the next page incorrectly */
-                display: block !important; 
-                position: relative; /* BUG FIX: Changed from absolute */
+                display: flex !important; 
+                position: absolute; 
                 left: 0; top: 0; 
                 width: 100%; 
                 max-width: 210mm; 
-                /* min-height: 100vh; REMOVED - Using vh in print causes strict viewport height limits, breaking the layout to a new page */
+                min-height: 100vh; /* Pushes layout to match full A4 physical page height */
                 margin: 0 auto; 
                 padding: 0; 
                 background: white; color: #000;
-                /* flex-direction: column; REMOVED */
+                flex-direction: column;
                 box-sizing: border-box;
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important;
@@ -201,16 +199,8 @@
             .invoice-date-box div strong { font-size: 12px; font-weight: bold; color: #000;}
 
             /* Table Layout */
-            .print-table-container { 
-                padding: 0 40px; 
-                display: block; /* BUG FIX: Changed from flex */
-                /* flex-grow: 1; display: flex; flex-direction: column; REMOVED */
-            }
-            .print-table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin-bottom: 30px; /* BUG FIX: Changed from auto */
-            } 
+            .print-table-container { padding: 0 40px; flex-grow: 1; display: flex; flex-direction: column; }
+            .print-table { width: 100%; border-collapse: collapse; margin-bottom: auto; } /* 'auto' forces all blank space beneath the items, pushing the footer strictly to the bottom */
             .print-table th { background-color: #cccccc !important; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
             .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; vertical-align: top; color: #000;}
             .print-table th.text-right, .print-table td.text-right { text-align: right; }
@@ -252,7 +242,7 @@
             .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: #000;}
             .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: #000;}
             
-            /* Absolute Footer */
+            /* Absolute Footer (Powered By Goorac) */
             .print-absolute-footer { background-color: #cccccc !important; padding: 12px 40px; display: flex; justify-content: center; align-items: center; margin-top: 40px; page-break-inside: avoid; break-inside: avoid; }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
@@ -527,7 +517,7 @@
         </div>
 
         <div class="print-absolute-footer">
-            <p>System Generated Invoice • Powered by Quantum Software Solutions</p>
+            <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
         </div>
     </div>
 
@@ -789,8 +779,8 @@
                     showToast("Please select a product from the search dropdown, or mark as 'Non-Stock'."); return;
                 }
                 
-                // BUG FIX: Added item.price === price constraint so items with manually updated prices don't merge incorrectly
-                existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent && item.price === price);
+                // Check if this exact item is already in the cart so we don't duplicate rows
+                existingItemIndex = cartItems.findIndex(item => item.invId === invId && item.gstPercent === gstPercent);
                 let existingCartQty = existingItemIndex > -1 ? cartItems[existingItemIndex].qty : 0;
                 
                 // Validate against the realtime DB stock limit
@@ -806,17 +796,8 @@
             // Fix applied: Using strict rounding Number(.toFixed(2)) to prevent float errors on GST breakdown
             const grossTotal = price * qty;
             const finalTotal = Math.max(0, grossTotal - discount); 
-            
-            // Calculate base price BEFORE discount for the accurate Gross Subtotal
-            const originalBaseTotal = Number((grossTotal / (1 + (gstPercent / 100))).toFixed(2));
-
-            // Calculate base price AFTER discount to calculate accurate GST
-            const discountedBaseTotal = Number((finalTotal / (1 + (gstPercent / 100))).toFixed(2));
-
-            // The actual discount amount on the base price (excluding GST)
-            const baseDiscountAmount = Number((originalBaseTotal - discountedBaseTotal).toFixed(2)); 
-
-            const gstAmount = Number((finalTotal - discountedBaseTotal).toFixed(2));
+            const baseTotal = Number((finalTotal / (1 + (gstPercent / 100))).toFixed(2));
+            const gstAmount = Number((finalTotal - baseTotal).toFixed(2));
             const originalUnitPriceBase = Number((price / (1 + (gstPercent / 100))).toFixed(2));
 
             if (existingItemIndex > -1) {
@@ -825,18 +806,13 @@
                 item.qty += qty;
                 item.discount += discount; 
                 item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); 
-                
-                // Recalculate base totals for merged item
-                item.originalBaseTotal = Number(((item.price * item.qty) / (1 + (item.gstPercent / 100))).toFixed(2));
-                let newDiscountedBase = Number((item.finalTotal / (1 + (item.gstPercent / 100))).toFixed(2));
-                
-                item.baseDiscountAmount = Number((item.originalBaseTotal - newDiscountedBase).toFixed(2));
-                item.gstAmount = Number((item.finalTotal - newDiscountedBase).toFixed(2));
+                item.baseTotal = Number((item.finalTotal / (1 + (item.gstPercent / 100))).toFixed(2));
+                item.gstAmount = Number((item.finalTotal - item.baseTotal).toFixed(2));
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
                     invId: isNonStock ? null : invId,
-                    name, model, price, qty, discount, gstPercent, gstAmount, originalBaseTotal, baseDiscountAmount, finalTotal, isNonStock, originalUnitPriceBase
+                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock, originalUnitPriceBase
                 });
             }
 
@@ -885,9 +861,9 @@
 
             list.innerHTML = '';
             cartItems.forEach((item, i) => {
-                billTotals.sub += item.originalBaseTotal; 
+                billTotals.sub += item.baseTotal;
                 billTotals.gst += item.gstAmount;
-                billTotals.discount += (item.baseDiscountAmount || 0); 
+                billTotals.discount += (item.discount || 0); 
                 billTotals.grand += item.finalTotal;
 
                 const tags = `
