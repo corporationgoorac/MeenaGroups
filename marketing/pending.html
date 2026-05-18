@@ -362,8 +362,6 @@
                 <div class="pay-summary-total" id="pay-ui-total">-</div>
             </div>
 
-            <div id="purchased-products-container" class="products-container"></div>
-
             <form id="pay-form">
                 <div class="form-group">
                     <label class="form-label">Amount Received Today (₹)</label>
@@ -385,6 +383,8 @@
                 <svg viewBox="0 0 24 24" style="fill: #000; width: 20px; height: 20px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
                 Mark Full Payment Done
             </button>
+
+            <div id="purchased-products-container" class="products-container" style="margin-top: 30px; margin-bottom: 10px;"></div>
         </div>
     </div>
 
@@ -674,7 +674,8 @@
                     return;
                 }
                 
-                const data = snap.docs.data();
+                // FIXED: 'snap.docs' is an array. Must read index [0] before calling data()
+                const data = snap.docs[0].data(); 
                 const productsArray = data.purchasedProductNames || [];
                 
                 if (productsArray.length === 0) {
