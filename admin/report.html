@@ -589,8 +589,13 @@
     // Helper to extract timestamp cleanly across multiple date standard profiles
     function parseToTimestamp(dateStr) {
       if (!dateStr) return 0;
+      if (typeof dateStr === 'number') return dateStr;
+      if (typeof dateStr === 'object') {
+        if (typeof dateStr.toMillis === 'function') return dateStr.toMillis();
+        if (dateStr.seconds) return dateStr.seconds * 1000;
+      }
       let timestamp = Date.parse(dateStr);
-      if (isNaN(timestamp)) {
+      if (isNaN(timestamp) && typeof dateStr === 'string') {
         const parts = dateStr.split(/[-/]/);
         if (parts.length === 3) {
           if (parts[0].length === 4) {
@@ -634,58 +639,61 @@
           const snap = await getDocs(collection(db, "customers"));
           loadedData = [];
           snap.forEach(d => loadedData.push(d.data()));
-        } catch (e) {
-          window.customAlert("Fetch Error", "Error fetching records: " + e.message);
-          return;
-        }
 
-        const contextDateBoundary = new Date();
-        contextDateBoundary.setMonth(contextDateBoundary.getMonth() - 1);
-        const oneMonthAgoTimestamp = contextDateBoundary.getTime();
+          const contextDateBoundary = new Date();
+          contextDateBoundary.setMonth(contextDateBoundary.getMonth() - 1);
+          const oneMonthAgoTimestamp = contextDateBoundary.getTime();
 
-        const overdueCustomers = loadedData.filter(c => {
-          let cumulativeInvoiceValue = 0;
-          let cumulativePaymentsValue = 0;
-          
-          // Fallback initialization to customer creation timestamp
-          let latestActivityTimestamp = c.createdAt ? parseToTimestamp(c.createdAt) : 0;
-          
-          if (c.products) {
-            c.products.forEach(p => {
-              cumulativeInvoiceValue += parseFloat(p.total || 0);
-              cumulativePaymentsValue += parseFloat(p.paid || 0);
-              
-              if (p.payments) {
-                p.payments.forEach(pay => {
-                  const currentPaymentTS = parseToTimestamp(pay.date);
-                  if (currentPaymentTS > latestActivityTimestamp) {
-                    latestActivityTimestamp = currentPaymentTS;
-                  }
-                });
-              }
-            });
+          const overdueCustomers = loadedData.filter(c => {
+            let cumulativeInvoiceValue = 0;
+            let cumulativePaymentsValue = 0;
+            
+            // Fallback initialization to customer creation timestamp
+            let latestActivityTimestamp = c.createdAt ? parseToTimestamp(c.createdAt) : 0;
+            
+            if (c.products) {
+              c.products.forEach(p => {
+                cumulativeInvoiceValue += parseFloat(p.total || 0);
+                cumulativePaymentsValue += parseFloat(p.paid || 0);
+                
+                if (p.payments) {
+                  p.payments.forEach(pay => {
+                    const currentPaymentTS = parseToTimestamp(pay.date);
+                    if (currentPaymentTS > latestActivityTimestamp) {
+                      latestActivityTimestamp = currentPaymentTS;
+                    }
+                  });
+                }
+              });
+            }
+
+            const outstandingBalanceDue = cumulativeInvoiceValue - cumulativePaymentsValue;
+            
+            // Fixed conditions: Accounts with active debt balance remaining AND whose latest activity is older than 30 days
+            const hasActiveDebt = outstandingBalanceDue > 1;
+            const meetsAgingConditions = latestActivityTimestamp < oneMonthAgoTimestamp;
+
+            return hasActiveDebt && meetsAgingConditions;
+          });
+
+          const elementTarget = document.getElementById("resultContainer");
+          if (overdueCustomers.length === 0) {
+            elementTarget.innerHTML = `
+              <div class="empty-state">
+                <p>No matches found.<br>All accounts are up to date or within the 1-month period.</p>
+              </div>`;
+          } else {
+            renderList(overdueCustomers);
           }
-
-          const outstandingBalanceDue = cumulativeInvoiceValue - cumulativePaymentsValue;
           
-          // Fixed conditions: Accounts with active debt balance remaining AND whose latest activity is older than 30 days
-          const hasActiveDebt = outstandingBalanceDue > 1;
-          const meetsAgingConditions = latestActivityTimestamp < oneMonthAgoTimestamp;
-
-          return hasActiveDebt && meetsAgingConditions;
-        });
-
-        const elementTarget = document.getElementById("resultContainer");
-        if (overdueCustomers.length === 0) {
-          elementTarget.innerHTML = `
+          calcStats(overdueCustomers);
+        } catch (e) {
+          window.customAlert("Evaluation Error", "Error evaluating pending records: " + e.message);
+          document.getElementById("resultContainer").innerHTML = `
             <div class="empty-state">
-              <p>No matches found.<br>All accounts are up to date or within the 1-month period.</p>
+              <p>An error occurred while matching records.<br>Please try reloading recent logs.</p>
             </div>`;
-        } else {
-          renderList(overdueCustomers);
         }
-        
-        calcStats(overdueCustomers);
       });
     };
 
