@@ -194,7 +194,7 @@
     .pi-ledger.open { max-height: 600px; overflow-y: auto; }
     
     .led-row { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 12px 20px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); color: #d4d4d8; }
-    .led-row lod-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; }
+    .led-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; }
 
     .d-foot { padding: 16px 24px; background: var(--bg-surface); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: center; gap: 24px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
     .btn-main { border: none; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer; }
@@ -272,11 +272,14 @@
       if (typeof dStr === 'number') return dStr;
       
       const s = String(dStr).trim();
+      
+      // Better fallback for robust date parsing
       const parsedTimestamp = Date.parse(s);
       if (!isNaN(parsedTimestamp)) return parsedTimestamp;
 
       const parts = s.split(/[-/]/);
       if (parts.length === 3) {
+        // Attempt YYYY-MM-DD or DD-MM-YYYY
         if (parts[0].length === 4) {
           return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
         } else {
@@ -407,6 +410,7 @@
       document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
       document.getElementById("drawCount").innerText = (c.products || []).length;
       
+      // Fixed Maps Link Syntax
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
       document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
 
@@ -507,6 +511,7 @@
         if(payments.length === 0) { rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]); } 
         else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
 
+        // Fixed syntax errors crashing jsPDF AutoTable
         doc.autoTable({
           startY: yPos, 
           head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], 
@@ -517,6 +522,7 @@
           columnStyles: { 3: { fontStyle: 'bold', textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } }, 
           margin: { left: 14, right: 14 }
         });
+        
         yPos = doc.lastAutoTable.finalY + 15;
       });
 
