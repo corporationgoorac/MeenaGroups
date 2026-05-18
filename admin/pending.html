@@ -268,18 +268,20 @@
 
     function parseSafeDate(dStr) {
       if (!dStr) return 0;
-      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime();
+      // Handle raw Firestore Timestamps safely
+      if (dStr && typeof dStr === 'object') {
+          if (typeof dStr.toDate === 'function') return dStr.toDate().getTime();
+          if (dStr.seconds) return dStr.seconds * 1000;
+      }
       if (typeof dStr === 'number') return dStr;
       
       const s = String(dStr).trim();
       
-      // Better fallback for robust date parsing
       const parsedTimestamp = Date.parse(s);
       if (!isNaN(parsedTimestamp)) return parsedTimestamp;
 
       const parts = s.split(/[-/]/);
       if (parts.length === 3) {
-        // Attempt YYYY-MM-DD or DD-MM-YYYY
         if (parts[0].length === 4) {
           return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
         } else {
@@ -293,12 +295,17 @@
       let totalVal = 0, totalPaid = 0;
       let lastActivityTime = 0;
       
-      if (!customer.products || customer.products.length === 0) return { isPending: false };
+      // Strict check: if products is missing or NOT an array, skip it safely
+      if (!customer.products || !Array.isArray(customer.products) || customer.products.length === 0) {
+          return { isPending: false };
+      }
 
       customer.products.forEach(p => {
         totalVal += (Number(p.total) || 0);
         totalPaid += (Number(p.paid) || 0);
-        if (p.payments && p.payments.length > 0) {
+        
+        // Strict check to prevent silent .forEach failures on bad data
+        if (p.payments && Array.isArray(p.payments) && p.payments.length > 0) {
           p.payments.forEach(pay => {
             if (pay.date) {
               const pTime = parseSafeDate(pay.date);
@@ -336,6 +343,8 @@
       let allPendingFound = [];
       
       try {
+        if (!db) throw new Error("Database not initialized. Check your config.js export.");
+        
         const snap = await getDocs(collection(db, "customers"));
         
         snap.forEach(docSnap => {
@@ -363,7 +372,13 @@
         }
 
       } catch (e) {
-        container.innerHTML = `<div class="loader-row" style="color:var(--danger)">Error loading data: ${e.message}</div>`;
+        console.error("Data Load Error:", e);
+        container.innerHTML = `
+            <div class="empty-state">
+                <svg class="empty-icon" style="fill: var(--danger);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <h3 style="color: var(--danger); margin:0;">Connection Failed</h3>
+                <p style="font-size: 0.9rem;">${e.message}</p>
+            </div>`;
       }
     }
     window.loadAllPendingCustomers = loadAllPendingCustomers;
@@ -380,9 +395,9 @@
 
         card.innerHTML = `
           <div class="c-details">
-            <h3>${c.name}</h3>
+            <h3>${c.name || 'Unknown Client'}</h3>
             <p>
-              <span class="cid">${c.id}</span>
+              <span class="cid">${c.id || 'N/A'}</span>
               <span><svg style="width:14px;height:14px;fill:currentColor;transform:translateY(2px);" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 1.25 0 2.45.2 3.57.57.35.13.46.52.24 1.02l-2.2 2.2z"/></svg> ${c.phone || '-'}</span>
               <span><svg style="width:14px;height:14px;fill:currentColor;transform:translateY(2px);" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${c.place || 'Unknown'}</span>
             </p>
@@ -403,31 +418,31 @@
       currentCustomer = c;
       window.history.pushState({ drawer: true }, "");
 
-      document.getElementById("drawName").innerText = c.name;
-      document.getElementById("drawId").innerText = "ID: " + c.id;
+      document.getElementById("drawName").innerText = c.name || 'Unknown';
+      document.getElementById("drawId").innerText = "ID: " + (c.id || '-');
       document.getElementById("drawPhone").innerText = c.phone || '-';
       document.getElementById("drawPlace").innerText = c.place || '-';
       document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
-      document.getElementById("drawCount").innerText = (c.products || []).length;
+      document.getElementById("drawCount").innerText = Array.isArray(c.products) ? c.products.length : 0;
       
-      // Fixed Maps Link Syntax
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
       document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
 
       const container = document.getElementById("productContainer");
       container.innerHTML = "";
       
-      if(!c.products || c.products.length === 0) {
+      if(!c.products || !Array.isArray(c.products) || c.products.length === 0) {
         container.innerHTML = "<div style='text-align:center;color:var(--text-sub);padding:40px;font-size:1.1rem;'>No Products Registered</div>";
       } else {
         c.products.forEach((p, idx) => {
           const bal = (p.total||0) - (p.paid||0);
-          const sorted = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
+          const paymentsArray = Array.isArray(p.payments) ? p.payments : [];
+          const sorted = paymentsArray.sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
           let running = 0, rows = "";
           
           sorted.forEach(pay => {
-            running += parseFloat(pay.amount);
-            rows += `<div class="led-row"><span style="color:#71717a">#${pay.dueNumber||'-'}</span><span>${pay.date}</span><span style="color:#34d399; font-weight:600;">₹${pay.amount}</span><span style="text-align:right; font-weight:600; color:#fff;">₹${p.total - running}</span></div>`;
+            running += parseFloat(pay.amount || 0);
+            rows += `<div class="led-row"><span style="color:#71717a">#${pay.dueNumber||'-'}</span><span>${pay.date || '-'}</span><span style="color:#34d399; font-weight:600;">₹${pay.amount || 0}</span><span style="text-align:right; font-weight:600; color:#fff;">₹${p.total - running}</span></div>`;
           });
 
           if(!rows) rows = `<div style="padding:20px;color:#71717a;text-align:center;font-size:0.9rem">No payments recorded.</div>`;
@@ -437,7 +452,7 @@
           item.innerHTML = `
             <div class="pi-header" onclick="toggleLedger(this)">
               <div class="chk-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="custom-chk product-checkbox" data-idx="${idx}" checked></div>
-              <div class="pi-info"><div class="pi-title">${p.name}</div><div class="pi-sub">Value: ₹${(p.total||0).toLocaleString()}</div></div>
+              <div class="pi-info"><div class="pi-title">${p.name || 'Unnamed Product'}</div><div class="pi-sub">Value: ₹${(p.total||0).toLocaleString()}</div></div>
               <div class="pi-stat ${bal > 1 ? 'red' : 'green'}">${bal > 1 ? '₹'+bal.toLocaleString() : 'PAID'}</div>
             </div>
             <div class="pi-ledger"><div class="led-row led-head"><span>#</span><span>Date</span><span>Amt</span><span style="text-align:right">Bal</span></div>${rows}</div>
@@ -475,12 +490,12 @@
     };
 
     function downloadAllPDF() { 
-      if(currentCustomer) generatePDF(currentCustomer, currentCustomer.products); 
+      if(currentCustomer) generatePDF(currentCustomer, currentCustomer.products || []); 
     }
     window.downloadAllPDF = downloadAllPDF;
 
     function downloadSelected() {
-      if(!currentCustomer) return;
+      if(!currentCustomer || !Array.isArray(currentCustomer.products)) return;
       const checkboxes = document.querySelectorAll('.product-checkbox:checked');
       if(checkboxes.length === 0) return alert("Select at least one product.");
       
@@ -496,22 +511,23 @@
       doc.setTextColor(59, 130, 246); doc.setFontSize(24); doc.setFont("helvetica", "bold"); doc.text("MeenaGroups", 14, 22);
       doc.setTextColor(200, 200, 200); doc.setFontSize(10); doc.setFont("helvetica", "normal");
       doc.text("OVERDUE ACCOUNT STATEMENT", 14, 30); doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 30);
-      doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text(c.name.toUpperCase(), 14, 55);
+      doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text((c.name || 'Unknown').toUpperCase(), 14, 55);
       doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
-      doc.text(`ID: ${c.id}`, 14, 62); doc.text(`Mobile: ${c.phone || '-'}`, 60, 62); doc.text(`City: ${c.place || '-'}`, 120, 62);
+      doc.text(`ID: ${c.id || '-'}`, 14, 62); doc.text(`Mobile: ${c.phone || '-'}`, 60, 62); doc.text(`City: ${c.place || '-'}`, 120, 62);
 
       let yPos = 75;
       products.forEach(p => {
         doc.setFillColor(244, 244, 245); doc.rect(14, yPos, 182, 10, 'F');
         doc.setTextColor(0,0,0); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-        doc.text(p.name, 16, yPos + 7); doc.text(`Value: Rs.${p.total}`, 160, yPos + 7); yPos += 12;
+        doc.text(p.name || 'Unnamed', 16, yPos + 7); doc.text(`Value: Rs.${p.total || 0}`, 160, yPos + 7); yPos += 12;
 
         const rows = []; let running = 0;
-        const payments = (p.payments || []).sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
-        if(payments.length === 0) { rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]); } 
-        else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
+        const paymentsArray = Array.isArray(p.payments) ? p.payments : [];
+        const payments = paymentsArray.sort((a,b) => (a.dueNumber||0)-(b.dueNumber||0));
+        
+        if(payments.length === 0) { rows.push(['-', '-', 'No Records', '-', `Rs.${p.total || 0}`]); } 
+        else { payments.forEach(pay => { running += parseFloat(pay.amount || 0); rows.push([ `#${pay.dueNumber||'-'}`, pay.date || '-', pay.type||'Cash', `Rs.${pay.amount || 0}`, `Rs.${(p.total || 0) - running}` ]); }); }
 
-        // Fixed syntax errors crashing jsPDF AutoTable
         doc.autoTable({
           startY: yPos, 
           head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], 
@@ -530,7 +546,7 @@
       doc.setDrawColor(200); doc.line(14, h - 20, 196, h - 20);
       doc.setFontSize(8); doc.setTextColor(100);
       doc.text("Thank you for your business.", 14, h - 12); doc.text("Powered by Goorac", 170, h - 12);
-      doc.save(`Overdue_${c.id}.pdf`);
+      doc.save(`Overdue_${c.id || 'export'}.pdf`);
     }
     window.generatePDF = generatePDF;
 
