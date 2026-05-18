@@ -1242,6 +1242,40 @@
         navigator.serviceWorker.register('./sw.js').then(() => console.log('SW Registered'));
       });
     }
+
+    // --- 7. HAPTIC FEEDBACK (VIBRATIONS) ---
+    function triggerVibration(pattern) {
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(pattern);
+        } catch (e) {}
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.desktop-link, .nav-item, .header-guide-link').forEach(link => {
+        link.addEventListener('click', () => triggerVibration(15));
+      });
+
+      document.querySelectorAll('.pending-collection-btn').forEach(btn => {
+        btn.addEventListener('click', () => triggerVibration([20, 30, 20]));
+      });
+
+      const syncBtn = document.querySelector('.header-sync-btn');
+      if(syncBtn) syncBtn.addEventListener('click', () => triggerVibration([30, 40, 30]));
+
+      const profilePic = document.getElementById('headerProfilePic');
+      if(profilePic) profilePic.addEventListener('click', () => triggerVibration(20));
+
+      const btnCancel = document.getElementById('btnCancelProfile');
+      if(btnCancel) btnCancel.addEventListener('click', () => triggerVibration(15));
+
+      const logoutBtn = document.getElementById('btnLogout');
+      if(logoutBtn) logoutBtn.addEventListener('click', () => triggerVibration([50, 50, 50]));
+
+      if(installBtn) installBtn.addEventListener('click', () => triggerVibration([30, 30, 30]));
+    });
+
   </script>
 </body>
 </html>
