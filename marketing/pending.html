@@ -170,6 +170,9 @@
             display: flex; flex-direction: column;
         }
         .full-modal.active { left: 0; }
+        
+        /* FIX: Ensure Payment Modal always opens on top of Search Modal */
+        #pay-modal { z-index: 110; }
 
         .modal-header {
             background-color: var(--yt-card); padding: 12px 20px;
@@ -218,7 +221,6 @@
         }
         .btn-primary { background-color: var(--accent-color); }
         .btn-success { background-color: var(--success-color); color: #000; }
-        .btn-danger-outline { background-color: transparent; border: 1px solid var(--meena-red); color: var(--meena-red); margin-top: 30px;}
 
         /* SEARCH BAR OVERRIDES */
         .search-input-wrapper { flex: 1; }
@@ -339,10 +341,6 @@
             <button class="btn-full-width btn-success" id="btn-mark-full">
                 <svg viewBox="0 0 24 24" style="fill: #000; width: 20px; height: 20px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
                 Mark Full Payment Done
-            </button>
-
-            <button class="btn-full-width btn-danger-outline" id="btn-delete-record">
-                Delete Record entirely
             </button>
         </div>
     </div>
@@ -536,17 +534,10 @@
             updateFirebaseRecords(updatedRecords, btn);
         });
 
-        // 2. Mark Full Payment (Removes from array)
+        // 2. Mark Full Payment (Removes from array automatically)
         document.getElementById('btn-mark-full').addEventListener('click', function() {
             if(confirm(`Mark ₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')} as fully paid for ${currentEditRecord.customerName}?`)) {
-                const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                updateFirebaseRecords(updatedRecords, this);
-            }
-        });
-
-        // 3. Delete Record Entirely
-        document.getElementById('btn-delete-record').addEventListener('click', function() {
-            if(confirm("Are you sure you want to delete this record entirely?")) {
+                // Filters out the document with this specific ID, effectively deleting it from the database array
                 const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
                 updateFirebaseRecords(updatedRecords, this);
             }
