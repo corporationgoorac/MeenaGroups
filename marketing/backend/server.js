@@ -120,18 +120,24 @@ setInterval(async () => {
 }, 300000); // 5 minutes
 
 // ---------------------------------------------------------
-// 3. CORE UTILITIES
+// 3. CORE UTILITIES & DUAL ADMIN SETUP
 // ---------------------------------------------------------
 const serverStartTime = new Date();
 const sleep = (ms) => new Promise(res => setTimeout(res, ms)); // ENTERPRISE FIX: Global sleep utility for WhatsApp DOM delays
-let currentAdminPhone = null;
 
-// Fetch admin on boot
+let currentAdminPhone1 = null;
+let currentAdminPhone2 = null;
+
+// Fetch admins on boot
 async function fetchAdminPhone() {
     const docSnap = await db.collection('system_folder').doc('config').get();
-    if (docSnap.exists && docSnap.data().adminPhone) {
-        currentAdminPhone = docSnap.data().adminPhone;
-        console.log(`👑 Admin Phone Loaded: ${currentAdminPhone}`);
+    if (docSnap.exists) {
+        const data = docSnap.data();
+        // Support legacy 'adminPhone' field for Admin 1 backward compatibility
+        currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
+        currentAdminPhone2 = data.adminPhone2 || null;
+        console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'}`);
+        console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
     }
 }
 fetchAdminPhone();
@@ -159,13 +165,26 @@ client.on('message', async (msg) => {
     const input = msg.body.trim();
     const normalizedInput = input.toLowerCase();
 
-    // -- A. Change Admin Flow --
-    if (normalizedInput === 'change admin number') {
-        waitingForAdminUpdate[msg.from] = true;
-        return msg.reply("🛡️ *Admin Configuration*\nPlease enter the new Admin Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+    // -- A. Change Admin 1 Flow --
+    if (normalizedInput === 'change admin 1 number' || normalizedInput === 'change admin 1 phone number') {
+        waitingForAdminUpdate[msg.from] = 1;
+        return msg.reply("🛡️ *Admin 1 Configuration*\nPlease enter the new Admin 1 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
     }
 
+    // -- B. Change Admin 2 Flow --
+    if (normalizedInput === 'change admin 2 number' || normalizedInput === 'change admin 2 phone number') {
+        waitingForAdminUpdate[msg.from] = 2;
+        return msg.reply("🛡️ *Admin 2 Configuration*\nPlease enter the new Admin 2 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+    }
+
+    // -- C. List Admins Flow --
+    if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
+        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'}\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}`);
+    }
+
+    // -- Process Admin Input --
     if (waitingForAdminUpdate[msg.from]) {
+        const adminSlot = waitingForAdminUpdate[msg.from];
         const formattedNewNumber = formatPhone(input);
         
         if (!formattedNewNumber) {
@@ -173,22 +192,30 @@ client.on('message', async (msg) => {
         }
 
         try {
-            // Overwrite in database
-            await db.collection('system_folder').doc('config').set({ adminPhone: formattedNewNumber }, { merge: true });
-            currentAdminPhone = formattedNewNumber;
+            // Overwrite specific database field to strictly prevent arrays/duplication
+            const fieldName = adminSlot === 1 ? 'adminPhone1' : 'adminPhone2';
+            await db.collection('system_folder').doc('config').set({ [fieldName]: formattedNewNumber }, { merge: true });
+            
+            if (adminSlot === 1) {
+                currentAdminPhone1 = formattedNewNumber;
+            } else {
+                currentAdminPhone2 = formattedNewNumber;
+            }
+            
             delete waitingForAdminUpdate[msg.from];
             
-            return msg.reply(`✅ *Admin Successfully Updated*\nAll future billing alerts will be sent to:\n*${formattedNewNumber}*`);
+            return msg.reply(`✅ *Admin ${adminSlot} Successfully Updated*\nAll future billing alerts will be sent to:\n*${formattedNewNumber}*`);
         } catch (err) {
             console.error("Failed to update admin:", err);
             return msg.reply("⚠️ Error updating database.");
         }
     }
 
-    // -- B. Marketing Total Flow --
+    // -- D. Marketing Total Flow --
     if (normalizedInput === 'marketing total') {
-        // Optional: Check if msg.from is the admin number. 
-        // if (currentAdminPhone && msg.from !== currentAdminPhone + '@c.us') return;
+        // Optional: Ensure only an admin can check totals
+        // const isAuth = (currentAdminPhone1 && msg.from === currentAdminPhone1 + '@c.us') || (currentAdminPhone2 && msg.from === currentAdminPhone2 + '@c.us');
+        // if (!isAuth) return;
 
         await msg.reply("📊 _Calculating today's sales..._");
         
@@ -248,8 +275,10 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             const payMode = billData.paymentMode || 'Cash';
             let dateStr = billData.date ? billData.date.toDate().toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');
 
-            // --- A. TEXT ADMIN ALERT (Text Only) ---
-            if (currentAdminPhone) {
+            // --- A. TEXT ADMIN ALERT (Sent to ALL Active Admins) ---
+            const activeAdmins = [currentAdminPhone1, currentAdminPhone2].filter(phone => phone !== null);
+            
+            if (activeAdmins.length > 0) {
                 // Build the item list text dynamically for the admin
                 let itemListText = '';
                 if (billData.items && Array.isArray(billData.items)) {
@@ -261,27 +290,30 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 
                 const adminAlert = `🚨 *NEW SALE ALERT*\n\n📄 *Invoice:* ${invNo}\n👤 *Customer:* ${billData.customer?.name || 'Cash Customer'}\n🛍️ *Purchased Items:*\n${itemListText}💰 *Amount:* ₹${grandTotal.toLocaleString()}\n💳 *Mode:* ${payMode}\n\n_Meena Marketing Backend_`;
                 
-                // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes for Admin
-                const adminPlainPhone = currentAdminPhone.replace(/\D/g, '');
-                try {
-                    await sleep(2000); // Give DOM time to process
-                    const adminContactId = await client.getNumberId(adminPlainPhone);
-                    const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
-                    
+                // Loop through all registered admins and send
+                for (const adminPhone of activeAdmins) {
+                    // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
+                    const adminPlainPhone = adminPhone.replace(/\D/g, '');
                     try {
-                        await client.sendMessage(verifiedAdminId, adminAlert);
-                    } catch (adminSendErr) {
-                        if (adminSendErr.message && (adminSendErr.message.includes('findChat') || adminSendErr.message.includes('@lid') || adminSendErr.message.includes('not found'))) {
-                            console.log(`⚠️ Applying initialization workaround for Admin chat: ${verifiedAdminId}`);
-                            await client.sendMessage(verifiedAdminId, `🚨 Syncing Admin Alert Channel...`);
-                            await sleep(2000);
+                        await sleep(2000); // Give DOM time to process
+                        const adminContactId = await client.getNumberId(adminPlainPhone);
+                        const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+                        
+                        try {
                             await client.sendMessage(verifiedAdminId, adminAlert);
-                        } else {
-                            throw adminSendErr;
+                        } catch (adminSendErr) {
+                            if (adminSendErr.message && (adminSendErr.message.includes('findChat') || adminSendErr.message.includes('@lid') || adminSendErr.message.includes('not found'))) {
+                                console.log(`⚠️ Applying initialization workaround for Admin chat: ${verifiedAdminId}`);
+                                await client.sendMessage(verifiedAdminId, `🚨 Syncing Admin Alert Channel...`);
+                                await sleep(2000);
+                                await client.sendMessage(verifiedAdminId, adminAlert);
+                            } else {
+                                throw adminSendErr;
+                            }
                         }
+                    } catch (e) {
+                        console.log(`Failed to send admin alert to ${adminPhone} Error:`, e.message);
                     }
-                } catch (e) {
-                    console.log("Failed to send admin alert Error:", e.message);
                 }
             }
 
