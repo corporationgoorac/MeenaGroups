@@ -131,7 +131,7 @@
     .all-clear-state .empty-icon { fill: var(--success); opacity: 0.8; }
     .all-clear-state h3 { color: var(--text-main); margin: 0; font-size: 1.3rem; }
 
-    .loader-row { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.95rem; font-weight: 500; }
+    .loader-row { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.95rem; font-weight: 500; width: 100%; }
     .manual-load-btn {
       background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
       color: #60a5fa; padding: 14px 24px; border-radius: 12px; font-size: 0.95rem; font-weight: 600;
@@ -207,8 +207,8 @@
 
     .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); width: 90%; max-width: 500px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; opacity: 0; pointer-events: none; transition: 0.3s var(--ease); z-index: 200; box-shadow: 0 24px 60px rgba(0,0,0,0.6); overflow: hidden; }
     .modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
-    .m-head { padding: 20px 24px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;}
-    .m-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+    .m-head { padding: 20px 24px; background: rgba(239, 68, 68, 0.2); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;}
+    .m-head h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #f87171; }
     .m-body { padding: 24px; }
   </style>
 </head>
@@ -300,22 +300,25 @@
     
     const BATCH_SIZE = 10; 
 
-    // Helper: Safely parse standard Indian date strings (DD/MM/YYYY) and Firebase Timestamps
+    // Helper: Robust parsing for standard strings (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD) and Firebase Timestamps
     function parseSafeDate(dStr) {
       if (!dStr) return 0;
-      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime(); // Firebase timestamp
+      if (typeof dStr.toDate === 'function') return dStr.toDate().getTime(); 
       if (typeof dStr === 'number') return dStr;
       
       const s = String(dStr).trim();
       const parts = s.split(/[-/]/);
       if (parts.length === 3) {
-        if (parts.length === 4) return new Date(s).getTime(); // YYYY-MM-DD
-        return new Date(`${parts}-${parts}-${parts}`).getTime(); // DD-MM-YYYY -> YYYY-MM-DD
+        if (parts[0].length === 4) {
+          return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime(); 
+        }
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime(); 
       }
-      return new Date(s).getTime();
+      const rawParsed = Date.parse(s);
+      return isNaN(rawParsed) ? 0 : rawParsed;
     }
 
-    // UPDATED LOGIC: Accurately find if balance > 0 AND last activity is strictly older than 1 month
+    // UPDATED LOGIC: Finds if balance > 1 AND last activity is strictly older than 1 month
     function checkPendingStatus(customer) {
       let totalVal = 0, totalPaid = 0;
       let lastActivityTime = 0;
@@ -336,28 +339,27 @@
       });
 
       const balance = totalVal - totalPaid;
-      if (balance <= 1) return { isPending: false }; // Paid in full
+      if (balance <= 1) return { isPending: false }; 
 
-      // If no valid payments were found, use their account creation date as the 'last activity'
+      // Fallback 1: Use customer creation time if payments are unrecorded
       if (lastActivityTime === 0 && customer.createdAt) {
         lastActivityTime = parseSafeDate(customer.createdAt);
       }
       
-      // Safety fallback
+      // Fallback 2: Set to 0 (epoch) instead of current time so they aren't masked as active today
       if (lastActivityTime === 0 || isNaN(lastActivityTime)) {
-         lastActivityTime = Date.now(); 
+         lastActivityTime = 0; 
       }
 
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      // Only true if their LAST payment (or start date) is strictly older than 1 month ago
       const isPending = lastActivityTime < oneMonthAgo.getTime();
       
       return { 
         isPending: isPending, 
         balance: balance, 
-        latestDate: new Date(lastActivityTime) 
+        latestDate: lastActivityTime > 0 ? new Date(lastActivityTime) : null 
       };
     }
 
@@ -369,39 +371,46 @@
       
       if (document.getElementById('initialLoader')) document.getElementById('initialLoader').remove();
       if (document.getElementById('manualLoadBtn')) document.getElementById('manualLoadBtn').remove();
+      
       if (!document.getElementById('scrollLoader')) {
         const loader = document.createElement("div");
-        loader.id = "scrollLoader"; loader.className = "loader-row"; loader.innerText = "Fetching 10 records from database...";
+        loader.id = "scrollLoader"; loader.className = "loader-row"; loader.innerText = "Scanning database for matching records...";
         container.appendChild(loader);
       }
 
       let newlyFound = [];
+      let batchesScanned = 0;
+      const MAX_BATCHES = 5; // Scans up to 50 records per check to locate matching matches safely
       
       try {
-        let q;
-        if (lastVisibleDoc) {
-          q = query(collection(db, "customers"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(BATCH_SIZE));
-        } else {
-          q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(BATCH_SIZE));
-        }
+        while (hasMoreDocs && newlyFound.length === 0 && batchesScanned < MAX_BATCHES) {
+          batchesScanned++;
+          let q;
+          if (lastVisibleDoc) {
+            q = query(collection(db, "customers"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(BATCH_SIZE));
+          } else {
+            q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(BATCH_SIZE));
+          }
 
-        const snap = await getDocs(q);
-        
-        if (snap.empty) {
-          hasMoreDocs = false;
-        } else {
-          lastVisibleDoc = snap.docs[snap.docs.length - 1];
-          totalScanned += snap.size;
+          const snap = await getDocs(q);
+          
+          if (snap.empty) {
+            hasMoreDocs = false;
+            break;
+          } else {
+            lastVisibleDoc = snap.docs[snap.docs.length - 1];
+            totalScanned += snap.size;
 
-          snap.forEach(docSnap => {
-            const data = docSnap.data();
-            const status = checkPendingStatus(data);
-            if (status.isPending) {
-              data._calculatedBalance = status.balance;
-              data._lastActivity = status.latestDate;
-              newlyFound.push(data);
-            }
-          });
+            snap.forEach(docSnap => {
+              const data = docSnap.data();
+              const status = checkPendingStatus(data);
+              if (status.isPending) {
+                data._calculatedBalance = status.balance;
+                data._lastActivity = status.latestDate;
+                newlyFound.push(data);
+              }
+            });
+          }
         }
 
         if (document.getElementById('scrollLoader')) document.getElementById('scrollLoader').remove();
@@ -417,29 +426,32 @@
               <div class="empty-state all-clear-state">
                 <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 <h3>All Up To Date!</h3>
-                <p>No pending collections older than 1 month found across the entire database.</p>
+                <p>No pending collections older than 1 month found across the scanned database.</p>
               </div>`;
-          } else {
+          } else if (!document.getElementById('endMsg')) {
             const endMsg = document.createElement("div");
+            endMsg.id = "endMsg";
             endMsg.className = "loader-row";
             endMsg.innerText = "End of database reached.";
             container.appendChild(endMsg);
           }
         } else {
-          const btn = document.createElement("button");
-          btn.id = "manualLoadBtn";
-          btn.className = "manual-load-btn";
-          btn.innerText = `Scan Next 10 Records`;
-          btn.onclick = loadNextPendingBatch;
-          container.appendChild(btn);
+          if (!document.getElementById('manualLoadBtn')) {
+            const btn = document.createElement("button");
+            btn.id = "manualLoadBtn";
+            btn.className = "manual-load-btn";
+            btn.innerText = `Scan Next Records`;
+            btn.onclick = loadNextPendingBatch;
+            container.appendChild(btn);
+          }
         }
 
       } catch (e) {
         if (document.getElementById('scrollLoader')) document.getElementById('scrollLoader').remove();
-        if (e.message.includes("indexes?create_composite=")) {
+        if (e.message && e.message.includes("indexes?create_composite=")) {
           const urlMatch = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
           if (urlMatch) {
-            document.getElementById("indexLink").href = urlMatch;
+            document.getElementById("indexLink").href = urlMatch[0];
             document.getElementById("overlay").classList.add("active");
             document.getElementById("indexModal").classList.add("active");
           }
@@ -464,11 +476,15 @@
       const div = document.getElementById("resultContainer");
 
       dataBatch.forEach(c => {
+        const btn = document.getElementById("manualLoadBtn");
+        const endMsg = document.getElementById("endMsg");
+        const refNode = btn || endMsg || null;
+
         const card = document.createElement("div");
         card.className = "card"; 
         card.onclick = () => openDrawer(c);
         
-        const activityStr = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
+        const activityStr = c._lastActivity ? c._lastActivity.toLocaleDateString() : 'No Activity';
 
         card.innerHTML = `
           <div class="c-details">
@@ -487,7 +503,11 @@
             <span class="badge due">₹${(c._calculatedBalance).toLocaleString()}</span>
           </div>
         `;
-        div.appendChild(card);
+        if (refNode) {
+          div.insertBefore(card, refNode);
+        } else {
+          div.appendChild(card);
+        }
       });
     }
 
@@ -499,11 +519,11 @@
       document.getElementById("drawId").innerText = "ID: " + c.id;
       document.getElementById("drawPhone").innerText = c.phone || '-';
       document.getElementById("drawPlace").innerText = c.place || '-';
-      document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : '-';
+      document.getElementById("drawJoin").innerText = c._lastActivity ? c._lastActivity.toLocaleDateString() : 'No Activity';
       document.getElementById("drawCount").innerText = (c.products || []).length;
       
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
+      document.getElementById("btnMap").href = c.place ? `https://maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
 
       const container = document.getElementById("productContainer");
       container.innerHTML = "";
@@ -601,13 +621,14 @@
         if(payments.length === 0) { rows.push(['-', '-', 'No Records', '-', `Rs.${p.total}`]); } 
         else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
 
-        // FIX 1: Fixed the broken JS Syntax here.
         doc.autoTable({
-          startY: yPos, head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], body: rows,
+          startY: yPos, 
+          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], 
+          body: rows,
           theme: 'grid', 
-          headStyles: { fillColor:, textColor: 255 }, 
+          headStyles: { fillColor: [59, 130, 246], textColor: 255 }, 
           styles: { fontSize: 9, cellPadding: 4 },
-          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, 
+          columnStyles: { 3: { fontStyle: 'bold', textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } }, 
           margin: { left: 14, right: 14 }
         });
         yPos = doc.lastAutoTable.finalY + 15;
