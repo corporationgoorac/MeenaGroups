@@ -147,6 +147,7 @@
     .chip.primary { color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); background: rgba(59, 130, 246, 0.1); }
     .chip.success { color: #34d399; border-color: rgba(52, 211, 153, 0.3); background: rgba(16, 185, 129, 0.1); }
     .chip.danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.1); }
+    .chip.warning { color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1); }
 
     /* * ==========================================
      * 4. MAIN LIST (CARDS) - REDESIGNED FOR VISIBILITY
@@ -305,7 +306,7 @@
       display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 12px 20px;
       font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); color: #d4d4d8;
     }
-    .led-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.5px;}
+    .led-row { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.5px;}
 
     /* Footer Buttons (UPDATED TO SMALLER ICON BUTTONS) */
     .d-foot { 
@@ -383,6 +384,10 @@
       <button class="chip success" onclick="loadRecent(15)">
         <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
         Load Recent
+      </button>
+      <button class="chip warning" onclick="loadPending()">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>
+        Pending (>1 Month)
       </button>
       <button class="chip danger" onclick="loadAll()">
         <svg viewBox="0 0 24 24"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
@@ -535,6 +540,67 @@
         const snap = await getDocs(collection(db, "customers"));
         processData(snap);
       } catch (e) { alert(e.message); }
+    };
+
+    // Firebase Optimized Reads Logic for Pending Accounts
+    window.loadPending = async () => {
+      // Optimization Strategy: If whole dataset was downloaded during current active lifecycle, use that array to drop API overhead to zero
+      if (loadedData.length === 0) {
+        uiLoading();
+        try {
+          const snap = await getDocs(collection(db, "customers"));
+          loadedData = [];
+          snap.forEach(d => loadedData.push(d.data()));
+        } catch (e) {
+          alert("Error fetching records: " + e.message);
+          return;
+        }
+      }
+
+      // Compute precise temporal delta milestone matching 30 complete days back from today
+      const contextDateBoundary = new Date();
+      contextDateBoundary.setMonth(contextDateBoundary.getMonth() - 1);
+      const oneMonthAgoTimestamp = contextDateBoundary.getTime();
+
+      const overdueCustomers = loadedData.filter(c => {
+        let cumulativeInvoiceValue = 0;
+        let cumulativePaymentsValue = 0;
+        
+        if (c.products) {
+          c.products.forEach(p => {
+            cumulativeInvoiceValue += (p.total || 0);
+            cumulativePaymentsValue += (p.paid || 0);
+          });
+        }
+
+        const outstandingBalanceDue = cumulativeInvoiceValue - cumulativePaymentsValue;
+        const hasActiveDebt = outstandingBalanceDue > 1;
+
+        let trackingDate = c.createdAt;
+        let meetsAgingConditions = false;
+        
+        if (trackingDate) {
+          const creationDateTimestamp = new Date(trackingDate).getTime();
+          if (creationDateTimestamp < oneMonthAgoTimestamp) {
+            meetsAgingConditions = true;
+          }
+        }
+
+        return hasActiveDebt && meetsAgingConditions;
+      });
+
+      const elementTarget = document.getElementById("resultContainer");
+      if (overdueCustomers.length === 0) {
+        elementTarget.innerHTML = `
+          <div class="empty-state">
+            <p>No matches found.<br>All customers from > 1 month ago have cleared accounts.</p>
+          </div>`;
+      } else {
+        renderList(overdueCustomers);
+      }
+      
+      // Sync statistical dashboard widgets matching filtered collection layout boundaries
+      calcStats(overdueCustomers);
     };
 
     // Auto-search directly from Firebase when typing
@@ -1136,9 +1202,10 @@
       document.getElementById("analyticsPopup").classList.add("active");
     };
 
-    function calcStats() {
+    function calcStats(customSourceDataset = null) {
+      let activeTargetData = customSourceDataset || loadedData;
       let paid = 0, total = 0;
-      loadedData.forEach(c => {
+      activeTargetData.forEach(c => {
         if(c.products) c.products.forEach(p => { paid += (p.paid||0); total += (p.total||0); });
       });
       const due = total - paid;
