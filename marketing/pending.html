@@ -33,13 +33,24 @@
             background-color: var(--yt-bg);
             color: var(--yt-text-primary);
             overflow-x: hidden;
+            
+            /* NATIVE APP FEEL: Prevent Copying and Selection */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            -webkit-touch-callout: none; /* Prevents long-press popup on iOS */
         }
         
         body.no-scroll { overflow: hidden !important; }
+
+        /* ENSURE INPUTS REMAIN USABLE DESPITE GLOBAL COPY PREVENTION */
+        input, select, textarea {
+            -webkit-user-select: auto !important;
+            -moz-user-select: auto !important;
+            -ms-user-select: auto !important;
+            user-select: auto !important;
+        }
 
         /* HEADER */
         header {
@@ -421,6 +432,17 @@
         // ADDED collection, query, where, limit, getDocs for targeted single-read fetch
         import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+        // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
+        document.addEventListener('contextmenu', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+        document.addEventListener('copy', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+        document.addEventListener('cut', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+
         // SMART BACK BUTTON
         document.getElementById('smart-back-btn').addEventListener('click', function(e) {
             e.preventDefault();
@@ -495,9 +517,12 @@
         }
 
 
-        // --- NEW: DAYS PENDING CALCULATOR ---
+        // --- NEW: DAYS PENDING CALCULATOR WITH EDGE CASE FIX ---
         function getDaysText(dateString) {
+            if (!dateString) return "Unknown";
             const invoiceDate = new Date(dateString);
+            if (isNaN(invoiceDate.getTime())) return "Unknown";
+
             const today = new Date();
             invoiceDate.setHours(0,0,0,0);
             today.setHours(0,0,0,0);
@@ -575,7 +600,7 @@
 
         // Live Preview Amount Listener
         document.getElementById('pay-input-amount').addEventListener('input', function() {
-            let val = parseFloat(this.value);
+            let val = parseFloat(this.value) || 0;
             let current = parseFloat(currentEditRecord?.pendingAmount || 0);
             const previewBox = document.getElementById('pay-live-preview');
             
@@ -664,13 +689,18 @@
                 </div>
             `;
 
+            if (!invoiceNumber) {
+                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Invoice number missing.</div>`;
+                return;
+            }
+
             try {
                 // Execute highly targeted 1-read query against sellings collection
                 const q = query(collection(db, 'sellings'), where('invoiceNo', '==', invoiceNumber), limit(1));
                 const snap = await getDocs(q);
                 
                 if (snap.empty) {
-                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Product not found.</div>`;
+                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Product not found in billing history.</div>`;
                     return;
                 }
                 
@@ -710,11 +740,11 @@
             currentEditRecord = record;
 
             // Populate Modal UI & Calculate Days Pending
-            document.getElementById('pay-ui-name').innerText = record.customerName;
-            document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber}`;
-            document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
+            document.getElementById('pay-ui-name').innerText = record.customerName || "Unknown Customer";
+            document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber || "N/A"}`;
+            document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
             document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
-            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
             
             // Reset input and preview
             document.getElementById('pay-input-amount').value = '';
@@ -746,11 +776,14 @@
         document.getElementById('pay-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-update-partial');
-            const amountReceived = parseFloat(document.getElementById('pay-input-amount').value);
+            const amountReceived = parseFloat(document.getElementById('pay-input-amount').value) || 0;
             
-            if(isNaN(amountReceived) || amountReceived <= 0) return;
+            if (amountReceived <= 0) {
+                openMiniModal("Invalid Amount", "Please enter a valid received amount.", true);
+                return;
+            }
 
-            let currentPending = parseFloat(currentEditRecord.pendingAmount);
+            let currentPending = parseFloat(currentEditRecord.pendingAmount || 0);
             let newPending = currentPending - amountReceived;
             
             let updatedRecords;
@@ -770,7 +803,7 @@
             const btnEl = this;
             openMiniModal(
                 "Confirm Full Payment", 
-                `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
+                `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
                 false, 
                 () => {
                     const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
@@ -784,6 +817,16 @@
         document.getElementById('add-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-add');
+            
+            const totalAmt = parseFloat(document.getElementById('add-total').value) || 0;
+            const pendingAmt = parseFloat(document.getElementById('add-pending').value) || 0;
+            
+            // EDGE CASE FIX: Pending amount cannot be greater than Total amount
+            if (pendingAmt > totalAmt) {
+                openMiniModal("Invalid Amount", "Pending amount cannot be strictly greater than the Total Bill amount.", true);
+                return;
+            }
+
             btn.disabled = true;
             btn.innerText = "Adding...";
 
@@ -797,8 +840,8 @@
                 phone: document.getElementById('add-phone').value,
                 invoiceNumber: combinedInvoiceString, 
                 date: document.getElementById('add-date').value,
-                totalAmount: parseFloat(document.getElementById('add-total').value),
-                pendingAmount: parseFloat(document.getElementById('add-pending').value),
+                totalAmount: totalAmt,
+                pendingAmount: pendingAmt,
             };
 
             try {
@@ -826,9 +869,9 @@
             }
 
             currentSearchResults = pendingData.filter(item => 
-                item.customerName.toLowerCase().includes(query) || 
-                item.invoiceNumber.toLowerCase().includes(query) ||
-                item.phone.includes(query)
+                (item.customerName || "").toLowerCase().includes(query) || 
+                (item.invoiceNumber || "").toLowerCase().includes(query) ||
+                (item.phone || "").includes(query)
             );
 
             searchVisibleCount = ITEMS_PER_PAGE; 
@@ -853,13 +896,17 @@
             const container = document.getElementById(targetContainerId);
             
             const html = dataArray.map((item, i) => {
-                const cleanPhone = item.phone.replace(/[^0-9]/g, '');
-                const dateObj = new Date(item.date);
-                const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                const cleanPhone = (item.phone || "").replace(/[^0-9]/g, '');
+                
+                let dateStr = "Unknown Date";
+                if (item.date && !isNaN(new Date(item.date).getTime())) {
+                    dateStr = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+                
                 const daysPendingText = getDaysText(item.date);
                 
-                const formattedPending = parseFloat(item.pendingAmount).toLocaleString('en-IN', {maximumFractionDigits: 2});
-                const formattedTotal = parseFloat(item.totalAmount).toLocaleString('en-IN', {maximumFractionDigits: 2});
+                const formattedPending = parseFloat(item.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+                const formattedTotal = parseFloat(item.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
 
                 // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
                 const delay = i * 0.05;
@@ -869,8 +916,8 @@
                     <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
                         <div class="card-header">
                             <div>
-                                <div class="customer-name">${item.customerName}</div>
-                                <div class="invoice-number">${item.invoiceNumber}</div>
+                                <div class="customer-name">${item.customerName || "Unknown Customer"}</div>
+                                <div class="invoice-number">${item.invoiceNumber || "N/A"}</div>
                             </div>
                             <div class="invoice-date">
                                 ${dateStr} • <span style="color: var(--meena-red); font-weight: bold;">${daysPendingText}</span>
@@ -890,7 +937,7 @@
                             <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
                             Call
                         </a>
-                        <a href="https://wa.me/91${cleanPhone}?text=Hello ${encodeURIComponent(item.customerName)}, your payment of Rs. ${formattedPending} is pending against Invoice ${encodeURIComponent(item.invoiceNumber)}." target="_blank" class="btn btn-wa">
+                        <a href="https://wa.me/91${cleanPhone}?text=Hello ${encodeURIComponent(item.customerName || "Customer")}, your payment of Rs. ${formattedPending} is pending against Invoice ${encodeURIComponent(item.invoiceNumber || "")}." target="_blank" class="btn btn-wa">
                             <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
                             WhatsApp
                         </a>
