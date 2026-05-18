@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meena Marketing - Pending Payments</title>
+    
+    <style>
+        /* YOUTUBE DARK THEME */
+        :root {
+            --yt-bg: #121212;
+            --yt-card: #212121;
+            --yt-border: #333333;
+            --yt-text-primary: #ffffff;
+            --yt-text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --meena-white: #ffffff;
+            --wa-green: #25D366;
+            --call-blue: #3ea6ff;
+            --accent-color: #ff3333;
+            --success-color: #25D366;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--yt-bg);
+            color: var(--yt-text-primary);
+            overflow-x: hidden;
+            
+            /* NATIVE APP FEEL: Prevent Copying and Selection */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none; /* Prevents long-press popup on iOS */
+        }
+        
+        body.no-scroll { overflow: hidden !important; }
+
+        /* ENSURE INPUTS REMAIN USABLE DESPITE GLOBAL COPY PREVENTION */
+        input, select, textarea {
+            -webkit-user-select: auto !important;
+            -moz-user-select: auto !important;
+            -ms-user-select: auto !important;
+            user-select: auto !important;
+        }
+
+        /* HEADER */
+        header {
+            background-color: var(--yt-card);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .header-left { display: flex; align-items: center; }
+
+        .header-back-btn {
+            color: var(--yt-text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            margin-right: 12px;
+            margin-left: -8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .header-back-btn:active { background: var(--yt-border); }
+        .header-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
+
+        .brand { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+        .brand .meena { color: var(--meena-red); }
+        .brand .marketing { color: var(--meena-white); }
+
+        .action-icon {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .action-icon:active { background: var(--yt-border); }
+        .action-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
+
+        /* MAIN CONTENT & CARDS */
+        main { padding: 20px; max-width: 1200px; margin: 0 auto; padding-bottom: 90px; }
+        
+        .dashboard-stats { margin-bottom: 20px; font-size: 14px; color: var(--yt-text-secondary); display: flex; justify-content: space-between; align-items: center;}
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background-color: var(--yt-card);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid var(--yt-border);
+            position: relative;
+        }
+
+        /* Clickable area for payment modal */
+        .card-body-clickable { cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+        .card-body-clickable:active { opacity: 0.7; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .customer-name { font-size: 17px; font-weight: 600; color: var(--yt-text-primary); }
+        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; background: rgba(255,255,255,0.1); padding: 3px 6px; border-radius: 4px; display: inline-block;}
+        .invoice-date { font-size: 12px; color: var(--yt-text-secondary); }
+
+        .amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+        .pending-amt { font-size: 18px; font-weight: bold; color: var(--meena-red); }
+        .total-amt { font-size: 14px; color: var(--yt-text-secondary); }
+
+        .actions { display: flex; gap: 10px; margin-top: auto; z-index: 2; }
+
+        .btn {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px; border-radius: 20px; text-decoration: none;
+            font-size: 14px; font-weight: 600; cursor: pointer; border: none; outline: none;
+        }
+        .btn:active { opacity: 0.7; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-call { background-color: rgba(62, 166, 255, 0.15); color: var(--call-blue); }
+        .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
+        .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
+        .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
+
+        /* FLOATING ACTION BUTTON (FAB) */
+        .fab {
+            position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px;
+            background-color: var(--accent-color); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4); cursor: pointer;
+            z-index: 40; transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab svg { fill: white; width: 24px; height: 24px; }
+
+        /* FULL PAGE MODALS (Add, Search & Pay) */
+        .full-modal {
+            position: fixed; top: 0; left: 100%; width: 100%; height: 100%;
+            background-color: var(--yt-bg); z-index: 100;
+            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        .full-modal.active { left: 0; }
+        
+        /* FIX: Ensure Payment Modal always opens on top of Search Modal */
+        #pay-modal { z-index: 110; }
+
+        .modal-header {
+            background-color: var(--yt-card); padding: 12px 20px;
+            border-bottom: 1px solid var(--yt-border); display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        
+        .modal-back-btn {
+            background: none; border: none; color: var(--yt-text-primary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            padding: 6px; margin-left: -8px; border-radius: 50%;
+        }
+        .modal-back-btn:active { background: var(--yt-border); }
+        .modal-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
+
+        .modal-content { padding: 20px; flex: 1; overflow-y: auto; }
+
+        /* FORMS & INPUTS */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; color: var(--yt-text-secondary); margin-bottom: 6px; }
+        .form-input {
+            width: 100%; background-color: var(--yt-bg); border: 1px solid var(--yt-border);
+            color: var(--yt-text-primary); padding: 12px; border-radius: 8px;
+            font-size: 16px; outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--accent-color); }
+        
+        .input-group { display: flex; gap: 10px; }
+        .input-group select { width: 90px; cursor: pointer; }
+        .input-group input { flex: 1; }
+        
+        /* PAYMENT MODAL SPECIFIC */
+        .pay-summary-card {
+            background: var(--yt-card); border: 1px solid var(--yt-border);
+            padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
+        }
+        .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+        .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
+        .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
+        
+        /* NEW: Days pending element */
+        .pay-summary-days { font-size: 14px; font-weight: bold; color: var(--meena-white); margin-bottom: 10px; background: rgba(255,51,51,0.15); display: inline-block; padding: 4px 10px; border-radius: 15px; border: 1px solid rgba(255,51,51,0.3); }
+
+        .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
+
+        /* NEW: PRODUCT ITEMS STYLING */
+        .products-container { margin-bottom: 25px; }
+        .products-title { font-size: 12px; font-weight: 600; color: var(--yt-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .product-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--meena-white); }
+        .skeleton-pill { height: 30px; border-radius: 20px; background: linear-gradient(90deg, var(--yt-card) 25%, var(--yt-border) 50%, var(--yt-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .no-products { font-size: 14px; color: var(--yt-text-secondary); font-style: italic; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px dashed var(--yt-border);}
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .btn-full-width {
+            width: 100%; padding: 14px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: bold; margin-top: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; color: white;
+        }
+        .btn-primary { background-color: var(--accent-color); }
+        .btn-success { background-color: var(--success-color); color: #000; }
+
+        /* Live Preview for Amount */
+        .live-preview { font-size: 13.5px; margin-top: 8px; min-height: 20px; transition: color 0.2s; }
+
+        /* SEARCH BAR OVERRIDES */
+        .search-input-wrapper { flex: 1; }
+        .search-input {
+            width: 100%; background: transparent; border: none; color: var(--yt-text-primary);
+            font-size: 16px; outline: none; padding: 5px;
+        }
+        .search-input::placeholder { color: var(--yt-text-secondary); }
+        .empty-state { text-align: center; color: var(--yt-text-secondary); margin-top: 40px; }
+
+        /* NEW: PROFESSIONAL MINI MODAL */
+        .mini-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+        }
+        .mini-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .mini-modal-card {
+            background: var(--yt-card); border: 1px solid var(--yt-border);
+            width: 90%; max-width: 340px; border-radius: 12px; padding: 20px;
+            transform: scale(0.9); transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .mini-modal-overlay.active .mini-modal-card { transform: scale(1); }
+        
+        .mini-modal-card h3 { font-size: 18px; margin-bottom: 10px; color: var(--yt-text-primary); }
+        .mini-modal-card p { font-size: 15px; color: var(--yt-text-secondary); margin-bottom: 24px; line-height: 1.4; }
+        
+        .mini-modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+        .mini-modal-btn {
+            padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; outline: none;
+            font-size: 14px;
+        }
+        .mini-modal-btn:active { opacity: 0.7; }
+        .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
+        .btn-mini-confirm { background: var(--accent-color); color: white; }
+
+        /* INFINITE SCROLL SENTINEL STYLE */
+        .scroll-sentinel { height: 20px; width: 100%; flex-shrink: 0; }
+        
+        /* IMPROVED PAGINATION ANIMATION */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="header-back-btn" id="smart-back-btn">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </a>
+            <div class="brand">
+                <span class="meena">Meena</span> <span class="marketing">Pending</span>
+            </div>
+        </div>
+        <div class="action-icon" id="btn-open-search">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard-stats">
+            <span id="quick-stats-count">Loading pending payments...</span>
+            <span id="quick-stats-total" style="font-weight: bold; color: var(--meena-white);"></span>
+        </div>
+        
+        <div class="customer-grid" id="main-grid"></div>
+        <div id="main-sentinel" class="scroll-sentinel"></div>
+    </main>
+
+    <div class="fab" id="btn-open-add">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+    </div>
+
+    <div class="full-modal" id="add-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-add">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <h2 style="font-size: 18px;">Add Pending Payment</h2>
+        </div>
+        <div class="modal-content">
+            <form id="add-form">
+                <div class="form-group">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" id="add-name" class="form-input" required placeholder="e.g. Rahul Kumar" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210" inputmode="numeric" pattern="[0-9]*" maxlength="15">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice / GST Number</label>
+                    <div class="input-group">
+                        <select id="add-invoice-type" class="form-input">
+                            <option value="INV">INV</option>
+                            <option value="GST">GST</option>
+                        </select>
+                        <input type="text" id="add-invoice-num" class="form-input" required placeholder="e.g. 2026" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice Date</label>
+                    <input type="date" id="add-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Amount (₹)</label>
+                    <input type="number" id="add-total" class="form-input" required placeholder="e.g. 15000" inputmode="numeric" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pending Amount (₹)</label>
+                    <input type="number" id="add-pending" class="form-input" required placeholder="e.g. 5000" inputmode="numeric" min="0">
+                </div>
+                <button type="submit" class="btn-full-width btn-primary" id="btn-submit-add">Add Record</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="full-modal" id="pay-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-pay">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <h2 style="font-size: 18px;">Update Payment</h2>
+        </div>
+        <div class="modal-content">
+            <div class="pay-summary-card">
+                <div class="pay-summary-name" id="pay-ui-name">-</div>
+                <div class="pay-summary-inv" id="pay-ui-inv">-</div>
+                <div class="pay-summary-amount" id="pay-ui-pending">-</div>
+                <div class="pay-summary-days" id="pay-ui-days">-</div>
+                <div class="pay-summary-total" id="pay-ui-total">-</div>
+            </div>
+
+            <form id="pay-form">
+                <div class="form-group">
+                    <label class="form-label">Amount Received Today (₹)</label>
+                    <input type="number" id="pay-input-amount" class="form-input" placeholder="e.g. 1000" inputmode="numeric" min="1">
+                    <div id="pay-live-preview" class="live-preview"></div>
+                </div>
+                
+                <button type="submit" class="btn-full-width btn-primary" id="btn-update-partial">
+                    Reduce Pending Amount
+                </button>
+            </form>
+
+            <div style="margin: 25px 0; text-align: center; color: var(--yt-text-secondary); font-size: 12px; position: relative;">
+                <hr style="border: 0; border-top: 1px solid var(--yt-border); position: absolute; width: 100%; top: 50%; z-index: -1;">
+                <span style="background: var(--yt-bg); padding: 0 10px;">OR</span>
+            </div>
+
+            <button class="btn-full-width btn-success" id="btn-mark-full">
+                <svg viewBox="0 0 24 24" style="fill: #000; width: 20px; height: 20px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                Mark Full Payment Done
+            </button>
+
+            <div id="purchased-products-container" class="products-container" style="margin-top: 30px; margin-bottom: 10px;"></div>
+        </div>
+    </div>
+
+    <div class="full-modal" id="search-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-search">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <div class="search-input-wrapper">
+                <input type="text" id="search-input" class="search-input" placeholder="Search name or bill..." autocomplete="off">
+            </div>
+            <div id="btn-clear-search" style="cursor: pointer; padding: 5px; display: none;">
+                <svg viewBox="0 0 24 24" style="fill: var(--yt-text-secondary); width: 20px; height: 20px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+            </div>
+        </div>
+        <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
+            <div class="customer-grid" id="search-results"></div>
+        </div>
+    </div>
+
+    <div class="mini-modal-overlay" id="mini-modal">
+        <div class="mini-modal-card">
+            <h3 id="mini-modal-title">Title</h3>
+            <p id="mini-modal-message">Message</p>
+            <div class="mini-modal-actions">
+                <button class="mini-modal-btn btn-mini-cancel" id="mini-modal-cancel">Cancel</button>
+                <button class="mini-modal-btn btn-mini-confirm" id="mini-modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        // ADDED collection, query, where, limit, getDocs for targeted single-read fetch
+        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
+        document.addEventListener('contextmenu', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+        document.addEventListener('copy', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+        document.addEventListener('cut', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        });
+
+        // SMART BACK BUTTON
+        document.getElementById('smart-back-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // DOM ELEMENTS
+        const addModal = document.getElementById('add-modal');
+        const payModal = document.getElementById('pay-modal');
+        const searchModal = document.getElementById('search-modal');
+        const searchInput = document.getElementById('search-input');
+        const btnClearSearch = document.getElementById('btn-clear-search');
+        
+        // STATE MANAGEMENT & INFINITE SCROLL
+        let pendingData = []; 
+        let currentSearchResults = [];
+        let currentEditRecord = null; 
+        
+        const ITEMS_PER_PAGE = 15;
+        let mainVisibleCount = ITEMS_PER_PAGE;
+        let searchVisibleCount = ITEMS_PER_PAGE;
+        let isLoadingMain = false;
+        let isLoadingSearch = false;
+
+        // --- BULLETPROOF SCROLL LISTENERS ---
+        // 1. For the main dashboard page
+        window.addEventListener('scroll', () => {
+            if (isLoadingMain) return;
+            
+            // If user scrolls within 600px of the bottom of the page
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
+                if (mainVisibleCount < pendingData.length) {
+                    isLoadingMain = true;
+                    const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
+                    renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
+                    mainVisibleCount += ITEMS_PER_PAGE;
+                    
+                    setTimeout(() => { isLoadingMain = false; }, 50);
+                }
+            }
+        });
+
+        // 2. For the search modal (which scrolls internally)
+        const searchContentBox = document.querySelector('#search-modal .modal-content');
+        searchContentBox.addEventListener('scroll', () => {
+            if (isLoadingSearch) return;
+
+            if (searchContentBox.scrollTop + searchContentBox.clientHeight >= searchContentBox.scrollHeight - 600) {
+                if (searchVisibleCount < currentSearchResults.length) {
+                    isLoadingSearch = true;
+                    const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
+                    renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
+                    searchVisibleCount += ITEMS_PER_PAGE;
+                    
+                    setTimeout(() => { isLoadingSearch = false; }, 50);
+                }
+            }
+        });
+
+        // Check if items don't even fill the screen (on very large monitors)
+        function checkFillScreen() {
+            if (mainVisibleCount < pendingData.length && document.body.offsetHeight <= window.innerHeight + 100) {
+                const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
+                renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
+                mainVisibleCount += ITEMS_PER_PAGE;
+                setTimeout(checkFillScreen, 100);
+            }
+        }
+
+
+        // --- NEW: DAYS PENDING CALCULATOR WITH EDGE CASE FIX ---
+        function getDaysText(dateString) {
+            if (!dateString) return "Unknown";
+            const invoiceDate = new Date(dateString);
+            if (isNaN(invoiceDate.getTime())) return "Unknown";
+
+            const today = new Date();
+            invoiceDate.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+            const diffTime = today - invoiceDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if(diffDays === 0) return "Today";
+            if(diffDays === 1) return "1 Day";
+            if(diffDays < 0) return "Upcoming";
+            return diffDays + " Days";
+        }
+
+        // --- NEW: MINI MODAL SYSTEM ---
+        let activeConfirmCallback = null;
+        
+        function openMiniModal(title, message, isAlert = false, callback = null) {
+            document.getElementById('mini-modal-title').innerHTML = title;
+            document.getElementById('mini-modal-message').innerHTML = message;
+            
+            activeConfirmCallback = callback;
+            
+            if (isAlert) {
+                document.getElementById('mini-modal-cancel').style.display = 'none';
+                document.getElementById('mini-modal-confirm').innerText = 'OK';
+            } else {
+                document.getElementById('mini-modal-cancel').style.display = 'block';
+                document.getElementById('mini-modal-confirm').innerText = 'Confirm';
+            }
+            
+            const modalEl = document.getElementById('mini-modal');
+            modalEl.classList.add('active');
+            history.pushState({ miniModalOpen: true }, '');
+        }
+
+        function closeMiniModal() {
+            document.getElementById('mini-modal').classList.remove('active');
+        }
+
+        document.getElementById('mini-modal-cancel').addEventListener('click', () => {
+            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
+        });
+
+        document.getElementById('mini-modal-confirm').addEventListener('click', () => {
+            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
+            if (activeConfirmCallback) activeConfirmCallback();
+        });
+
+
+        // --- MOBILE BACK BUTTON & MODAL LOGIC ---
+        function openModal(modalEl, stateName) {
+            modalEl.classList.add('active');
+            document.body.classList.add('no-scroll');
+            history.pushState({ [stateName]: true }, '');
+            if(stateName === 'searchOpen') setTimeout(() => searchInput.focus(), 300);
+        }
+
+        function closeModal(modalEl) {
+            modalEl.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        }
+
+        // Add Listeners
+        document.getElementById('btn-open-add').addEventListener('click', () => {
+            document.getElementById('add-date').valueAsDate = new Date();
+            openModal(addModal, 'addOpen');
+        });
+        document.getElementById('btn-close-add').addEventListener('click', () => {
+            if (history.state?.addOpen) history.back(); else closeModal(addModal);
+        });
+
+        // Pay Listeners
+        document.getElementById('btn-close-pay').addEventListener('click', () => {
+            if (history.state?.payOpen) history.back(); else closeModal(payModal);
+        });
+
+        // Live Preview Amount Listener
+        document.getElementById('pay-input-amount').addEventListener('input', function() {
+            let val = parseFloat(this.value) || 0;
+            let current = parseFloat(currentEditRecord?.pendingAmount || 0);
+            const previewBox = document.getElementById('pay-live-preview');
+            
+            if (val > 0) {
+                let remains = current - val;
+                if (remains <= 0) {
+                    previewBox.innerHTML = "Bill will be <b>Fully Paid</b>";
+                    previewBox.style.color = "var(--success-color)";
+                } else {
+                    // Correct mathematical processing ensuring decimal robustness in half/partial calculations
+                    previewBox.innerHTML = "Remaining balance will be: <b>₹" + remains.toLocaleString('en-IN', {maximumFractionDigits: 2}) + "</b>";
+                    previewBox.style.color = "var(--call-blue)";
+                }
+            } else {
+                previewBox.innerHTML = "";
+            }
+        });
+
+        // Search Listeners
+        document.getElementById('btn-open-search').addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearchResults = [];
+            document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+            btnClearSearch.style.display = 'none';
+            openModal(searchModal, 'searchOpen');
+        });
+        document.getElementById('btn-close-search').addEventListener('click', () => {
+            if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
+        });
+
+        // Popstate Engine updated to handle Mini Modal
+        window.addEventListener('popstate', (e) => {
+            if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
+            if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
+            if (!e.state?.payOpen && payModal.classList.contains('active')) closeModal(payModal);
+            if (!e.state?.miniModalOpen && document.getElementById('mini-modal').classList.contains('active')) closeMiniModal();
+        });
+
+
+        // --- FIREBASE LOGIC (1 Read/Write Constraint) ---
+        const docRef = doc(db, 'pending_payments', 'all_data');
+
+        onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
+                pendingData = snap.data().records || []; 
+                
+                // Sort Oldest at the top
+                pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Render Dashboard Stats (Robust Amount Calculation)
+                const totalPending = pendingData.reduce((sum, item) => sum + (parseFloat(item.pendingAmount) || 0), 0);
+                document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
+                document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+                
+                // Ensure visible count doesn't reset to 15 if user has already scrolled down, 
+                // keeping their scroll context alive during background database updates.
+                if(mainVisibleCount < ITEMS_PER_PAGE) mainVisibleCount = ITEMS_PER_PAGE;
+                
+                renderGrid(pendingData.slice(0, mainVisibleCount), 'main-grid', 0, false);
+                
+                // If on a huge screen, auto-load enough to scroll
+                setTimeout(checkFillScreen, 200);
+                
+                // Update search dynamically if open
+                if(searchModal.classList.contains('active')) handleSearch();
+            } else {
+                setDoc(docRef, { records: [] });
+                pendingData = [];
+                document.getElementById('quick-stats-count').innerText = "0 Bills Pending";
+                document.getElementById('quick-stats-total').innerText = "";
+                document.getElementById('main-grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
+            }
+        });
+
+        // --- FETCH PRODUCTS DYNAMICALLY (1 Read Limit) ---
+        async function fetchProductsForInvoice(invoiceNumber) {
+            const productsContainer = document.getElementById('purchased-products-container');
+            
+            // Show Skeleton Loader
+            productsContainer.innerHTML = `
+                <div class="products-title">Purchased Items</div>
+                <div class="product-tags">
+                    <div class="skeleton-pill" style="width: 80px;"></div>
+                    <div class="skeleton-pill" style="width: 130px;"></div>
+                    <div class="skeleton-pill" style="width: 100px;"></div>
+                </div>
+            `;
+
+            if (!invoiceNumber) {
+                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Invoice number missing.</div>`;
+                return;
+            }
+
+            try {
+                // Execute highly targeted 1-read query against sellings collection
+                const q = query(collection(db, 'sellings'), where('invoiceNo', '==', invoiceNumber), limit(1));
+                const snap = await getDocs(q);
+                
+                if (snap.empty) {
+                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Product not found in billing history.</div>`;
+                    return;
+                }
+                
+                // FIXED: 'snap.docs' is an array. Must read index [0] before calling data()
+                const data = snap.docs[0].data(); 
+                const productsArray = data.purchasedProductNames || [];
+                
+                if (productsArray.length === 0) {
+                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">No products registered on this bill.</div>`;
+                    return;
+                }
+                
+                // Render pills safely
+                const pillsHtml = productsArray.map(pName => {
+                    // Cleanse XSS potential just in case data isn't sanitised
+                    const safeName = document.createElement('div');
+                    safeName.innerText = pName;
+                    return `<div class="product-pill">${safeName.innerHTML}</div>`;
+                }).join('');
+                
+                productsContainer.innerHTML = `
+                    <div class="products-title">Purchased Items</div>
+                    <div class="product-tags">${pillsHtml}</div>
+                `;
+                
+            } catch (err) {
+                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products" style="color: var(--meena-red);">Error loading products</div>`;
+                console.error("Fetch products error:", err);
+            }
+        }
+
+        // --- GLOBAL FUNCTION FOR CLICKING A CARD ---
+        window.openPaymentManager = function(recordId) {
+            const record = pendingData.find(r => r.id === recordId);
+            if(!record) return;
+            
+            currentEditRecord = record;
+
+            // Populate Modal UI & Calculate Days Pending
+            document.getElementById('pay-ui-name').innerText = record.customerName || "Unknown Customer";
+            document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber || "N/A"}`;
+            document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
+            document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
+            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+            
+            // Reset input and preview
+            document.getElementById('pay-input-amount').value = '';
+            document.getElementById('pay-live-preview').innerHTML = '';
+
+            // Trigger the 1-read targeted fetch for products
+            fetchProductsForInvoice(record.invoiceNumber);
+
+            openModal(payModal, 'payOpen');
+        };
+
+        // --- PAYMENT MODAL ACTIONS ---
+        async function updateFirebaseRecords(newArray, btnEl) {
+            const originalText = btnEl.innerHTML;
+            btnEl.disabled = true;
+            btnEl.innerHTML = "Processing...";
+            try {
+                await updateDoc(docRef, { records: newArray });
+                if (history.state?.payOpen) history.back(); else closeModal(payModal);
+            } catch (err) {
+                openMiniModal("Error", "Error updating data: " + err.message, true);
+            } finally {
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalText;
+            }
+        }
+
+        // 1. Partial Payment Logic (Robust processing)
+        document.getElementById('pay-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-update-partial');
+            const amountReceived = parseFloat(document.getElementById('pay-input-amount').value) || 0;
+            
+            if (amountReceived <= 0) {
+                openMiniModal("Invalid Amount", "Please enter a valid received amount.", true);
+                return;
+            }
+
+            let currentPending = parseFloat(currentEditRecord.pendingAmount || 0);
+            let newPending = currentPending - amountReceived;
+            
+            let updatedRecords;
+            if(newPending <= 0) {
+                updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
+            } else {
+                updatedRecords = pendingData.map(r => 
+                    r.id === currentEditRecord.id ? { ...r, pendingAmount: Number(newPending.toFixed(2)) } : r
+                );
+            }
+            updateFirebaseRecords(updatedRecords, btn);
+        });
+
+        // 2. Mark Full Payment (Removes from array automatically)
+        document.getElementById('btn-mark-full').addEventListener('click', function() {
+            const btnEl = this;
+            openMiniModal(
+                "Confirm Full Payment", 
+                `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
+                false, 
+                () => {
+                    const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
+                    updateFirebaseRecords(updatedRecords, btnEl);
+                }
+            );
+        });
+
+
+        // --- FORM SUBMIT (ADD DATA) ---
+        document.getElementById('add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-add');
+            
+            const totalAmt = parseFloat(document.getElementById('add-total').value) || 0;
+            const pendingAmt = parseFloat(document.getElementById('add-pending').value) || 0;
+            
+            // EDGE CASE FIX: Pending amount cannot be greater than Total amount
+            if (pendingAmt > totalAmt) {
+                openMiniModal("Invalid Amount", "Pending amount cannot be strictly greater than the Total Bill amount.", true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Adding...";
+
+            const type = document.getElementById('add-invoice-type').value;
+            const num = document.getElementById('add-invoice-num').value.trim();
+            const combinedInvoiceString = `${type}-${num}`;
+
+            const newRecord = {
+                id: Date.now().toString(),
+                customerName: document.getElementById('add-name').value.trim(),
+                phone: document.getElementById('add-phone').value,
+                invoiceNumber: combinedInvoiceString, 
+                date: document.getElementById('add-date').value,
+                totalAmount: totalAmt,
+                pendingAmount: pendingAmt,
+            };
+
+            try {
+                await updateDoc(docRef, { records: arrayUnion(newRecord) });
+                document.getElementById('add-form').reset();
+                if (history.state?.addOpen) history.back(); else closeModal(addModal);
+            } catch (err) {
+                openMiniModal("Error", "Error adding record: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add Record";
+            }
+        });
+
+
+        // --- SEARCH LOGIC ---
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            btnClearSearch.style.display = query ? 'block' : 'none';
+
+            if (!query) {
+                currentSearchResults = [];
+                document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+                return;
+            }
+
+            currentSearchResults = pendingData.filter(item => 
+                (item.customerName || "").toLowerCase().includes(query) || 
+                (item.invoiceNumber || "").toLowerCase().includes(query) ||
+                (item.phone || "").includes(query)
+            );
+
+            searchVisibleCount = ITEMS_PER_PAGE; 
+
+            if (currentSearchResults.length === 0) {
+                document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
+            } else {
+                renderGrid(currentSearchResults.slice(0, searchVisibleCount), 'search-results', 0, false);
+            }
+        }
+
+        searchInput.addEventListener('input', handleSearch);
+        btnClearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            handleSearch();
+            searchInput.focus();
+        });
+
+
+        // --- UI RENDERER (Supports Infinite Scroll Appending with Improved Animation) ---
+        function renderGrid(dataArray, targetContainerId, startIndex = 0, isAppend = false) {
+            const container = document.getElementById(targetContainerId);
+            
+            const html = dataArray.map((item, i) => {
+                const cleanPhone = (item.phone || "").replace(/[^0-9]/g, '');
+                
+                let dateStr = "Unknown Date";
+                if (item.date && !isNaN(new Date(item.date).getTime())) {
+                    dateStr = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+                
+                const daysPendingText = getDaysText(item.date);
+                
+                const formattedPending = parseFloat(item.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+                const formattedTotal = parseFloat(item.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+
+                // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
+                const delay = i * 0.05;
+
+                return `
+                <div class="card" style="animation: slideUpFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s both;">
+                    <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
+                        <div class="card-header">
+                            <div>
+                                <div class="customer-name">${item.customerName || "Unknown Customer"}</div>
+                                <div class="invoice-number">${item.invoiceNumber || "N/A"}</div>
+                            </div>
+                            <div class="invoice-date">
+                                ${dateStr} • <span style="color: var(--meena-red); font-weight: bold;">${daysPendingText}</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="amount-row">
+                                <span class="total-amt">Total: ₹${formattedTotal}</span>
+                                <span class="pending-amt">₹${formattedPending}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions" onclick="event.stopPropagation()">
+                        <a href="tel:+91${cleanPhone}" class="btn btn-call">
+                            <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
+                            Call
+                        </a>
+                        <a href="https://wa.me/91${cleanPhone}?text=Hello ${encodeURIComponent(item.customerName || "Customer")}, your payment of Rs. ${formattedPending} is pending against Invoice ${encodeURIComponent(item.invoiceNumber || "")}." target="_blank" class="btn btn-wa">
+                            <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+
+            if (isAppend) {
+                container.insertAdjacentHTML('beforeend', html);
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+    </script>
+</body>
+</html>
