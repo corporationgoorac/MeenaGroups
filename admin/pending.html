@@ -46,7 +46,7 @@
       height: 100vh;
       width: 100vw;
       display: flex; flex-direction: column;
-      overflow: hidden; /* Prevents whole-page scrolling */
+      overflow: hidden; 
     }
 
     /* Scrollbar Polish */
@@ -91,7 +91,7 @@
     .content-area {
       flex: 1; 
       overflow-y: auto; 
-      overflow-x: hidden; /* Fixes horizontal scrollbar issue */
+      overflow-x: hidden; 
       padding: 24px;
       display: flex; flex-direction: column; gap: 20px;
       background: var(--bg-root);
@@ -286,10 +286,11 @@
 
   <script type="module">
     import { db } from "./config.js";
-    import { collection, query, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    // FIX 1: Updated Firebase URL to a stable v10 version. 12.9.0 does not exist and caused a 404 block.
+    import { collection, query, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // ------------------------------------------
-    // STATE & CONFIG (Strict limits applied)
+    // STATE & CONFIG
     // ------------------------------------------
     let loadedData = [];
     let currentCustomer = null;
@@ -298,10 +299,8 @@
     let hasMoreDocs = true;
     let totalScanned = 0;
     
-    // STRICT RULE: Only fetch 10 items per request to save Firebase reads.
     const BATCH_SIZE = 10; 
 
-    // Helper: Determine Pending Status
     function checkPendingStatus(customer) {
       let totalVal = 0, totalPaid = 0, latestDate = new Date(0); 
       if (!customer.products || customer.products.length === 0) return { isPending: false };
@@ -320,7 +319,7 @@
       });
 
       const balance = totalVal - totalPaid;
-      if (balance <= 1) return { isPending: false }; // Cleared
+      if (balance <= 1) return { isPending: false };
 
       if (latestDate.getTime() === 0) {
         latestDate = customer.createdAt ? new Date(customer.createdAt) : new Date();
@@ -332,16 +331,14 @@
       return { isPending: latestDate < oneMonthAgo, balance: balance, latestDate: latestDate };
     }
 
-    // ------------------------------------------
-    // STRICT BATCH LOADING
-    // ------------------------------------------
-    window.loadNextPendingBatch = async () => {
+    // FIX 2: Defined functions properly and then attached them to window 
+    // to fix strictly-scoped module ReferenceErrors when called from HTML
+    async function loadNextPendingBatch() {
       if (isFetching || !hasMoreDocs) return;
       isFetching = true;
       
       const container = document.getElementById("resultContainer");
       
-      // Cleanup previous loaders/buttons
       if (document.getElementById('initialLoader')) document.getElementById('initialLoader').remove();
       if (document.getElementById('manualLoadBtn')) document.getElementById('manualLoadBtn').remove();
       if (!document.getElementById('scrollLoader')) {
@@ -360,7 +357,6 @@
           q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(BATCH_SIZE));
         }
 
-        // ONE request = 10 reads max. No loops.
         const snap = await getDocs(q);
         
         if (snap.empty) {
@@ -387,10 +383,8 @@
           appendToList(newlyFound);
         }
 
-        // Render Empty/End States
         if (!hasMoreDocs) {
           if (loadedData.length === 0) {
-            // "ALL UP TO DATE" Professional State
             container.innerHTML = `
               <div class="empty-state all-clear-state">
                 <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
@@ -404,12 +398,11 @@
             container.appendChild(endMsg);
           }
         } else {
-          // Add a Manual Button if the user needs to fetch the next 10 
-          // (Important: If 10 reads yielded 0 results, the scrollbar won't trigger)
           const btn = document.createElement("button");
           btn.id = "manualLoadBtn";
           btn.className = "manual-load-btn";
           btn.innerText = `Scan Next 10 Records`;
+          // Attach proper scoped reference
           btn.onclick = loadNextPendingBatch;
           container.appendChild(btn);
         }
@@ -419,7 +412,7 @@
         if (e.message.includes("indexes?create_composite=")) {
           const urlMatch = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
           if (urlMatch) {
-            document.getElementById("indexLink").href = urlMatch[0];
+            document.getElementById("indexLink").href = urlMatch;
             document.getElementById("overlay").classList.add("active");
             document.getElementById("indexModal").classList.add("active");
           }
@@ -429,11 +422,10 @@
       } finally {
         isFetching = false;
       }
-    };
+    }
+    window.loadNextPendingBatch = loadNextPendingBatch;
 
-    // Scroll Listener for Infinite Pagination
     document.getElementById("resultContainer").addEventListener('scroll', function() {
-      // If we scroll near bottom, auto-trigger the next 10 (if the manual button is there, we click it programmatically)
       if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
         if(!isFetching && hasMoreDocs) {
            loadNextPendingBatch();
@@ -441,9 +433,6 @@
       }
     });
 
-    // ------------------------------------------
-    // RENDERING
-    // ------------------------------------------
     function appendToList(dataBatch) {
       const div = document.getElementById("resultContainer");
 
@@ -475,10 +464,7 @@
       });
     }
 
-    // ------------------------------------------
-    // DRAWER LOGIC
-    // ------------------------------------------
-    window.openDrawer = (c) => {
+    function openDrawer(c) {
       currentCustomer = c;
       window.history.pushState({ drawer: true }, "");
 
@@ -532,16 +518,21 @@
         if (ledgers.length > 0) ledgers[ledgers.length - 1].classList.add('open');
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
       }, 350);
-    };
+    }
+    window.openDrawer = openDrawer;
 
-    window.toggleLedger = (el) => { el.nextElementSibling.classList.toggle("open"); };
+    function toggleLedger(el) { 
+      el.nextElementSibling.classList.toggle("open"); 
+    }
+    window.toggleLedger = toggleLedger;
 
-    window.closeAll = () => {
+    function closeAll() {
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
       document.getElementById("indexModal").classList.remove("active");
       if(history.state) history.back();
-    };
+    }
+    window.closeAll = closeAll;
 
     window.onpopstate = () => {
       document.getElementById("overlay").classList.remove("active");
@@ -549,18 +540,20 @@
       document.getElementById("indexModal").classList.remove("active");
     };
 
-    // ------------------------------------------
-    // PDF GENERATION
-    // ------------------------------------------
-    window.downloadAllPDF = () => { if(currentCustomer) generatePDF(currentCustomer, currentCustomer.products); };
-    window.downloadSelected = () => {
+    function downloadAllPDF() { 
+      if(currentCustomer) generatePDF(currentCustomer, currentCustomer.products); 
+    }
+    window.downloadAllPDF = downloadAllPDF;
+
+    function downloadSelected() {
       if(!currentCustomer) return;
       const checkboxes = document.querySelectorAll('.product-checkbox:checked');
       if(checkboxes.length === 0) return alert("Select at least one product.");
       generatePDF(currentCustomer, currentCustomer.products.filter((_, i) => Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx)).includes(i)));
-    };
+    }
+    window.downloadSelected = downloadSelected;
 
-    window.generatePDF = (c, products) => {
+    function generatePDF(c, products) {
       const { jsPDF } = window.jspdf; const doc = new jsPDF();
       doc.setFillColor(24, 24, 27); doc.rect(0, 0, 210, 40, 'F');
       doc.setTextColor(59, 130, 246); doc.setFontSize(24); doc.setFont("helvetica", "bold"); doc.text("MeenaGroups", 14, 22);
@@ -583,8 +576,8 @@
 
         doc.autoTable({
           startY: yPos, head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], body: rows,
-          theme: 'grid', headStyles: { fillColor: [39, 39, 42], textColor: 255 }, styles: { fontSize: 9, cellPadding: 4 },
-          columnStyles: { 3: { fontStyle: 'bold', textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } }, margin: { left: 14, right: 14 }
+          theme: 'grid', headStyles: { fillColor:, textColor: 255 }, styles: { fontSize: 9, cellPadding: 4 },
+          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, margin: { left: 14, right: 14 }
         });
         yPos = doc.lastAutoTable.finalY + 15;
       });
@@ -594,7 +587,8 @@
       doc.setFontSize(8); doc.setTextColor(100);
       doc.text("Thank you for your business.", 14, h - 12); doc.text("Powered by Goorac", 170, h - 12);
       doc.save(`Overdue_${c.id}.pdf`);
-    };
+    }
+    window.generatePDF = generatePDF;
 
     // Initiate First Load
     loadNextPendingBatch();
