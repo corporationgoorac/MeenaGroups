@@ -6,7 +6,7 @@
     <title>Meena Marketing - Pending Payments</title>
     
     <style>
-        /* YOUTUBE DARK THEME (Matched to your index & marketing pages) */
+        /* YOUTUBE DARK THEME */
         :root {
             --yt-bg: #121212;
             --yt-card: #212121;
@@ -17,7 +17,7 @@
             --meena-white: #ffffff;
             --wa-green: #25D366;
             --call-blue: #3ea6ff;
-            --accent-color: #ff3333; /* Using Meena Red as the primary accent */
+            --accent-color: #ff3333;
         }
 
         * {
@@ -90,7 +90,7 @@
         /* MAIN CONTENT & CARDS */
         main { padding: 20px; max-width: 1200px; margin: 0 auto; padding-bottom: 90px; }
         
-        .dashboard-stats { margin-bottom: 20px; font-size: 14px; color: var(--yt-text-secondary); }
+        .dashboard-stats { margin-bottom: 20px; font-size: 14px; color: var(--yt-text-secondary); display: flex; justify-content: space-between; align-items: center;}
 
         .customer-grid {
             display: grid;
@@ -108,14 +108,9 @@
             border: 1px solid var(--yt-border);
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .customer-name { font-size: 16px; font-weight: 600; color: var(--yt-text-primary); }
-        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; }
+        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;}
         .invoice-date { font-size: 12px; color: var(--yt-text-secondary); }
 
         .amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
@@ -134,6 +129,29 @@
         .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
         .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
         .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
+
+        /* PAGINATION STYLES */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-bottom: 20px;
+        }
+        .page-btn {
+            background-color: var(--yt-card);
+            border: 1px solid var(--yt-border);
+            color: var(--yt-text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .page-btn:active { background-color: var(--yt-border); }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-info { font-size: 14px; color: var(--yt-text-secondary); }
 
         /* FLOATING ACTION BUTTON (FAB) */
         .fab {
@@ -155,7 +173,7 @@
         /* FULL PAGE MODALS (Add & Search) */
         .full-modal {
             position: fixed;
-            top: 0; left: 100%; /* Slide from right */
+            top: 0; left: 100%;
             width: 100%; height: 100%;
             background-color: var(--yt-bg);
             z-index: 100;
@@ -198,17 +216,15 @@
         }
         .form-input:focus { border-color: var(--accent-color); }
         
+        /* INVOICE INPUT GROUP (Dropdown + Input) */
+        .input-group { display: flex; gap: 10px; }
+        .input-group select { width: 90px; cursor: pointer; }
+        .input-group input { flex: 1; }
+        
         .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 10px;
-            cursor: pointer;
+            width: 100%; padding: 14px; background-color: var(--accent-color); color: white;
+            border: none; border-radius: 8px; font-size: 16px; font-weight: bold;
+            margin-top: 10px; cursor: pointer;
         }
         .btn-submit:active { opacity: 0.8; }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -241,9 +257,15 @@
     </header>
 
     <main>
-        <div class="dashboard-stats" id="quick-stats">Loading pending payments...</div>
-        <div class="customer-grid" id="grid">
+        <div class="dashboard-stats">
+            <span id="quick-stats-count">Loading pending payments...</span>
+            <span id="quick-stats-total" style="font-weight: bold; color: var(--meena-white);"></span>
+        </div>
+        
+        <div class="customer-grid" id="main-grid">
             </div>
+
+        <div class="pagination-container" id="main-pagination"></div>
     </main>
 
     <div class="fab" id="btn-open-add">
@@ -267,10 +289,18 @@
                     <label class="form-label">Phone Number</label>
                     <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210">
                 </div>
+                
                 <div class="form-group">
-                    <label class="form-label">Invoice Number</label>
-                    <input type="text" id="add-invoice" class="form-input" required placeholder="e.g. INV-2026-001">
+                    <label class="form-label">Invoice / GST Number</label>
+                    <div class="input-group">
+                        <select id="add-invoice-type" class="form-input">
+                            <option value="INV">INV</option>
+                            <option value="GST">GST</option>
+                        </select>
+                        <input type="text" id="add-invoice-num" class="form-input" required placeholder="e.g. 2026-001">
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label class="form-label">Invoice Date</label>
                     <input type="date" id="add-date" class="form-input" required>
@@ -300,9 +330,10 @@
                 <svg viewBox="0 0 24 24" style="fill: var(--yt-text-secondary); width: 20px; height: 20px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
             </div>
         </div>
-        <div class="modal-content" style="background: var(--yt-bg);">
-            <div class="customer-grid" id="search-results">
-                </div>
+        <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
+            <div class="customer-grid" id="search-results"></div>
+            
+            <div class="pagination-container" id="search-pagination"></div>
         </div>
     </div>
 
@@ -326,18 +357,21 @@
         const searchInput = document.getElementById('search-input');
         const btnClearSearch = document.getElementById('btn-clear-search');
         
-        let pendingData = []; // Holds the unified document data
+        // STATE MANAGEMENT
+        let pendingData = []; 
+        let currentSearchResults = [];
+        
+        // PAGINATION SETTINGS
+        const ITEMS_PER_PAGE = 15;
+        let mainCurrentPage = 1;
+        let searchCurrentPage = 1;
 
         // --- MOBILE BACK BUTTON & MODAL LOGIC ---
         function openModal(modalEl, stateName) {
             modalEl.classList.add('active');
             document.body.classList.add('no-scroll');
             history.pushState({ [stateName]: true }, '');
-            
-            // Auto focus inputs based on which modal opened
-            if(stateName === 'searchOpen') {
-                setTimeout(() => searchInput.focus(), 300);
-            }
+            if(stateName === 'searchOpen') setTimeout(() => searchInput.focus(), 300);
         }
 
         function closeModal(modalEl) {
@@ -345,9 +379,7 @@
             document.body.classList.remove('no-scroll');
         }
 
-        // Add Modal Listeners
         document.getElementById('btn-open-add').addEventListener('click', () => {
-            // Set today's date as default
             document.getElementById('add-date').valueAsDate = new Date();
             openModal(addModal, 'addOpen');
         });
@@ -355,10 +387,11 @@
             if (history.state?.addOpen) history.back(); else closeModal(addModal);
         });
 
-        // Search Modal Listeners
         document.getElementById('btn-open-search').addEventListener('click', () => {
             searchInput.value = '';
+            currentSearchResults = [];
             document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+            document.getElementById('search-pagination').innerHTML = '';
             btnClearSearch.style.display = 'none';
             openModal(searchModal, 'searchOpen');
         });
@@ -366,41 +399,41 @@
             if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
         });
 
-        // Universal Popstate (Hardware Back Button Handler)
         window.addEventListener('popstate', (e) => {
             if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
             if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
         });
 
-
         // --- FIREBASE LOGIC (1 Read/Write Constraint) ---
-        // Using a single document to hold an array of all pending records
         const docRef = doc(db, 'pending_payments', 'all_data');
 
         onSnapshot(docRef, (snap) => {
             if (snap.exists()) {
-                // Ensure data exists, default to empty array
                 pendingData = snap.data().records || []; 
                 
-                // Sort by date (Oldest top)
+                // Sort Oldest at the top
                 pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
                 
-                renderGrid(pendingData, 'grid');
-                
-                // Update stats
+                // Render Dashboard Stats
                 const totalPending = pendingData.reduce((sum, item) => sum + Number(item.pendingAmount), 0);
-                document.getElementById('quick-stats').innerText = `${pendingData.length} Bills Pending | Total: ₹${totalPending.toLocaleString('en-IN')}`;
+                document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
+                document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN')}`;
                 
-                // If search modal is open, refresh search results seamlessly
-                if(searchModal.classList.contains('active')) {
-                    handleSearch();
-                }
+                renderPaginatedData(pendingData, 'main-grid', 'main-pagination', mainCurrentPage, (newPage) => {
+                    mainCurrentPage = newPage;
+                    renderPaginatedData(pendingData, 'main-grid', 'main-pagination', mainCurrentPage, arguments.callee);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+                
+                // Update search dynamically if open
+                if(searchModal.classList.contains('active')) handleSearch();
             } else {
-                // Document doesn't exist yet, create it empty
                 setDoc(docRef, { records: [] });
                 pendingData = [];
-                document.getElementById('quick-stats').innerText = "0 Bills Pending";
-                document.getElementById('grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
+                document.getElementById('quick-stats-count').innerText = "0 Bills Pending";
+                document.getElementById('quick-stats-total').innerText = "";
+                document.getElementById('main-grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
+                document.getElementById('main-pagination').innerHTML = '';
             }
         });
 
@@ -412,23 +445,23 @@
             btn.disabled = true;
             btn.innerText = "Adding...";
 
+            // Construct combined Invoice String (INV-123 or GST-123)
+            const type = document.getElementById('add-invoice-type').value;
+            const num = document.getElementById('add-invoice-num').value.trim();
+            const combinedInvoiceString = `${type}-${num}`;
+
             const newRecord = {
-                id: Date.now().toString(), // Unique ID
-                customerName: document.getElementById('add-name').value,
+                id: Date.now().toString(),
+                customerName: document.getElementById('add-name').value.trim(),
                 phone: document.getElementById('add-phone').value,
-                invoiceNumber: document.getElementById('add-invoice').value,
+                invoiceNumber: combinedInvoiceString, 
                 date: document.getElementById('add-date').value,
                 totalAmount: Number(document.getElementById('add-total').value),
                 pendingAmount: Number(document.getElementById('add-pending').value),
             };
 
             try {
-                // arrayUnion is 1 atomic write to the single document array
-                await updateDoc(docRef, {
-                    records: arrayUnion(newRecord)
-                });
-                
-                // Reset form & close modal
+                await updateDoc(docRef, { records: arrayUnion(newRecord) });
                 document.getElementById('add-form').reset();
                 if (history.state?.addOpen) history.back(); else closeModal(addModal);
             } catch (err) {
@@ -446,20 +479,30 @@
             btnClearSearch.style.display = query ? 'block' : 'none';
 
             if (!query) {
+                currentSearchResults = [];
                 document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+                document.getElementById('search-pagination').innerHTML = '';
                 return;
             }
 
-            const results = pendingData.filter(item => 
+            // The .includes() inherently finds "123" inside "gst-123" securely!
+            currentSearchResults = pendingData.filter(item => 
                 item.customerName.toLowerCase().includes(query) || 
                 item.invoiceNumber.toLowerCase().includes(query) ||
                 item.phone.includes(query)
             );
 
-            if (results.length === 0) {
+            searchCurrentPage = 1; // Reset to page 1 on new search
+
+            if (currentSearchResults.length === 0) {
                 document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
+                document.getElementById('search-pagination').innerHTML = '';
             } else {
-                renderGrid(results, 'search-results');
+                renderPaginatedData(currentSearchResults, 'search-results', 'search-pagination', searchCurrentPage, function pageCallback(newPage) {
+                    searchCurrentPage = newPage;
+                    renderPaginatedData(currentSearchResults, 'search-results', 'search-pagination', searchCurrentPage, pageCallback);
+                    document.getElementById('search-results').scrollTo({ top: 0, behavior: 'smooth' });
+                });
             }
         }
 
@@ -471,24 +514,54 @@
         });
 
 
-        // --- UI RENDERER (Shared between Home and Search) ---
+        // --- PAGINATION MANAGER ---
+        function renderPaginatedData(dataArray, gridId, paginationId, currentPage, setPageCallback) {
+            const totalPages = Math.ceil(dataArray.length / ITEMS_PER_PAGE) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const pageData = dataArray.slice(startIndex, endIndex);
+
+            // 1. Render the HTML grid
+            renderGrid(pageData, gridId);
+
+            // 2. Render Pagination Controls
+            const pagContainer = document.getElementById(paginationId);
+            if (dataArray.length <= ITEMS_PER_PAGE) {
+                pagContainer.innerHTML = '';
+                return;
+            }
+
+            pagContainer.innerHTML = `
+                <button class="page-btn" id="${paginationId}-prev" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
+                <span class="page-info">Page ${currentPage} of ${totalPages}</span>
+                <button class="page-btn" id="${paginationId}-next" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+            `;
+
+            document.getElementById(`${paginationId}-prev`)?.addEventListener('click', () => {
+                if(currentPage > 1) setPageCallback(currentPage - 1);
+            });
+            document.getElementById(`${paginationId}-next`)?.addEventListener('click', () => {
+                if(currentPage < totalPages) setPageCallback(currentPage + 1);
+            });
+        }
+
+
+        // --- UI RENDERER ---
         function renderGrid(dataArray, targetContainerId) {
             const container = document.getElementById(targetContainerId);
             
             container.innerHTML = dataArray.map((item, index) => {
                 const cleanPhone = item.phone.replace(/[^0-9]/g, '');
-                
-                // Format Date nicely (e.g. "18 May 2026")
                 const dateObj = new Date(item.date);
                 const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                 
-                // Format Currency
                 const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
                 const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
 
-                // Using standard animation fade
                 return `
-                <div class="card" style="animation: fadeIn 0.3s ease ${index % 15 * 0.02}s both;">
+                <div class="card" style="animation: fadeIn 0.3s ease ${index % ITEMS_PER_PAGE * 0.03}s both;">
                     <div class="card-header">
                         <div>
                             <div class="customer-name">${item.customerName}</div>
@@ -518,7 +591,7 @@
             }).join('');
         }
 
-        // Add a global animation class to document head
+        // Global animation class
         const style = document.createElement('style');
         style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`;
         document.head.appendChild(style);
