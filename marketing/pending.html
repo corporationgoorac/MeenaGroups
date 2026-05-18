@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meena Marketing - Pending Payments</title>
+    
+    <style>
+        /* YOUTUBE DARK THEME (Matched to your index & marketing pages) */
+        :root {
+            --yt-bg: #121212;
+            --yt-card: #212121;
+            --yt-border: #333333;
+            --yt-text-primary: #ffffff;
+            --yt-text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --meena-white: #ffffff;
+            --wa-green: #25D366;
+            --call-blue: #3ea6ff;
+            --accent-color: #ff3333; /* Using Meena Red as the primary accent */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--yt-bg);
+            color: var(--yt-text-primary);
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        body.no-scroll { overflow: hidden !important; }
+
+        /* HEADER */
+        header {
+            background-color: var(--yt-card);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .header-left { display: flex; align-items: center; }
+
+        .header-back-btn {
+            color: var(--yt-text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            margin-right: 12px;
+            margin-left: -8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .header-back-btn:active { background: var(--yt-border); }
+        .header-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
+
+        .brand { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+        .brand .meena { color: var(--meena-red); }
+        .brand .marketing { color: var(--meena-white); }
+
+        .action-icon {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .action-icon:active { background: var(--yt-border); }
+        .action-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
+
+        /* MAIN CONTENT & CARDS */
+        main { padding: 20px; max-width: 1200px; margin: 0 auto; padding-bottom: 90px; }
+        
+        .dashboard-stats { margin-bottom: 20px; font-size: 14px; color: var(--yt-text-secondary); }
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background-color: var(--yt-card);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid var(--yt-border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .customer-name { font-size: 16px; font-weight: 600; color: var(--yt-text-primary); }
+        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; }
+        .invoice-date { font-size: 12px; color: var(--yt-text-secondary); }
+
+        .amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+        .pending-amt { font-size: 18px; font-weight: bold; color: var(--meena-red); }
+        .total-amt { font-size: 14px; color: var(--yt-text-secondary); }
+
+        .actions { display: flex; gap: 10px; margin-top: auto; }
+
+        .btn {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px; border-radius: 20px; text-decoration: none;
+            font-size: 14px; font-weight: 600; cursor: pointer; border: none;
+        }
+        .btn:active { opacity: 0.7; }
+        .btn-call { background-color: rgba(62, 166, 255, 0.15); color: var(--call-blue); }
+        .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
+        .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
+        .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
+
+        /* FLOATING ACTION BUTTON (FAB) */
+        .fab {
+            position: fixed;
+            bottom: 25px; right: 25px;
+            width: 56px; height: 56px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4);
+            cursor: pointer;
+            z-index: 40;
+            transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab svg { fill: white; width: 24px; height: 24px; }
+
+        /* FULL PAGE MODALS (Add & Search) */
+        .full-modal {
+            position: fixed;
+            top: 0; left: 100%; /* Slide from right */
+            width: 100%; height: 100%;
+            background-color: var(--yt-bg);
+            z-index: 100;
+            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        .full-modal.active { left: 0; }
+
+        .modal-header {
+            background-color: var(--yt-card);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--yt-border);
+            display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        
+        .modal-back-btn {
+            background: none; border: none; color: var(--yt-text-primary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            padding: 6px; margin-left: -8px; border-radius: 50%;
+        }
+        .modal-back-btn:active { background: var(--yt-border); }
+        .modal-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
+
+        .modal-content { padding: 20px; flex: 1; overflow-y: auto; }
+
+        /* FORMS */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; color: var(--yt-text-secondary); margin-bottom: 6px; }
+        .form-input {
+            width: 100%;
+            background-color: var(--yt-bg);
+            border: 1px solid var(--yt-border);
+            color: var(--yt-text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--accent-color); }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .btn-submit:active { opacity: 0.8; }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* SEARCH BAR OVERRIDES */
+        .search-input-wrapper { flex: 1; }
+        .search-input {
+            width: 100%; background: transparent; border: none; color: var(--yt-text-primary);
+            font-size: 16px; outline: none; padding: 5px;
+        }
+        .search-input::placeholder { color: var(--yt-text-secondary); }
+        .empty-state { text-align: center; color: var(--yt-text-secondary); margin-top: 40px; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="header-back-btn" id="smart-back-btn">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </a>
+            <div class="brand">
+                <span class="meena">Meena</span> <span class="marketing">Pending</span>
+            </div>
+        </div>
+        <div class="action-icon" id="btn-open-search">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard-stats" id="quick-stats">Loading pending payments...</div>
+        <div class="customer-grid" id="grid">
+            </div>
+    </main>
+
+    <div class="fab" id="btn-open-add">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+    </div>
+
+    <div class="full-modal" id="add-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-add">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <h2 style="font-size: 18px;">Add Pending Payment</h2>
+        </div>
+        <div class="modal-content">
+            <form id="add-form">
+                <div class="form-group">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" id="add-name" class="form-input" required placeholder="e.g. Rahul Kumar">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice Number</label>
+                    <input type="text" id="add-invoice" class="form-input" required placeholder="e.g. INV-2026-001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice Date</label>
+                    <input type="date" id="add-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Amount (₹)</label>
+                    <input type="number" id="add-total" class="form-input" required placeholder="e.g. 15000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pending Amount (₹)</label>
+                    <input type="number" id="add-pending" class="form-input" required placeholder="e.g. 5000">
+                </div>
+                <button type="submit" class="btn-submit" id="btn-submit-add">Add Record</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="full-modal" id="search-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-search">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <div class="search-input-wrapper">
+                <input type="text" id="search-input" class="search-input" placeholder="Search name or bill number..." autocomplete="off">
+            </div>
+            <div id="btn-clear-search" style="cursor: pointer; padding: 5px; display: none;">
+                <svg viewBox="0 0 24 24" style="fill: var(--yt-text-secondary); width: 20px; height: 20px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+            </div>
+        </div>
+        <div class="modal-content" style="background: var(--yt-bg);">
+            <div class="customer-grid" id="search-results">
+                </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // SMART BACK BUTTON
+        document.getElementById('smart-back-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // DOM ELEMENTS
+        const addModal = document.getElementById('add-modal');
+        const searchModal = document.getElementById('search-modal');
+        const searchInput = document.getElementById('search-input');
+        const btnClearSearch = document.getElementById('btn-clear-search');
+        
+        let pendingData = []; // Holds the unified document data
+
+        // --- MOBILE BACK BUTTON & MODAL LOGIC ---
+        function openModal(modalEl, stateName) {
+            modalEl.classList.add('active');
+            document.body.classList.add('no-scroll');
+            history.pushState({ [stateName]: true }, '');
+            
+            // Auto focus inputs based on which modal opened
+            if(stateName === 'searchOpen') {
+                setTimeout(() => searchInput.focus(), 300);
+            }
+        }
+
+        function closeModal(modalEl) {
+            modalEl.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        }
+
+        // Add Modal Listeners
+        document.getElementById('btn-open-add').addEventListener('click', () => {
+            // Set today's date as default
+            document.getElementById('add-date').valueAsDate = new Date();
+            openModal(addModal, 'addOpen');
+        });
+        document.getElementById('btn-close-add').addEventListener('click', () => {
+            if (history.state?.addOpen) history.back(); else closeModal(addModal);
+        });
+
+        // Search Modal Listeners
+        document.getElementById('btn-open-search').addEventListener('click', () => {
+            searchInput.value = '';
+            document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+            btnClearSearch.style.display = 'none';
+            openModal(searchModal, 'searchOpen');
+        });
+        document.getElementById('btn-close-search').addEventListener('click', () => {
+            if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
+        });
+
+        // Universal Popstate (Hardware Back Button Handler)
+        window.addEventListener('popstate', (e) => {
+            if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
+            if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
+        });
+
+
+        // --- FIREBASE LOGIC (1 Read/Write Constraint) ---
+        // Using a single document to hold an array of all pending records
+        const docRef = doc(db, 'pending_payments', 'all_data');
+
+        onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
+                // Ensure data exists, default to empty array
+                pendingData = snap.data().records || []; 
+                
+                // Sort by date (Oldest top)
+                pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                renderGrid(pendingData, 'grid');
+                
+                // Update stats
+                const totalPending = pendingData.reduce((sum, item) => sum + Number(item.pendingAmount), 0);
+                document.getElementById('quick-stats').innerText = `${pendingData.length} Bills Pending | Total: ₹${totalPending.toLocaleString('en-IN')}`;
+                
+                // If search modal is open, refresh search results seamlessly
+                if(searchModal.classList.contains('active')) {
+                    handleSearch();
+                }
+            } else {
+                // Document doesn't exist yet, create it empty
+                setDoc(docRef, { records: [] });
+                pendingData = [];
+                document.getElementById('quick-stats').innerText = "0 Bills Pending";
+                document.getElementById('grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
+            }
+        });
+
+
+        // --- FORM SUBMIT (ADD DATA) ---
+        document.getElementById('add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-add');
+            btn.disabled = true;
+            btn.innerText = "Adding...";
+
+            const newRecord = {
+                id: Date.now().toString(), // Unique ID
+                customerName: document.getElementById('add-name').value,
+                phone: document.getElementById('add-phone').value,
+                invoiceNumber: document.getElementById('add-invoice').value,
+                date: document.getElementById('add-date').value,
+                totalAmount: Number(document.getElementById('add-total').value),
+                pendingAmount: Number(document.getElementById('add-pending').value),
+            };
+
+            try {
+                // arrayUnion is 1 atomic write to the single document array
+                await updateDoc(docRef, {
+                    records: arrayUnion(newRecord)
+                });
+                
+                // Reset form & close modal
+                document.getElementById('add-form').reset();
+                if (history.state?.addOpen) history.back(); else closeModal(addModal);
+            } catch (err) {
+                alert("Error adding record: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add Record";
+            }
+        });
+
+
+        // --- SEARCH LOGIC ---
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            btnClearSearch.style.display = query ? 'block' : 'none';
+
+            if (!query) {
+                document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
+                return;
+            }
+
+            const results = pendingData.filter(item => 
+                item.customerName.toLowerCase().includes(query) || 
+                item.invoiceNumber.toLowerCase().includes(query) ||
+                item.phone.includes(query)
+            );
+
+            if (results.length === 0) {
+                document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
+            } else {
+                renderGrid(results, 'search-results');
+            }
+        }
+
+        searchInput.addEventListener('input', handleSearch);
+        btnClearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            handleSearch();
+            searchInput.focus();
+        });
+
+
+        // --- UI RENDERER (Shared between Home and Search) ---
+        function renderGrid(dataArray, targetContainerId) {
+            const container = document.getElementById(targetContainerId);
+            
+            container.innerHTML = dataArray.map((item, index) => {
+                const cleanPhone = item.phone.replace(/[^0-9]/g, '');
+                
+                // Format Date nicely (e.g. "18 May 2026")
+                const dateObj = new Date(item.date);
+                const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                
+                // Format Currency
+                const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
+                const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
+
+                // Using standard animation fade
+                return `
+                <div class="card" style="animation: fadeIn 0.3s ease ${index % 15 * 0.02}s both;">
+                    <div class="card-header">
+                        <div>
+                            <div class="customer-name">${item.customerName}</div>
+                            <div class="invoice-number">${item.invoiceNumber}</div>
+                        </div>
+                        <div class="invoice-date">${dateStr}</div>
+                    </div>
+                    
+                    <div>
+                        <div class="amount-row">
+                            <span class="total-amt">Total: ₹${formattedTotal}</span>
+                            <span class="pending-amt">₹${formattedPending} Pending</span>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <a href="tel:+91${cleanPhone}" class="btn btn-call">
+                            <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
+                            Call
+                        </a>
+                        <a href="https://wa.me/91${cleanPhone}?text=Hello ${encodeURIComponent(item.customerName)}, your payment of Rs. ${formattedPending} is pending against Invoice ${encodeURIComponent(item.invoiceNumber)}." target="_blank" class="btn btn-wa">
+                            <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
+                            WhatsApp
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Add a global animation class to document head
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`;
+        document.head.appendChild(style);
+
+    </script>
+</body>
+</html>
