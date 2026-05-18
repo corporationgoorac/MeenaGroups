@@ -796,8 +796,17 @@
             // Fix applied: Using strict rounding Number(.toFixed(2)) to prevent float errors on GST breakdown
             const grossTotal = price * qty;
             const finalTotal = Math.max(0, grossTotal - discount); 
-            const baseTotal = Number((finalTotal / (1 + (gstPercent / 100))).toFixed(2));
-            const gstAmount = Number((finalTotal - baseTotal).toFixed(2));
+            
+            // Calculate base price BEFORE discount for the accurate Gross Subtotal
+            const originalBaseTotal = Number((grossTotal / (1 + (gstPercent / 100))).toFixed(2));
+
+            // Calculate base price AFTER discount to calculate accurate GST
+            const discountedBaseTotal = Number((finalTotal / (1 + (gstPercent / 100))).toFixed(2));
+
+            // The actual discount amount on the base price (excluding GST)
+            const baseDiscountAmount = Number((originalBaseTotal - discountedBaseTotal).toFixed(2)); 
+
+            const gstAmount = Number((finalTotal - discountedBaseTotal).toFixed(2));
             const originalUnitPriceBase = Number((price / (1 + (gstPercent / 100))).toFixed(2));
 
             if (existingItemIndex > -1) {
@@ -806,13 +815,18 @@
                 item.qty += qty;
                 item.discount += discount; 
                 item.finalTotal = Math.max(0, (item.price * item.qty) - item.discount); 
-                item.baseTotal = Number((item.finalTotal / (1 + (item.gstPercent / 100))).toFixed(2));
-                item.gstAmount = Number((item.finalTotal - item.baseTotal).toFixed(2));
+                
+                // Recalculate base totals for merged item
+                item.originalBaseTotal = Number(((item.price * item.qty) / (1 + (item.gstPercent / 100))).toFixed(2));
+                let newDiscountedBase = Number((item.finalTotal / (1 + (item.gstPercent / 100))).toFixed(2));
+                
+                item.baseDiscountAmount = Number((item.originalBaseTotal - newDiscountedBase).toFixed(2));
+                item.gstAmount = Number((item.finalTotal - newDiscountedBase).toFixed(2));
             } else {
                 // Pushes securely into the cart items mapping
                 cartItems.push({
                     invId: isNonStock ? null : invId,
-                    name, model, price, qty, discount, gstPercent, gstAmount, baseTotal, finalTotal, isNonStock, originalUnitPriceBase
+                    name, model, price, qty, discount, gstPercent, gstAmount, originalBaseTotal, baseDiscountAmount, finalTotal, isNonStock, originalUnitPriceBase
                 });
             }
 
@@ -861,9 +875,9 @@
 
             list.innerHTML = '';
             cartItems.forEach((item, i) => {
-                billTotals.sub += item.baseTotal;
+                billTotals.sub += item.originalBaseTotal; 
                 billTotals.gst += item.gstAmount;
-                billTotals.discount += (item.discount || 0); 
+                billTotals.discount += (item.baseDiscountAmount || 0); 
                 billTotals.grand += item.finalTotal;
 
                 const tags = `
