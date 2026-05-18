@@ -298,7 +298,7 @@
     let hasMoreDocs = true;
     let totalScanned = 0;
     
-    const BATCH_SIZE = 10; 
+    const BATCH_SIZE = 50; 
 
     // Helper: Robust parsing for standard strings (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD) and Firebase Timestamps
     function parseSafeDate(dStr) {
@@ -372,19 +372,23 @@
       if (document.getElementById('initialLoader')) document.getElementById('initialLoader').remove();
       if (document.getElementById('manualLoadBtn')) document.getElementById('manualLoadBtn').remove();
       
+      // Deploy a live-updating loader so the user knows it's searching continuously
       if (!document.getElementById('scrollLoader')) {
         const loader = document.createElement("div");
-        loader.id = "scrollLoader"; loader.className = "loader-row"; loader.innerText = "Scanning database for matching records...";
+        loader.id = "scrollLoader"; 
+        loader.className = "empty-state"; 
+        loader.innerHTML = `
+          <svg class="empty-icon" style="animation: spin 1s linear infinite;" viewBox="0 0 24 24"><path d="M12 2v4c4.41 0 8 3.59 8 8s-3.59 8-8 8-8-3.59-8-8H2c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2z"/></svg>
+          <p>Scanning database... <br><span id="scanCount" style="color:var(--primary); font-weight:bold;">${totalScanned}</span> records checked.</p>
+        `;
         container.appendChild(loader);
       }
 
       let newlyFound = [];
-      let batchesScanned = 0;
-      const MAX_BATCHES = 5; // Scans up to 50 records per check to locate matching matches safely
       
       try {
-        while (hasMoreDocs && newlyFound.length === 0 && batchesScanned < MAX_BATCHES) {
-          batchesScanned++;
+        // Automatically continue pulling batches until we find at least 5 matches to show, or hit the end of the DB
+        while (hasMoreDocs && newlyFound.length < 5) {
           let q;
           if (lastVisibleDoc) {
             q = query(collection(db, "customers"), orderBy("createdAt", "desc"), startAfter(lastVisibleDoc), limit(BATCH_SIZE));
@@ -401,6 +405,10 @@
             lastVisibleDoc = snap.docs[snap.docs.length - 1];
             totalScanned += snap.size;
 
+            if(document.getElementById('scanCount')) {
+              document.getElementById('scanCount').innerText = totalScanned;
+            }
+
             snap.forEach(docSnap => {
               const data = docSnap.data();
               const status = checkPendingStatus(data);
@@ -411,6 +419,9 @@
               }
             });
           }
+
+          // A brief yield (30ms) to allow the browser to paint updates (prevents UI freezing)
+          await new Promise(resolve => setTimeout(resolve, 30));
         }
 
         if (document.getElementById('scrollLoader')) document.getElementById('scrollLoader').remove();
@@ -426,21 +437,22 @@
               <div class="empty-state all-clear-state">
                 <svg class="empty-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 <h3>All Up To Date!</h3>
-                <p>No pending collections older than 1 month found across the scanned database.</p>
+                <p>No pending collections older than 1 month found across all ${totalScanned} scanned records.</p>
               </div>`;
           } else if (!document.getElementById('endMsg')) {
             const endMsg = document.createElement("div");
             endMsg.id = "endMsg";
             endMsg.className = "loader-row";
-            endMsg.innerText = "End of database reached.";
+            endMsg.innerText = `End of database reached. (${totalScanned} records scanned)`;
             container.appendChild(endMsg);
           }
         } else {
+          // If we found 5+ items, render a manual button so they can dictate when to load the next chunk
           if (!document.getElementById('manualLoadBtn')) {
             const btn = document.createElement("button");
             btn.id = "manualLoadBtn";
             btn.className = "manual-load-btn";
-            btn.innerText = `Scan Next Records`;
+            btn.innerText = `Scan More Records`;
             btn.onclick = loadNextPendingBatch;
             container.appendChild(btn);
           }
