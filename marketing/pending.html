@@ -137,20 +137,6 @@
         .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
         .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
 
-        /* PAGINATION STYLES */
-        .pagination-container {
-            display: flex; justify-content: center; align-items: center;
-            gap: 15px; margin-top: 30px; padding-bottom: 20px;
-        }
-        .page-btn {
-            background-color: var(--yt-card); border: 1px solid var(--yt-border);
-            color: var(--yt-text-primary); padding: 8px 16px; border-radius: 6px;
-            font-weight: 600; cursor: pointer; transition: all 0.2s;
-        }
-        .page-btn:active { background-color: var(--yt-border); }
-        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .page-info { font-size: 14px; color: var(--yt-text-secondary); }
-
         /* FLOATING ACTION BUTTON (FAB) */
         .fab {
             position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px;
@@ -264,6 +250,8 @@
         .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
         .btn-mini-confirm { background: var(--accent-color); color: white; }
 
+        /* INFINITE SCROLL SENTINEL STYLE */
+        .scroll-sentinel { height: 20px; width: 100%; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -289,7 +277,7 @@
         </div>
         
         <div class="customer-grid" id="main-grid"></div>
-        <div class="pagination-container" id="main-pagination"></div>
+        <div id="main-sentinel" class="scroll-sentinel"></div>
     </main>
 
     <div class="fab" id="btn-open-add">
@@ -393,7 +381,7 @@
         </div>
         <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
             <div class="customer-grid" id="search-results"></div>
-            <div class="pagination-container" id="search-pagination"></div>
+            <div id="search-sentinel" class="scroll-sentinel"></div>
         </div>
     </div>
 
@@ -429,15 +417,37 @@
         const searchInput = document.getElementById('search-input');
         const btnClearSearch = document.getElementById('btn-clear-search');
         
-        // STATE MANAGEMENT
+        // STATE MANAGEMENT & INFINITE SCROLL
         let pendingData = []; 
         let currentSearchResults = [];
         let currentEditRecord = null; 
         
-        // PAGINATION SETTINGS
         const ITEMS_PER_PAGE = 15;
-        let mainCurrentPage = 1;
-        let searchCurrentPage = 1;
+        let mainVisibleCount = ITEMS_PER_PAGE;
+        let searchVisibleCount = ITEMS_PER_PAGE;
+
+        // --- INFINITE SCROLL OBSERVERS ---
+        const mainObserver = new IntersectionObserver((entries) => {
+            if (entries.isIntersecting && mainVisibleCount < pendingData.length) {
+                const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
+                renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
+                mainVisibleCount += ITEMS_PER_PAGE;
+            }
+        }, { rootMargin: '200px' });
+        
+        // Use timeout to ensure DOM is fully ready
+        setTimeout(() => mainObserver.observe(document.getElementById('main-sentinel')), 100);
+
+        const searchObserver = new IntersectionObserver((entries) => {
+            if (entries.isIntersecting && searchVisibleCount < currentSearchResults.length) {
+                const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
+                renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
+                searchVisibleCount += ITEMS_PER_PAGE;
+            }
+        }, { rootMargin: '200px' });
+        
+        setTimeout(() => searchObserver.observe(document.getElementById('search-sentinel')), 100);
+
 
         // --- NEW: DAYS PENDING CALCULATOR ---
         function getDaysText(dateString) {
@@ -522,7 +532,6 @@
             searchInput.value = '';
             currentSearchResults = [];
             document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
-            document.getElementById('search-pagination').innerHTML = '';
             btnClearSearch.style.display = 'none';
             openModal(searchModal, 'searchOpen');
         });
@@ -554,11 +563,11 @@
                 document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
                 document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN')}`;
                 
-                renderPaginatedData(pendingData, 'main-grid', 'main-pagination', mainCurrentPage, (newPage) => {
-                    mainCurrentPage = newPage;
-                    renderPaginatedData(pendingData, 'main-grid', 'main-pagination', mainCurrentPage, arguments.callee);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                });
+                // Ensure visible count doesn't reset to 15 if user has already scrolled down, 
+                // keeping their scroll context alive during background database updates.
+                if(mainVisibleCount < ITEMS_PER_PAGE) mainVisibleCount = ITEMS_PER_PAGE;
+                
+                renderGrid(pendingData.slice(0, mainVisibleCount), 'main-grid', 0, false);
                 
                 // Update search dynamically if open
                 if(searchModal.classList.contains('active')) handleSearch();
@@ -568,7 +577,6 @@
                 document.getElementById('quick-stats-count').innerText = "0 Bills Pending";
                 document.getElementById('quick-stats-total').innerText = "";
                 document.getElementById('main-grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
-                document.getElementById('main-pagination').innerHTML = '';
             }
         });
 
@@ -621,7 +629,6 @@
             let updatedRecords;
             if(newPending <= 0) {
                 updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                // Swapped native alert for Professional Mini Modal
                 openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
             } else {
                 updatedRecords = pendingData.map(r => 
@@ -634,7 +641,6 @@
         // 2. Mark Full Payment (Removes from array automatically)
         document.getElementById('btn-mark-full').addEventListener('click', function() {
             const btnEl = this;
-            // Swapped native confirm for Professional Mini Modal
             openMiniModal(
                 "Confirm Full Payment", 
                 `Mark <b>₹${Number(currentEditRecord.pendingAmount).toLocaleString('en-IN')}</b> as fully paid for ${currentEditRecord.customerName}?`, 
@@ -689,7 +695,6 @@
             if (!query) {
                 currentSearchResults = [];
                 document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
-                document.getElementById('search-pagination').innerHTML = '';
                 return;
             }
 
@@ -699,17 +704,12 @@
                 item.phone.includes(query)
             );
 
-            searchCurrentPage = 1; 
+            searchVisibleCount = ITEMS_PER_PAGE; 
 
             if (currentSearchResults.length === 0) {
                 document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
-                document.getElementById('search-pagination').innerHTML = '';
             } else {
-                renderPaginatedData(currentSearchResults, 'search-results', 'search-pagination', searchCurrentPage, function pageCallback(newPage) {
-                    searchCurrentPage = newPage;
-                    renderPaginatedData(currentSearchResults, 'search-results', 'search-pagination', searchCurrentPage, pageCallback);
-                    document.getElementById('search-results').scrollTo({ top: 0, behavior: 'smooth' });
-                });
+                renderGrid(currentSearchResults.slice(0, searchVisibleCount), 'search-results', 0, false);
             }
         }
 
@@ -721,43 +721,12 @@
         });
 
 
-        // --- PAGINATION MANAGER ---
-        function renderPaginatedData(dataArray, gridId, paginationId, currentPage, setPageCallback) {
-            const totalPages = Math.ceil(dataArray.length / ITEMS_PER_PAGE) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            
-            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-            const endIndex = startIndex + ITEMS_PER_PAGE;
-            const pageData = dataArray.slice(startIndex, endIndex);
-
-            renderGrid(pageData, gridId);
-
-            const pagContainer = document.getElementById(paginationId);
-            if (dataArray.length <= ITEMS_PER_PAGE) {
-                pagContainer.innerHTML = '';
-                return;
-            }
-
-            pagContainer.innerHTML = `
-                <button class="page-btn" id="${paginationId}-prev" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
-                <span class="page-info">Page ${currentPage} of ${totalPages}</span>
-                <button class="page-btn" id="${paginationId}-next" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
-            `;
-
-            document.getElementById(`${paginationId}-prev`)?.addEventListener('click', () => {
-                if(currentPage > 1) setPageCallback(currentPage - 1);
-            });
-            document.getElementById(`${paginationId}-next`)?.addEventListener('click', () => {
-                if(currentPage < totalPages) setPageCallback(currentPage + 1);
-            });
-        }
-
-
-        // --- UI RENDERER ---
-        function renderGrid(dataArray, targetContainerId) {
+        // --- UI RENDERER (Supports Infinite Scroll Appending) ---
+        function renderGrid(dataArray, targetContainerId, startIndex = 0, isAppend = false) {
             const container = document.getElementById(targetContainerId);
             
-            container.innerHTML = dataArray.map((item, index) => {
+            const html = dataArray.map((item, i) => {
+                const globalIndex = startIndex + i;
                 const cleanPhone = item.phone.replace(/[^0-9]/g, '');
                 const dateObj = new Date(item.date);
                 const dateStr = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -766,9 +735,11 @@
                 const formattedPending = Number(item.pendingAmount).toLocaleString('en-IN');
                 const formattedTotal = Number(item.totalAmount).toLocaleString('en-IN');
 
-                // Card output modified to include Days Pending dynamically inline with the date
+                // Staggered animation based on its index
+                const delay = (globalIndex % ITEMS_PER_PAGE) * 0.03;
+
                 return `
-                <div class="card" style="animation: fadeIn 0.3s ease ${index % ITEMS_PER_PAGE * 0.03}s both;">
+                <div class="card" style="animation: fadeIn 0.3s ease ${delay}s both;">
                     <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
                         <div class="card-header">
                             <div>
@@ -800,6 +771,12 @@
                     </div>
                 </div>`;
             }).join('');
+
+            if (isAppend) {
+                container.insertAdjacentHTML('beforeend', html);
+            } else {
+                container.innerHTML = html;
+            }
         }
 
         // Global animation class
