@@ -93,7 +93,9 @@
       overflow-y: auto; 
       overflow-x: hidden; 
       padding: 24px;
-      display: block; /* Changed to block to prevent flex-overlap bugs on mobile */
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
       background: var(--bg-root);
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
@@ -105,10 +107,11 @@
       border: 1px solid rgba(255,255,255,0.05);
       border-radius: 20px; padding: 24px;
       display: flex; flex-direction: column; align-items: stretch; gap: 16px;
-      margin-bottom: 20px; /* Guarantees spacing without flex gap bugs */
       position: relative; transition: all 0.2s var(--ease);
       cursor: pointer; overflow: hidden;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      width: 100%;
+      flex-shrink: 0;
     }
     .card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); }
     .card:active { transform: scale(0.98); }
@@ -191,7 +194,7 @@
     .pi-ledger.open { max-height: 600px; overflow-y: auto; }
     
     .led-row { display: grid; grid-template-columns: 0.5fr 1.5fr 1fr 1fr; padding: 12px 20px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); color: #d4d4d8; }
-    .led-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; }
+    .led-row lod-head { color: var(--text-sub); font-size: 0.75rem; font-weight: 600; background: rgba(0,0,0,0.4); text-transform: uppercase; }
 
     .d-foot { padding: 16px 24px; background: var(--bg-surface); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: center; gap: 24px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
     .btn-main { border: none; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer; }
@@ -269,12 +272,18 @@
       if (typeof dStr === 'number') return dStr;
       
       const s = String(dStr).trim();
+      const parsedTimestamp = Date.parse(s);
+      if (!isNaN(parsedTimestamp)) return parsedTimestamp;
+
       const parts = s.split(/[-/]/);
       if (parts.length === 3) {
-        if (parts.length === 4) return new Date(s).getTime(); 
-        return new Date(`${parts}-${parts}-${parts}`).getTime(); 
+        if (parts[0].length === 4) {
+          return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
+        } else {
+          return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+        }
       }
-      return new Date(s).getTime();
+      return 0;
     }
 
     function checkPendingStatus(customer) {
@@ -399,7 +408,7 @@
       document.getElementById("drawCount").innerText = (c.products || []).length;
       
       document.getElementById("btnCall").href = c.phone ? `tel:${c.phone}` : '#';
-      document.getElementById("btnMap").href = c.place ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(c.place)}` : '#';
+      document.getElementById("btnMap").href = c.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.place)}` : '#';
 
       const container = document.getElementById("productContainer");
       container.innerHTML = "";
@@ -452,7 +461,7 @@
     function closeAll() {
       document.getElementById("overlay").classList.remove("active");
       document.getElementById("customerDrawer").classList.remove("active");
-      if(history.state) history.back();
+      if(history.state && history.state.drawer) history.back();
     }
     window.closeAll = closeAll;
 
@@ -470,7 +479,10 @@
       if(!currentCustomer) return;
       const checkboxes = document.querySelectorAll('.product-checkbox:checked');
       if(checkboxes.length === 0) return alert("Select at least one product.");
-      generatePDF(currentCustomer, currentCustomer.products.filter((_, i) => Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx)).includes(i)));
+      
+      const targetIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.idx));
+      const filteredProducts = currentCustomer.products.filter((_, i) => targetIndices.includes(i));
+      generatePDF(currentCustomer, filteredProducts);
     }
     window.downloadSelected = downloadSelected;
 
@@ -496,11 +508,13 @@
         else { payments.forEach(pay => { running += parseFloat(pay.amount); rows.push([ `#${pay.dueNumber||'-'}`, pay.date, pay.type||'Cash', `Rs.${pay.amount}`, `Rs.${p.total - running}` ]); }); }
 
         doc.autoTable({
-          startY: yPos, head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], body: rows,
+          startY: yPos, 
+          head: [['Due', 'Date', 'Mode', 'Paid', 'Balance']], 
+          body: rows,
           theme: 'grid', 
-          headStyles: { fillColor:, textColor: 255 }, 
+          headStyles: { fillColor: [59, 130, 246], textColor: 255 }, 
           styles: { fontSize: 9, cellPadding: 4 },
-          columnStyles: { 3: { fontStyle: 'bold', textColor: }, 4: { fontStyle: 'bold' } }, 
+          columnStyles: { 3: { fontStyle: 'bold', textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } }, 
           margin: { left: 14, right: 14 }
         });
         yPos = doc.lastAutoTable.finalY + 15;
