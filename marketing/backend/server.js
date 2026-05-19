@@ -319,41 +319,40 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                 for (const adminPhone of activeAdmins) {
                     let messageToSend = adminAlert;
 
-                    // Apply custom elegant smart-parsing engine exclusively for Admin 2
+                    // Apply advanced, analytical smart-parsing engine exclusively for Admin 2 (No Emojis, Formal Grammar)
                     if (adminPhone === currentAdminPhone2) {
                         const tamilNumbers = {
                             1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
                             6: 'ஆறு', 7: 'ஏழு', 8: 'எட்டு', 9: 'ஒன்பது', 10: 'பத்து'
                         };
 
+                        let parsedItemText = '';
                         if (billData.items && Array.isArray(billData.items) && billData.items.length > 0) {
                             if (billData.items.length === 1) {
                                 const item = billData.items[0];
-                                const pName = item.name || 'Product';
+                                const pName = item.name || 'பொருள்';
                                 const pQty = parseInt(item.qty) || 1;
                                 const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
-
-                                if (pQty === 1) {
-                                    messageToSend = `கடையில், ${pName}  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது..`;
-                                } else {
-                                    messageToSend = `கடையில், ${pName} ${qtyInTamil},  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
-                                }
+                                
+                                parsedItemText = pQty === 1 ? `${pName}` : `${pName} (${qtyInTamil} எண்ணிக்கை)`;
                             } else {
-                                // Dynamic collection handling for multi-product lines
+                                // Dynamic array handling for multi-product analytical reporting
                                 let parts = [];
                                 billData.items.forEach((item) => {
-                                    const pName = item.name || 'Product';
+                                    const pName = item.name || 'பொருள்';
                                     const pQty = parseInt(item.qty) || 1;
                                     const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
-                                    parts.push(`${pName} ${qtyInTamil}`);
+                                    parts.push(`${pName} (${qtyInTamil})`);
                                 });
                                 const lastPart = parts.pop();
-                                let itemText = parts.join(', ') + ', மற்றும் ' + lastPart + ',';
-                                messageToSend = `கடையில், ${itemText}  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
+                                parsedItemText = parts.join(', ') + ' மற்றும் ' + lastPart;
                             }
                         } else {
-                            messageToSend = `கடையில், பொருட்கள்  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது..`;
+                            parsedItemText = 'பொருட்கள்';
                         }
+
+                        // Advanced, clean, formal executive notification without emojis
+                        messageToSend = `நிர்வாகத் தகவல் அறிக்கை\n\nநிறுவனம்: மீனா மார்க்கெட்டிங்\nபரிவர்த்தனை எண்: ${invNo}\nபொருட்கள்: ${parsedItemText}\nமொத்த மதிப்பு: ரூ. ${grandTotal.toLocaleString()}\nபணம் செலுத்திய முறை: ${payMode}\n\nஇந்த பரிவர்த்தனை கணினியால் வெற்றிகரமாக பதிவு செய்யப்பட்டது.`;
                     }
 
                     // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
