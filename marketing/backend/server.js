@@ -351,7 +351,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                         }
 
                         // Exact conversational format requested by user
-                        messageToSend = `கடையில், ${parsedItemText}, ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
+                        messageToSend = `கடையில், ${parsedItemText}, ரூ ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
                     }
 
                     // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
