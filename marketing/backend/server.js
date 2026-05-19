@@ -319,7 +319,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                 for (const adminPhone of activeAdmins) {
                     let messageToSend = adminAlert;
 
-                    // Apply advanced, analytical smart-parsing engine exclusively for Admin 2 (No Emojis, Formal Grammar)
+                    // Apply conversational, precise Tamil formatting exclusively for Admin 2
                     if (adminPhone === currentAdminPhone2) {
                         const tamilNumbers = {
                             1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
@@ -334,25 +334,24 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                                 const pQty = parseInt(item.qty) || 1;
                                 const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
                                 
-                                parsedItemText = pQty === 1 ? `${pName}` : `${pName} (${qtyInTamil} எண்ணிக்கை)`;
+                                parsedItemText = `${pName} ${qtyInTamil}`;
                             } else {
-                                // Dynamic array handling for multi-product analytical reporting
                                 let parts = [];
                                 billData.items.forEach((item) => {
                                     const pName = item.name || 'பொருள்';
                                     const pQty = parseInt(item.qty) || 1;
                                     const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
-                                    parts.push(`${pName} (${qtyInTamil})`);
+                                    parts.push(`${pName} ${qtyInTamil}`);
                                 });
                                 const lastPart = parts.pop();
-                                parsedItemText = parts.join(', ') + ' மற்றும் ' + lastPart;
+                                parsedItemText = parts.join(', ') + ', மற்றும் ' + lastPart;
                             }
                         } else {
                             parsedItemText = 'பொருட்கள்';
                         }
 
-                        // Advanced, clean, formal executive notification without emojis
-                        messageToSend = `நிர்வாகத் தகவல் அறிக்கை\n\nநிறுவனம்: மீனா மார்க்கெட்டிங்\nபரிவர்த்தனை எண்: ${invNo}\nபொருட்கள்: ${parsedItemText}\nமொத்த மதிப்பு: ரூ. ${grandTotal.toLocaleString()}\nபணம் செலுத்திய முறை: ${payMode}\n\nஇந்த பரிவர்த்தனை கணினியால் வெற்றிகரமாக பதிவு செய்யப்பட்டது.`;
+                        // Exact conversational format requested by user
+                        messageToSend = `கடையில், ${parsedItemText}, ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
                     }
 
                     // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
