@@ -182,6 +182,31 @@ client.on('message', async (msg) => {
         return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'}\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}`);
     }
 
+    // -- E. Remove Admin 1 Flow --
+    if (normalizedInput === 'remove admin 1 number' || normalizedInput === 'remove admin 1 phone number') {
+        try {
+            // Clears both new adminPhone1 and legacy adminPhone to prevent fallback re-loads
+            await db.collection('system_folder').doc('config').set({ adminPhone1: null, adminPhone: null }, { merge: true });
+            currentAdminPhone1 = null;
+            return msg.reply("🗑️ *Admin 1 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+        } catch (err) {
+            console.error("Failed to remove admin 1:", err);
+            return msg.reply("⚠️ Error updating database.");
+        }
+    }
+
+    // -- F. Remove Admin 2 Flow --
+    if (normalizedInput === 'remove admin 2 number' || normalizedInput === 'remove admin 2 phone number') {
+        try {
+            await db.collection('system_folder').doc('config').set({ adminPhone2: null }, { merge: true });
+            currentAdminPhone2 = null;
+            return msg.reply("🗑️ *Admin 2 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+        } catch (err) {
+            console.error("Failed to remove admin 2:", err);
+            return msg.reply("⚠️ Error updating database.");
+        }
+    }
+
     // -- Process Admin Input --
     if (waitingForAdminUpdate[msg.from]) {
         const adminSlot = waitingForAdminUpdate[msg.from];
@@ -292,6 +317,45 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                 
                 // Loop through all registered admins and send
                 for (const adminPhone of activeAdmins) {
+                    let messageToSend = adminAlert;
+
+                    // Apply custom elegant smart-parsing engine exclusively for Admin 2
+                    if (adminPhone === currentAdminPhone2) {
+                        const tamilNumbers = {
+                            1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
+                            6: 'ஆறு', 7: 'ஏழு', 8: 'எட்டு', 9: 'ஒன்பது', 10: 'பத்து'
+                        };
+
+                        if (billData.items && Array.isArray(billData.items) && billData.items.length > 0) {
+                            if (billData.items.length === 1) {
+                                const item = billData.items[0];
+                                const pName = item.name || 'Product';
+                                const pQty = parseInt(item.qty) || 1;
+                                const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
+
+                                if (pQty === 1) {
+                                    messageToSend = `கடையில், ${pName}  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது..`;
+                                } else {
+                                    messageToSend = `கடையில், ${pName} ${qtyInTamil},  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
+                                }
+                            } else {
+                                // Dynamic collection handling for multi-product lines
+                                let parts = [];
+                                billData.items.forEach((item) => {
+                                    const pName = item.name || 'Product';
+                                    const pQty = parseInt(item.qty) || 1;
+                                    const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
+                                    parts.push(`${pName} ${qtyInTamil}`);
+                                });
+                                const lastPart = parts.pop();
+                                let itemText = parts.join(', ') + ', மற்றும் ' + lastPart + ',';
+                                messageToSend = `கடையில், ${itemText}  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது`;
+                            }
+                        } else {
+                            messageToSend = `கடையில், பொருட்கள்  ரூ. ${grandTotal.toLocaleString()}-க்கு விற்பனை ஆகி உள்ளது..`;
+                        }
+                    }
+
                     // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
                     const adminPlainPhone = adminPhone.replace(/\D/g, '');
                     try {
@@ -300,13 +364,13 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                         const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
                         
                         try {
-                            await client.sendMessage(verifiedAdminId, adminAlert);
+                            await client.sendMessage(verifiedAdminId, messageToSend);
                         } catch (adminSendErr) {
                             if (adminSendErr.message && (adminSendErr.message.includes('findChat') || adminSendErr.message.includes('@lid') || adminSendErr.message.includes('not found'))) {
                                 console.log(`⚠️ Applying initialization workaround for Admin chat: ${verifiedAdminId}`);
                                 await client.sendMessage(verifiedAdminId, `🚨 Syncing Admin Alert Channel...`);
                                 await sleep(2000);
-                                await client.sendMessage(verifiedAdminId, adminAlert);
+                                await client.sendMessage(verifiedAdminId, messageToSend);
                             } else {
                                 throw adminSendErr;
                             }
