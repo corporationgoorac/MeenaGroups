@@ -127,6 +127,7 @@ const sleep = (ms) => new Promise(res => setTimeout(res, ms)); // ENTERPRISE FIX
 
 let currentAdminPhone1 = null;
 let currentAdminPhone2 = null;
+let currentAdminPhone3 = null;
 
 // Fetch admins on boot
 async function fetchAdminPhone() {
@@ -136,8 +137,10 @@ async function fetchAdminPhone() {
         // Support legacy 'adminPhone' field for Admin 1 backward compatibility
         currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
         currentAdminPhone2 = data.adminPhone2 || null;
+        currentAdminPhone3 = data.adminPhone3 || null;
         console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'}`);
         console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
+        console.log(`👑 Admin 3 Phone Loaded: ${currentAdminPhone3 || 'Not Set'}`);
     }
 }
 fetchAdminPhone();
@@ -177,9 +180,15 @@ client.on('message', async (msg) => {
         return msg.reply("🛡️ *Admin 2 Configuration*\nPlease enter the new Admin 2 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
     }
 
+    // -- Change Admin 3 Flow --
+    if (normalizedInput === 'change admin 3 number' || normalizedInput === 'change admin 3 phone number') {
+        waitingForAdminUpdate[msg.from] = 3;
+        return msg.reply("🛡️ *Admin 3 Configuration*\nPlease enter the new Admin 3 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+    }
+
     // -- C. List Admins Flow --
     if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
-        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'}\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}`);
+        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'}\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}`);
     }
 
     // -- E. Remove Admin 1 Flow --
@@ -207,6 +216,18 @@ client.on('message', async (msg) => {
         }
     }
 
+    // -- Remove Admin 3 Flow --
+    if (normalizedInput === 'remove admin 3 number' || normalizedInput === 'remove admin 3 phone number') {
+        try {
+            await db.collection('system_folder').doc('config').set({ adminPhone3: null }, { merge: true });
+            currentAdminPhone3 = null;
+            return msg.reply("🗑️ *Admin 3 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+        } catch (err) {
+            console.error("Failed to remove admin 3:", err);
+            return msg.reply("⚠️ Error updating database.");
+        }
+    }
+
     // -- Process Admin Input --
     if (waitingForAdminUpdate[msg.from]) {
         const adminSlot = waitingForAdminUpdate[msg.from];
@@ -218,13 +239,15 @@ client.on('message', async (msg) => {
 
         try {
             // Overwrite specific database field to strictly prevent arrays/duplication
-            const fieldName = adminSlot === 1 ? 'adminPhone1' : 'adminPhone2';
+            const fieldName = adminSlot === 1 ? 'adminPhone1' : (adminSlot === 2 ? 'adminPhone2' : 'adminPhone3');
             await db.collection('system_folder').doc('config').set({ [fieldName]: formattedNewNumber }, { merge: true });
             
             if (adminSlot === 1) {
                 currentAdminPhone1 = formattedNewNumber;
-            } else {
+            } else if (adminSlot === 2) {
                 currentAdminPhone2 = formattedNewNumber;
+            } else {
+                currentAdminPhone3 = formattedNewNumber;
             }
             
             delete waitingForAdminUpdate[msg.from];
@@ -301,7 +324,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             let dateStr = billData.date ? billData.date.toDate().toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');
 
             // --- A. TEXT ADMIN ALERT (Sent to ALL Active Admins) ---
-            const activeAdmins = [currentAdminPhone1, currentAdminPhone2].filter(phone => phone !== null);
+            const activeAdmins = [currentAdminPhone1, currentAdminPhone2, currentAdminPhone3].filter(phone => phone !== null);
             
             if (activeAdmins.length > 0) {
                 // Build the item list text dynamically for the admin
@@ -319,8 +342,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                 for (const adminPhone of activeAdmins) {
                     let messageToSend = adminAlert;
 
-                    // Apply conversational, precise Tamil formatting exclusively for Admin 2
-                    if (adminPhone === currentAdminPhone2) {
+                    // Apply conversational, precise Tamil formatting exclusively for Admin 2 and Admin 3
+                    if (adminPhone === currentAdminPhone2 || adminPhone === currentAdminPhone3) {
                         const tamilNumbers = {
                             1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
                             6: 'ஆறு', 7: 'ஏழு', 8: 'எட்டு', 9: 'ஒன்பது', 10: 'பத்து'
