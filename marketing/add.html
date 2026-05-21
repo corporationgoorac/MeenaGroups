@@ -408,9 +408,15 @@
             }
         }
 
-        // Search trigger (fires when user types)
+        // Search trigger (fires when user types) - NEW DEBOUNCE ADDED HERE
+        let mainSearchTimeout;
+        /* ORIGINAL: searchManageInput.addEventListener('input', (e) => { */
         searchManageInput.addEventListener('input', (e) => {
-            fetchAndRenderCompanies(e.target.value.trim());
+            clearTimeout(mainSearchTimeout);
+            mainSearchTimeout = setTimeout(() => {
+                fetchAndRenderCompanies(e.target.value.trim());
+            }, 400);
+        /* ORIGINAL: }); */
         });
 
         fetchAndRenderCompanies(); // Initial load
@@ -582,52 +588,62 @@
         const searchInput = document.getElementById('pCompanySearch');
         const suggestionsBox = document.getElementById('companySuggestions');
 
-        searchInput.addEventListener('input', async (e) => {
-            const val = e.target.value.trim();
-            suggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
-            if(val.length < 2) return;
-            const q = query(collection(db, "companies"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
-            const snap = await getDocs(q);
-            suggestionsBox.innerHTML = '';
-            snap.forEach(doc => {
-                const d = doc.data();
-                const div = document.createElement('div'); div.className = 'suggestion-item';
-                div.innerText = `${d.name} (Bal: ₹${d.balance})`;
-                div.onclick = () => {
-                    searchInput.value = d.name; document.getElementById('selectedCompanyId').value = doc.id;
-                    document.getElementById('selectedCompanyBalance').value = d.balance; suggestionsBox.style.display = 'none';
-                    document.getElementById('sumPrev').innerText = `₹${d.balance.toLocaleString()}`; updateCartSummary();
-                };
-                suggestionsBox.appendChild(div);
-            });
+        let compSearchTimeout; // NEW DEBOUNCE TIMER
+        /* ORIGINAL: searchInput.addEventListener('input', async (e) => { */
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(compSearchTimeout);
+            compSearchTimeout = setTimeout(async () => {
+                const val = e.target.value.trim();
+                suggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
+                if(val.length < 2) return;
+                const q = query(collection(db, "companies"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+                const snap = await getDocs(q);
+                suggestionsBox.innerHTML = '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const div = document.createElement('div'); div.className = 'suggestion-item';
+                    div.innerText = `${d.name} (Bal: ₹${d.balance})`;
+                    div.onclick = () => {
+                        searchInput.value = d.name; document.getElementById('selectedCompanyId').value = doc.id;
+                        document.getElementById('selectedCompanyBalance').value = d.balance; suggestionsBox.style.display = 'none';
+                        document.getElementById('sumPrev').innerText = `₹${d.balance.toLocaleString()}`; updateCartSummary();
+                    };
+                    suggestionsBox.appendChild(div);
+                });
+            }, 400); // 400ms delay
         });
 
         // --- PRODUCT NAME SUGGESTIONS (INVENTORY LOOKUP) ---
         const pNameInput = document.getElementById('pName');
         const productSuggestionsBox = document.getElementById('productSuggestions');
         
-        pNameInput.addEventListener('input', async (e) => {
-            const val = e.target.value.trim();
-            productSuggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
-            if(val.length < 2) return;
-            
-            try {
-                const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
-                const snap = await getDocs(q);
-                productSuggestionsBox.innerHTML = '';
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    const div = document.createElement('div'); div.className = 'suggestion-item';
-                    div.innerHTML = `<strong>${d.name}</strong> <small>(${d.model || 'No ID'})</small> - Sell: ₹${d.price}`;
-                    div.onclick = () => {
-                        pNameInput.value = d.name; 
-                        document.getElementById('pModel').value = d.model || '';
-                        document.getElementById('pSellingPrice').value = d.price || '';
-                        productSuggestionsBox.style.display = 'none';
-                    };
-                    productSuggestionsBox.appendChild(div);
-                });
-            } catch (err) { console.error(err); }
+        let prodSearchTimeout; // NEW DEBOUNCE TIMER
+        /* ORIGINAL: pNameInput.addEventListener('input', async (e) => { */
+        pNameInput.addEventListener('input', (e) => {
+            clearTimeout(prodSearchTimeout);
+            prodSearchTimeout = setTimeout(async () => {
+                const val = e.target.value.trim();
+                productSuggestionsBox.style.display = val.length > 1 ? 'block' : 'none';
+                if(val.length < 2) return;
+                
+                try {
+                    const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+                    const snap = await getDocs(q);
+                    productSuggestionsBox.innerHTML = '';
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        const div = document.createElement('div'); div.className = 'suggestion-item';
+                        div.innerHTML = `<strong>${d.name}</strong> <small>(${d.model || 'No ID'})</small> - Sell: ₹${d.price}`;
+                        div.onclick = () => {
+                            pNameInput.value = d.name; 
+                            document.getElementById('pModel').value = d.model || '';
+                            document.getElementById('pSellingPrice').value = d.price || '';
+                            productSuggestionsBox.style.display = 'none';
+                        };
+                        productSuggestionsBox.appendChild(div);
+                    });
+                } catch (err) { console.error(err); }
+            }, 400); // 400ms delay
         });
         
         // Hide suggestions on click outside
