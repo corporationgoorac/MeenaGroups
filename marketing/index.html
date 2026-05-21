@@ -289,6 +289,7 @@
         .chart-container { position: relative; height: 250px; width: 100%; }
 
         /* Floating Inventory Icon */
+        /* ORIGINAL: 
         .fab-left {
             position: fixed;
             bottom: 90px;
@@ -308,6 +309,27 @@
         }
         .fab-left:active { transform: scale(0.95); }
         .fab-left .material-symbols-outlined { font-size: 28px; }
+        */
+
+        .fab-right {
+            position: fixed;
+            bottom: 90px;
+            right: 20px; /* Switched to right side */
+            background-color: var(--accent-color);
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .fab-right:active { transform: scale(0.95); }
+        .fab-right .material-symbols-outlined { font-size: 28px; }
         
     </style>
 </head>
@@ -322,7 +344,6 @@
             </div>
         </div>
         <div class="header-actions">
-            <!-- Dynamically loading SVGs via localStorage for 0ms render without span text popup -->
             <script>
                 (function() {
                     const svgData = {
@@ -403,8 +424,9 @@
                 <p id="total-balance" class="red-text">₹0</p>
             </div>
             <div class="stat-card">
-                <h3>Companies/Items</h3>
-                <p id="total-entities">0 / 0</p>
+                <h3>Total Companies</h3>
+                
+                <p id="total-companies">0</p>
             </div>
         </div>
 
@@ -432,7 +454,7 @@
         </div>
     </div>
 
-    <div class="fab-left" onclick="window.location.href='inventory.html'">
+    <div class="fab-right" onclick="window.location.href='inventory.html'">
         <span class="material-symbols-outlined">inventory_2</span>
     </div>
 
@@ -441,7 +463,9 @@
         // Automatically attach vibration to anything clickable on the dashboard
         document.addEventListener('click', function(e) {
             // Check if the clicked element is an anchor tag, button, fab, or action icon
-            const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]');
+            /* ORIGINAL: const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]'); */
+            const interactiveElement = e.target.closest('a, button, .fab-right, .header-actions span, .stat-card, [onclick]');
+            
             if (interactiveElement && navigator.vibrate) {
                 // Trigger a crisp 40ms haptic feedback
                 navigator.vibrate(40);
@@ -532,7 +556,9 @@
             document.getElementById('total-billed').innerText = `₹${data.totalBilled.toLocaleString()}`;
             document.getElementById('total-paid').innerText = `₹${data.totalPaid.toLocaleString()}`;
             document.getElementById('total-balance').innerText = `₹${data.totalBalance.toLocaleString()}`;
-            document.getElementById('total-entities').innerText = `${data.totalCompanies} / ${data.totalProducts}`;
+            
+            /* ORIGINAL: document.getElementById('total-entities').innerText = `${data.totalCompanies} / ${data.totalProducts}`; */
+            document.getElementById('total-companies').innerText = `${data.totalCompanies}`;
 
             const debtorsList = document.getElementById('debtors-list');
             debtorsList.innerHTML = '';
