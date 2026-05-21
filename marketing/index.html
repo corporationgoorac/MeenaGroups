@@ -274,17 +274,84 @@
 
         .panel h2 { margin-top: 0; font-size: 1.1em; border-bottom: 1px solid #444; padding-bottom: 12px; margin-bottom: 15px;}
 
+        /* --- UPGRADED RANKED PROGRESS LIST --- */
         .debtor-list { list-style: none; padding: 0; margin: 0; }
         .debtor-list li {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
+            padding: 10px 12px; /* Adjusted padding to fit progress background nicely */
             border-bottom: 1px solid #333;
             font-size: 1em;
+            
+            /* New attributes for rank card UI */
+            margin-bottom: 8px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            background-color: var(--surface-color);
         }
-        .debtor-list li:last-child { border-bottom: none; }
-        .debtor-amount { color: var(--meena-red); font-weight: bold; }
+        .debtor-list li:last-child { border-bottom: 1px solid #333; margin-bottom: 0; } /* Ensured border remains for card layout */
+        
+        /* The Dynamic Progress Bar Background */
+        .debtor-list li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--fill-percent, 0%);
+            background: rgba(255, 51, 51, 0.15); /* Light transparent Meena Red */
+            z-index: -1;
+            transition: width 0.8s ease-in-out;
+        }
+
+        /* Flexbox structure to handle truncation beautifully on Mobile */
+        .debtor-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0; /* CRITICAL: Allows child text to truncate instead of expanding container */
+            padding-right: 10px;
+        }
+
+        /* Sidebar Rank Circular Badge */
+        .debtor-rank {
+            background-color: #111;
+            color: var(--text-secondary);
+            font-size: 0.8em;
+            font-weight: bold;
+            min-width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 1px solid #444;
+            flex-shrink: 0;
+        }
+
+        /* Gold, Silver, Bronze coloring for Top 3 */
+        .debtor-list li:nth-child(1) .debtor-rank { background-color: rgba(255, 215, 0, 0.15); color: #ffd700; border-color: #ffd700; }
+        .debtor-list li:nth-child(2) .debtor-rank { background-color: rgba(192, 192, 192, 0.15); color: #c0c0c0; border-color: #c0c0c0; }
+        .debtor-list li:nth-child(3) .debtor-rank { background-color: rgba(205, 127, 50, 0.15); color: #cd7f32; border-color: #cd7f32; }
+
+        .debtor-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Ensures long names add '...' instead of breaking UI */
+            font-weight: 500;
+            color: var(--marketing-white);
+        }
+
+        .debtor-amount { 
+            color: var(--meena-red); 
+            font-weight: bold; 
+            flex-shrink: 0; /* Prevents the currency amount from ever wrapping/squishing */
+        }
         
         .chart-container { position: relative; height: 250px; width: 100%; }
 
@@ -505,13 +572,9 @@
             }
         });
 
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            installPopup.style.display = 'none';
-        });
-
-        // 2. Firebase Import & Data Fetching
+        // 2. Firebase Import & Data Fetching (Added 'where' for read optimization)
         import { db } from './config.js';
-        import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Global instances for charts to properly destroy before rebuilding (prevents visual bugs on refresh)
         let paymentChartInstance = null;
@@ -533,8 +596,8 @@
                 const docSnap = await getDoc(docRef);
                 const metaData = docSnap.exists() ? docSnap.data() : { totalBilled: 0, totalPaid: 0, totalBalance: 0, totalCompanies: 0 };
 
-                // Fetch Top 10 Debtors in Real-time (Fix for empty UI)
-                const q = query(collection(db, "companies"), orderBy("balance", "desc"), limit(10));
+                // Fetch Top 10 Debtors in Real-time (Optimized: Added 'where' filter to save document reads)
+                const q = query(collection(db, "companies"), where("balance", ">", 0), orderBy("balance", "desc"), limit(10));
                 const snap = await getDocs(q);
                 const topDebtors = [];
                 snap.forEach(d => topDebtors.push({ id: d.id, ...d.data() }));
@@ -563,18 +626,26 @@
             const debtorsList = document.getElementById('debtors-list');
             debtorsList.innerHTML = '';
             if (data.topDebtors && data.topDebtors.length > 0) {
-                data.topDebtors.forEach(debtor => {
+                
+                // Capture the highest balance to calculate the progress bar fill percentages dynamically
+                const maxBalance = data.topDebtors[0]?.balance || 1; 
+
+                data.topDebtors.forEach((debtor, index) => {
                     if (debtor.balance > 0) {
+                        const fillPercent = (debtor.balance / maxBalance) * 100;
                         debtorsList.innerHTML += `
-                            <li>
-                                <span>${debtor.name}</span>
+                            <li style="--fill-percent: ${fillPercent}%;">
+                                <div class="debtor-info">
+                                    <span class="debtor-rank">${index + 1}</span>
+                                    <span class="debtor-name">${debtor.name}</span>
+                                </div>
                                 <span class="debtor-amount">₹${debtor.balance.toLocaleString()}</span>
                             </li>
                         `;
                     }
                 });
             } else {
-                debtorsList.innerHTML = '<li style="color:var(--text-secondary);">No pending balances found.</li>';
+                debtorsList.innerHTML = '<li style="color:var(--text-secondary); padding: 10px;">No pending balances found.</li>';
             }
 
             initCharts(data);
