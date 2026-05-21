@@ -397,6 +397,60 @@
         }
         .fab-right:active { transform: scale(0.95); }
         .fab-right .material-symbols-outlined { font-size: 28px; }
+
+        /* --- SKELETON LOADING UI STYLES --- */
+        .skeleton-box {
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            background-color: #2a2a2a; /* Sleek dark mode skeleton base */
+            border-radius: 6px;
+        }
+
+        .skeleton-box::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.1) 60%,
+                rgba(255, 255, 255, 0)
+            );
+            animation: shimmer 1.5s infinite;
+            content: '';
+        }
+
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        .skel-text { width: 70%; height: 28px; margin: 0 auto; display: block; }
+        .skel-text-sm { width: 40%; height: 28px; margin: 0 auto; display: block; }
+        
+        .skel-chart {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+            border-radius: 8px;
+            z-index: 5;
+            transition: opacity 0.3s ease;
+        }
+
+        .skel-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .skel-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; }
+        .skel-line { height: 18px; border-radius: 4px; }
+        .skel-amount { width: 60px; height: 18px; border-radius: 4px; flex-shrink: 0; margin-left: auto; }
         
     </style>
 </head>
@@ -480,20 +534,19 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Purchased</h3>
-                <p id="total-billed">₹0</p>
+                <p id="total-billed"><span class="skeleton-box skel-text"></span></p>
             </div>
             <div class="stat-card">
                 <h3>Total Paid</h3>
-                <p id="total-paid" style="color: #00c853;">₹0</p>
+                <p id="total-paid" style="color: #00c853;"><span class="skeleton-box skel-text"></span></p>
             </div>
             <div class="stat-card">
                 <h3>Balance to Pay</h3>
-                <p id="total-balance" class="red-text">₹0</p>
+                <p id="total-balance" class="red-text"><span class="skeleton-box skel-text"></span></p>
             </div>
             <div class="stat-card">
                 <h3>Companies</h3>
-                
-                <p id="total-companies">0</p>
+                <p id="total-companies"><span class="skeleton-box skel-text-sm"></span></p>
             </div>
         </div>
 
@@ -501,6 +554,7 @@
             <div class="panel">
                 <h2>Financial Breakdown</h2>
                 <div class="chart-container">
+                    <div class="skeleton-box skel-chart" id="skel-payment-chart"></div>
                     <canvas id="paymentChart"></canvas>
                 </div>
             </div>
@@ -508,13 +562,35 @@
             <div class="panel">
                 <h2>Top Pending Balances</h2>
                 <ul class="debtor-list" id="debtors-list">
-                    <li>Loading data...</li>
+                    <!-- Skeleton list items automatically replaced when JS updates the innerHTML -->
+                    <li>
+                        <div class="skel-list-item">
+                            <div class="skeleton-box skel-avatar"></div>
+                            <div class="skeleton-box skel-line" style="width: 60%;"></div>
+                            <div class="skeleton-box skel-amount"></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="skel-list-item">
+                            <div class="skeleton-box skel-avatar"></div>
+                            <div class="skeleton-box skel-line" style="width: 45%;"></div>
+                            <div class="skeleton-box skel-amount"></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="skel-list-item">
+                            <div class="skeleton-box skel-avatar"></div>
+                            <div class="skeleton-box skel-line" style="width: 55%;"></div>
+                            <div class="skeleton-box skel-amount"></div>
+                        </div>
+                    </li>
                 </ul>
             </div>
 
             <div class="panel" style="grid-column: 1 / -1;">
                 <h2>Balance by Company</h2>
                 <div class="chart-container" style="height: 300px;">
+                    <div class="skeleton-box skel-chart" id="skel-debtors-chart"></div>
                     <canvas id="debtorsChart"></canvas>
                 </div>
             </div>
@@ -654,6 +730,15 @@
         function initCharts(data) {
             Chart.defaults.color = '#aaaaaa'; 
             Chart.defaults.font.family = "'Segoe UI', sans-serif";
+            
+            // Fade out and remove the skeleton overlays the moment charts are about to render
+            const skelPaymentChart = document.getElementById('skel-payment-chart');
+            if(skelPaymentChart) skelPaymentChart.style.opacity = '0';
+            setTimeout(() => { if(skelPaymentChart) skelPaymentChart.style.display = 'none'; }, 300);
+
+            const skelDebtorsChart = document.getElementById('skel-debtors-chart');
+            if(skelDebtorsChart) skelDebtorsChart.style.opacity = '0';
+            setTimeout(() => { if(skelDebtorsChart) skelDebtorsChart.style.display = 'none'; }, 300);
 
             if (paymentChartInstance) paymentChartInstance.destroy();
             if (debtorsChartInstance) debtorsChartInstance.destroy();
