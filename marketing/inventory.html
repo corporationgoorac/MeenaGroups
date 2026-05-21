@@ -317,8 +317,8 @@
             
             <div class="row-inputs">
                 <div class="input-wrapper">
-                    <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
-                    <input type="number" id="iMrp" placeholder="0" min="0">
+                    <label>My Rate (₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="iMyRate" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Base Price (₹) <span style="color:var(--meena-red);">*</span></label>
@@ -373,8 +373,8 @@
             
             <div class="row-inputs">
                 <div class="input-wrapper">
-                    <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
-                    <input type="number" id="editMrp" placeholder="0" min="0">
+                    <label>My Rate (₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="editMyRate" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Base Price (₹) <span style="color:var(--meena-red);">*</span></label>
@@ -412,9 +412,13 @@
 
             <div class="info-panel-card">
                 <div class="info-panel-header"><span class="material-symbols-outlined" style="font-size: 16px;">payments</span> Price History</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 1.1em; font-weight: 600; color: var(--text-secondary);">Base Price:</span>
+                    <span style="font-size: 1.15em; font-weight: 700; color: var(--success-color);" id="infoPrice"></span>
+                </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 1.2em; font-weight: 700; color: var(--success-color);" id="infoPrice"></span>
-                    <span style="color: var(--text-secondary); font-size: 0.95em; text-decoration: line-through; font-weight: 500;" id="infoMrp"></span>
+                    <span style="font-size: 1.1em; font-weight: 600; color: var(--text-secondary);">My Rate:</span>
+                    <span style="font-size: 1.15em; font-weight: 700; color: #8b5cf6;" id="infoMyRate"></span>
                 </div>
             </div>
 
@@ -853,9 +857,9 @@
             const prevPrice = item.previousPrice !== undefined ? item.previousPrice : currPrice;
             document.getElementById('infoPrice').innerText = `₹${prevPrice.toLocaleString()} ➔ ₹${currPrice.toLocaleString()}`;
             
-            const currMrp = item.mrp || 0;
-            const prevMrp = item.previousMrp !== undefined ? item.previousMrp : currMrp;
-            document.getElementById('infoMrp').innerText = `MRP: ₹${prevMrp.toLocaleString()} ➔ ₹${currMrp.toLocaleString()}`;
+            const currMyRate = item.myRate || 0;
+            const prevMyRate = item.previousMyRate !== undefined ? item.previousMyRate : currMyRate;
+            document.getElementById('infoMyRate').innerText = `₹${prevMyRate.toLocaleString()} ➔ ₹${currMyRate.toLocaleString()}`;
 
             let dateStr = "<span class='material-symbols-outlined' style='font-size:16px;'>schedule</span> No recent updates recorded";
             if (item.lastUpdated) {
@@ -908,7 +912,7 @@
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
-            document.getElementById('editMrp').value = item.mrp || 0;
+            document.getElementById('editMyRate').value = item.myRate || 0;
             document.getElementById('editPrice').value = item.price || 0;
             document.getElementById('editQty').value = item.qty || 0;
 
@@ -920,12 +924,12 @@
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
             const newModel = document.getElementById('editModel').value.trim();
-            const newMrp = parseFloat(document.getElementById('editMrp').value);
+            const newMyRate = parseFloat(document.getElementById('editMyRate').value);
             const newPrice = parseFloat(document.getElementById('editPrice').value);
             const newQty = parseInt(document.getElementById('editQty').value);
 
-            if (!newName || isNaN(newMrp) || newMrp < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
-                showToast("Please enter valid name, MRP, price, and quantity.", "error");
+            if (!newName || isNaN(newMyRate) || newMyRate < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
+                showToast("Please enter valid name, My Rate, base price, and quantity.", "error");
                 return;
             }
 
@@ -938,19 +942,19 @@
                 const item = inventoryCache.find(i => i.id === id);
                 const oldQty = item ? (item.qty || 0) : 0;
                 const oldPrice = item ? (item.price || 0) : 0;
-                const oldMrp = item ? (item.mrp || 0) : 0;
+                const oldMyRate = item ? (item.myRate || 0) : 0;
 
                 const itemRef = doc(db, "inventory", id);
                 await updateDoc(itemRef, { 
                     name: newName,
                     model: newModel,
-                    mrp: newMrp,
+                    myRate: newMyRate,
                     price: newPrice,
                     qty: newQty,
                     searchKeywords: generateKeywords(newName, newModel), 
                     previousQty: oldQty,
                     previousPrice: oldPrice,
-                    previousMrp: oldMrp,
+                    previousMyRate: oldMyRate,
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Pushes to the top naturally
                 });
@@ -1001,11 +1005,12 @@
                 <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4);">
                     <div class="inv-info" style="width:100%; justify-content: center;">
                         <div class="skeleton" style="height:24px; width:85%; margin-bottom:12px; border-radius:6px;"></div>
-                        <div class="skeleton" style="height:18px; width:45%; margin-bottom:14px; border-radius:6px;"></div>
-                        <div style="display: flex; gap: 8px;">
-                            <div class="skeleton" style="height:20px; width:25%; border-radius:6px;"></div>
-                            <div class="skeleton" style="height:20px; width:35%; border-radius:6px;"></div>
+                        <div class="skeleton" style="height:18px; width:45%; margin-bottom:12px; border-radius:6px;"></div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <div class="skeleton" style="height:16px; width:35%; border-radius:4px;"></div>
+                            <div class="skeleton" style="height:16px; width:40%; border-radius:4px;"></div>
                         </div>
+                        <div class="skeleton" style="height:26px; width:55%; border-radius:8px;"></div>
                     </div>
                     <div class="skeleton" style="height:65px; width:65px; border-radius:14px; margin-left:15px; flex-shrink:0;"></div>
                 </div>`;
@@ -1175,8 +1180,16 @@
                         <div class="inv-info">
                             <span class="inv-name" title="${item.name}">${item.name}</span>
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
-                            <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
-                            <div class="card-actions">
+                            
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+                                <span class="inv-price" style="margin-top:0; font-size: 0.95em;">
+                                    <span class="inv-mrp">MRP: ₹${(item.mrp || 0).toLocaleString()}</span>
+                                    Base: ₹${(item.price || 0).toLocaleString()}
+                                </span>
+                                <span style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.95em; width: fit-content; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3); border: 1px solid rgba(255,255,255,0.1); display: inline-block;">My Rate: ₹${(item.myRate || 0).toLocaleString()}</span>
+                            </div>
+
+                            <div class="card-actions" style="margin-top: 14px;">
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
@@ -1220,8 +1233,16 @@
                         <div class="inv-info">
                             <span class="inv-name" title="${item.name}">${item.name}</span>
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
-                            <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
-                            <div class="card-actions">
+                            
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+                                <span class="inv-price" style="margin-top:0; font-size: 0.95em;">
+                                    <span class="inv-mrp">MRP: ₹${(item.mrp || 0).toLocaleString()}</span>
+                                    Base: ₹${(item.price || 0).toLocaleString()}
+                                </span>
+                                <span style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.95em; width: fit-content; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3); border: 1px solid rgba(255,255,255,0.1); display: inline-block;">My Rate: ₹${(item.myRate || 0).toLocaleString()}</span>
+                            </div>
+
+                            <div class="card-actions" style="margin-top: 14px;">
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
@@ -1344,12 +1365,12 @@
             vibrateApp(40);
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
-            const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
+            const myRate = parseFloat(document.getElementById('iMyRate').value) || 0;
             const price = parseFloat(document.getElementById('iPrice').value) || 0;
             const qty = parseInt(document.getElementById('iQty').value) || 1;
 
-            if (!name || mrp <= 0 || price <= 0 || qty < 1) {
-                showToast("Please enter a valid Name, MRP, Price, and Quantity.", "error");
+            if (!name || myRate <= 0 || price <= 0 || qty < 1) {
+                showToast("Please enter a valid Name, My Rate, Base Price, and Quantity.", "error");
                 return;
             }
 
@@ -1388,7 +1409,7 @@
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
                     model, 
-                    mrp,
+                    myRate,
                     price, 
                     qty, 
                     isUpdate, 
@@ -1398,7 +1419,7 @@
                 
                 document.getElementById('iName').value = '';
                 document.getElementById('iModel').value = '';
-                document.getElementById('iMrp').value = '';
+                document.getElementById('iMyRate').value = '';
                 document.getElementById('iPrice').value = '';
                 document.getElementById('iQty').value = '1';
                 document.getElementById('iName').focus();
@@ -1440,7 +1461,9 @@
                     <div class="pending-item">
                         <div>
                             <div style="font-weight:600; color:var(--marketing-white); font-size: 1.05em;">${item.name} <span style="font-weight:700; color:var(--accent-color); font-size: 0.9em; margin-left: 5px;">+${item.qty}</span> ${actionBadge}</div>
-                            <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span></div>
+                            <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">
+                                ${item.model || 'No ID'} • Base: <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span> • <span style="color:#a78bfa; font-weight:600;">My Rate: ₹${item.myRate.toLocaleString()}</span>
+                            </div>
                         </div>
                         <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
                     </div>
@@ -1477,7 +1500,7 @@
                         batch.set(newRef, {
                             name: item.name,
                             model: item.model,
-                            mrp: item.mrp,
+                            myRate: item.myRate,
                             price: item.price,
                             qty: item.qty,
                             searchKeywords: generateKeywords(item.name, item.model), // <-- ADDED KEYWORD GENERATION
