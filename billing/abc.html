@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Shared Core Theme from your inventory.html */
+        /* Shared Core Theme from inventory.html */
         :root {
             --bg-color: #0b111a; 
             --surface-color: #131b26; 
@@ -41,11 +41,10 @@
         header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
         .brand-container { display: flex; align-items: center; gap: 14px; }
         .logo-img { width: 38px; height: 38px; border-radius: 10px; box-shadow: var(--shadow-md); }
-        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-        .brand-title { font-size: 1em; font-weight: 700; letter-spacing: -0.02em;}
+        .brand-text { display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }
+        .brand-title { font-size: 1.1em; font-weight: 700; letter-spacing: -0.02em;}
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
-        .goorac { font-size: 0.75em; color: var(--text-secondary); font-weight: 500; }
 
         /* Toast Messages */
         .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); color: white; padding: 14px 24px; border-radius: 10px; z-index: 9999; display: none; box-shadow: var(--shadow-lg); font-weight: 600; font-size: 0.95em; align-items: center; gap: 12px; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 90%; text-align: center;}
@@ -66,18 +65,19 @@
         .inv-name { font-size: 1.05em; font-weight: 600; color: var(--marketing-white); white-space: normal; word-wrap: break-word; line-height: 1.35; letter-spacing: -0.01em; margin-bottom: 6px;}
         .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; width: fit-content; border: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; margin-bottom: 12px;}
 
-        /* Form Elements for the Rate Update */
+        /* Form Elements */
         .rate-action-area { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 10px;}
         
-        .rate-input { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1em; font-family: 'Inter', sans-serif; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .rate-input { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1em; font-family: 'Inter', sans-serif; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box;}
         .rate-input:focus { border-color: var(--accent-color); background: #233147; }
         
-        .btn-save { background: linear-gradient(135deg, var(--success-color), #059669); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); font-family: 'Inter', sans-serif; }
+        .btn-save { background: linear-gradient(135deg, var(--success-color), #059669); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); font-family: 'Inter', sans-serif; flex-shrink: 0;}
         .btn-save:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); }
         .btn-save:active:not(:disabled) { transform: translateY(1px); }
-        .btn-save:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+        .btn-save:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: none;}
 
-        .existing-rate-badge { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); color: var(--accent-color); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 1.05em; display: inline-block; width: 100%; text-align: center; box-sizing: border-box;}
+        /* Updated "Done" Badge hiding the rate */
+        .existing-rate-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success-color); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 1.05em; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; }
 
         .skeleton { background-color: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08), rgba(255,255,255,0)); background-size: 200% 100%; animation: shimmer 1.5s infinite ease-in-out; border-radius: 4px; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -99,7 +99,6 @@
             <img src="icon.png" alt="Icon" class="logo-img">
             <div class="brand-text">
                 <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
-                <span class="goorac">My Rate Updater</span>
             </div>
         </div>
         <div class="header-actions">
@@ -107,10 +106,10 @@
         </div>
     </header>
 
-    <div class="main-scroll-area">
+    <div class="main-scroll-area" id="scrollArea">
         <div class="container">
             <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em;">Last 25 Additions</h2>
+                <h2 style="margin: 0; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em;">Recent Additions</h2>
             </div>
 
             <div class="inv-grid" id="itemsGrid">
@@ -146,21 +145,63 @@
             }, 3000);
         };
 
-        // Firebase Imports
+        // Firebase Imports (Including startAfter for Pagination)
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, doc, updateDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        async function loadRecentItems() {
+        // Pagination Variables
+        let lastVisibleItem = null;
+        let isFetchingMore = false;
+        let hasMoreData = true;
+
+        async function loadRecentItems(isLoadMore = false) {
             const grid = document.getElementById('itemsGrid');
+            
+            if (isLoadMore) {
+                if (isFetchingMore || !hasMoreData) return;
+                isFetchingMore = true;
+                
+                // Add scroll loader if missing
+                if(!document.getElementById('scrollLoader')) {
+                    const loader = document.createElement('div');
+                    loader.id = 'scrollLoader';
+                    loader.style.cssText = "text-align:center; color:var(--accent-color); width:100%; padding:20px; font-weight:600; font-size:0.9em; display:flex; justify-content:center; align-items:center; gap:8px;";
+                    loader.innerHTML = "<span class='skeleton' style='width:16px; height:16px; border-radius:50%; display:inline-block;'></span> Loading more...";
+                    grid.parentNode.appendChild(loader);
+                } else {
+                    document.getElementById('scrollLoader').style.display = 'flex';
+                    document.getElementById('scrollLoader').innerHTML = "<span class='skeleton' style='width:16px; height:16px; border-radius:50%; display:inline-block;'></span> Loading more...";
+                }
+            } else {
+                hasMoreData = true;
+                lastVisibleItem = null;
+            }
+
             try {
-                // Fetch the latest 25 items added to the inventory
-                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(25));
+                let q;
+                if (isLoadMore && lastVisibleItem) {
+                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                } else {
+                    // Initial load fetches 10
+                    q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                }
+
                 const snap = await getDocs(q);
                 
                 if (snap.empty) {
-                    grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No items found in database.</div>';
+                    hasMoreData = false;
+                    if (isLoadMore && document.getElementById('scrollLoader')) {
+                        document.getElementById('scrollLoader').innerHTML = "<span class='material-symbols-outlined' style='font-size:18px;'>check_circle</span> End of list";
+                        setTimeout(() => { if(document.getElementById('scrollLoader')) document.getElementById('scrollLoader').style.display = 'none'; }, 2000);
+                    } else if (!isLoadMore) {
+                        grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No items found.</div>';
+                    }
+                    isFetchingMore = false;
                     return;
                 }
+
+                // Update cursor for the next batch
+                lastVisibleItem = snap.docs[snap.docs.length - 1];
 
                 let htmlBuffer = '';
                 snap.forEach(docSnap => {
@@ -177,9 +218,11 @@
                             
                             <div class="rate-action-area" id="actionArea-${id}">
                                 ${hasExistingRate ? `
-                                    <div class="existing-rate-badge">My Rate: ₹${item.myRate.toLocaleString()}</div>
+                                    <div class="existing-rate-badge">
+                                        <span class="material-symbols-outlined" style="font-size: 1.15em;">check_circle</span> Done
+                                    </div>
                                 ` : `
-                                    <input type="number" id="rateInput-${id}" class="rate-input" placeholder="Enter My Rate (₹)" min="0">
+                                    <input type="number" id="rateInput-${id}" class="rate-input" placeholder="Enter Rate (₹)" min="0">
                                     <button class="btn-save" id="btnSave-${id}" onclick="saveMyRate('${id}')">Save</button>
                                 `}
                             </div>
@@ -187,14 +230,34 @@
                     `;
                 });
                 
-                grid.innerHTML = htmlBuffer;
+                if (isLoadMore) {
+                    grid.insertAdjacentHTML('beforeend', htmlBuffer);
+                    if (document.getElementById('scrollLoader')) {
+                        document.getElementById('scrollLoader').style.display = 'none';
+                    }
+                } else {
+                    grid.innerHTML = htmlBuffer;
+                }
 
             } catch (err) {
                 console.error("Error loading items:", err);
-                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px; background:rgba(239,68,68,0.1); border-radius:12px; border:1px solid rgba(239,68,68,0.3);">Error loading data. Check console.</div>';
+                if (!isLoadMore) {
+                    grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px; background:rgba(239,68,68,0.1); border-radius:12px; border:1px solid rgba(239,68,68,0.3);">Error loading data. Check console.</div>';
+                }
+            } finally {
+                isFetchingMore = false;
             }
         }
 
+        // Infinite Scroll Listener
+        document.getElementById('scrollArea').addEventListener('scroll', (e) => {
+            const element = e.target;
+            if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
+                loadRecentItems(true); 
+            }
+        });
+
+        // Save Function
         window.saveMyRate = async function(id) {
             vibrateApp(30);
             const inputField = document.getElementById(`rateInput-${id}`);
@@ -202,7 +265,7 @@
             const newRate = parseFloat(inputField.value);
 
             if (isNaN(newRate) || newRate <= 0) {
-                showToast("Please enter a valid rate amount greater than 0.", "error");
+                showToast("Please enter a valid rate greater than 0.", "error");
                 inputField.focus();
                 return;
             }
@@ -219,9 +282,13 @@
 
                 showToast("Rate saved successfully!", "success");
 
-                // Dynamically update UI without reloading the page
+                // Dynamically update UI without reloading: switch to the "Done" badge and hide the amount
                 const actionArea = document.getElementById(`actionArea-${id}`);
-                actionArea.innerHTML = `<div class="existing-rate-badge">My Rate: ₹${newRate.toLocaleString()}</div>`;
+                actionArea.innerHTML = `
+                    <div class="existing-rate-badge">
+                        <span class="material-symbols-outlined" style="font-size: 1.15em;">check_circle</span> Done
+                    </div>
+                `;
 
             } catch (err) {
                 console.error("Error saving rate:", err);
