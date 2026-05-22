@@ -47,29 +47,34 @@
         .container { padding: 25px 20px; max-width: 600px; margin: 0 auto; width: 100%; }
 
         /* Sleek Card */
-        .ask-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 25px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; }
+        .ask-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 25px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; width: 100%; }
         
         /* Top Row: Name, Model, Qty */
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; flex-wrap: nowrap; }
         .prod-info { flex-grow: 1; min-width: 0; }
-        .prod-name { font-size: 1.35em; font-weight: 700; color: var(--marketing-white); line-height: 1.3; margin-bottom: 8px; word-wrap: break-word; }
-        .prod-model { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px solid rgba(13, 148, 136, 0.2); letter-spacing: 0.5px; }
+        /* Added dynamic resizing and forced wrap for extremely long names */
+        .prod-name { font-size: clamp(1.1em, 5vw, 1.35em); font-weight: 700; color: var(--marketing-white); line-height: 1.3; margin-bottom: 8px; word-wrap: break-word; overflow-wrap: break-word; hyphens: auto; }
+        /* Added max-width and normal whitespace for long models */
+        .prod-model { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px solid rgba(13, 148, 136, 0.2); letter-spacing: 0.5px; max-width: 100%; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
         
-        .prod-qty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 14px; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        /* Capped width on qty so it doesn't squish the name out of existence */
+        .prod-qty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 14px; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; max-width: 35%; min-width: 70px; overflow: hidden;}
         .qty-lbl { font-size: 0.65em; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
-        .qty-val { font-size: 1.4em; font-weight: 800; color: white; }
+        .qty-val { font-size: clamp(1em, 5vw, 1.4em); font-weight: 800; color: white; word-break: break-word; overflow-wrap: break-word; }
 
         /* Middle Row: MRP and Base Price */
-        .price-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .price-col { display: flex; flex-direction: column; gap: 5px; }
+        /* Added wrap to push elements to new line if numbers are millions */
+        .price-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; gap: 15px; }
+        .price-col { display: flex; flex-direction: column; gap: 5px; min-width: 100px; max-width: 48%; }
         .price-lbl { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
-        .price-mrp { font-size: 1.1em; color: var(--text-secondary); text-decoration: line-through; font-weight: 500; }
-        .price-base { font-size: 1.4em; color: var(--success-color); font-weight: 700; text-align: right; }
+        .price-mrp { font-size: clamp(0.9em, 4vw, 1.1em); color: var(--text-secondary); text-decoration: line-through; font-weight: 500; word-wrap: break-word; overflow-wrap: break-word; }
+        .price-base { font-size: clamp(1.1em, 5vw, 1.4em); color: var(--success-color); font-weight: 700; text-align: right; word-wrap: break-word; overflow-wrap: break-word; }
 
         /* Bottom: My Rate (Huge) */
-        .my-rate-container { text-align: center; padding-top: 10px; }
+        .my-rate-container { text-align: center; padding-top: 10px; width: 100%; overflow: hidden; }
         .my-rate-lbl { font-size: 0.85em; color: #a855f7; text-transform: uppercase; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .my-rate-val { font-size: 4.5em; font-weight: 800; background: linear-gradient(135deg, #a855f7, #d946ef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; filter: drop-shadow(0 10px 20px rgba(168, 85, 247, 0.4)); letter-spacing: -2px; }
+        /* Dynamic Clamp fixes the cut-off zero issue: it scales from 2.5em to 4.5em based on screen size, and word-breaks if absolutely necessary */
+        .my-rate-val { font-size: clamp(2.5em, 12vw, 4.5em); font-weight: 800; background: linear-gradient(135deg, #a855f7, #d946ef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; filter: drop-shadow(0 10px 20px rgba(168, 85, 247, 0.4)); letter-spacing: -2px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
 
         /* Timestamp Footer */
         .time-footer { text-align: center; font-size: 0.75em; color: var(--text-secondary); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500;}
@@ -133,11 +138,11 @@
             </div>
             
             <div class="price-row">
-                <div class="price-col">
+                <div class="price-col" style="align-items: flex-start;">
                     <span class="price-lbl">MRP</span>
                     <span class="price-mrp" id="uiMrp">₹--</span>
                 </div>
-                <div class="price-col" style="align-items: flex-end;">
+                <div class="price-col" style="align-items: flex-end; text-align: right;">
                     <span class="price-lbl">Base Price</span>
                     <span class="price-base" id="uiBase">₹--</span>
                 </div>
