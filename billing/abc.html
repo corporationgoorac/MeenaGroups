@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Rate Update - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b111a">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Core Theme from your inventory.html */
+        :root {
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
+            --marketing-white: #ffffff;
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --nav-bg: rgba(19, 27, 38, 0.85); 
+            --input-bg: #1e293b;
+            --input-border: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+
+        header, .brand-container, .brand-text, .logo-img, .material-symbols-outlined { user-select: none; }
+
+        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
+        .brand-container { display: flex; align-items: center; gap: 14px; }
+        .logo-img { width: 38px; height: 38px; border-radius: 10px; box-shadow: var(--shadow-md); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1em; font-weight: 700; letter-spacing: -0.02em;}
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .goorac { font-size: 0.75em; color: var(--text-secondary); font-weight: 500; }
+
+        /* Toast Messages */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); color: white; padding: 14px 24px; border-radius: 10px; z-index: 9999; display: none; box-shadow: var(--shadow-lg); font-weight: 600; font-size: 0.95em; align-items: center; gap: 12px; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 90%; text-align: center;}
+        .toast-msg.error { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.success { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 50px; width: 100%; box-sizing: border-box;}
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+
+        /* Card and Grid Layout */
+        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .inv-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); display: flex; flex-direction: column; transition: all 0.25s ease; position: relative; box-sizing: border-box; width: 100%; box-shadow: var(--shadow-sm); }
+        .inv-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: var(--shadow-lg); background: var(--surface-hover); }
+        
+        .inv-name { font-size: 1.05em; font-weight: 600; color: var(--marketing-white); white-space: normal; word-wrap: break-word; line-height: 1.35; letter-spacing: -0.01em; margin-bottom: 6px;}
+        .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; width: fit-content; border: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; margin-bottom: 12px;}
+
+        /* Form Elements for the Rate Update */
+        .rate-action-area { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 10px;}
+        
+        .rate-input { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1em; font-family: 'Inter', sans-serif; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .rate-input:focus { border-color: var(--accent-color); background: #233147; }
+        
+        .btn-save { background: linear-gradient(135deg, var(--success-color), #059669); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); font-family: 'Inter', sans-serif; }
+        .btn-save:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); }
+        .btn-save:active:not(:disabled) { transform: translateY(1px); }
+        .btn-save:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+
+        .existing-rate-badge { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); color: var(--accent-color); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 1.05em; display: inline-block; width: 100%; text-align: center; box-sizing: border-box;}
+
+        .skeleton { background-color: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08), rgba(255,255,255,0)); background-size: 200% 100%; animation: shimmer 1.5s infinite ease-in-out; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
+
+    <header>
+        <div class="brand-container">
+            <img src="icon.png" alt="Icon" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                <span class="goorac">My Rate Updater</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="window.history.back()" title="Go Back" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">arrow_back</span>
+        </div>
+    </header>
+
+    <div class="main-scroll-area">
+        <div class="container">
+            <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em;">Last 25 Additions</h2>
+            </div>
+
+            <div class="inv-grid" id="itemsGrid">
+                <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4);">
+                    <div class="skeleton" style="height:22px; width:85%; margin-bottom:10px; border-radius:6px;"></div>
+                    <div class="skeleton" style="height:16px; width:40%; margin-bottom:20px; border-radius:4px;"></div>
+                    <div class="skeleton" style="height:44px; width:100%; border-radius:10px;"></div>
+                </div>
+                <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4);">
+                    <div class="skeleton" style="height:22px; width:70%; margin-bottom:10px; border-radius:6px;"></div>
+                    <div class="skeleton" style="height:16px; width:50%; margin-bottom:20px; border-radius:4px;"></div>
+                    <div class="skeleton" style="height:44px; width:100%; border-radius:10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Vibration and Toast Utilities
+        window.vibrateApp = function(pattern) {
+            if (navigator.vibrate) navigator.vibrate(pattern);
+        };
+
+        window.showToast = function(msg, type = "error") {
+            vibrateApp(type === "error" ? [50, 50, 100] : [40, 50]);
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        };
+
+        // Firebase Imports
+        import { db } from './config.js';
+        import { collection, getDocs, query, orderBy, limit, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        async function loadRecentItems() {
+            const grid = document.getElementById('itemsGrid');
+            try {
+                // Fetch the latest 25 items added to the inventory
+                const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(25));
+                const snap = await getDocs(q);
+                
+                if (snap.empty) {
+                    grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No items found in database.</div>';
+                    return;
+                }
+
+                let htmlBuffer = '';
+                snap.forEach(docSnap => {
+                    const item = docSnap.data();
+                    const id = docSnap.id;
+                    
+                    // Logic rule: Check if myRate exists and is greater than 0
+                    const hasExistingRate = item.myRate && parseFloat(item.myRate) > 0;
+
+                    htmlBuffer += `
+                        <div class="inv-card">
+                            <span class="inv-name">${item.name || 'Unnamed Product'}</span>
+                            ${item.model ? `<span class="inv-model">${item.model}</span>` : ''}
+                            
+                            <div class="rate-action-area" id="actionArea-${id}">
+                                ${hasExistingRate ? `
+                                    <div class="existing-rate-badge">My Rate: ₹${item.myRate.toLocaleString()}</div>
+                                ` : `
+                                    <input type="number" id="rateInput-${id}" class="rate-input" placeholder="Enter My Rate (₹)" min="0">
+                                    <button class="btn-save" id="btnSave-${id}" onclick="saveMyRate('${id}')">Save</button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                grid.innerHTML = htmlBuffer;
+
+            } catch (err) {
+                console.error("Error loading items:", err);
+                grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px; background:rgba(239,68,68,0.1); border-radius:12px; border:1px solid rgba(239,68,68,0.3);">Error loading data. Check console.</div>';
+            }
+        }
+
+        window.saveMyRate = async function(id) {
+            vibrateApp(30);
+            const inputField = document.getElementById(`rateInput-${id}`);
+            const btnSave = document.getElementById(`btnSave-${id}`);
+            const newRate = parseFloat(inputField.value);
+
+            if (isNaN(newRate) || newRate <= 0) {
+                showToast("Please enter a valid rate amount greater than 0.", "error");
+                inputField.focus();
+                return;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerHTML = "Saving...";
+
+            try {
+                const itemRef = doc(db, "inventory", id);
+                await updateDoc(itemRef, {
+                    myRate: newRate,
+                    lastUpdated: new Date().toISOString()
+                });
+
+                showToast("Rate saved successfully!", "success");
+
+                // Dynamically update UI without reloading the page
+                const actionArea = document.getElementById(`actionArea-${id}`);
+                actionArea.innerHTML = `<div class="existing-rate-badge">My Rate: ₹${newRate.toLocaleString()}</div>`;
+
+            } catch (err) {
+                console.error("Error saving rate:", err);
+                showToast("Failed to save rate to database.", "error");
+                btnSave.disabled = false;
+                btnSave.innerHTML = "Save";
+            }
+        };
+
+        // Initialize fetching on page load
+        loadRecentItems();
+    </script>
+</body>
+</html>
