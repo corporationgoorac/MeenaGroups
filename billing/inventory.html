@@ -116,7 +116,7 @@
         .inv-price { color: var(--success-color); font-weight: 700; font-size: 1.1em; margin-top: 6px; display: flex; align-items: center; gap: 8px;}
         .inv-mrp { text-decoration: line-through; font-size: 0.75em; color: var(--text-secondary); font-weight: 500; }
         
-        .inv-qty { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); color: var(--accent-color); padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 1.25em; text-align: center; min-width: 50px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);}
+        .inv-qty { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); color: var(--accent-color); padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 1.25em; text-align: center; min-width: 50px; flex-shrink: 0; margin-left: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);}
         .inv-qty.low { border-color: rgba(245, 158, 11, 0.4); color: var(--warning-color); background: rgba(245, 158, 11, 0.1); }
         .inv-qty.zero { border-color: rgba(239, 68, 68, 0.4); color: var(--meena-red); background: rgba(239, 68, 68, 0.1); font-size: 1em; padding: 12px 10px; }
 
@@ -184,7 +184,7 @@
         .pending-item > div > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
         /* --- ADDED FOR EDIT & DELETE ACTIONS --- */
-        .card-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .card-actions { display: flex; gap: 8px; margin-top: 12px; width: 100%; }
         .action-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
         .action-btn:hover { background: var(--surface-hover); color: white; }
         .action-btn.edit:hover { background: rgba(13, 148, 136, 0.1); border-color: rgba(13, 148, 136, 0.3); color: var(--accent-color); }
@@ -192,7 +192,7 @@
         .action-btn.delete:hover { background: var(--meena-red); color: white; }
         .action-btn.info { color: var(--info-color); background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); }
         .action-btn.info:hover { background: var(--info-color); color: white; }
-        .action-btn.ask { color: #a855f7; background: rgba(168, 85, 247, 0.05); border-color: rgba(168, 85, 247, 0.2); }
+        .action-btn.ask { color: #a855f7; background: rgba(168, 85, 247, 0.05); border-color: rgba(168, 85, 247, 0.2); margin-left: auto; }
         .action-btn.ask:hover { background: #a855f7; color: white; }
         .action-btn .material-symbols-outlined { font-size: 18px; }
 
@@ -1088,10 +1088,7 @@
                             <div class="skeleton" style="height:20px; width:35%; border-radius:6px;"></div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-left: 15px; flex-shrink: 0; align-items: stretch;">
-                        <div class="skeleton" style="height:65px; width:65px; border-radius:14px;"></div>
-                        <div class="skeleton" style="width:42px; border-radius:12px;"></div>
-                    </div>
+                    <div class="skeleton" style="height:65px; width:65px; border-radius:14px; margin-left:15px; flex-shrink:0;"></div>
                 </div>`;
             }
             grid.innerHTML = skeletonHtml;
@@ -1243,16 +1240,12 @@
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                                <button class="action-btn ask" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info"><span class="material-symbols-outlined">help</span></button>
                             </div>
                         </div>
-                        <div style="display: flex; flex-direction: row; align-items: stretch; gap: 8px; margin-left: 15px; flex-shrink: 0;">
-                            <div class="inv-qty ${qtyClass}" style="margin-left: 0; flex: 1;">
-                                <div style="font-size: 0.45em; text-transform: uppercase; color: inherit; letter-spacing: 1px; margin-bottom: 2px; opacity: 0.8;">QTY</div>
-                                ${q === 0 ? '0' : q}
-                            </div>
-                            <button class="action-btn ask" style="border-radius: 12px; display: flex; justify-content: center; align-items: center; padding: 0 10px; margin: 0; flex-shrink: 0;" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info">
-                                <span class="material-symbols-outlined" style="font-size: 24px;">help</span>
-                            </button>
+                        <div class="inv-qty ${qtyClass}">
+                            <div style="font-size: 0.45em; text-transform: uppercase; color: inherit; letter-spacing: 1px; margin-bottom: 2px; opacity: 0.8;">QTY</div>
+                            ${q === 0 ? '0' : q}
                         </div>
                     </div>
                 `;
@@ -1293,16 +1286,12 @@
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                                <button class="action-btn ask" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info"><span class="material-symbols-outlined">help</span></button>
                             </div>
                         </div>
-                        <div style="display: flex; flex-direction: row; align-items: stretch; gap: 8px; margin-left: 15px; flex-shrink: 0;">
-                            <div class="inv-qty ${qtyClass}" style="margin-left: 0; flex: 1;">
-                                <div style="font-size: 0.45em; text-transform: uppercase; color: inherit; letter-spacing: 1px; margin-bottom: 2px; opacity: 0.8;">QTY</div>
-                                ${q === 0 ? '0' : q}
-                            </div>
-                            <button class="action-btn ask" style="border-radius: 12px; display: flex; justify-content: center; align-items: center; padding: 0 10px; margin: 0; flex-shrink: 0;" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info">
-                                <span class="material-symbols-outlined" style="font-size: 24px;">help</span>
-                            </button>
+                        <div class="inv-qty ${qtyClass}">
+                            <div style="font-size: 0.45em; text-transform: uppercase; color: inherit; letter-spacing: 1px; margin-bottom: 2px; opacity: 0.8;">QTY</div>
+                            ${q === 0 ? '0' : q}
                         </div>
                     </div>
                 `;
