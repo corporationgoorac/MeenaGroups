@@ -504,8 +504,14 @@ db.collection('ask').doc('ask').onSnapshot(async (docSnap) => {
     if (!docSnap.exists) return;
     const askData = docSnap.data();
 
+    // PRODUCTION BUG FIX: Safely handles Firestore Timestamp objects, ISO string formats, or native Javascript Dates gracefully.
+    let clickedDate = null;
+    if (askData.clickedTime) {
+        clickedDate = typeof askData.clickedTime.toDate === 'function' ? askData.clickedTime.toDate() : new Date(askData.clickedTime);
+    }
+
     // Prevent dispatching historical clicks when server starts or reloads natively
-    if (askData.clickedTime && askData.clickedTime.toDate() < serverStartTime) return;
+    if (clickedDate && clickedDate < serverStartTime) return;
 
     if (!currentAdminPhone1) {
         console.log("⚠️ Product inquiry received but Admin 1 phone number is unset. Dispatch aborted.");
