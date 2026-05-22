@@ -128,6 +128,7 @@ const sleep = (ms) => new Promise(res => setTimeout(res, ms)); // ENTERPRISE FIX
 let currentAdminPhone1 = null;
 let currentAdminPhone2 = null;
 let currentAdminPhone3 = null;
+let admin1AlertsEnabled = true; // MEMORY CACHE GUARD: Keeps track of admin 1 sales alerts toggles with 0 continuous database reads
 
 // Fetch admins on boot
 async function fetchAdminPhone() {
@@ -138,7 +139,13 @@ async function fetchAdminPhone() {
         currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
         currentAdminPhone2 = data.adminPhone2 || null;
         currentAdminPhone3 = data.adminPhone3 || null;
-        console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'}`);
+        
+        // Sync active state from DB on boot up
+        if (data.admin1AlertsEnabled !== undefined) {
+            admin1AlertsEnabled = data.admin1AlertsEnabled;
+        }
+        
+        console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'} (Sales Alert State: ${admin1AlertsEnabled ? 'ACTIVE' : 'MUTED'})`);
         console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
         console.log(`👑 Admin 3 Phone Loaded: ${currentAdminPhone3 || 'Not Set'}`);
     }
@@ -168,6 +175,29 @@ client.on('message', async (msg) => {
     const input = msg.body.trim();
     const normalizedInput = input.toLowerCase();
 
+    // -- ADMIN 1 REALTIME SALES TOGGLE FLOWS (HIGHLY OPTIMIZED WRITES) --
+    if (normalizedInput === 'admin 1 off') {
+        try {
+            admin1AlertsEnabled = false;
+            await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: false }, { merge: true });
+            return msg.reply("📴 *Admin 1 Sales Alerts Suspended.*\nYou will no longer receive messaging alerts when a sales transaction is completed.");
+        } catch (err) {
+            console.error("Failed turning off Admin 1 sales notification configuration:", err);
+            return msg.reply("⚠️ Error connecting to database.");
+        }
+    }
+
+    if (normalizedInput === 'admin 1 on') {
+        try {
+            admin1AlertsEnabled = true;
+            await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: true }, { merge: true });
+            return msg.reply("🔔 *Admin 1 Sales Alerts Restored.*\nYou will now seamlessly receive real-time updates for newly generated invoices.");
+        } catch (err) {
+            console.error("Failed turning on Admin 1 sales notification configuration:", err);
+            return msg.reply("⚠️ Error connecting to database.");
+        }
+    }
+
     // -- A. Change Admin 1 Flow --
     if (normalizedInput === 'change admin 1 number' || normalizedInput === 'change admin 1 phone number') {
         waitingForAdminUpdate[msg.from] = 1;
@@ -188,7 +218,7 @@ client.on('message', async (msg) => {
 
     // -- C. List Admins Flow --
     if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
-        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'}\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}`);
+        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'} (Alerts: ${admin1AlertsEnabled ? 'Enabled' : 'Muted'})\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}`);
     }
 
     // -- E. Remove Admin 1 Flow --
@@ -324,7 +354,11 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             let dateStr = billData.date ? billData.date.toDate().toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');
 
             // --- A. TEXT ADMIN ALERT (Sent to ALL Active Admins) ---
-            const activeAdmins = [currentAdminPhone1, currentAdminPhone2, currentAdminPhone3].filter(phone => phone !== null);
+            // RE-ENGINEERED LINE FOR ZERO READ SAVINGS: Admin 1 added only if memory variable admin1AlertsEnabled is true
+            const activeAdmins = [];
+            if (currentAdminPhone1 && admin1AlertsEnabled) activeAdmins.push(currentAdminPhone1);
+            if (currentAdminPhone2) activeAdmins.push(currentAdminPhone2);
+            if (currentAdminPhone3) activeAdmins.push(currentAdminPhone3);
             
             if (activeAdmins.length > 0) {
                 // Build the item list text dynamically for the admin
@@ -460,6 +494,67 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             }
         }
     });
+});
+
+// ---------------------------------------------------------
+// 5B. REAL-TIME PRODUCT INQUIRY TRIGGER ("ASK" HOOK)
+// ---------------------------------------------------------
+// RE-ENGINEERED OPTIMIZATION: Listens directly to the specialized single document path to incur exactly 1 database read operation.
+db.collection('ask').doc('ask').onSnapshot(async (docSnap) => {
+    if (!docSnap.exists) return;
+    const askData = docSnap.data();
+
+    // Prevent dispatching historical clicks when server starts or reloads natively
+    if (askData.clickedTime && askData.clickedTime.toDate() < serverStartTime) return;
+
+    if (!currentAdminPhone1) {
+        console.log("⚠️ Product inquiry received but Admin 1 phone number is unset. Dispatch aborted.");
+        return;
+    }
+
+    const prodName = askData.name || 'N/A';
+    const prodModel = askData.model || 'N/A';
+    const prodBase = askData.basePrice || askData.price || 0;
+    const prodMrp = askData.mrp || 0;
+    const prodMyRate = askData.myRate || 0;
+    const prodQty = askData.qty || 0;
+
+    // High Contrast, crisp Unicode layout with MY RATE dynamically highlighted
+    const inquiryMessage = `📦 *PRODUCT INQUIRY ALERT*
+━━━━━━━━━━━━━━━━━━
+🔹 *Item:* ${prodName}
+🔖 *Model:* ${prodModel}
+📦 *Stock Qty:* ${prodQty}
+
+💰 *Base Price:* Rs. ${prodBase.toLocaleString()}
+🏷️ *MRP:* Rs. ${prodMrp.toLocaleString()}
+⭐ *MY RATE:* Rs. ${prodMyRate.toLocaleString()} 👈
+
+━━━━━━━━━━━━━━━━━━
+_Meena Marketing Internal_`;
+
+    const adminPlainPhone = currentAdminPhone1.replace(/\D/g, '');
+    try {
+        await sleep(1500); // Give DOM processes safe settling execution margins
+        const adminContactId = await client.getNumberId(adminPlainPhone);
+        const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+
+        try {
+            await client.sendMessage(verifiedAdminId, inquiryMessage);
+            console.log(`✅ Inquiry details for "${prodName}" dispatched successfully to Admin 1.`);
+        } catch (sendErr) {
+            if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                console.log(`⚠️ Applying path initialization workaround for Inquiry alert Channel...`);
+                await client.sendMessage(verifiedAdminId, `🔎 Syncing Product Inquiry Stream...`);
+                await sleep(1500);
+                await client.sendMessage(verifiedAdminId, inquiryMessage);
+            } else {
+                throw sendErr;
+            }
+        }
+    } catch (err) {
+        console.error("Error processing text delivery for product inquiry alert stream:", err.message);
+    }
 });
 
 // ---------------------------------------------------------
