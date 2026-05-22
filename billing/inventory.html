@@ -192,10 +192,12 @@
         .action-btn.delete:hover { background: var(--meena-red); color: white; }
         .action-btn.info { color: var(--info-color); background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); }
         .action-btn.info:hover { background: var(--info-color); color: white; }
+        .action-btn.ask { color: #a855f7; background: rgba(168, 85, 247, 0.05); border-color: rgba(168, 85, 247, 0.2); }
+        .action-btn.ask:hover { background: #a855f7; color: white; }
         .action-btn .material-symbols-outlined { font-size: 18px; }
 
         /* MODIFIED Custom Confirm Modal Additions - Centered Popup */
-        #modalConfirm { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 3000; }
+        #modalConfirm { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 3000; position: fixed; }
         #modalConfirm.active { opacity: 1; pointer-events: auto; }
         .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 400px; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95) translateY(10px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; display: flex; flex-direction: column; }
         #modalConfirm.active .modal-content-wrap { transform: scale(1) translateY(0); }
@@ -207,6 +209,14 @@
         .btn-confirm { background: var(--meena-red); color: white; border: none; padding: 15px; border-radius: 12px; flex: 1; cursor: pointer; font-weight: 600; font-size: 1em; transition: 0.2s; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); font-family: 'Inter', sans-serif;}
         .btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); }
         #confirmInput { display: none; width: 100%; margin-top: 20px; font-size: 1.1em; text-align: center; }
+
+        /* Ask Processing Modal */
+        #modalProcessing { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 4000; position: fixed; }
+        #modalProcessing.active { opacity: 1; pointer-events: auto; }
+        #modalProcessing .processing-wrap { background: var(--surface-color); width: 100%; max-width: 320px; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 35px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+        #modalProcessing.active .processing-wrap { transform: scale(1); }
+        @keyframes spinAnim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spin-anim { animation: spinAnim 1.2s linear infinite; }
 
         /* --- NEW: ADMIN PANEL & LOCK SCREEN CSS --- */
         .pin-container { text-align: center; margin-top: 60px; padding: 0 20px; }
@@ -491,6 +501,15 @@
         </div>
     </div>
 
+    <!-- NEW Ask Processing Modal -->
+    <div class="modal" id="modalProcessing">
+        <div class="processing-wrap">
+            <span class="material-symbols-outlined spin-anim" id="procIcon" style="font-size: 4em; color: var(--accent-color);">autorenew</span>
+            <h3 id="procTitle" style="margin: 0; font-size: 1.25em; font-weight: 600; color: var(--marketing-white); line-height: 1.4;">Your request is processing.</h3>
+            <button class="btn-secondary" id="procCloseBtn" style="margin-top: 10px; padding: 12px; display: none;" onclick="history.back()">Close Window</button>
+        </div>
+    </div>
+
     <script type="module">
         // 0. Global Vibration Helper
         window.vibrateApp = function(pattern) {
@@ -509,9 +528,8 @@
         // 2. Firebase Imports 
         import { db } from './config.js';
         
-        // --- COMMENTED OUT OLD IMPORT TO ADD PAGINATION (startAfter) ---
-        // import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // --- Added setDoc to imports ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
@@ -535,25 +553,15 @@
                 const aName = (a.name || '').toLowerCase();
                 const bName = (b.name || '').toLowerCase();
                 
-                // Identify non-stick products
-                // const nonStickRegex = /non[\s\-]?stick/i;
-                // const nonStickRegex = /non[\s\-]?st[io]ck/i; // BUG FIX: Safely catches "non-stock" alongside "non-stick"
-                // const isANonStick = nonStickRegex.test(aName);
-                // const isBNonStick = nonStickRegex.test(bName);
-                
-                // --- NEW ADVANCED LOGIC: Identify out of stock items (Qty 0) to push to bottom ---
+                // Identify out of stock items (Qty 0) to push to bottom
                 const isAOutOfStock = (a.qty || 0) === 0;
                 const isBOutOfStock = (b.qty || 0) === 0;
 
                 // Identify exact matches (Smart matching)
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
-
-                // 1. Non-stick always goes to the bottom
-                // if (isANonStick && !isBNonStick) return 1;
-                // if (!isANonStick && isBNonStick) return -1;
                 
-                // 1. Out of stock always goes to the bottom (Replaces the non-stick logic)
+                // 1. Out of stock always goes to the bottom
                 if (isAOutOfStock && !isBOutOfStock) return 1;
                 if (!isAOutOfStock && isBOutOfStock) return -1;
                 
@@ -602,7 +610,77 @@
             }
         });
 
-        // --- NEW: ADMIN PANEL LOGIC (LOCK SCREEN & MASS DELETE) ---
+        // --- NEW: ASK PRODUCT LOGIC ---
+        let lastAskedProductId = null;
+
+        window.askProductInfo = async function(id) {
+            vibrateApp(30);
+            const item = inventoryCache.find(i => i.id === id);
+            if (!item) return;
+
+            const procIcon = document.getElementById('procIcon');
+            const procTitle = document.getElementById('procTitle');
+            const procCloseBtn = document.getElementById('procCloseBtn');
+
+            // Double click / duplicate request check
+            if (lastAskedProductId === id) {
+                procIcon.innerText = 'check_circle';
+                procIcon.classList.remove('spin-anim');
+                procIcon.style.color = 'var(--success-color)';
+                procTitle.innerText = 'Already processed correctly';
+                procCloseBtn.style.display = 'block';
+                openModal('modalProcessing');
+                return;
+            }
+
+            // Show Processing
+            procIcon.innerText = 'autorenew';
+            procIcon.classList.add('spin-anim');
+            procIcon.style.color = 'var(--accent-color)';
+            procTitle.innerText = 'Your request is processing.';
+            procCloseBtn.style.display = 'none';
+            openModal('modalProcessing');
+
+            try {
+                const payload = {
+                    name: item.name || '',
+                    model: item.model || '',
+                    qty: item.qty || 0,
+                    price: item.price || 0,
+                    mrp: item.mrp || 0,
+                    myRate: item.myRate || 0,
+                    clickedTime: new Date().toISOString()
+                };
+
+                // Pure setDoc without {merge: true} to completely rewrite the document
+                await setDoc(doc(db, "ask", "ask"), payload);
+                
+                lastAskedProductId = id;
+
+                // Success UI Update
+                procIcon.innerText = 'check_circle';
+                procIcon.classList.remove('spin-anim');
+                procIcon.style.color = 'var(--success-color)';
+                procTitle.innerText = 'Request Processed Successfully!';
+                
+                // Auto close after brief moment
+                setTimeout(() => {
+                    if (document.getElementById('modalProcessing').classList.contains('active')) {
+                        history.back(); // Using history triggers the clean popstate close
+                    }
+                }, 2000);
+
+            } catch (err) {
+                console.error("Ask error:", err);
+                procIcon.innerText = 'error';
+                procIcon.classList.remove('spin-anim');
+                procIcon.style.color = 'var(--meena-red)';
+                procTitle.innerText = 'Processing Failed.';
+                procCloseBtn.style.display = 'block';
+            }
+        };
+
+        // --- ADMIN PANEL LOGIC (LOCK SCREEN & MASS DELETE) ---
         let currentAdminPin = "";
         const CORRECT_PIN = "2502";
 
@@ -753,7 +831,7 @@
             }
         };
 
-        // --- NEW: CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL ---
+        // --- CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL ---
         let confirmResolve = null;
         window.openConfirmModal = function(title, message, isPrompt = false, defaultValue = "", confirmColor = "var(--meena-red)", confirmText = "Confirm") {
             vibrateApp(40);
@@ -820,7 +898,7 @@
             } 
         });
 
-        // --- NEW: OPEN INFO MODAL (WITH 12-HR FORMAT) ---
+        // --- OPEN INFO MODAL ---
         window.openInfoModal = function(id) {
             vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
@@ -1019,7 +1097,6 @@
         async function loadInventory(isLoadMore = false) {
             const grid = document.getElementById('inventoryGrid');
             
-            // --- NEW PAGINATION LOGIC WITH SKELETONS ---
             if (isLoadMore) {
                 if (isFetchingMore || !hasMoreData) return;
                 isFetchingMore = true;
@@ -1044,17 +1121,6 @@
             }
 
             try {
-                // --- OLD STATIC LOAD COMMENTED OUT TO PRESERVE LINES ---
-                // const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(50));
-                // const snap = await getDocs(q);
-                // inventoryCache = [];
-                // snap.forEach(doc => {
-                //     inventoryCache.push({ id: doc.id, ...doc.data() });
-                // });
-                // inventoryCache = advancedSort(inventoryCache);
-                // renderInventory(inventoryCache);
-                
-                // --- MODIFIED DYNAMIC PAGINATED QUERY (Handles Low Stock, Search, and Default) ---
                 let q;
                 if (showingLowStock) {
                     if (isLoadMore && lastVisibleItem) {
@@ -1095,15 +1161,6 @@
                 // Update the cursor to the very last document fetched
                 lastVisibleItem = snap.docs[snap.docs.length - 1];
 
-                // OLD snap logic commented out
-                // snap.forEach(doc => {
-                //     if(!inventoryCache.find(i => i.id === doc.id)) {
-                //         inventoryCache.push({ id: doc.id, ...doc.data() });
-                //     }
-                // });
-                // inventoryCache = advancedSort(inventoryCache);
-                // renderInventory(inventoryCache);
-
                 // NEW snap logic: Only sort the new batch, and smoothly append it without re-sorting old items
                 let newItems = [];
                 snap.forEach(doc => {
@@ -1139,7 +1196,7 @@
             }
         }
 
-        // --- MODIFIED: INFINITE SCROLL LISTENER (Now supports all filters) ---
+        // --- INFINITE SCROLL LISTENER (Now supports all filters) ---
         document.querySelector('.main-scroll-area').addEventListener('scroll', (e) => {
             const element = e.target;
             // If the user scrolls within 100 pixels of the bottom of the container
@@ -1180,6 +1237,7 @@
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
+                                <button class="action-btn ask" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info"><span class="material-symbols-outlined">help</span></button>
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
@@ -1225,6 +1283,7 @@
                             <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                             <div class="card-actions">
+                                <button class="action-btn ask" onclick="vibrateApp(20); askProductInfo('${item.id}')" title="Ask Info"><span class="material-symbols-outlined">help</span></button>
                                 <button class="action-btn info" onclick="vibrateApp(20); openInfoModal('${item.id}')" title="History Info"><span class="material-symbols-outlined">history</span></button>
                                 <button class="action-btn edit" onclick="vibrateApp(20); editItemFull('${item.id}')" title="Edit Item"><span class="material-symbols-outlined">edit</span></button>
                                 <button class="action-btn delete" onclick="vibrateApp(40); deleteItem('${item.id}', '${safeName}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
@@ -1240,7 +1299,7 @@
             grid.insertAdjacentHTML('beforeend', htmlBuffer);
         }
 
-        // --- MODIFIED Low Stock Filter Logic (Now Uses Pagination Engine) ---
+        // --- Low Stock Filter Logic (Now Uses Pagination Engine) ---
         window.filterLowStock = async function() {
             vibrateApp(40);
             const btn = document.getElementById('btnLowStock');
@@ -1271,55 +1330,14 @@
             }
         };
 
-        // --- NEW SERVER-SIDE SEARCH FILTER ---
+        // --- SERVER-SIDE SEARCH FILTER ---
         let searchTimeout;
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
                 const term = e.target.value.toLowerCase().trim();
-                
-                // OLD STATIC LOGIC COMMENTED OUT
-                /*
-                if(term === '') {
-                    // BUG FIX: Ensure the low stock button resets its UI if we clear a search while it was active
-                    if (showingLowStock) {
-                        const btn = document.getElementById('btnLowStock');
-                        btn.style.backgroundColor = "var(--warning-color)";
-                        btn.querySelector('.material-symbols-outlined').style.color = "white";
-                        showingLowStock = false;
-                    }
-                    loadInventory(); 
-                    return;
-                }
 
-                const searchWord = term.split(/[\s\-_]+/)[0];
-                if (!searchWord) return;
-
-                try {
-                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Searching database...</div>';
-
-                    // MODIFIED: Direct Firestore query limited to 50
-                    const q = query(
-                        collection(db, "inventory"), 
-                        where("searchKeywords", "array-contains", searchWord),
-                        limit(50)
-                    );
-                    
-                    const snap = await getDocs(q);
-                    const searchResults = [];
-                    snap.forEach(doc => searchResults.push({ id: doc.id, ...doc.data() }));
-                    
-                    // Update the cache and apply advanced sorting algorithms
-                    inventoryCache = advancedSort(searchResults, term);
-                    renderInventory(inventoryCache);
-
-                } catch (err) {
-                    console.error("Search error:", err);
-                    showToast("Search failed.", "error");
-                }
-                */
-
-                // --- NEW PAGINATED SEARCH LOGIC ---
+                // --- PAGINATED SEARCH LOGIC ---
                 currentSearchTerm = term;
                 if(term === '') {
                     // BUG FIX: Ensure the low stock button resets its UI if we clear a search while it was active
