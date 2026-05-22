@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Price - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b111a">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
+            --marketing-white: #ffffff;
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --nav-bg: rgba(19, 27, 38, 0.85); 
+            --input-border: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+        
+        *, *::before, *::after { box-sizing: border-box; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+
+        /* Header */
+        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 16px 20px; display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .back-btn { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 8px; border-radius: 50%; transition: background 0.2s; margin-left: -8px;}
+        .back-btn:hover { background: rgba(255,255,255,0.1); }
+        header h1 { margin: 0; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em; }
+
+        /* Main Container */
+        .container { padding: 25px 20px; max-width: 600px; margin: 0 auto; width: 100%; }
+
+        /* Sleek Card */
+        .ask-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 25px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Top Row: Name, Model, Qty */
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+        .prod-info { flex-grow: 1; min-width: 0; }
+        .prod-name { font-size: 1.35em; font-weight: 700; color: var(--marketing-white); line-height: 1.3; margin-bottom: 8px; word-wrap: break-word; }
+        .prod-model { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px solid rgba(13, 148, 136, 0.2); letter-spacing: 0.5px; }
+        
+        .prod-qty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 14px; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .qty-lbl { font-size: 0.65em; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+        .qty-val { font-size: 1.4em; font-weight: 800; color: white; }
+
+        /* Middle Row: MRP and Base Price */
+        .price-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .price-col { display: flex; flex-direction: column; gap: 5px; }
+        .price-lbl { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
+        .price-mrp { font-size: 1.1em; color: var(--text-secondary); text-decoration: line-through; font-weight: 500; }
+        .price-base { font-size: 1.4em; color: var(--success-color); font-weight: 700; text-align: right; }
+
+        /* Bottom: My Rate (Huge) */
+        .my-rate-container { text-align: center; padding-top: 10px; }
+        .my-rate-lbl { font-size: 0.85em; color: #a855f7; text-transform: uppercase; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .my-rate-val { font-size: 4.5em; font-weight: 800; background: linear-gradient(135deg, #a855f7, #d946ef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; filter: drop-shadow(0 10px 20px rgba(168, 85, 247, 0.4)); letter-spacing: -2px; }
+
+        /* Timestamp Footer */
+        .time-footer { text-align: center; font-size: 0.75em; color: var(--text-secondary); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500;}
+
+        /* Skeleton Animations */
+        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 6px; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        /* Expired / Empty State */
+        .empty-state { display: none; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px; background: var(--surface-color); border: 1px dashed var(--input-border); border-radius: 20px; margin-top: 20px; }
+        .empty-state .material-symbols-outlined { font-size: 4em; color: var(--text-secondary); opacity: 0.5; margin-bottom: 15px; }
+        .empty-state h3 { margin: 0 0 10px 0; color: white; font-weight: 600; }
+        .empty-state p { margin: 0; color: var(--text-secondary); font-size: 0.9em; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <header class="no-select">
+        <button class="back-btn" onclick="if(navigator.vibrate) navigator.vibrate(30); history.back();"><span class="material-symbols-outlined">arrow_back</span></button>
+        <h1>My Price</h1>
+    </header>
+
+    <div class="container" id="mainContainer">
+        
+        <div class="ask-card" id="skeletonCard">
+            <div class="card-header">
+                <div class="prod-info" style="width: 100%;">
+                    <div class="skeleton" style="height: 32px; width: 80%; margin-bottom: 12px;"></div>
+                    <div class="skeleton" style="height: 24px; width: 40%; border-radius: 8px;"></div>
+                </div>
+                <div class="skeleton" style="height: 65px; width: 65px; border-radius: 14px;"></div>
+            </div>
+            
+            <div class="price-row">
+                <div class="price-col">
+                    <div class="skeleton" style="height: 14px; width: 40px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 22px; width: 80px;"></div>
+                </div>
+                <div class="price-col" style="align-items: flex-end;">
+                    <div class="skeleton" style="height: 14px; width: 70px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="height: 28px; width: 100px;"></div>
+                </div>
+            </div>
+
+            <div class="my-rate-container">
+                <div class="skeleton" style="height: 16px; width: 120px; margin: 0 auto 15px;"></div>
+                <div class="skeleton" style="height: 80px; width: 220px; margin: 0 auto; border-radius: 16px;"></div>
+            </div>
+        </div>
+
+        <div class="ask-card" id="dataCard" style="display: none;">
+            <div class="card-header">
+                <div class="prod-info">
+                    <div class="prod-name" id="uiName">--</div>
+                    <div class="prod-model" id="uiModel">--</div>
+                </div>
+                <div class="prod-qty">
+                    <span class="qty-lbl">Stock</span>
+                    <span class="qty-val" id="uiQty">--</span>
+                </div>
+            </div>
+            
+            <div class="price-row">
+                <div class="price-col">
+                    <span class="price-lbl">MRP</span>
+                    <span class="price-mrp" id="uiMrp">₹--</span>
+                </div>
+                <div class="price-col" style="align-items: flex-end;">
+                    <span class="price-lbl">Base Price</span>
+                    <span class="price-base" id="uiBase">₹--</span>
+                </div>
+            </div>
+
+            <div class="my-rate-container">
+                <div class="my-rate-lbl">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">admin_panel_settings</span>
+                    Confidential Rate
+                </div>
+                <div class="my-rate-val" id="uiRate">₹--</div>
+            </div>
+            
+            <div class="time-footer">
+                <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
+                Requested: <span id="uiTime">Just now</span>
+            </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <span class="material-symbols-outlined" id="emptyIcon">timer_off</span>
+            <h3 id="emptyTitle">Request Expired</h3>
+            <p id="emptyDesc">This price request was made over an hour ago. Please request info again from the inventory screen.</p>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Vibrate helper
+        const vibrate = () => { if(navigator.vibrate) navigator.vibrate(20); };
+
+        async function fetchAskData() {
+            const skeleton = document.getElementById('skeletonCard');
+            const dataCard = document.getElementById('dataCard');
+            const emptyState = document.getElementById('emptyState');
+
+            try {
+                // Exactly 1 DB Read
+                const askRef = doc(db, "ask", "ask");
+                const docSnap = await getDoc(askRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // 1-Hour Time Validation Logic
+                    if (data.clickedTime) {
+                        const clickedDate = new Date(data.clickedTime);
+                        const now = new Date();
+                        const diffInMs = now - clickedDate;
+                        const ONE_HOUR = 60 * 60 * 1000;
+
+                        if (diffInMs > ONE_HOUR) {
+                            // Expired
+                            skeleton.style.display = 'none';
+                            emptyState.style.display = 'flex';
+                            return;
+                        }
+
+                        // Format Time for UI
+                        const options = { hour: '2-digit', minute: '2-digit', hour12: true };
+                        document.getElementById('uiTime').innerText = clickedDate.toLocaleTimeString('en-US', options);
+                    } else {
+                        // If no timestamp exists, treat as expired to be safe
+                        skeleton.style.display = 'none';
+                        emptyState.style.display = 'flex';
+                        return;
+                    }
+
+                    // Populate UI
+                    document.getElementById('uiName').innerText = data.name || 'Unnamed Product';
+                    document.getElementById('uiModel').innerText = data.model || 'No Model ID';
+                    document.getElementById('uiQty').innerText = data.qty !== undefined ? data.qty : '0';
+                    document.getElementById('uiMrp').innerText = `₹${(data.mrp || 0).toLocaleString()}`;
+                    document.getElementById('uiBase').innerText = `₹${(data.price || 0).toLocaleString()}`;
+                    
+                    // Populate Huge Rate
+                    document.getElementById('uiRate').innerText = `₹${(data.myRate || 0).toLocaleString()}`;
+
+                    // Switch view
+                    skeleton.style.display = 'none';
+                    dataCard.style.display = 'flex';
+                    vibrate();
+
+                } else {
+                    // Document doesn't exist yet
+                    skeleton.style.display = 'none';
+                    document.getElementById('emptyTitle').innerText = 'No Data Found';
+                    document.getElementById('emptyDesc').innerText = 'No price request has been sent to the database yet.';
+                    document.getElementById('emptyIcon').innerText = 'cloud_off';
+                    emptyState.style.display = 'flex';
+                }
+            } catch (error) {
+                console.error("Error fetching request:", error);
+                skeleton.style.display = 'none';
+                document.getElementById('emptyTitle').innerText = 'Connection Error';
+                document.getElementById('emptyDesc').innerText = 'Failed to load data. Please check your internet connection.';
+                document.getElementById('emptyIcon').innerText = 'wifi_off';
+                emptyState.style.display = 'flex';
+            }
+        }
+
+        // Initialize Fetch on load
+        fetchAskData();
+    </script>
+</body>
+</html>
