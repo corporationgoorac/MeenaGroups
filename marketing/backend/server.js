@@ -8,6 +8,18 @@ const fs = require('fs');
 process.env.TZ = "Asia/Kolkata";
 
 // ---------------------------------------------------------
+// PRODUCTION FIX: GLOBAL ERROR HANDLERS
+// Prevents background library errors (like "auth timeout") from crashing the app
+// ---------------------------------------------------------
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ [CRITICAL] Background Promise Rejection caught:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('⚠️ [CRITICAL] Background Exception caught:', error);
+});
+
+// ---------------------------------------------------------
 // 1. FIREBASE & EXPRESS WEB SERVER SETUP
 // ---------------------------------------------------------
 // Initialize Firebase (Ensure you have your service account JSON in the root folder or as a Secret)
@@ -81,8 +93,11 @@ app.get('/', (req, res) => {
     }
 });
 
+// PRODUCTION FIX: Catch Express binding errors
 app.listen(PORT, () => {
     console.log(`🌐 Web Dashboard running on port ${PORT}`);
+}).on('error', (err) => {
+    console.error('⚠️ [CRITICAL] Express Server Error:', err);
 });
 
 // ---------------------------------------------------------
@@ -133,24 +148,28 @@ let admin1AlertsEnabled = true; // MEMORY CACHE GUARD: Keeps track of admin 1 sa
 
 // Fetch admins on boot
 async function fetchAdminPhone() {
-    const docSnap = await db.collection('system_folder').doc('config').get();
-    if (docSnap.exists) {
-        const data = docSnap.data();
-        // Support legacy 'adminPhone' field for Admin 1 backward compatibility
-        currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
-        currentAdminPhone2 = data.adminPhone2 || null;
-        currentAdminPhone3 = data.adminPhone3 || null;
-        currentShopPhone = data.shopPhone || null;
-        
-        // Sync active state from DB on boot up
-        if (data.admin1AlertsEnabled !== undefined) {
-            admin1AlertsEnabled = data.admin1AlertsEnabled;
+    try { // PRODUCTION FIX: Added try/catch for database fetch
+        const docSnap = await db.collection('system_folder').doc('config').get();
+        if (docSnap.exists) {
+            const data = docSnap.data();
+            // Support legacy 'adminPhone' field for Admin 1 backward compatibility
+            currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
+            currentAdminPhone2 = data.adminPhone2 || null;
+            currentAdminPhone3 = data.adminPhone3 || null;
+            currentShopPhone = data.shopPhone || null;
+            
+            // Sync active state from DB on boot up
+            if (data.admin1AlertsEnabled !== undefined) {
+                admin1AlertsEnabled = data.admin1AlertsEnabled;
+            }
+            
+            console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'} (Sales Alert State: ${admin1AlertsEnabled ? 'ACTIVE' : 'MUTED'})`);
+            console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
+            console.log(`👑 Admin 3 Phone Loaded: ${currentAdminPhone3 || 'Not Set'}`);
+            console.log(`🏪 Shop Phone Loaded: ${currentShopPhone || 'Not Set'}`);
         }
-        
-        console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'} (Sales Alert State: ${admin1AlertsEnabled ? 'ACTIVE' : 'MUTED'})`);
-        console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
-        console.log(`👑 Admin 3 Phone Loaded: ${currentAdminPhone3 || 'Not Set'}`);
-        console.log(`🏪 Shop Phone Loaded: ${currentShopPhone || 'Not Set'}`);
+    } catch (err) {
+        console.error("⚠️ Failed to fetch admin phones on boot:", err);
     }
 }
 fetchAdminPhone();
@@ -158,7 +177,7 @@ fetchAdminPhone();
 // Smart Phone Number Formatter
 function formatPhone(num) {
     if (!num) return null;
-    let cleaned = num.toString().replace(/[^0-9+]/g, ''); // Remove spaces, dashes, text
+    let cleaned = String(num).replace(/[^0-9+]/g, ''); // PRODUCTION FIX: Forced String() cast to prevent .replace crash
     
     if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1); // Remove leading 0
     if (cleaned.length === 10) cleaned = '+91' + cleaned; // Add +91 to 10 digit numbers
@@ -175,191 +194,195 @@ function formatPhone(num) {
 const waitingForAdminUpdate = {};
 
 client.on('message', async (msg) => {
-    const input = msg.body.trim();
-    const normalizedInput = input.toLowerCase();
+    try { // PRODUCTION FIX: Wrapped interactive bot handler to prevent unexpected failures bubbling up
+        const input = msg.body.trim();
+        const normalizedInput = input.toLowerCase();
 
-    // -- ADMIN 1 REALTIME SALES TOGGLE FLOWS (HIGHLY OPTIMIZED WRITES) --
-    if (normalizedInput === 'admin 1 off') {
-        try {
-            admin1AlertsEnabled = false;
-            await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: false }, { merge: true });
-            return msg.reply("📴 *Admin 1 Sales Alerts Suspended.*\nYou will no longer receive messaging alerts when a sales transaction is completed.");
-        } catch (err) {
-            console.error("Failed turning off Admin 1 sales notification configuration:", err);
-            return msg.reply("⚠️ Error connecting to database.");
-        }
-    }
-
-    if (normalizedInput === 'admin 1 on') {
-        try {
-            admin1AlertsEnabled = true;
-            await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: true }, { merge: true });
-            return msg.reply("🔔 *Admin 1 Sales Alerts Restored.*\nYou will now seamlessly receive real-time updates for newly generated invoices.");
-        } catch (err) {
-            console.error("Failed turning on Admin 1 sales notification configuration:", err);
-            return msg.reply("⚠️ Error connecting to database.");
-        }
-    }
-
-    // -- A. Change Admin 1 Flow --
-    if (normalizedInput === 'change admin 1 number' || normalizedInput === 'change admin 1 phone number') {
-        waitingForAdminUpdate[msg.from] = 1;
-        return msg.reply("🛡️ *Admin 1 Configuration*\nPlease enter the new Admin 1 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
-    }
-
-    // -- B. Change Admin 2 Flow --
-    if (normalizedInput === 'change admin 2 number' || normalizedInput === 'change admin 2 phone number') {
-        waitingForAdminUpdate[msg.from] = 2;
-        return msg.reply("🛡️ *Admin 2 Configuration*\nPlease enter the new Admin 2 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
-    }
-
-    // -- Change Admin 3 Flow --
-    if (normalizedInput === 'change admin 3 number' || normalizedInput === 'change admin 3 phone number') {
-        waitingForAdminUpdate[msg.from] = 3;
-        return msg.reply("🛡️ *Admin 3 Configuration*\nPlease enter the new Admin 3 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
-    }
-
-    // -- Change Shop Number Flow --
-    if (normalizedInput === 'change shop number' || normalizedInput === 'change shop phone number') {
-        waitingForAdminUpdate[msg.from] = 'shop';
-        return msg.reply("🏪 *Shop Configuration*\nPlease enter the new Shop Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
-    }
-
-    // -- C. List Admins Flow --
-    if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
-        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'} (Alerts: ${admin1AlertsEnabled ? 'Enabled' : 'Muted'})\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}\n🏪 *Shop:* ${currentShopPhone || 'Not set'}`);
-    }
-
-    // -- E. Remove Admin 1 Flow --
-    if (normalizedInput === 'remove admin 1 number' || normalizedInput === 'remove admin 1 phone number') {
-        try {
-            // Clears both new adminPhone1 and legacy adminPhone to prevent fallback re-loads
-            await db.collection('system_folder').doc('config').set({ adminPhone1: null, adminPhone: null }, { merge: true });
-            currentAdminPhone1 = null;
-            return msg.reply("🗑️ *Admin 1 Successfully Removed.*\nNo further alerts will be sent to this slot.");
-        } catch (err) {
-            console.error("Failed to remove admin 1:", err);
-            return msg.reply("⚠️ Error updating database.");
-        }
-    }
-
-    // -- F. Remove Admin 2 Flow --
-    if (normalizedInput === 'remove admin 2 number' || normalizedInput === 'remove admin 2 phone number') {
-        try {
-            await db.collection('system_folder').doc('config').set({ adminPhone2: null }, { merge: true });
-            currentAdminPhone2 = null;
-            return msg.reply("🗑️ *Admin 2 Successfully Removed.*\nNo further alerts will be sent to this slot.");
-        } catch (err) {
-            console.error("Failed to remove admin 2:", err);
-            return msg.reply("⚠️ Error updating database.");
-        }
-    }
-
-    // -- Remove Admin 3 Flow --
-    if (normalizedInput === 'remove admin 3 number' || normalizedInput === 'remove admin 3 phone number') {
-        try {
-            await db.collection('system_folder').doc('config').set({ adminPhone3: null }, { merge: true });
-            currentAdminPhone3 = null;
-            return msg.reply("🗑️ *Admin 3 Successfully Removed.*\nNo further alerts will be sent to this slot.");
-        } catch (err) {
-            console.error("Failed to remove admin 3:", err);
-            return msg.reply("⚠️ Error updating database.");
-        }
-    }
-
-    // -- Remove Shop Number Flow --
-    if (normalizedInput === 'remove shop number' || normalizedInput === 'remove shop phone number') {
-        try {
-            await db.collection('system_folder').doc('config').set({ shopPhone: null }, { merge: true });
-            currentShopPhone = null;
-            return msg.reply("🗑️ *Shop Number Successfully Removed.*\nNo further alerts will be sent to this slot.");
-        } catch (err) {
-            console.error("Failed to remove shop number:", err);
-            return msg.reply("⚠️ Error updating database.");
-        }
-    }
-
-    // -- Process Admin Input --
-    if (waitingForAdminUpdate[msg.from]) {
-        const adminSlot = waitingForAdminUpdate[msg.from];
-        const formattedNewNumber = formatPhone(input);
-        
-        if (!formattedNewNumber) {
-            return msg.reply("❌ *Invalid Number Format.*\nPlease enter a valid 10-digit Indian number.");
+        // -- ADMIN 1 REALTIME SALES TOGGLE FLOWS (HIGHLY OPTIMIZED WRITES) --
+        if (normalizedInput === 'admin 1 off') {
+            try {
+                admin1AlertsEnabled = false;
+                await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: false }, { merge: true });
+                return msg.reply("📴 *Admin 1 Sales Alerts Suspended.*\nYou will no longer receive messaging alerts when a sales transaction is completed.");
+            } catch (err) {
+                console.error("Failed turning off Admin 1 sales notification configuration:", err);
+                return msg.reply("⚠️ Error connecting to database.");
+            }
         }
 
-        try {
-            if (adminSlot === 'shop') {
-                await db.collection('system_folder').doc('config').set({ shopPhone: formattedNewNumber }, { merge: true });
-                currentShopPhone = formattedNewNumber;
-                delete waitingForAdminUpdate[msg.from];
-                return msg.reply(`✅ *Shop Number Successfully Updated*\nAll future inquiry confirmations will be sent to:\n*${formattedNewNumber}*`);
+        if (normalizedInput === 'admin 1 on') {
+            try {
+                admin1AlertsEnabled = true;
+                await db.collection('system_folder').doc('config').set({ admin1AlertsEnabled: true }, { merge: true });
+                return msg.reply("🔔 *Admin 1 Sales Alerts Restored.*\nYou will now seamlessly receive real-time updates for newly generated invoices.");
+            } catch (err) {
+                console.error("Failed turning on Admin 1 sales notification configuration:", err);
+                return msg.reply("⚠️ Error connecting to database.");
+            }
+        }
+
+        // -- A. Change Admin 1 Flow --
+        if (normalizedInput === 'change admin 1 number' || normalizedInput === 'change admin 1 phone number') {
+            waitingForAdminUpdate[msg.from] = 1;
+            return msg.reply("🛡️ *Admin 1 Configuration*\nPlease enter the new Admin 1 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+        }
+
+        // -- B. Change Admin 2 Flow --
+        if (normalizedInput === 'change admin 2 number' || normalizedInput === 'change admin 2 phone number') {
+            waitingForAdminUpdate[msg.from] = 2;
+            return msg.reply("🛡️ *Admin 2 Configuration*\nPlease enter the new Admin 2 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+        }
+
+        // -- Change Admin 3 Flow --
+        if (normalizedInput === 'change admin 3 number' || normalizedInput === 'change admin 3 phone number') {
+            waitingForAdminUpdate[msg.from] = 3;
+            return msg.reply("🛡️ *Admin 3 Configuration*\nPlease enter the new Admin 3 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+        }
+
+        // -- Change Shop Number Flow --
+        if (normalizedInput === 'change shop number' || normalizedInput === 'change shop phone number') {
+            waitingForAdminUpdate[msg.from] = 'shop';
+            return msg.reply("🏪 *Shop Configuration*\nPlease enter the new Shop Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+        }
+
+        // -- C. List Admins Flow --
+        if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
+            return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'} (Alerts: ${admin1AlertsEnabled ? 'Enabled' : 'Muted'})\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}\n🏪 *Shop:* ${currentShopPhone || 'Not set'}`);
+        }
+
+        // -- E. Remove Admin 1 Flow --
+        if (normalizedInput === 'remove admin 1 number' || normalizedInput === 'remove admin 1 phone number') {
+            try {
+                // Clears both new adminPhone1 and legacy adminPhone to prevent fallback re-loads
+                await db.collection('system_folder').doc('config').set({ adminPhone1: null, adminPhone: null }, { merge: true });
+                currentAdminPhone1 = null;
+                return msg.reply("🗑️ *Admin 1 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+            } catch (err) {
+                console.error("Failed to remove admin 1:", err);
+                return msg.reply("⚠️ Error updating database.");
+            }
+        }
+
+        // -- F. Remove Admin 2 Flow --
+        if (normalizedInput === 'remove admin 2 number' || normalizedInput === 'remove admin 2 phone number') {
+            try {
+                await db.collection('system_folder').doc('config').set({ adminPhone2: null }, { merge: true });
+                currentAdminPhone2 = null;
+                return msg.reply("🗑️ *Admin 2 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+            } catch (err) {
+                console.error("Failed to remove admin 2:", err);
+                return msg.reply("⚠️ Error updating database.");
+            }
+        }
+
+        // -- Remove Admin 3 Flow --
+        if (normalizedInput === 'remove admin 3 number' || normalizedInput === 'remove admin 3 phone number') {
+            try {
+                await db.collection('system_folder').doc('config').set({ adminPhone3: null }, { merge: true });
+                currentAdminPhone3 = null;
+                return msg.reply("🗑️ *Admin 3 Successfully Removed.*\nNo further alerts will be sent to this slot.");
+            } catch (err) {
+                console.error("Failed to remove admin 3:", err);
+                return msg.reply("⚠️ Error updating database.");
+            }
+        }
+
+        // -- Remove Shop Number Flow --
+        if (normalizedInput === 'remove shop number' || normalizedInput === 'remove shop phone number') {
+            try {
+                await db.collection('system_folder').doc('config').set({ shopPhone: null }, { merge: true });
+                currentShopPhone = null;
+                return msg.reply("🗑️ *Shop Number Successfully Removed.*\nNo further alerts will be sent to this slot.");
+            } catch (err) {
+                console.error("Failed to remove shop number:", err);
+                return msg.reply("⚠️ Error updating database.");
+            }
+        }
+
+        // -- Process Admin Input --
+        if (waitingForAdminUpdate[msg.from]) {
+            const adminSlot = waitingForAdminUpdate[msg.from];
+            const formattedNewNumber = formatPhone(input);
+            
+            if (!formattedNewNumber) {
+                return msg.reply("❌ *Invalid Number Format.*\nPlease enter a valid 10-digit Indian number.");
             }
 
-            // Overwrite specific database field to strictly prevent arrays/duplication
-            const fieldName = adminSlot === 1 ? 'adminPhone1' : (adminSlot === 2 ? 'adminPhone2' : 'adminPhone3');
-            await db.collection('system_folder').doc('config').set({ [fieldName]: formattedNewNumber }, { merge: true });
-            
-            if (adminSlot === 1) {
-                currentAdminPhone1 = formattedNewNumber;
-            } else if (adminSlot === 2) {
-                currentAdminPhone2 = formattedNewNumber;
-            } else {
-                currentAdminPhone3 = formattedNewNumber;
-            }
-            
-            delete waitingForAdminUpdate[msg.from];
-            
-            return msg.reply(`✅ *Admin ${adminSlot} Successfully Updated*\nAll future billing alerts will be sent to:\n*${formattedNewNumber}*`);
-        } catch (err) {
-            console.error("Failed to update admin:", err);
-            return msg.reply("⚠️ Error updating database.");
-        }
-    }
+            try {
+                if (adminSlot === 'shop') {
+                    await db.collection('system_folder').doc('config').set({ shopPhone: formattedNewNumber }, { merge: true });
+                    currentShopPhone = formattedNewNumber;
+                    delete waitingForAdminUpdate[msg.from];
+                    return msg.reply(`✅ *Shop Number Successfully Updated*\nAll future inquiry confirmations will be sent to:\n*${formattedNewNumber}*`);
+                }
 
-    // -- D. Marketing Total Flow --
-    if (normalizedInput === 'marketing total') {
-        // Optional: Ensure only an admin can check totals
-        // const isAuth = (currentAdminPhone1 && msg.from === currentAdminPhone1 + '@c.us') || (currentAdminPhone2 && msg.from === currentAdminPhone2 + '@c.us');
-        // if (!isAuth) return;
-
-        await msg.reply("📊 _Calculating today's sales..._");
-        
-        try {
-            const today = new Date();
-            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-            const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-
-            const q = await db.collection('sellings')
-                .where('date', '>=', startOfDay)
-                .where('date', '<=', endOfDay)
-                .get();
-
-            let cashTotal = 0;
-            let onlineTotal = 0;
-            let grandTotal = 0;
-            let count = 0;
-
-            q.forEach(doc => {
-                const data = doc.data();
-                const total = data.totals?.grand || 0;
-                const mode = (data.paymentMode || data.paymentMethod || 'Cash').toLowerCase();
+                // Overwrite specific database field to strictly prevent arrays/duplication
+                const fieldName = adminSlot === 1 ? 'adminPhone1' : (adminSlot === 2 ? 'adminPhone2' : 'adminPhone3');
+                await db.collection('system_folder').doc('config').set({ [fieldName]: formattedNewNumber }, { merge: true });
                 
-                grandTotal += total;
-                count++;
-
-                if (mode === 'online') onlineTotal += total;
-                else cashTotal += total;
-            });
-
-            const summaryMsg = `📈 *MEENA MARKETING - DAILY SUMMARY*\n📅 ${today.toLocaleDateString('en-IN')}\n\n🧾 *Total Invoices:* ${count}\n💵 *Cash Sales:* ₹${cashTotal.toLocaleString()}\n📱 *Online Sales:* ₹${onlineTotal.toLocaleString()}\n\n🏆 *GRAND TOTAL: ₹${grandTotal.toLocaleString()}*`;
-            
-            return msg.reply(summaryMsg);
-
-        } catch (error) {
-            console.error("Sales Calculation Error:", error);
-            return msg.reply("⚠️ Could not fetch sales data right now.");
+                if (adminSlot === 1) {
+                    currentAdminPhone1 = formattedNewNumber;
+                } else if (adminSlot === 2) {
+                    currentAdminPhone2 = formattedNewNumber;
+                } else {
+                    currentAdminPhone3 = formattedNewNumber;
+                }
+                
+                delete waitingForAdminUpdate[msg.from];
+                
+                return msg.reply(`✅ *Admin ${adminSlot} Successfully Updated*\nAll future billing alerts will be sent to:\n*${formattedNewNumber}*`);
+            } catch (err) {
+                console.error("Failed to update admin:", err);
+                return msg.reply("⚠️ Error updating database.");
+            }
         }
+
+        // -- D. Marketing Total Flow --
+        if (normalizedInput === 'marketing total') {
+            // Optional: Ensure only an admin can check totals
+            // const isAuth = (currentAdminPhone1 && msg.from === currentAdminPhone1 + '@c.us') || (currentAdminPhone2 && msg.from === currentAdminPhone2 + '@c.us');
+            // if (!isAuth) return;
+
+            await msg.reply("📊 _Calculating today's sales..._");
+            
+            try {
+                const today = new Date();
+                const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+                const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+                const q = await db.collection('sellings')
+                    .where('date', '>=', startOfDay)
+                    .where('date', '<=', endOfDay)
+                    .get();
+
+                let cashTotal = 0;
+                let onlineTotal = 0;
+                let grandTotal = 0;
+                let count = 0;
+
+                q.forEach(doc => {
+                    const data = doc.data();
+                    const total = data.totals?.grand || 0;
+                    const mode = (data.paymentMode || data.paymentMethod || 'Cash').toLowerCase();
+                    
+                    grandTotal += total;
+                    count++;
+
+                    if (mode === 'online') onlineTotal += total;
+                    else cashTotal += total;
+                });
+
+                const summaryMsg = `📈 *MEENA MARKETING - DAILY SUMMARY*\n📅 ${today.toLocaleDateString('en-IN')}\n\n🧾 *Total Invoices:* ${count}\n💵 *Cash Sales:* ₹${cashTotal.toLocaleString()}\n📱 *Online Sales:* ₹${onlineTotal.toLocaleString()}\n\n🏆 *GRAND TOTAL: ₹${grandTotal.toLocaleString()}*`;
+                
+                return msg.reply(summaryMsg);
+
+            } catch (error) {
+                console.error("Sales Calculation Error:", error);
+                return msg.reply("⚠️ Could not fetch sales data right now.");
+            }
+        }
+    } catch (globalMsgError) {
+        console.error("⚠️ [CRITICAL] Unhandled error in bot message listener:", globalMsgError);
     }
 });
 
@@ -367,6 +390,7 @@ client.on('message', async (msg) => {
 // 5. REAL-TIME BILLING TRIGGER (From Firebase)
 // ---------------------------------------------------------
 // FIX APPLIED HERE: Added .where('createdAt', '>=', serverStartTime) to prevent massive boot-up read leak
+// PRODUCTION FIX: Added Firebase error callback attached to snapshot
 db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(async (snapshot) => {
     snapshot.docChanges().forEach(async (change) => {
         // Only process newly added bills
@@ -440,7 +464,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                     }
 
                     // ENTERPRISE FIX: Added getNumberId check & initialization fallback to fix findChat: @lid crashes
-                    const adminPlainPhone = adminPhone.replace(/\D/g, '');
+                    // PRODUCTION FIX: Forced String typing to guarantee regex success
+                    const adminPlainPhone = adminPhone ? String(adminPhone).replace(/\D/g, '') : '';
                     try {
                         await sleep(2000); // Give DOM time to process
                         const adminContactId = await client.getNumberId(adminPlainPhone);
@@ -470,7 +495,8 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
 
             if (formattedCustPhone) {
                 // FIX: Strip ALL non-numeric characters (including the '+' symbol)
-                const plainPhone = formattedCustPhone.replace(/\D/g, '');
+                // PRODUCTION FIX: Enforced String conversion mapping
+                const plainPhone = String(formattedCustPhone).replace(/\D/g, '');
                 
                 try {
                     // ENTERPRISE FIX: Brief delay before querying to ensure stability
@@ -522,6 +548,9 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
             }
         }
     });
+}, (error) => {
+    // PRODUCTION FIX: Catch Firestore network drop errors natively
+    console.error('🔥 [FATAL] Firestore Sellings Snapshot Error:', error);
 });
 
 // ---------------------------------------------------------
@@ -567,7 +596,8 @@ db.collection('ask').doc('ask').onSnapshot(async (docSnap) => {
 ━━━━━━━━━━━━━━━━━━
 _Meena Marketing Internal_`;
 
-    const adminPlainPhone = currentAdminPhone1.replace(/\D/g, '');
+    // PRODUCTION FIX: String Cast
+    const adminPlainPhone = currentAdminPhone1 ? String(currentAdminPhone1).replace(/\D/g, '') : '';
     try {
         await sleep(1500); // Give DOM processes safe settling execution margins
         const adminContactId = await client.getNumberId(adminPlainPhone);
@@ -648,7 +678,8 @@ _Request has been successfully dispatched to Admin._`;
 _Request has been successfully dispatched to Admin for final review if further negotiation is needed._`;
         }
 
-        const shopPlainPhone = currentShopPhone.replace(/\D/g, '');
+        // PRODUCTION FIX: String Cast
+        const shopPlainPhone = currentShopPhone ? String(currentShopPhone).replace(/\D/g, '') : '';
         try {
             await sleep(1500); // Give DOM processes safe settling execution margins
             const shopContactId = await client.getNumberId(shopPlainPhone);
@@ -671,12 +702,20 @@ _Request has been successfully dispatched to Admin for final review if further n
             console.error("Error processing text delivery for shop confirmation stream:", err.message);
         }
     }
+}, (error) => {
+    // PRODUCTION FIX: Catch Firestore Ask network drop errors natively
+    console.error('🔥 [FATAL] Firestore Ask Snapshot Error:', error);
 });
 
 // ---------------------------------------------------------
 // 6. PUPPETEER IMAGE GENERATOR (Redesigned & Overlap Fixed)
 // ---------------------------------------------------------
 async function generateReceiptImage(client, data) {
+    // PRODUCTION FIX: Ensure browser state is fully active to prevent node crashes
+    if (!client || !client.pupBrowser) {
+        throw new Error("Puppeteer browser not initialized yet. Cannot generate image.");
+    }
+    
     const page = await client.pupBrowser.newPage(); 
     await page.setViewport({ width: 600, height: 800 }); // Compact Receipt Size
 
@@ -807,4 +846,7 @@ client.on('ready', () => {
 });
 
 // Initialize WhatsApp
-client.initialize();
+// PRODUCTION FIX: Catch terminal initialization errors gracefully
+client.initialize().catch(err => {
+    console.error("⚠️ [CRITICAL] WhatsApp Initialization failed:", err);
+});
