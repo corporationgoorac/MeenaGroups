@@ -11,13 +11,14 @@ let isInitialized = false;
  * 3. On-Demand Generator Trigger (!generate image)
  * 4. 16-Hour Business Pacing Math (6:00 AM - 10:00 PM IST)
  * 5. Unique Promo Code Generation & Time-Based Greetings
- * 6. 500+ Dynamic Agent Pitch Generator (Bilingual)
+ * 6. 1000+ Dynamic Agent Pitch Generator (Bilingual)
  * 7. Canvas Height Expansion (Fixed Overlap Bug)
  * 8. Anti-Duplication Shield (Prevents spam on server reconnects)
  * 9. Opt-Out Blacklist & Dead Number Graveyard Processing
  * 10. ENTERPRISE CRON PACING: Database tracked delays, Server-crash proof
  * 11. SMART WEEKEND BOOSTER: Dynamically adjusts quota on Sundays
  * 12. EXPANDED INVENTORY & MULTI-LAYOUT DESIGNS ADDED
+ * 13. HUMAN-LIKE DYNAMIC VOICE NOTE SIMULATOR ADDED (Cache-Busted)
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
@@ -97,6 +98,37 @@ module.exports = (client, db) => {
         return `${hours}.${minutes} ${ampm}`;
     };
 
+    // --- NEW: HUMAN SIMULATED VOICE NOTE SENDER ---
+    const sendHumanVoiceNote = async (client, targetId, customerName) => {
+        try {
+            console.log(`🎙️ [Marketing] Preparing human-like voice note sequence for ${customerName} (${targetId})...`);
+            const chat = await client.getChatById(targetId);
+            
+            // 1. Simulate the human "thinking/breathing" gap before deciding to send a voice note
+            await sleep(5000); 
+            
+            // 2. Trigger WhatsApp's "Recording Audio..." status at the top of the chat
+            await chat.sendStateRecording();
+            
+            // 3. Keep recording state active for exactly 9 seconds to simulate human speech duration
+            await sleep(9000); 
+
+            // 4. Fetch the absolute freshest file from Hugging Face by bypassing cache 
+            // Note: Changed /blob/ to /resolve/ to get the raw playable audio data
+            const audioUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.mp3?t=${Date.now()}`;
+            const voiceMedia = await MessageMedia.fromUrl(audioUrl, { unsafeMime: true });
+            
+            // 5. Fire as a native playable blue microphone PTT (Push-To-Talk) wave file
+            await client.sendMessage(targetId, voiceMedia, { 
+                sendAudioAsVoice: true 
+            });
+            
+            console.log(`✅ [Marketing] Professional dynamic voice note successfully delivered to ${customerName}.`);
+        } catch (error) {
+            console.error(`⚠️ [Marketing] Voice note simulation failed for ${targetId}:`, error.message);
+        }
+    };
+
     // --- 1. ON-DEMAND WHATSAPP AD GENERATOR & OPT-OUT HANDLER ---
     client.on('message', async (msg) => {
         const input = msg.body.trim().toLowerCase();
@@ -141,6 +173,10 @@ module.exports = (client, db) => {
                 // ENTERPRISE FIX: Give DOM time to sync before sending
                 await sleep(2000);
                 await client.sendMessage(msg.from, media, { caption: caption });
+                
+                // NEW FEATURE: Append the dynamic voice note to manual triggers as well
+                await sendHumanVoiceNote(client, msg.from, customerName);
+                
             } catch (err) {
                 console.error("Manual Ad Generation Error:", err);
                 await msg.reply("⚠️ Error generating image. Server might be busy.");
@@ -185,7 +221,7 @@ module.exports = (client, db) => {
                 console.log("📥 [Marketing] 30-Day Cycle Started: Pulling last 200 bills from Firebase...");
                 
                 // FIREBASE OPTIMIZATION: Exactly 200 reads, performed ONLY once a month.
-                const sellingSnap = await db.collection('sellings').orderBy('date', 'asc').limit(350).get();
+                const sellingSnap = await db.collection('sellings').orderBy('date', 'asc').limit(300).get();
                 const uniqueCustomers = new Map();
 
                 // Deduplication
@@ -440,7 +476,13 @@ module.exports = (client, db) => {
                 }
             }
 
-            console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
+            if (success) {
+                console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
+                
+                // NEW FEATURE: Seamlessly trigger the human voice note sequence right after the message succeeds
+                await sendHumanVoiceNote(client, verifiedWhatsappId, customerName);
+            }
+            
         } catch (err) {
             console.error(`❌ Failed to send Ad to ${customerName}`);
             throw err; // Throw up to the loop so it doesn't count as successfully sent
@@ -453,32 +495,32 @@ module.exports = (client, db) => {
         const categories = ['Mobiles', 'Appliances', 'Furniture', 'Smart Home & Electronics', 'Kitchenware'];
         const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
 
-        // Massive Database Simulation (EXPANDED INVENTORY)
+        // Massive Database Simulation (HIGHLY EXPANDED INVENTORY)
         const dbData = {
             Mobiles: {
-                brands: ['POCO', 'VIVO', 'Samsung', 'Apple', 'Redmi', 'Realme', 'Oppo', 'OnePlus', 'iQOO', 'Motorola', 'Asus ROG', 'Nothing'],
-                mainProducts: ['5G Smartphones', 'Flagship Killers', 'Premium Mobiles', 'Gaming Phones', 'Foldable Phones', 'High-Performance Tablets'],
-                subProducts: ['Bluetooth TWS Earbuds', 'Smartwatches', 'Fast Chargers', 'Power Banks', 'Premium Cases', 'Screen Protectors', 'Wired Earphones', 'Mobile Gimbals', 'Car Mounts']
+                brands: ['POCO', 'VIVO', 'Samsung', 'Apple', 'Redmi', 'Realme', 'Oppo', 'OnePlus', 'iQOO', 'Motorola', 'Asus ROG', 'Nothing', 'Google Pixel', 'Lava', 'Infinix'],
+                mainProducts: ['5G Smartphones', 'Flagship Killers', 'Premium Mobiles', 'Gaming Phones', 'Foldable Phones', 'High-Performance Tablets', 'Ultra-Slim Laptops', 'Creator iPads'],
+                subProducts: ['Bluetooth TWS Earbuds', 'Smartwatches', 'Fast Chargers', 'Power Banks', 'Premium Cases', 'Screen Protectors', 'Wired Earphones', 'Mobile Gimbals', 'Car Mounts', 'Wireless Neckbands', 'Gaming Triggers', 'Magnetic Wireless Chargers']
             },
             Appliances: {
-                brands: ['LG', 'Samsung', 'Whirlpool', 'Voltas', 'Haier', 'Godrej', 'Blue Star', 'Bosch', 'IFB', 'Lloyd', 'Panasonic', 'Daikin', 'TCL'],
-                mainProducts: ['Front-Load Washing Machines', 'Double Door Refrigerators', 'Split Air Conditioners', '4K Smart LED TVs', 'OLED TVs', 'Inverter ACs', 'Top-Load Washers'],
-                subProducts: ['Mixer Grinders', 'Microwave Ovens', 'Water Purifiers', 'Induction Stoves', 'Ceiling Fans', 'Iron Boxes', 'Geysers', 'Voltage Stabilizers']
+                brands: ['LG', 'Samsung', 'Whirlpool', 'Voltas', 'Haier', 'Godrej', 'Blue Star', 'Bosch', 'IFB', 'Lloyd', 'Panasonic', 'Daikin', 'TCL', 'Sony', 'O General'],
+                mainProducts: ['Front-Load Washing Machines', 'Double Door Refrigerators', 'Split Air Conditioners', '4K Smart LED TVs', 'OLED TVs', 'Inverter ACs', 'Top-Load Washers', 'Side-by-Side Refrigerators', 'Tower ACs'],
+                subProducts: ['Mixer Grinders', 'Microwave Ovens', 'Water Purifiers', 'Induction Stoves', 'Ceiling Fans', 'Iron Boxes', 'Geysers', 'Voltage Stabilizers', 'Air Coolers', 'Vacuum Cleaners', 'Water Heaters', 'Room Heaters']
             },
             Furniture: {
-                brands: ['Premium Teak', 'Steel Strong', 'Royal Oak', 'Nilkamal', 'Custom Handcrafted', 'Zuari', 'Wakefit', 'Urban Ladder Design', 'Godrej Interio'],
-                mainProducts: ['King Size Wooden Cots', 'Heavy Steel Beeros', 'Teak Wood Beeros', 'L-Shape Sofa Sets', 'Glass Dining Tables', 'Modular Wardrobes', 'Premium Recliners'],
-                subProducts: ['Orthopedic Mattresses', 'Office Chairs', 'Recliners', 'Dressing Tables', 'Pooja Mandirs', 'Shoe Racks', 'Study Desks', 'Bookshelves', 'Coffee Tables', 'Bedside Tables']
+                brands: ['Premium Teak', 'Steel Strong', 'Royal Oak', 'Nilkamal', 'Custom Handcrafted', 'Zuari', 'Wakefit', 'Urban Ladder Design', 'Godrej Interio', 'Durian', 'Hometown'],
+                mainProducts: ['King Size Wooden Cots', 'Heavy Steel Beeros', 'Teak Wood Beeros', 'L-Shape Sofa Sets', 'Glass Dining Tables', 'Modular Wardrobes', 'Premium Recliners', 'Queen Size Storage Beds', 'Luxury Loungers'],
+                subProducts: ['Orthopedic Mattresses', 'Office Chairs', 'Recliners', 'Dressing Tables', 'Pooja Mandirs', 'Shoe Racks', 'Study Desks', 'Bookshelves', 'Coffee Tables', 'Bedside Tables', 'Premium Cushions', 'Wall Units']
             },
             "Smart Home & Electronics": {
-                brands: ['Sony', 'Bose', 'JBL', 'Dell', 'HP', 'Lenovo', 'Philips', 'Acer', 'Apple'],
-                mainProducts: ['High-Performance Laptops', 'Home Theater Systems', 'Soundbars with Subwoofers', 'Gaming Monitors', 'Smart Displays', 'All-in-One Desktops'],
-                subProducts: ['Wireless Keyboards', 'Gaming Mice', 'Webcams', 'Smart Plugs', 'Security Cameras', 'Bluetooth Speakers', 'Wi-Fi Routers', 'External Hard Drives']
+                brands: ['Sony', 'Bose', 'JBL', 'Dell', 'HP', 'Lenovo', 'Philips', 'Acer', 'Apple', 'Asus', 'Boat', 'Noise', 'Zebronics'],
+                mainProducts: ['High-Performance Laptops', 'Home Theater Systems', 'Soundbars with Subwoofers', 'Gaming Monitors', 'Smart Displays', 'All-in-One Desktops', 'Party Speakers', 'Projectors'],
+                subProducts: ['Wireless Keyboards', 'Gaming Mice', 'Webcams', 'Smart Plugs', 'Security Cameras', 'Bluetooth Speakers', 'Wi-Fi Routers', 'External Hard Drives', 'Smart LED Bulbs', 'Gaming Headsets', 'Microphones']
             },
             Kitchenware: {
-                brands: ['Prestige', 'Butterfly', 'Pigeon', 'Wonderchef', 'Milton', 'Bajaj', 'Havells', 'Cello'],
-                mainProducts: ['4-Burner Glass Gas Stoves', 'Premium Cookware Sets', 'Air Fryers', 'Electric Chimneys', 'Dishwashers', 'Cold Press Juicers'],
-                subProducts: ['Non-Stick Tawas', 'Pressure Cookers', 'Electric Kettles', 'Toasters', 'Choppers', 'Dinner Sets', 'Thermos Flasks', 'Spice Racks']
+                brands: ['Prestige', 'Butterfly', 'Pigeon', 'Wonderchef', 'Milton', 'Bajaj', 'Havells', 'Cello', 'Borosil', 'Hawkins', 'Usha'],
+                mainProducts: ['4-Burner Glass Gas Stoves', 'Premium Cookware Sets', 'Air Fryers', 'Electric Chimneys', 'Dishwashers', 'Cold Press Juicers', 'Built-in Hobs', 'Convection Ovens'],
+                subProducts: ['Non-Stick Tawas', 'Pressure Cookers', 'Electric Kettles', 'Toasters', 'Choppers', 'Dinner Sets', 'Thermos Flasks', 'Spice Racks', 'Coffee Makers', 'Sandwich Makers', 'Hand Blenders']
             }
         };
 
@@ -493,10 +535,15 @@ module.exports = (client, db) => {
             { text: "Buy 1 Get 1 Free", taText: "ஒன்றை வாங்கினால் ஒன்று இலவசம்" },
             { text: "Cashback Up To ₹1000", taText: "₹1000 வரை கேஷ்பேக்" },
             { text: "Free Home Delivery", taText: "இலவச டோர் டெலிவரி" },
-            { text: "No Cost EMI Available", taText: "வட்டி இல்லா மாதத்தவணை" }
+            { text: "No Cost EMI Available", taText: "வட்டி இல்லா மாதத்தவணை" },
+            { text: "Extra 10% Bank Discount", taText: "வங்கி கார்டுகளுக்கு 10% கூடுதல் தள்ளுபடி" },
+            { text: "Free Smartwatch Included", taText: "ஸ்மார்ட்வாட்ச் முற்றிலும் இலவசம்" },
+            { text: "Lowest Price of the Year", taText: "இந்த ஆண்டின் மிக குறைந்த விலை" },
+            { text: "Instant Instant Approval EMI", taText: "உடனடி இஎம்ஐ ஒப்புதல்" },
+            { text: "Extended 2-Year Warranty", taText: "2 வருட கூடுதல் வாரண்டி" }
         ];
 
-        // 500+ DYNAMIC AGENT PHRASES (Combinatorics Math) - EXPANDED
+        // 1000+ DYNAMIC AGENT PHRASES (Combinatorics Math) - MASSIVELY EXPANDED
         const agentHooksEn = [
             "We have handpicked these exclusive deals just for you!",
             "Don't miss our biggest price drop of the season.",
@@ -507,7 +554,17 @@ module.exports = (client, db) => {
             "Transform your home with our latest arrivals.",
             "You deserve the best! Check out these VIP offers.",
             "Surprise! We unlocked special mega discounts for you.",
-            "Why pay more? Get top electronics and furniture at factory prices."
+            "Why pay more? Get top electronics and furniture at factory prices.",
+            "Step into savings with our exclusive weekend blowout!",
+            "Your dream home upgrade just became totally affordable.",
+            "We value your loyalty! Here's a special reward just for you.",
+            "Smart living starts here. Grab these tech deals today.",
+            "Unbeatable quality. Unimaginable prices. Only for a limited time.",
+            "Just in! The products you've been waiting for are now on sale.",
+            "Treat yourself to luxury without breaking the bank.",
+            "Massive clearance! Everything must go at crazy low prices.",
+            "A special invitation for you to access our private showroom sale.",
+            "Upgrade your old tech today and get massive exchange bonuses!"
         ];
         const agentHooksTa = [
             "உங்களுக்காகவே பிரத்யேகமாக தேர்ந்தெடுக்கப்பட்ட சலுகைகள்!",
@@ -519,7 +576,17 @@ module.exports = (client, db) => {
             "எங்களின் புதிய வரவுகள் மூலம் உங்கள் வீட்டை அழகுபடுத்துங்கள்.",
             "நீங்கள் சிறந்ததை பெற தகுதியானவர்! இந்த VIP சலுகைகளை பாருங்கள்.",
             "ஆச்சரியம்! உங்களுக்காக பிரத்யேக மெகா தள்ளுபடிகளை வழங்கியுள்ளோம்.",
-            "ஏன் அதிகம் செலுத்த வேண்டும்? சிறந்த பொருட்களை குறைவான விலையில் பெறுங்கள்."
+            "ஏன் அதிகம் செலுத்த வேண்டும்? சிறந்த பொருட்களை குறைவான விலையில் பெறுங்கள்.",
+            "எங்கள் பிரத்யேக வார இறுதி சலுகைகளுடன் சேமிப்பைத் தொடங்குங்கள்!",
+            "உங்கள் கனவு வீட்டை மேம்படுத்தும் வாய்ப்பு இப்போது மலிவான விலையில்.",
+            "உங்கள் ஆதரவுக்கு நன்றி! உங்களுக்காக ஒரு சிறப்பு சலுகை.",
+            "ஸ்மார்ட்டான வாழ்க்கை இங்கிருந்து தொடங்குகிறது. இந்த சலுகைகளை இன்றே பெறுங்கள்.",
+            "சிறந்த தரம். கற்பனை செய்ய முடியாத விலை. குறைந்த காலத்திற்கு மட்டுமே.",
+            "புதிய வரவுகள்! நீங்கள் எதிர்பார்த்த பொருட்கள் இப்போது தள்ளுபடியில்.",
+            "குறைந்த விலையில் ஆடம்பரமான பொருட்களை வாங்கி மகிழுங்கள்.",
+            "மெகா கிளியரன்ஸ் சேல்! நம்பமுடியாத விலையில் உடனே முந்துங்கள்.",
+            "எங்கள் பிரைவேட் ஷோரூம் விற்பனைக்கு உங்களை அன்போடு அழைக்கிறோம்.",
+            "உங்கள் பழைய பொருட்களை மாற்றி, மிகப்பெரிய எக்ஸ்சேஞ்ச் போனஸ் பெறுங்கள்!"
         ];
 
         // EXPANDED URGENCIES
@@ -530,7 +597,10 @@ module.exports = (client, db) => {
             "Walk in today to claim your discount.",
             "Show this message at the counter to redeem.",
             "Flash sale alert! Prices drop for the next 24 hours only.",
-            "This is a one-time offer, don't let it slip away!"
+            "This is a one-time offer, don't let it slip away!",
+            "First 50 customers get an extra surprise gift. Rush now!",
+            "Prices reverting to normal tomorrow. Act fast!",
+            "Your cart is waiting. Secure these prices today!"
         ];
         const urgenciesTa = [
             "குறைந்த அளவு ஸ்டாக் மட்டுமே! விரைந்து வாருங்கள்.",
@@ -539,10 +609,13 @@ module.exports = (client, db) => {
             "உங்கள் தள்ளுபடியைப் பெற இன்றே வருகை தாருங்கள்.",
             "சலுகையைப் பெற இந்த மெசேஜை கடையில் காண்பிக்கவும்.",
             "ஃபிளாஷ் சேல்! அடுத்த 24 மணி நேரத்திற்கு மட்டுமே இந்த விலை.",
-            "இது ஒரு முறை மட்டுமே வரும் சலுகை, நழுவ விடாதீர்கள்!"
+            "இது ஒரு முறை மட்டுமே வரும் சலுகை, நழுவ விடாதீர்கள்!",
+            "முதல் 50 வாடிக்கையாளர்களுக்கு சிறப்பு பரிசு. முந்துங்கள்!",
+            "நாளை விலை மாறக்கூடும். உடனே செயல்படுங்கள்!",
+            "இந்த வாய்ப்பை இன்று தவறவிடாதீர்கள்!"
         ];
 
-        // 500+ Template Engine (Themes X Layouts X Fonts) - EXPANDED
+        // 1000+ Template Engine (Themes X Layouts X Fonts) - EXPANDED COLOR PALETTES
         const themes = [
             { bg: '#09090b', accent: '#ef4444', textCol: 'white' }, // Dark Ruby
             { bg: '#0f172a', accent: '#3b82f6', textCol: 'white' }, // Midnight Blue
@@ -556,7 +629,14 @@ module.exports = (client, db) => {
             { bg: '#f8fafc', accent: '#0ea5e9', textCol: '#0f172a' }, // Minimalist Pastel Blue
             { bg: '#083344', accent: '#22d3ee', textCol: '#ffffff' }, // Ocean Blue
             { bg: '#14532d', accent: '#4ade80', textCol: '#ffffff' }, // Festive Green
-            { bg: '#4c0519', accent: '#fda4af', textCol: '#ffffff' }  // Deep Burgundy
+            { bg: '#4c0519', accent: '#fda4af', textCol: '#ffffff' }, // Deep Burgundy
+            { bg: '#2e1065', accent: '#d8b4fe', textCol: '#ffffff' }, // Royal Violet
+            { bg: '#334155', accent: '#38bdf8', textCol: '#ffffff' }, // Slate Blue
+            { bg: '#1c1917', accent: '#ea580c', textCol: '#ffffff' }, // Carbon Orange
+            { bg: '#042f2e', accent: '#14b8a6', textCol: '#ffffff' }, // Deep Teal
+            { bg: '#fff1f2', accent: '#e11d48', textCol: '#4c0519' }, // Soft Rose
+            { bg: '#111827', accent: '#fcd34d', textCol: '#ffffff' }, // Obsidian Gold
+            { bg: '#f0fdf4', accent: '#16a34a', textCol: '#14532d' }  // Mint Fresh
         ];
 
         // EXPANDED LAYOUTS
@@ -576,7 +656,7 @@ module.exports = (client, db) => {
         const randomLayout = layouts[Math.floor(Math.random() * layouts.length)];
         
         // Add Dynamic Flash Badges
-        const badges = ["🔥 Special Bundle Offer", "⚡ FLASH SALE ALERT", "🎉 VIP CUSTOMER DEAL", "🎁 MEGA DISCOUNT ACTIVATED"];
+        const badges = ["🔥 Special Bundle Offer", "⚡ FLASH SALE ALERT", "🎉 VIP CUSTOMER DEAL", "🎁 MEGA DISCOUNT ACTIVATED", "👑 EXCLUSIVE INVENTORY CLEARANCE", "⭐ DEAL OF THE DAY"];
         const randomBadge = badges[Math.floor(Math.random() * badges.length)];
 
         // Assemble Dynamic Agent Pitch
