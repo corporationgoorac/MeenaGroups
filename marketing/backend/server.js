@@ -128,6 +128,7 @@ const sleep = (ms) => new Promise(res => setTimeout(res, ms)); // ENTERPRISE FIX
 let currentAdminPhone1 = null;
 let currentAdminPhone2 = null;
 let currentAdminPhone3 = null;
+let currentShopPhone = null;
 let admin1AlertsEnabled = true; // MEMORY CACHE GUARD: Keeps track of admin 1 sales alerts toggles with 0 continuous database reads
 
 // Fetch admins on boot
@@ -139,6 +140,7 @@ async function fetchAdminPhone() {
         currentAdminPhone1 = data.adminPhone1 || data.adminPhone || null;
         currentAdminPhone2 = data.adminPhone2 || null;
         currentAdminPhone3 = data.adminPhone3 || null;
+        currentShopPhone = data.shopPhone || null;
         
         // Sync active state from DB on boot up
         if (data.admin1AlertsEnabled !== undefined) {
@@ -148,6 +150,7 @@ async function fetchAdminPhone() {
         console.log(`👑 Admin 1 Phone Loaded: ${currentAdminPhone1 || 'Not Set'} (Sales Alert State: ${admin1AlertsEnabled ? 'ACTIVE' : 'MUTED'})`);
         console.log(`👑 Admin 2 Phone Loaded: ${currentAdminPhone2 || 'Not Set'}`);
         console.log(`👑 Admin 3 Phone Loaded: ${currentAdminPhone3 || 'Not Set'}`);
+        console.log(`🏪 Shop Phone Loaded: ${currentShopPhone || 'Not Set'}`);
     }
 }
 fetchAdminPhone();
@@ -216,9 +219,15 @@ client.on('message', async (msg) => {
         return msg.reply("🛡️ *Admin 3 Configuration*\nPlease enter the new Admin 3 Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
     }
 
+    // -- Change Shop Number Flow --
+    if (normalizedInput === 'change shop number' || normalizedInput === 'change shop phone number') {
+        waitingForAdminUpdate[msg.from] = 'shop';
+        return msg.reply("🏪 *Shop Configuration*\nPlease enter the new Shop Mobile Number.\n_(Example: 98765 43210 or +91 9876543210)_");
+    }
+
     // -- C. List Admins Flow --
     if (normalizedInput === 'list admin numbers' || normalizedInput === 'list admin phone number') {
-        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'} (Alerts: ${admin1AlertsEnabled ? 'Enabled' : 'Muted'})\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}`);
+        return msg.reply(`📋 *Current Admin Configuration*\n\n👑 *Admin 1:* ${currentAdminPhone1 || 'Not set'} (Alerts: ${admin1AlertsEnabled ? 'Enabled' : 'Muted'})\n👑 *Admin 2:* ${currentAdminPhone2 || 'Not set'}\n👑 *Admin 3:* ${currentAdminPhone3 || 'Not set'}\n🏪 *Shop:* ${currentShopPhone || 'Not set'}`);
     }
 
     // -- E. Remove Admin 1 Flow --
@@ -258,6 +267,18 @@ client.on('message', async (msg) => {
         }
     }
 
+    // -- Remove Shop Number Flow --
+    if (normalizedInput === 'remove shop number' || normalizedInput === 'remove shop phone number') {
+        try {
+            await db.collection('system_folder').doc('config').set({ shopPhone: null }, { merge: true });
+            currentShopPhone = null;
+            return msg.reply("🗑️ *Shop Number Successfully Removed.*\nNo further alerts will be sent to this slot.");
+        } catch (err) {
+            console.error("Failed to remove shop number:", err);
+            return msg.reply("⚠️ Error updating database.");
+        }
+    }
+
     // -- Process Admin Input --
     if (waitingForAdminUpdate[msg.from]) {
         const adminSlot = waitingForAdminUpdate[msg.from];
@@ -268,6 +289,13 @@ client.on('message', async (msg) => {
         }
 
         try {
+            if (adminSlot === 'shop') {
+                await db.collection('system_folder').doc('config').set({ shopPhone: formattedNewNumber }, { merge: true });
+                currentShopPhone = formattedNewNumber;
+                delete waitingForAdminUpdate[msg.from];
+                return msg.reply(`✅ *Shop Number Successfully Updated*\nAll future inquiry confirmations will be sent to:\n*${formattedNewNumber}*`);
+            }
+
             // Overwrite specific database field to strictly prevent arrays/duplication
             const fieldName = adminSlot === 1 ? 'adminPhone1' : (adminSlot === 2 ? 'adminPhone2' : 'adminPhone3');
             await db.collection('system_folder').doc('config').set({ [fieldName]: formattedNewNumber }, { merge: true });
@@ -560,6 +588,88 @@ _Meena Marketing Internal_`;
         }
     } catch (err) {
         console.error("Error processing text delivery for product inquiry alert stream:", err.message);
+    }
+
+    // --- NEW: SHOP INQUIRY CONFIRMATION DISPATCH ---
+    if (currentShopPhone) {
+        let shopInquiryMessage = "";
+
+        const parsedBasePrice = parseFloat(prodBase) || 0;
+        const parsedMyRate = parseFloat(prodMyRate) || 0;
+
+        // Smart AI Calculator Logic
+        if (!parsedMyRate || parsedMyRate <= 0 || parsedMyRate >= parsedBasePrice) {
+            // Safety Net Fallback
+            shopInquiryMessage = `✅ *INQUIRY CONFIRMATION*
+━━━━━━━━━━━━━━━━━━
+🔹 *Product:* ${prodName}
+🔖 *Model:* ${prodModel}
+📦 *Stock Qty:* ${prodQty}
+
+_Request has been successfully dispatched to Admin._`;
+        } else {
+            // Context-Aware Discount Calculation
+            const profit = parsedBasePrice - parsedMyRate;
+            
+            // 1. Tiered Target Discount
+            let targetDiscount = 0;
+            if (parsedBasePrice < 3000) {
+                targetDiscount = parsedBasePrice * 0.04; // 4%
+            } else if (parsedBasePrice <= 10000) {
+                targetDiscount = parsedBasePrice * 0.025; // 2.5%
+            } else {
+                targetDiscount = parsedBasePrice * 0.015; // 1.5%
+            }
+
+            // Absolute Cap Check
+            if (targetDiscount > 500) {
+                targetDiscount = 500;
+            }
+
+            // 2. Profit Shield (Max 15% of actual profit)
+            const profitShield = profit * 0.15;
+
+            // 3. Final Calculation & Margin Protection
+            let maxAllowedDiscount = Math.min(targetDiscount, profitShield);
+            maxAllowedDiscount = Math.floor(maxAllowedDiscount); // Safely round down
+            
+            const bottomPrice = parsedBasePrice - maxAllowedDiscount;
+
+            shopInquiryMessage = `✅ *INQUIRY LOGGED & ANALYZED*
+━━━━━━━━━━━━━━━━━━
+🔹 *Product:* ${prodName}
+🔖 *Model:* ${prodModel}
+📦 *Stock Qty:* ${prodQty}
+
+💰 *Standard Price:* Rs. ${parsedBasePrice.toLocaleString()}
+🟢 *Max AI Discount Allowed:* Rs. ${maxAllowedDiscount.toLocaleString()}
+🛑 *Absolute Bottom Price:* Rs. ${bottomPrice.toLocaleString()}
+
+_Request has been successfully dispatched to Admin for final review if further negotiation is needed._`;
+        }
+
+        const shopPlainPhone = currentShopPhone.replace(/\D/g, '');
+        try {
+            await sleep(1500); // Give DOM processes safe settling execution margins
+            const shopContactId = await client.getNumberId(shopPlainPhone);
+            const verifiedShopId = shopContactId ? shopContactId._serialized : `${shopPlainPhone}@c.us`;
+
+            try {
+                await client.sendMessage(verifiedShopId, shopInquiryMessage);
+                console.log(`✅ Inquiry confirmation dispatched successfully to the Shop number.`);
+            } catch (sendErr) {
+                if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                    console.log(`⚠️ Applying path initialization workaround for Shop alert Channel...`);
+                    await client.sendMessage(verifiedShopId, `🔎 Syncing Shop Alert Stream...`);
+                    await sleep(1500);
+                    await client.sendMessage(verifiedShopId, shopInquiryMessage);
+                } else {
+                    throw sendErr;
+                }
+            }
+        } catch (err) {
+            console.error("Error processing text delivery for shop confirmation stream:", err.message);
+        }
     }
 });
 
