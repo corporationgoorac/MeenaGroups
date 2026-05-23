@@ -99,33 +99,132 @@ module.exports = (client, db) => {
     };
 
     // --- NEW: HUMAN SIMULATED VOICE NOTE SENDER ---
-    const sendHumanVoiceNote = async (client, targetId, customerName) => {
+    // ADDED actualPhone parameter to ensure we have the raw fallback number
+    const sendHumanVoiceNote = async (client, verifiedWhatsappId, customerName, actualPhone) => {
         try {
-            console.log(`🎙️ [Marketing] Preparing human-like voice note sequence for ${customerName} (${targetId})...`);
-            const chat = await client.getChatById(targetId);
+            console.log(`🎙️ [Marketing] Preparing human-like voice note sequence for ${customerName} (${verifiedWhatsappId})...`);
+            
+            // CRITICAL BUG FIX 1: Bypass the @lid bug in whatsapp-web.js that blocks media sending
+            let targetId = verifiedWhatsappId;
+            
+            // FIX APPLIED: Safely commented out the @lid interception. 
+            // Voice notes must use the original @lid hash if provided.
+            /*
+            if (targetId && targetId.includes('@lid')) {
+                const plainNumber = targetId.split('@');
+                targetId = `${plainNumber}@c.us`; 
+                console.log(`♻️ [Marketing] Intercepted @lid ID. Rerouting audio to standard ID: ${targetId}`);
+            }
+            */
+
+            // 🚨 NEW FIX: Completely discard the LID hash and build a fresh @c.us ID using the real phone number
+            // BULLETPROOF FIX: Only do this if actualPhone is a REAL phone number (not another @lid hash like msg.from)
+            if (targetId && targetId.includes('@lid') && actualPhone && !actualPhone.includes('@lid')) {
+                const cleanPhone = actualPhone.replace(/\D/g, ''); // Strip any plus signs just in case
+                targetId = `${cleanPhone}@c.us`; 
+                console.log(`♻️ [Marketing] Intercepted @lid ID. Rerouting audio to standard ID: ${targetId}`);
+            }
+
+            let chat;
+            try {
+                chat = await client.getChatById(targetId);
+            } catch (chatErr) {
+                console.log(`⚠️ [Marketing] Chat DOM not fully synced yet for ${targetId}. Proceeding with audio send.`);
+            }
             
             // 1. Simulate the human "thinking/breathing" gap before deciding to send a voice note
             await sleep(5000); 
+
+            // BULLETPROOF FIX: Fetch audio BEFORE recording state to prevent hanging if download times out ('t' error)
+            let voiceMedia = null;
+            let dlRetries = 3;
+            
+            while (dlRetries > 0 && !voiceMedia) {
+                try {
+                    // 4. AGGRESSIVE CACHE BUSTING & .OPUS FORMAT FIX
+                    // Requesting the .opus file specifically for strict WhatsApp native compliance
+                    const audioUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.opus`;
+                    voiceMedia = await MessageMedia.fromUrl(audioUrl, { unsafeMime: true });
+
+                    if (!voiceMedia.data || voiceMedia.data.startsWith('PCFET') || voiceMedia.data.startsWith('PGh0b')) {
+                        console.error("❌ [Marketing] Hugging Face returned an HTML error page. Aborting voice note.");
+                        return;
+                    }
+                } catch (e) {
+                    dlRetries--;
+                    if (dlRetries === 0) throw new Error("Audio URL Timeout/Fetch Error: " + (e.message || 't'));
+                    await sleep(2000); // Wait 2s before retrying download
+                }
+            }
+
+            // CRITICAL BUG FIX 2: Force the exact MIME type WhatsApp expects to prevent "Something is wrong with the audio"
+            voiceMedia.mimetype = 'audio/ogg; codecs=opus';
+            voiceMedia.filename = 'audio.opus';
             
             // 2. Trigger WhatsApp's "Recording Audio..." status at the top of the chat
-            await chat.sendStateRecording();
+            if (chat) {
+                try { await chat.sendStateRecording(); } catch (e) {}
+            }
             
             // 3. Keep recording state active for exactly 9 seconds to simulate human speech duration
-            await sleep(9000); 
-
-            // 4. Fetch the absolute freshest file from Hugging Face by bypassing cache 
-            // Note: Changed /blob/ to /resolve/ to get the raw playable audio data
-            const audioUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.mp3?t=${Date.now()}`;
-            const voiceMedia = await MessageMedia.fromUrl(audioUrl, { unsafeMime: true });
+            // BULLETPROOF FIX: Replaced static 9s with dynamic duration for 45s audio (greater or less also)
+            // await sleep(9000); 
+            const dynamicDelay = Math.floor(Math.random() * 10000) + 40000; // Randomizes between 40 to 50 seconds
+            await sleep(dynamicDelay);
             
             // 5. Fire as a native playable blue microphone PTT (Push-To-Talk) wave file
-            await client.sendMessage(targetId, voiceMedia, { 
-                sendAudioAsVoice: true 
-            });
+            // BULLETPROOF FIX: Retry logic wrapped around sendMessage to handle momentary connection drops
+            let sendRetries = 3;
+            let sent = false;
             
-            console.log(`✅ [Marketing] Professional dynamic voice note successfully delivered to ${customerName}.`);
+            while (sendRetries > 0 && !sent) {
+                try {
+                    // Try to send native Voice Note first
+                    await client.sendMessage(targetId, voiceMedia, { sendAudioAsVoice: true });
+                    sent = true;
+                    console.log(`✅ [Marketing] Professional dynamic voice note successfully delivered to ${customerName}.`);
+                } catch (sendErr) {
+                    const errMsg = sendErr.message || '';
+
+                    // 🚨 FALLBACK: If WhatsApp strictly rejects the opus codec (t error) or generic media crash
+                    if (errMsg === 't' || errMsg.includes('media') || errMsg.includes('audio')) {
+                        console.log(`⚠️ [Marketing] WhatsApp rejected native Opus Voice Note ('${errMsg}'). Falling back to MP3 Audio...`);
+                        try {
+                            // Download fallback MP3
+                            const mp3Url = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.mp3`;
+                            const mp3Media = await MessageMedia.fromUrl(mp3Url, { unsafeMime: true });
+                            
+                            // Send as standard audio (NO sendAudioAsVoice flag)
+                            await client.sendMessage(targetId, mp3Media);
+                            sent = true;
+                            console.log(`✅ [Marketing] Fallback MP3 audio successfully delivered to ${customerName}.`);
+                            break; // Success, break out of retry loop
+                        } catch (mp3Err) {
+                            console.error(`❌ [Marketing] MP3 Fallback also failed:`, mp3Err.message);
+                            // Fall through to normal retry handling
+                        }
+                    }
+
+                    // Handle findChat / @lid / No LID errors locally
+                    if (errMsg.includes('findChat') || errMsg.includes('@lid') || errMsg.includes('not found') || errMsg.includes('No LID')) {
+                        console.log(`⚠️ Applying initialization workaround for voice note chat: ${targetId}`);
+                        await client.sendMessage(targetId, `🎤 Sending a quick voice note...`);
+                        await sleep(2000);
+                        
+                        await client.sendMessage(targetId, voiceMedia, { sendAudioAsVoice: true });
+                        sent = true;
+                        console.log(`✅ [Marketing] Voice note delivered via workaround to ${customerName}.`);
+                    } else {
+                        sendRetries--;
+                        console.error(`⚠️ [Marketing] Voice note send loop failure. Retries left: ${sendRetries}. Error: ${errMsg}`);
+                        if (sendRetries === 0) throw sendErr;
+                        await sleep(6000);
+                    }
+                }
+            }
+            
         } catch (error) {
-            console.error(`⚠️ [Marketing] Voice note simulation failed for ${targetId}:`, error.message);
+            console.error(`⚠️ [Marketing] Voice note simulation failed completely for ${verifiedWhatsappId}:`, error.message || error);
         }
     };
 
@@ -175,7 +274,8 @@ module.exports = (client, db) => {
                 await client.sendMessage(msg.from, media, { caption: caption });
                 
                 // NEW FEATURE: Append the dynamic voice note to manual triggers as well
-                await sendHumanVoiceNote(client, msg.from, customerName);
+                // UPDATED: Passed msg.from as the 4th parameter for the fallback routing
+                await sendHumanVoiceNote(client, msg.from, customerName, msg.from);
                 
             } catch (err) {
                 console.error("Manual Ad Generation Error:", err);
@@ -316,7 +416,8 @@ module.exports = (client, db) => {
         console.log(`⚙️ [Marketing] Engine running. Progress: ${progress}%. Sent today: ${dbData.messagesSentToday}/${maxDailyMessages}`);
 
         // Grab the first customer in line
-        const customer = dbData.pendingCustomers[0]; 
+        // CRITICAL BUG FIX: Added back. Array index prevents entire array pushing to graveyard.
+        const customer = dbData.pendingCustomers; 
 
         // SAFEGUARD & FORMAT FIX: In case Firebase holds old string arrays instead of objects
         const rawPhone = typeof customer === 'string' ? customer : customer?.phone;
@@ -455,7 +556,7 @@ module.exports = (client, db) => {
                     success = true;
                 } catch (sendErr) {
                     // SERVER.JS FIX FOR findChat / @lid errors 
-                    if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                    if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found') || sendErr.message.includes('No LID'))) {
                         console.log(`⚠️ Applying initialization workaround for chat: ${verifiedWhatsappId}`);
                         
                         // Send text first to initialize chat session in cache safely
@@ -480,7 +581,8 @@ module.exports = (client, db) => {
                 console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
                 
                 // NEW FEATURE: Seamlessly trigger the human voice note sequence right after the message succeeds
-                await sendHumanVoiceNote(client, verifiedWhatsappId, customerName);
+                // UPDATED: Passed customerPhone as the 4th parameter for the fallback routing
+                await sendHumanVoiceNote(client, verifiedWhatsappId, customerName, customerPhone);
             }
             
         } catch (err) {
