@@ -272,7 +272,6 @@
             </div>
 
             <div class="inv-grid" id="inventoryGrid">
-                <!-- Skeleton loader injected via JS initially -->
                 <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Initializing interface...</div>
             </div>
         </div>
@@ -317,12 +316,18 @@
             
             <div class="row-inputs">
                 <div class="input-wrapper">
-                    <label>My Rate(₹) <span style="color:var(--meena-red);">*</span></label>
-                    <input type="number" id="iMyRate" placeholder="0" min="0">
+                    <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="iMrp" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Selling Rate (₹) <span style="color:var(--meena-red);">*</span></label>
                     <input type="number" id="iPrice" placeholder="0" min="0">
+                </div>
+            </div>
+            <div class="row-inputs">
+                <div class="input-wrapper">
+                    <label>My Rate(₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="iMyRate" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Quantity <span style="color:var(--meena-red);">*</span></label>
@@ -373,12 +378,18 @@
             
             <div class="row-inputs">
                 <div class="input-wrapper">
-                    <label>My Rate (₹) <span style="color:var(--meena-red);">*</span></label>
-                    <input type="number" id="editMyRate" placeholder="0" min="0">
+                    <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="editMrp" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Base Price (₹) <span style="color:var(--meena-red);">*</span></label>
                     <input type="number" id="editPrice" placeholder="0" min="0">
+                </div>
+            </div>
+            <div class="row-inputs">
+                <div class="input-wrapper">
+                    <label>My Rate (₹) <span style="color:var(--meena-red);">*</span></label>
+                    <input type="number" id="editMyRate" placeholder="0" min="0">
                 </div>
                 <div class="input-wrapper">
                     <label>Quantity <span style="color:var(--meena-red);">*</span></label>
@@ -412,6 +423,10 @@
 
             <div class="info-panel-card">
                 <div class="info-panel-header"><span class="material-symbols-outlined" style="font-size: 16px;">payments</span> Price History</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 1.1em; font-weight: 600; color: var(--text-secondary);">MRP:</span>
+                    <span style="font-size: 1.15em; font-weight: 700; color: var(--text-secondary); text-decoration: line-through;" id="infoMrp"></span>
+                </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-size: 1.1em; font-weight: 600; color: var(--text-secondary);">Base Price:</span>
                     <span style="font-size: 1.15em; font-weight: 700; color: var(--success-color);" id="infoPrice"></span>
@@ -821,7 +836,7 @@
             } 
         });
 
-        // --- NEW: OPEN INFO MODAL (WITH 12-HR FORMAT) ---
+        // --- NEW: OPEN INFO MODAL (WITH 12-HR FORMAT AND MRP) ---
         window.openInfoModal = function(id) {
             vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
@@ -853,10 +868,17 @@
                 badge.style.border = '1px solid rgba(148, 163, 184, 0.3)';
             }
 
+            // MRP History
+            const currMrp = item.mrp || 0;
+            const prevMrp = item.previousMrp !== undefined ? item.previousMrp : currMrp;
+            document.getElementById('infoMrp').innerText = `₹${prevMrp.toLocaleString()} ➔ ₹${currMrp.toLocaleString()}`;
+
+            // Base Price History
             const currPrice = item.price || 0;
             const prevPrice = item.previousPrice !== undefined ? item.previousPrice : currPrice;
             document.getElementById('infoPrice').innerText = `₹${prevPrice.toLocaleString()} ➔ ₹${currPrice.toLocaleString()}`;
             
+            // My Rate History
             const currMyRate = item.myRate || 0;
             const prevMyRate = item.previousMyRate !== undefined ? item.previousMyRate : currMyRate;
             document.getElementById('infoMyRate').innerText = `₹${prevMyRate.toLocaleString()} ➔ ₹${currMyRate.toLocaleString()}`;
@@ -912,6 +934,7 @@
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
+            document.getElementById('editMrp').value = item.mrp || 0;
             document.getElementById('editMyRate').value = item.myRate || 0;
             document.getElementById('editPrice').value = item.price || 0;
             document.getElementById('editQty').value = item.qty || 0;
@@ -924,12 +947,13 @@
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
             const newModel = document.getElementById('editModel').value.trim();
+            const newMrp = parseFloat(document.getElementById('editMrp').value);
             const newMyRate = parseFloat(document.getElementById('editMyRate').value);
             const newPrice = parseFloat(document.getElementById('editPrice').value);
             const newQty = parseInt(document.getElementById('editQty').value);
 
-            if (!newName || isNaN(newMyRate) || newMyRate < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
-                showToast("Please enter valid name, My Rate, base price, and quantity.", "error");
+            if (!newName || isNaN(newMrp) || newMrp < 0 || isNaN(newMyRate) || newMyRate < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
+                showToast("Please enter valid name, MRP, My Rate, base price, and quantity.", "error");
                 return;
             }
 
@@ -941,6 +965,7 @@
             try {
                 const item = inventoryCache.find(i => i.id === id);
                 const oldQty = item ? (item.qty || 0) : 0;
+                const oldMrp = item ? (item.mrp || 0) : 0;
                 const oldPrice = item ? (item.price || 0) : 0;
                 const oldMyRate = item ? (item.myRate || 0) : 0;
 
@@ -948,11 +973,13 @@
                 await updateDoc(itemRef, { 
                     name: newName,
                     model: newModel,
+                    mrp: newMrp,
                     myRate: newMyRate,
                     price: newPrice,
                     qty: newQty,
                     searchKeywords: generateKeywords(newName, newModel), 
                     previousQty: oldQty,
+                    previousMrp: oldMrp,
                     previousPrice: oldPrice,
                     previousMyRate: oldMyRate,
                     lastUpdated: new Date().toISOString(),
@@ -1295,47 +1322,6 @@
             searchTimeout = setTimeout(async () => {
                 const term = e.target.value.toLowerCase().trim();
                 
-                // OLD STATIC LOGIC COMMENTED OUT
-                /*
-                if(term === '') {
-                    // BUG FIX: Ensure the low stock button resets its UI if we clear a search while it was active
-                    if (showingLowStock) {
-                        const btn = document.getElementById('btnLowStock');
-                        btn.style.backgroundColor = "var(--warning-color)";
-                        btn.querySelector('.material-symbols-outlined').style.color = "white";
-                        showingLowStock = false;
-                    }
-                    loadInventory(); 
-                    return;
-                }
-
-                const searchWord = term.split(/[\s\-_]+/)[0];
-                if (!searchWord) return;
-
-                try {
-                    document.getElementById('inventoryGrid').innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Searching database...</div>';
-
-                    // MODIFIED: Direct Firestore query limited to 50
-                    const q = query(
-                        collection(db, "inventory"), 
-                        where("searchKeywords", "array-contains", searchWord),
-                        limit(50)
-                    );
-                    
-                    const snap = await getDocs(q);
-                    const searchResults = [];
-                    snap.forEach(doc => searchResults.push({ id: doc.id, ...doc.data() }));
-                    
-                    // Update the cache and apply advanced sorting algorithms
-                    inventoryCache = advancedSort(searchResults, term);
-                    renderInventory(inventoryCache);
-
-                } catch (err) {
-                    console.error("Search error:", err);
-                    showToast("Search failed.", "error");
-                }
-                */
-
                 // --- NEW PAGINATED SEARCH LOGIC ---
                 currentSearchTerm = term;
                 if(term === '') {
@@ -1364,12 +1350,13 @@
             vibrateApp(40);
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
+            const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
             const myRate = parseFloat(document.getElementById('iMyRate').value) || 0;
             const price = parseFloat(document.getElementById('iPrice').value) || 0;
             const qty = parseInt(document.getElementById('iQty').value) || 1;
 
-            if (!name || myRate <= 0 || price <= 0 || qty < 1) {
-                showToast("Please enter a valid Name, My Rate, Base Price, and Quantity.", "error");
+            if (!name || mrp <= 0 || myRate <= 0 || price <= 0 || qty < 1) {
+                showToast("Please enter a valid Name, MRP, My Rate, Base Price, and Quantity.", "error");
                 return;
             }
 
@@ -1407,7 +1394,8 @@
 
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
-                    model, 
+                    model,
+                    mrp,
                     myRate,
                     price, 
                     qty, 
@@ -1418,6 +1406,7 @@
                 
                 document.getElementById('iName').value = '';
                 document.getElementById('iModel').value = '';
+                document.getElementById('iMrp').value = '';
                 document.getElementById('iMyRate').value = '';
                 document.getElementById('iPrice').value = '';
                 document.getElementById('iQty').value = '1';
@@ -1461,7 +1450,7 @@
                         <div>
                             <div style="font-weight:600; color:var(--marketing-white); font-size: 1.05em;">${item.name} <span style="font-weight:700; color:var(--accent-color); font-size: 0.9em; margin-left: 5px;">+${item.qty}</span> ${actionBadge}</div>
                             <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">
-                                ${item.model || 'No ID'} • Base: <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span> • <span style="color:#a78bfa; font-weight:600;">My Rate: ₹${item.myRate.toLocaleString()}</span>
+                                ${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> Base: <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span> • <span style="color:#a78bfa; font-weight:600;">My Rate: ₹${item.myRate.toLocaleString()}</span>
                             </div>
                         </div>
                         <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
@@ -1499,6 +1488,7 @@
                         batch.set(newRef, {
                             name: item.name,
                             model: item.model,
+                            mrp: item.mrp,
                             myRate: item.myRate,
                             price: item.price,
                             qty: item.qty,
