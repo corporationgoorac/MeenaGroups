@@ -1082,14 +1082,53 @@
                 const cleanPhone = (item.phone || "").replace(/[^0-9]/g, '');
                 
                 let dateStr = "Unknown Date";
+                let rawDays = 0; // Added for AI algorithm
                 if (item.date && !isNaN(new Date(item.date).getTime())) {
                     dateStr = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    
+                    const invoiceDateObj = new Date(item.date);
+                    const todayObj = new Date();
+                    invoiceDateObj.setHours(0,0,0,0);
+                    todayObj.setHours(0,0,0,0);
+                    rawDays = Math.ceil((todayObj - invoiceDateObj) / (1000 * 60 * 60 * 24));
                 }
                 
                 const daysPendingText = getDaysText(item.date);
                 
                 const formattedPending = parseFloat(item.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
                 const formattedTotal = parseFloat(item.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+
+                // --- START AI WHATSAPP MESSAGE ALGORITHM ---
+                const rawAmt = parseFloat(item.pendingAmount || 0);
+                let engMessage = "";
+                let tamMessage = "";
+                const cName = item.customerName || "Customer";
+                const invNo = item.invoiceNumber || "N/A";
+                const displayDays = rawDays > 0 ? rawDays : 0; 
+
+                if ((rawAmt > 5000 && rawDays > 30) || (rawDays > 60)) {
+                    // Harsh Message for high amount + long days OR very long days
+                    engMessage = `URGENT: Hello ${cName}, this is from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is severely overdue by ${displayDays} days. This delay is unacceptable. Please clear your dues immediately to avoid further actions.`;
+                    tamMessage = `அவசரம்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. இந்த தாமதம் ஏற்றுக்கொள்ள முடியாதது. மேலும் நடவடிக்கைகளைத் தவிர்க்க உடனடியாக கட்டணத்தை செலுத்தவும்.`;
+                } else if (rawDays <= 7 && rawDays >= 0) {
+                    // Polite Reminder
+                    engMessage = `Hello ${cName}, this is a gentle reminder from MEENA MARKETING that your payment of Rs. ${formattedPending} for Invoice ${invNo} is pending for ${displayDays} days. Please clear it at your earliest convenience.`;
+                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான கட்டணமான ரூ. ${formattedPending}, ${displayDays} நாட்களாக நிலுவையில் உள்ளது. தயவுசெய்து விரைவில் செலுத்தவும்.`;
+                } else if (rawDays > 7) {
+                    // Standard Reminder
+                    engMessage = `Hello ${cName}, this is a reminder from MEENA MARKETING. Your payment of Rs. ${formattedPending} against Invoice ${invNo} is pending for ${displayDays} days. Kindly make the payment soon.`;
+                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக நிலுவையில் உள்ளது. கட்டணத்தை விரைந்து செலுத்தவும்.`;
+                } else {
+                    // Upcoming / Pre-payment
+                    engMessage = `Hello ${cName}, greetings from MEENA MARKETING. Your payment of Rs. ${formattedPending} against Invoice ${invNo} is upcoming.`;
+                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் விரைவில் செலுத்தப்பட உள்ளது.`;
+                }
+                const finalWaMsg = encodeURIComponent(`${engMessage}\n\n${tamMessage}`);
+                
+                // Using api.whatsapp.com directly as it is universally stable and natively prioritizes installed apps like WA Business better than wa.me on mobile OS triggers.
+                const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${finalWaMsg}`;
+                // --- END AI WHATSAPP MESSAGE ALGORITHM ---
+
 
                 // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
                 const delay = i * 0.05;
@@ -1120,7 +1159,7 @@
                             <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
                             Call
                         </a>
-                        <a href="https://wa.me/91${cleanPhone}?text=Hello ${encodeURIComponent(item.customerName || "Customer")}, your payment of Rs. ${formattedPending} is pending against Invoice ${encodeURIComponent(item.invoiceNumber || "")}." target="_blank" class="btn btn-wa">
+                        <a href="${waUrl}" target="_blank" class="btn btn-wa">
                             <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
                             WhatsApp
                         </a>
