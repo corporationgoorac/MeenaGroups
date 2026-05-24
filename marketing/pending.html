@@ -1100,32 +1100,116 @@
 
                 // --- START AI WHATSAPP MESSAGE ALGORITHM ---
                 const rawAmt = parseFloat(item.pendingAmount || 0);
-                let engMessage = "";
-                let tamMessage = "";
                 const cName = item.customerName || "Customer";
                 const invNo = item.invoiceNumber || "N/A";
                 const displayDays = rawDays > 0 ? rawDays : 0; 
+                
+                // Supercharged AI Variables for Millions of Permutations
+                let engTemplates = [];
+                let tamTemplates = [];
 
-                if ((rawAmt > 5000 && rawDays > 30) || (rawDays > 60)) {
-                    // Harsh Message for high amount + long days OR very long days
-                    engMessage = `URGENT: Hello ${cName}, this is from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is severely overdue by ${displayDays} days. This delay is unacceptable. Please clear your dues immediately to avoid further actions.`;
-                    tamMessage = `அவசரம்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. இந்த தாமதம் ஏற்றுக்கொள்ள முடியாதது. மேலும் நடவடிக்கைகளைத் தவிர்க்க உடனடியாக கட்டணத்தை செலுத்தவும்.`;
-                } else if (rawDays <= 7 && rawDays >= 0) {
-                    // Polite Reminder
-                    engMessage = `Hello ${cName}, this is a gentle reminder from MEENA MARKETING that your payment of Rs. ${formattedPending} for Invoice ${invNo} is pending for ${displayDays} days. Please clear it at your earliest convenience.`;
-                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான கட்டணமான ரூ. ${formattedPending}, ${displayDays} நாட்களாக நிலுவையில் உள்ளது. தயவுசெய்து விரைவில் செலுத்தவும்.`;
+                if (rawDays > 60 || (rawAmt > 10000 && rawDays > 30)) {
+                    // 🔴 VERY HARSH - Critical Delay & Business Impact
+                    engTemplates = [
+                        `FINAL NOTICE: {cName}, MEENA MARKETING is notifying you that your payment of Rs. {formattedPending} for Invoice {invNo} is overdue by {displayDays} days. This delay is completely unacceptable. Pay immediately to avoid further strict actions.`,
+                        `URGENT & FINAL: {cName}, this is MEENA MARKETING. Your long-pending due of Rs. {formattedPending} for Invoice {invNo} has crossed {displayDays} days. Immediate clearance is required to prevent account suspension.`,
+                        `CRITICAL ALERT: {cName}, your pending balance of Rs. {formattedPending} with MEENA MARKETING (Invoice {invNo}) is {displayDays} days late. We cannot accommodate further delays. Process the payment today.`,
+                        `CRITICAL ALERT: {cName}, MEENA MARKETING is facing severe supplier issues due to your non-payment of Rs. {formattedPending} (Invoice {invNo}) delayed by {displayDays} days. We strictly need to pay our dealers. Clear this immediately.`,
+                        `ATTENTION {cName}: We trusted you with our goods, but your delay of {displayDays} days for Rs. {formattedPending} (Invoice {invNo}) is forcing us to default on our own dealer payments. We require immediate settlement today.`
+                    ];
+                    tamTemplates = [
+                        `இறுதி அறிவிப்பு: {cName}, உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக நிலுவையில் உள்ளது என்பதை MEENA MARKETING தெரிவிக்கிறது. இந்த மாபெரும் தாமதம் ஏற்றுக்கொள்ள முடியாதது. கடுமையான நடவடிக்கைகளைத் தவிர்க்க உடனடியாக தொகையைச் செலுத்தவும்.`,
+                        `மிக அவசரம்: {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. {formattedPending}, {displayDays} நாட்களைத் தாண்டிவிட்டது. உங்கள் கணக்கு முடக்கப்படுவதைத் தவிர்க்க இப்போதே பணத்தைச் செலுத்தவும்.`,
+                        `முக்கிய எச்சரிக்கை: {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) {displayDays} நாட்களாக நிலுவையில் உள்ளது. இனிமேலும் தாமதத்தை ஏற்க இயலாது. இன்றே கட்டணத்தைச் செலுத்தவும்.`,
+                        `முக்கிய எச்சரிக்கை: {cName}, உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} ({displayDays} நாட்கள்) நிலுவையால் நாங்கள் டீலர்களுக்கு பணம் செலுத்த முடியாமல் தவிக்கிறோம். உடனடியாக தொகையைச் செலுத்தவும்.`,
+                        `கவனத்திற்கு {cName}: உங்களை நம்பி வியாபாரம் செய்தோம், ஆனால் ரூ. {formattedPending} ({displayDays} நாட்கள்) காலதாமதத்தால் நாங்களும் எங்கள் சப்ளையர்களுக்கு பணம் செலுத்த முடியாத இக்கட்டான நிலையில் உள்ளோம். இன்றே கட்டணத்தை முடித்து தரவும்.`
+                    ];
+                } else if (rawDays > 30 || (rawAmt > 5000 && rawDays > 15)) {
+                    // 🟠 HARSH - Severe Delay & Fund Rotation Impact
+                    engTemplates = [
+                        `URGENT: Hello {cName}, this is from MEENA MARKETING. Your payment of Rs. {formattedPending} for Invoice {invNo} is severely overdue by {displayDays} days. Please clear your dues immediately.`,
+                        `ATTENTION: {cName}, MEENA MARKETING reminds you that Invoice {invNo} for Rs. {formattedPending} is {displayDays} days overdue. Kindly prioritize this payment today.`,
+                        `OVERDUE NOTICE: Hello {cName}, your payment of Rs. {formattedPending} to MEENA MARKETING is delayed by {displayDays} days for Invoice {invNo}. We request immediate settlement.`,
+                        `URGENT: Hello {cName}, from MEENA MARKETING. Invoice {invNo} for Rs. {formattedPending} is {displayDays} days late. We rotate funds to pay our wholesalers, and your delay is directly affecting our purchases. Kindly pay today.`,
+                        `Hi {cName}, MEENA MARKETING here. Our suppliers are waiting for their payments, which we cannot process due to your pending Rs. {formattedPending} ({displayDays} days overdue). Please clear your Invoice {invNo} without further delay.`
+                    ];
+                    tamTemplates = [
+                        `அவசரம்: வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. உடனடியாக கட்டணத்தை செலுத்தவும்.`,
+                        `கவனத்திற்கு: {cName}, இன்வாய்ஸ் {invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. {formattedPending}, {displayDays} நாட்களாகத் தாமதமாகியுள்ளது என்பதை MEENA MARKETING நினைவூட்டுகிறது. தயவுசெய்து இன்றே இக்கட்டணத்தைச் செலுத்த முன்னுரிமை அளிக்கவும்.`,
+                        `தாமத அறிவிப்பு: வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}), {displayDays} நாட்களாகக் காலதாமதமாகி உள்ளது. உடனடியாக தொகையைச் செலுத்துமாறு கேட்டுக்கொள்கிறோம்.`,
+                        `அவசரம்: வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} ({displayDays} நாட்கள்) நிலுவையில் உள்ளது. நாங்களும் மொத்த வியாபாரிகளுக்கு பணம் செலுத்த வேண்டும் என்பதால் இன்றே கட்டணத்தை செலுத்தவும்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்களின் நீண்ட நாள் நிலுவையான ரூ. {formattedPending} ({displayDays} நாட்கள்) கிடைக்காததால், எங்களால் டீலர்களுக்கு பணம் செலுத்த முடியவில்லை. தயவுசெய்து இன்வாய்ஸ் {invNo}-ஐ உடனடியாக முடிக்கவும்.`
+                    ];
                 } else if (rawDays > 7) {
-                    // Standard Reminder
-                    engMessage = `Hello ${cName}, this is a reminder from MEENA MARKETING. Your payment of Rs. ${formattedPending} against Invoice ${invNo} is pending for ${displayDays} days. Kindly make the payment soon.`;
-                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக நிலுவையில் உள்ளது. கட்டணத்தை விரைந்து செலுத்தவும்.`;
+                    // 🟡 MEDIUM - Standard Reminder with Deep Supply Chain Empathy
+                    engTemplates = [
+                        `Hello {cName}, this is a reminder from MEENA MARKETING. Your payment of Rs. {formattedPending} against Invoice {invNo} is pending for {displayDays} days. Kindly make the payment soon.`,
+                        `Greetings {cName}, from MEENA MARKETING. Please note that your invoice {invNo} has a pending balance of Rs. {formattedPending} for {displayDays} days. We await your prompt payment.`,
+                        `Hi {cName}, MEENA MARKETING here. Just bringing to your notice that Rs. {formattedPending} is due for Invoice {invNo} ({displayDays} days pending). Please clear this at the earliest.`,
+                        `Hello {cName}, this is MEENA MARKETING. Rs. {formattedPending} for Invoice {invNo} is pending for {displayDays} days. As we also buy from dealers and need to clear their accounts on time, we request your quick support in settling this bill.`,
+                        `Hi {cName}, from MEENA MARKETING. Your pending of Rs. {formattedPending} ({displayDays} days) is requested. To maintain our supply chain and pay our vendors, please clear this invoice {invNo} soon.`,
+                        `Dear {cName}, MEENA MARKETING values your business. To help us rotate our funds and clear supplier dues, kindly settle your pending Rs. {formattedPending} for Invoice {invNo} delayed by {displayDays} days.`
+                    ];
+                    tamTemplates = [
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து நினைவூட்டல். உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக நிலுவையில் உள்ளது. கட்டணத்தை விரைந்து செலுத்தவும்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான நிலுவைத் தொகை ரூ. {formattedPending} கடந்த {displayDays} நாட்களாகச் செலுத்தப்படவில்லை என்பதைத் தெரிவித்துக் கொள்கிறோம். விரைவான கட்டணத்தை எதிர்பார்க்கிறோம்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்காக நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} ({displayDays} நாட்கள் நிலுவை) குறித்த நினைவூட்டல் இது. கூடிய விரைவில் தொகையைச் செலுத்தவும்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) {displayDays} நாட்களாக நிலுவையில் உள்ளது. நாங்களும் டீலர்களிடம் பொருட்களை வாங்கி அவர்களுக்கு பணம் செலுத்த வேண்டி உள்ளதால், விரைந்து தொகையைச் செலுத்தவும்.`,
+                        `வணக்கம் {cName}. இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending}. சப்ளையர்களுக்கு நாங்கள் சரியான நேரத்தில் பணம் செலுத்த வேண்டியுள்ளதால், உங்களின் ஒத்துழைப்பை எதிர்பார்க்கிறோம். தாமதம்: {displayDays} நாட்கள்.`,
+                        `வணக்கம் {cName}, வியாபார சுழற்சியை முறையாக பராமரிக்கவும், நாங்கள் டீலர்களுக்கு செலுத்த வேண்டிய தொகையை கட்டவும், தங்களின் இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending} ({displayDays} நாட்கள்) தொகையை உடனே அளிக்குமாறு கேட்டுக்கொள்கிறோம்.`
+                    ];
+                } else if (rawDays > 0) {
+                    // 🟢 LIGHT - Gentle Reminder with soft dealer context
+                    engTemplates = [
+                        `Hello {cName}, this is a gentle reminder from MEENA MARKETING that your payment of Rs. {formattedPending} for Invoice {invNo} is pending for {displayDays} days. Please clear it at your earliest convenience.`,
+                        `Hi {cName}, MEENA MARKETING hopes you are doing well. Just a quick reminder regarding your pending payment of Rs. {formattedPending} for Invoice {invNo} ({displayDays} days).`,
+                        `Greetings {cName}, MEENA MARKETING kindly requests you to process the payment of Rs. {formattedPending} for Invoice {invNo}, which is currently pending for {displayDays} days.`,
+                        `Hi {cName}, just a gentle reminder from MEENA MARKETING for Rs. {formattedPending} (Invoice {invNo}). Prompt payments help us pay our suppliers on time so we can serve you better!`,
+                        `Dear {cName}, a friendly reminder from MEENA MARKETING regarding Invoice {invNo} for Rs. {formattedPending}. Your timely payments keep our wholesale supply chain running smoothly.`
+                    ];
+                    tamTemplates = [
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் {invNo}-க்கான கட்டணமான ரூ. {formattedPending}, {displayDays} நாட்களாக நிலுவையில் உள்ளது. தயவுசெய்து விரைவில் செலுத்தவும்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} நிலுவைத் தொகை ({displayDays} நாட்கள்) குறித்த ஒரு சுமுகமான நினைவூட்டல் இது.`,
+                        `அன்புடையீர் {cName}, MEENA MARKETING-ல் இருந்து. தற்சமயம் {displayDays} நாட்களாக நிலுவையில் உள்ள உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending}-ஐச் செலுத்துமாறு அன்புடன் கேட்டுக்கொள்கிறோம்.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து சிறிய நினைவூட்டல். ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) நிலுவையில் உள்ளது. நீங்கள் அளிக்கும் விரைவான கட்டணம், நாங்கள் டீலர்களுக்கு பணம் செலுத்த பெரிதும் உதவும்!`,
+                        `வணக்கம் {cName}, தங்களின் இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending}. நீங்கள் செய்யும் குறித்த நேரக் கட்டணம் எங்கள் சப்ளை செயினை தடையின்றி இயங்க வைக்கும். MEENA MARKETING.`
+                    ];
                 } else {
-                    // Upcoming / Pre-payment
-                    engMessage = `Hello ${cName}, greetings from MEENA MARKETING. Your payment of Rs. ${formattedPending} against Invoice ${invNo} is upcoming.`;
-                    tamMessage = `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் விரைவில் செலுத்தப்பட உள்ளது.`;
+                    // 🔵 VERY LIGHT - Upcoming Payment
+                    engTemplates = [
+                        `Hello {cName}, greetings from MEENA MARKETING. Your payment of Rs. {formattedPending} against Invoice {invNo} is upcoming. Thank you for your business.`,
+                        `Hi {cName}, MEENA MARKETING here. This is an advance notification for your upcoming bill of Rs. {formattedPending} (Invoice {invNo}). Have a great day!`,
+                        `Dear {cName}, thank you for choosing MEENA MARKETING. Your payment of Rs. {formattedPending} for Invoice {invNo} will be due soon.`,
+                        `Hello {cName}, we appreciate your business with MEENA MARKETING. This is a quick note that Invoice {invNo} for Rs. {formattedPending} is upcoming.`
+                    ];
+                    tamTemplates = [
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து அன்பான வாழ்த்துகள். உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் செலுத்தப்பட உள்ளது. தங்களின் ஆதரவுக்கு நன்றி.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இது உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} வரவிருக்கும் கட்டணம் குறித்த ஒரு முன் அறிவிப்பாகும். இனிய நாளாக அமையட்டும்!`,
+                        `அன்பான {cName}, MEENA MARKETING-ஐத் தேர்ந்தெடுத்தமைக்கு நன்றி. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் வரவுள்ளது.`,
+                        `வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் அளிக்கும் ஆதரவிற்கு நன்றி. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் வரவுள்ளதை முன்கூட்டியே தெரிவித்துக்கொள்கிறோம்.`
+                    ];
                 }
+
+                // Mathematical Randomization for Millions of Permutations
+                const randomEngIndex = Math.floor(Math.random() * engTemplates.length);
+                const randomTamIndex = Math.floor(Math.random() * tamTemplates.length);
+                
+                // Real-time Placeholder Injector
+                let engMessage = engTemplates[randomEngIndex]
+                    .replace(/{cName}/g, cName)
+                    .replace(/{invNo}/g, invNo)
+                    .replace(/{formattedPending}/g, formattedPending)
+                    .replace(/{displayDays}/g, displayDays);
+                    
+                let tamMessage = tamTemplates[randomTamIndex]
+                    .replace(/{cName}/g, cName)
+                    .replace(/{invNo}/g, invNo)
+                    .replace(/{formattedPending}/g, formattedPending)
+                    .replace(/{displayDays}/g, displayDays);
+
                 const finalWaMsg = encodeURIComponent(`${engMessage}\n\n${tamMessage}`);
                 
-                // Using api.whatsapp.com directly as it is universally stable and natively prioritizes installed apps like WA Business better than wa.me on mobile OS triggers.
+                // Natively trigger WhatsApp via API wrapper for maximum OS compatibility
                 const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${finalWaMsg}`;
                 // --- END AI WHATSAPP MESSAGE ALGORITHM ---
 
