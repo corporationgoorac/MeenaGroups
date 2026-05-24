@@ -205,8 +205,9 @@
         .pay-summary-card {
             background: var(--yt-card); border: 1px solid var(--yt-border);
             padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
+            position: relative; /* Added to support Edit Pencil */
         }
-        .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+        .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; padding: 0 20px;}
         .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
         .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
         
@@ -281,6 +282,20 @@
             from { opacity: 0; transform: translateY(30px) scale(0.96); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
+
+        /* --- NEW: EDIT & HISTORY STYLES --- */
+        .edit-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.05); border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .edit-btn:active { background: rgba(255,255,255,0.15); }
+        .edit-btn svg { fill: var(--yt-text-secondary); width: 18px; height: 18px; }
+        
+        .history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 5px;}
+        .history-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--success-color);}
+        .history-date { font-size: 11px; color: var(--yt-text-secondary); margin-top: 4px;}
+        .history-paid { font-size: 15px; font-weight: bold; color: var(--success-color); }
+        .history-rem { font-size: 13px; color: var(--yt-text-primary); font-weight: 500;}
+        .history-rem span { font-size: 11px; color: var(--yt-text-secondary); font-weight: normal; margin-right: 4px;}
+        
+        #edit-modal { z-index: 120; } /* Ensures Edit Modal opens seamlessly above Pay Modal */
     </style>
 </head>
 <body>
@@ -357,6 +372,38 @@
         </div>
     </div>
 
+    <div class="full-modal" id="edit-modal">
+        <div class="modal-header">
+            <button class="modal-back-btn" id="btn-close-edit">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
+            </button>
+            <h2 style="font-size: 18px;">Edit Customer Details</h2>
+        </div>
+        <div class="modal-content">
+            <form id="edit-form">
+                <div class="form-group">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" id="edit-name" class="form-input" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" id="edit-phone" class="form-input" required inputmode="numeric" pattern="[0-9]*" maxlength="15">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice / GST Number</label>
+                    <div class="input-group">
+                        <select id="edit-invoice-type" class="form-input">
+                            <option value="INV">INV</option>
+                            <option value="GST">GST</option>
+                        </select>
+                        <input type="text" id="edit-invoice-num" class="form-input" required inputmode="numeric">
+                    </div>
+                </div>
+                <button type="submit" class="btn-full-width btn-primary" id="btn-submit-edit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
     <div class="full-modal" id="pay-modal">
         <div class="modal-header">
             <button class="modal-back-btn" id="btn-close-pay">
@@ -366,6 +413,9 @@
         </div>
         <div class="modal-content">
             <div class="pay-summary-card">
+                <button id="btn-open-edit" class="edit-btn">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
+                </button>
                 <div class="pay-summary-name" id="pay-ui-name">-</div>
                 <div class="pay-summary-inv" id="pay-ui-inv">-</div>
                 <div class="pay-summary-amount" id="pay-ui-pending">-</div>
@@ -395,7 +445,12 @@
                 Mark Full Payment Done
             </button>
 
-            <div id="purchased-products-container" class="products-container" style="margin-top: 30px; margin-bottom: 10px;"></div>
+            <div class="products-container" style="margin-top: 30px;">
+                <div class="products-title">Payment History</div>
+                <div id="payment-history-list" class="history-list"></div>
+            </div>
+
+            <div id="purchased-products-container" class="products-container" style="margin-top: 20px; margin-bottom: 10px;"></div>
         </div>
     </div>
 
@@ -457,6 +512,7 @@
         const addModal = document.getElementById('add-modal');
         const payModal = document.getElementById('pay-modal');
         const searchModal = document.getElementById('search-modal');
+        const editModal = document.getElementById('edit-modal'); // NEW EDIT MODAL
         const searchInput = document.getElementById('search-input');
         const btnClearSearch = document.getElementById('btn-clear-search');
         
@@ -631,11 +687,32 @@
             if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
         });
 
-        // Popstate Engine updated to handle Mini Modal
+        // NEW: Edit Modal Listeners
+        document.getElementById('btn-open-edit').addEventListener('click', () => {
+            if(!currentEditRecord) return;
+            document.getElementById('edit-name').value = currentEditRecord.customerName || '';
+            document.getElementById('edit-phone').value = currentEditRecord.phone || '';
+            
+            let invType = 'INV';
+            let invNum = currentEditRecord.invoiceNumber || '';
+            if(invNum.startsWith('GST-')) { invType = 'GST'; invNum = invNum.replace('GST-', ''); }
+            else if(invNum.startsWith('INV-')) { invType = 'INV'; invNum = invNum.replace('INV-', ''); }
+            
+            document.getElementById('edit-invoice-type').value = invType;
+            document.getElementById('edit-invoice-num').value = invNum;
+            
+            openModal(editModal, 'editOpen');
+        });
+        document.getElementById('btn-close-edit').addEventListener('click', () => {
+            if (history.state?.editOpen) history.back(); else closeModal(editModal);
+        });
+
+        // Popstate Engine updated to handle Mini Modal & Edit Modal
         window.addEventListener('popstate', (e) => {
             if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
             if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
             if (!e.state?.payOpen && payModal.classList.contains('active')) closeModal(payModal);
+            if (!e.state?.editOpen && editModal.classList.contains('active')) closeModal(editModal);
             if (!e.state?.miniModalOpen && document.getElementById('mini-modal').classList.contains('active')) closeMiniModal();
         });
 
@@ -750,6 +827,24 @@
             document.getElementById('pay-input-amount').value = '';
             document.getElementById('pay-live-preview').innerHTML = '';
 
+            // Render Payment History Native Array Map
+            const historyContainer = document.getElementById('payment-history-list');
+            if (record.paymentHistory && record.paymentHistory.length > 0) {
+                // Sort array to display the most recent payments at the top
+                const sortedHistory = [...record.paymentHistory].sort((a,b) => new Date(b.date) - new Date(a.date));
+                historyContainer.innerHTML = sortedHistory.map(h => `
+                    <div class="history-item">
+                        <div>
+                            <div class="history-paid">+ ₹${parseFloat(h.paid || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</div>
+                            <div class="history-date">${new Date(h.date).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year:'numeric'})} &bull; ${new Date(h.date).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                        <div class="history-rem"><span>Rem:</span>₹${parseFloat(h.remaining || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</div>
+                    </div>
+                `).join('');
+            } else {
+                historyContainer.innerHTML = `<div class="no-products" style="text-align: center;">No prior partial payments recorded.</div>`;
+            }
+
             // Trigger the 1-read targeted fetch for products
             fetchProductsForInvoice(record.invoiceNumber);
 
@@ -772,7 +867,7 @@
             }
         }
 
-        // 1. Partial Payment Logic (Robust processing)
+        // 1. Partial Payment Logic (Robust processing + History Addition)
         document.getElementById('pay-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-update-partial');
@@ -786,13 +881,24 @@
             let currentPending = parseFloat(currentEditRecord.pendingAmount || 0);
             let newPending = currentPending - amountReceived;
             
+            // Build the history object mapping
+            const newHistoryItem = {
+                date: new Date().toISOString(),
+                paid: amountReceived,
+                remaining: Number(newPending.toFixed(2))
+            };
+            
             let updatedRecords;
             if(newPending <= 0) {
                 updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
                 openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
             } else {
                 updatedRecords = pendingData.map(r => 
-                    r.id === currentEditRecord.id ? { ...r, pendingAmount: Number(newPending.toFixed(2)) } : r
+                    r.id === currentEditRecord.id ? { 
+                        ...r, 
+                        pendingAmount: Number(newPending.toFixed(2)),
+                        paymentHistory: [...(r.paymentHistory || []), newHistoryItem]
+                    } : r
                 );
             }
             updateFirebaseRecords(updatedRecords, btn);
@@ -842,6 +948,7 @@
                 date: document.getElementById('add-date').value,
                 totalAmount: totalAmt,
                 pendingAmount: pendingAmt,
+                paymentHistory: [] // Initialize History Array natively
             };
 
             try {
@@ -853,6 +960,50 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Add Record";
+            }
+        });
+
+        // --- NEW: FORM SUBMIT (EDIT DATA) ---
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-edit');
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            const type = document.getElementById('edit-invoice-type').value;
+            const num = document.getElementById('edit-invoice-num').value.trim();
+            const combinedInvoiceString = `${type}-${num}`;
+            
+            const updatedCustomerName = document.getElementById('edit-name').value.trim();
+            const updatedPhone = document.getElementById('edit-phone').value;
+
+            const updatedRecords = pendingData.map(r => 
+                r.id === currentEditRecord.id ? { 
+                    ...r, 
+                    customerName: updatedCustomerName,
+                    phone: updatedPhone,
+                    invoiceNumber: combinedInvoiceString
+                } : r
+            );
+
+            try {
+                await updateDoc(docRef, { records: updatedRecords });
+                
+                // Keep local UI fast tracking mapped objects immediately
+                currentEditRecord.customerName = updatedCustomerName;
+                currentEditRecord.phone = updatedPhone;
+                currentEditRecord.invoiceNumber = combinedInvoiceString;
+                
+                // Directly map UI strings
+                document.getElementById('pay-ui-name').innerText = currentEditRecord.customerName;
+                document.getElementById('pay-ui-inv').innerText = `Invoice: ${currentEditRecord.invoiceNumber}`;
+                
+                if (history.state?.editOpen) history.back(); else closeModal(editModal);
+            } catch (err) {
+                openMiniModal("Error", "Error updating record: " + err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Changes";
             }
         });
 
