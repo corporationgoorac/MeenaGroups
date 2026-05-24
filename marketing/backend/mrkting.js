@@ -120,7 +120,8 @@ module.exports = (client, db) => {
             // 🚨 NEW FIX: Completely discard the LID hash and build a fresh @c.us ID using the real phone number
             // BULLETPROOF FIX: Only do this if actualPhone is a REAL phone number (not another @lid hash like msg.from)
             if (targetId && targetId.includes('@lid') && actualPhone && !actualPhone.includes('@lid')) {
-                const cleanPhone = actualPhone.replace(/\D/g, ''); // Strip any plus signs just in case
+                // [BULLETPROOF FIX]: Coerced to String to prevent crash if undefined
+                const cleanPhone = String(actualPhone || '').replace(/\D/g, ''); // Strip any plus signs just in case
                 targetId = `${cleanPhone}@c.us`; 
                 console.log(`♻️ [Marketing] Intercepted @lid ID. Rerouting audio to standard ID: ${targetId}`);
             }
@@ -417,7 +418,7 @@ module.exports = (client, db) => {
 
         // Grab the first customer in line
         // CRITICAL BUG FIX: Added back. Array index prevents entire array pushing to graveyard.
-        const customer = dbData.pendingCustomers; 
+        const customer = dbData.pendingCustomers[0]; // [BULLETPROOF FIX]: Added [0] to extract the object, not the whole array!
 
         // SAFEGUARD & FORMAT FIX: In case Firebase holds old string arrays instead of objects
         const rawPhone = typeof customer === 'string' ? customer : customer?.phone;
@@ -425,7 +426,8 @@ module.exports = (client, db) => {
         
         if (!formattedPhone) {
             console.log(`⚠️ [Marketing] Invalid customer format in DB for: ${rawPhone}. Removing entry.`);
-            dbData.invalidNumbers.push(rawPhone);
+            // [BULLETPROOF FIX]: Fallback string protects Firestore from crashing if rawPhone is undefined.
+            dbData.invalidNumbers.push(rawPhone || "UNKNOWN_FORMAT"); 
             dbData.pendingCustomers.shift();
             dbData.nextAllowedTime = Date.now() + 6000; // FAST SKIP: 6 seconds
             await docRef.set(dbData);
