@@ -27,6 +27,16 @@
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            /* Hide scrollbars for all elements to ensure clean native app feel on load */
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+
+        /* Hide scrollbars for WebKit browsers permanently on load */
+        ::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         body {
@@ -221,7 +231,7 @@
         .products-title { font-size: 12px; font-weight: 600; color: var(--yt-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
         .product-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--meena-white); }
-        .skeleton-pill { height: 30px; border-radius: 20px; background: linear-gradient(90deg, var(--yt-card) 25%, var(--yt-border) 50%, var(--yt-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .skeleton-pill { height: 30px; border-radius: 20px; background: linear-gradient(90deg, #212121 25%, #383838 50%, #212121 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite ease-in-out; }
         .no-products { font-size: 14px; color: var(--yt-text-secondary); font-style: italic; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px dashed var(--yt-border);}
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
@@ -297,7 +307,7 @@
         
         #edit-modal { z-index: 120; } /* Ensures Edit Modal opens seamlessly above Pay Modal */
 
-        /* --- NEW: MAIN CARD SKELETON LOADING UI STYLES --- */
+        /* --- MAIN CARD SKELETON LOADING UI STYLES --- */
         .skeleton-card {
             background-color: var(--yt-card);
             border-radius: 12px;
@@ -310,10 +320,10 @@
             position: relative;
         }
         .skeleton-text {
-            background: linear-gradient(90deg, var(--yt-card) 25%, var(--yt-border) 50%, var(--yt-card) 75%);
+            background: linear-gradient(90deg, #1e1e1e 25%, #353535 50%, #1e1e1e 75%);
             background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: 4px;
+            animation: shimmer 1.2s infinite ease-in-out;
+            border-radius: 6px;
         }
         .skeleton-title { height: 18px; width: 60%; }
         .skeleton-subtitle { height: 12px; width: 40%; margin-top: 6px;}
@@ -1216,9 +1226,10 @@
 
                 // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
                 const delay = i * 0.05;
+                const inlineAnimation = isAppend ? `animation: slideUpFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s both;` : '';
 
                 return `
-                <div class="card" style="animation: slideUpFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s both;">
+                <div class="card" style="${inlineAnimation}">
                     <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
                         <div class="card-header">
                             <div>
@@ -1257,6 +1268,27 @@
                 container.innerHTML = html;
             }
         }
+
+        // --- NATIVE HAPTIC VIBRATION ENGINE ---
+        function performHapticFeedback(duration = 15) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        }
+
+        // Dynamic High Performance Action Interceptor for Haptics
+        document.addEventListener('click', (event) => {
+            const targetElement = event.target.closest('.btn, .fab, .header-back-btn, .modal-back-btn, .edit-btn, .mini-modal-btn, .card-body-clickable, button, [type="submit"]');
+            if (targetElement) {
+                if (targetElement.classList.contains('btn-success') || targetElement.id === 'mini-modal-confirm') {
+                    performHapticFeedback([40, 45, 40]); // Success double pulse
+                } else if (targetElement.classList.contains('btn-mini-cancel') || targetElement.id === 'btn-clear-search') {
+                    performHapticFeedback(10); // Standard light cancel tick
+                } else {
+                    performHapticFeedback(20); // Normal action tap
+                }
+            }
+        });
 
     </script>
 </body>
