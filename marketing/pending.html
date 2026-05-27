@@ -365,7 +365,7 @@
         <div id="main-sentinel" class="scroll-sentinel"></div>
     </main>
 
-    <div class="fab" id="btn-open-add">
+    <div class="fab" id="btn-open-add" style="display: none;">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
     </div>
 
@@ -526,8 +526,8 @@
 
     <script type="module">
         import { db } from './config.js';
-        // FIXED: Replaced non-existent 12.9.0 with stable 10.9.0 version to prevent full page crashes
-        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        // FIX: Version changed to 10.9.0. Added runTransaction for bulletproof data protection.
+        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
         document.addEventListener('contextmenu', e => {
@@ -763,6 +763,10 @@
         const docRef = doc(db, 'pending_payments', 'all_data');
 
         onSnapshot(docRef, (snap) => {
+            // FIX: Wait for snapshot to resolve before allowing the user to click the ADD button.
+            // This prevents adding to an empty array before data finishes downloading.
+            document.getElementById('btn-open-add').style.display = 'flex';
+
             if (snap.exists()) {
                 pendingData = snap.data().records || []; 
                 
@@ -893,24 +897,10 @@
             openModal(payModal, 'payOpen');
         };
 
-        // --- PAYMENT MODAL ACTIONS ---
-        async function updateFirebaseRecords(newArray, btnEl) {
-            const originalText = btnEl.innerHTML;
-            btnEl.disabled = true;
-            btnEl.innerHTML = "Processing...";
-            try {
-                await updateDoc(docRef, { records: newArray });
-                if (history.state?.payOpen) history.back(); else closeModal(payModal);
-            } catch (err) {
-                openMiniModal("Error", "Error updating data: " + err.message, true);
-            } finally {
-                btnEl.disabled = false;
-                btnEl.innerHTML = originalText;
-            }
-        }
 
+        // --- PAYMENT MODAL ACTIONS (FIXED: NOW BULLETPROOF VIA FIRESTORE TRANSACTIONS) ---
         // 1. Partial Payment Logic (Robust processing + History Addition)
-        document.getElementById('pay-form').addEventListener('submit', (e) => {
+        document.getElementById('pay-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-update-partial');
             const amountReceived = parseFloat(document.getElementById('pay-input-amount').value) || 0;
@@ -920,30 +910,58 @@
                 return;
             }
 
-            let currentPending = parseFloat(currentEditRecord.pendingAmount || 0);
-            let newPending = currentPending - amountReceived;
-            
-            // Build the history object mapping
-            const newHistoryItem = {
-                date: new Date().toISOString(),
-                paid: amountReceived,
-                remaining: Number(newPending.toFixed(2))
-            };
-            
-            let updatedRecords;
-            if(newPending <= 0) {
-                updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true);
-            } else {
-                updatedRecords = pendingData.map(r => 
-                    r.id === currentEditRecord.id ? { 
-                        ...r, 
-                        pendingAmount: Number(newPending.toFixed(2)),
-                        paymentHistory: [...(r.paymentHistory || []), newHistoryItem]
-                    } : r
-                );
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = "Processing...";
+
+            try {
+                let isFullyPaid = false;
+
+                // TRANSACTION: Forces Firebase to grab the 100% current server data before editing
+                await runTransaction(db, async (transaction) => {
+                    const sfDoc = await transaction.get(docRef);
+                    if (!sfDoc.exists()) throw "Database document missing!";
+                    
+                    const serverRecords = sfDoc.data().records || [];
+                    const serverRecord = serverRecords.find(r => r.id === currentEditRecord.id);
+                    if (!serverRecord) throw "Record not found on server. It may have been deleted by someone else.";
+
+                    let currentPending = parseFloat(serverRecord.pendingAmount || 0);
+                    let newPending = currentPending - amountReceived;
+                    
+                    const newHistoryItem = {
+                        date: new Date().toISOString(),
+                        paid: amountReceived,
+                        remaining: Number(newPending.toFixed(2))
+                    };
+
+                    let updatedRecords;
+                    if(newPending <= 0) {
+                        isFullyPaid = true;
+                        updatedRecords = serverRecords.filter(r => r.id !== currentEditRecord.id);
+                    } else {
+                        updatedRecords = serverRecords.map(r => 
+                            r.id === currentEditRecord.id ? { 
+                                ...r, 
+                                pendingAmount: Number(newPending.toFixed(2)),
+                                paymentHistory: [...(r.paymentHistory || []), newHistoryItem]
+                            } : r
+                        );
+                    }
+                    transaction.update(docRef, { records: updatedRecords });
+                });
+
+                if (history.state?.payOpen) history.back(); else closeModal(payModal);
+                
+                if (isFullyPaid) {
+                    setTimeout(() => openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true), 300);
+                }
+            } catch (err) {
+                openMiniModal("Sync Error", "Transaction prevented a data wipe. Error details: " + err, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
-            updateFirebaseRecords(updatedRecords, btn);
         });
 
         // 2. Mark Full Payment (Removes from array automatically)
@@ -953,15 +971,33 @@
                 "Confirm Full Payment", 
                 `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
                 false, 
-                () => {
-                    const updatedRecords = pendingData.filter(r => r.id !== currentEditRecord.id);
-                    updateFirebaseRecords(updatedRecords, btnEl);
+                async () => {
+                    const originalText = btnEl.innerHTML;
+                    btnEl.disabled = true;
+                    btnEl.innerHTML = "Processing...";
+                    try {
+                        // TRANSACTION: Safely removes item without wiping other users' new additions
+                        await runTransaction(db, async (transaction) => {
+                            const sfDoc = await transaction.get(docRef);
+                            if (!sfDoc.exists()) throw "Database document missing!";
+                            const serverRecords = sfDoc.data().records || [];
+                            const updatedRecords = serverRecords.filter(r => r.id !== currentEditRecord.id);
+                            transaction.update(docRef, { records: updatedRecords });
+                        });
+                        if (history.state?.payOpen) history.back(); else closeModal(payModal);
+                    } catch (err) {
+                        openMiniModal("Sync Error", "Could not complete full payment: " + err, true);
+                    } finally {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = originalText;
+                    }
                 }
             );
         });
 
 
         // --- FORM SUBMIT (ADD DATA) ---
+        // ArrayUnion is inherently safe from overwrites, so it does not need a transaction.
         document.getElementById('add-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-add');
@@ -1005,7 +1041,7 @@
             }
         });
 
-        // --- NEW: FORM SUBMIT (EDIT DATA) ---
+        // --- NEW: FORM SUBMIT (EDIT DATA - FIXED VIA TRANSACTION) ---
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-edit');
@@ -1019,17 +1055,23 @@
             const updatedCustomerName = document.getElementById('edit-name').value.trim();
             const updatedPhone = document.getElementById('edit-phone').value;
 
-            const updatedRecords = pendingData.map(r => 
-                r.id === currentEditRecord.id ? { 
-                    ...r, 
-                    customerName: updatedCustomerName,
-                    phone: updatedPhone,
-                    invoiceNumber: combinedInvoiceString
-                } : r
-            );
-
             try {
-                await updateDoc(docRef, { records: updatedRecords });
+                // TRANSACTION: Safe updating prevents local stale arrays from deleting new data
+                await runTransaction(db, async (transaction) => {
+                    const sfDoc = await transaction.get(docRef);
+                    if (!sfDoc.exists()) throw "Database document missing!";
+                    const serverRecords = sfDoc.data().records || [];
+                    
+                    const updatedRecords = serverRecords.map(r => 
+                        r.id === currentEditRecord.id ? { 
+                            ...r, 
+                            customerName: updatedCustomerName,
+                            phone: updatedPhone,
+                            invoiceNumber: combinedInvoiceString
+                        } : r
+                    );
+                    transaction.update(docRef, { records: updatedRecords });
+                });
                 
                 // Keep local UI fast tracking mapped objects immediately
                 currentEditRecord.customerName = updatedCustomerName;
@@ -1042,7 +1084,7 @@
                 
                 if (history.state?.editOpen) history.back(); else closeModal(editModal);
             } catch (err) {
-                openMiniModal("Error", "Error updating record: " + err.message, true);
+                openMiniModal("Sync Error", "Transaction prevented a data wipe. Error: " + err, true);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Save Changes";
@@ -1146,150 +1188,4 @@
                     tamTemplates = [
                         `அவசரம்: வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. உடனடியாக கட்டணத்தை செலுத்தவும்.`,
                         `கவனத்திற்கு: {cName}, இன்வாய்ஸ் {invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. {formattedPending}, {displayDays} நாட்களாகத் தாமதமாகியுள்ளது என்பதை MEENA MARKETING நினைவூட்டுகிறது. தயவுசெய்து இன்றே இக்கட்டணத்தைச் செலுத்த முன்னுரிமை அளிக்கவும்.`,
-                        `தாமத அறிவிப்பு: வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}), {displayDays} நாட்களாகக் காலதாமதமாகி உள்ளது. உடனடியாக தொகையைச் செலுத்துமாறு கேட்டுக்கொள்கிறோம்.`,
-                        `அவசரம்: வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} ({displayDays} நாட்கள்) நிலுவையில் உள்ளது. நாங்களும் மொத்த வியாபாரிகளுக்கு பணம் செலுத்த வேண்டும் என்பதால் இன்றே கட்டணத்தை செலுத்தவும்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்களின் நீண்ட நாள் நிலுவையான ரூ. {formattedPending} ({displayDays} நாட்கள்) கிடைக்காததால், எங்களால் டீலர்களுக்கு பணம் செலுத்த முடியவில்லை. தயவுசெய்து இன்வாய்ஸ் {invNo}-ஐ உடனடியாக முடிக்கவும்.`
-                    ];
-                } else if (rawDays > 7) {
-                    // 🟡 MEDIUM - Standard Reminder with Deep Supply Chain Empathy
-                    engTemplates = [
-                        `Hello {cName}, this is a reminder from MEENA MARKETING. Your payment of Rs. {formattedPending} against Invoice {invNo} is pending for {displayDays} days. Kindly make the payment soon.`,
-                        `Greetings {cName}, from MEENA MARKETING. Please note that your invoice {invNo} has a pending balance of Rs. {formattedPending} for {displayDays} days. We await your prompt payment.`,
-                        `Hi {cName}, MEENA MARKETING here. Just bringing to your notice that Rs. {formattedPending} is due for Invoice {invNo} ({displayDays} days pending). Please clear this at the earliest.`,
-                        `Hello {cName}, this is MEENA MARKETING. Rs. {formattedPending} for Invoice {invNo} is pending for {displayDays} days. As we also buy from dealers and need to clear their accounts on time, we request your quick support in settling this bill.`,
-                        `Hi {cName}, from MEENA MARKETING. Your pending of Rs. {formattedPending} ({displayDays} days) is requested. To maintain our supply chain and pay our vendors, please clear this invoice {invNo} soon.`,
-                        `Dear {cName}, MEENA MARKETING values your business. To help us rotate our funds and clear supplier dues, kindly settle your pending Rs. {formattedPending} for Invoice {invNo} delayed by {displayDays} days.`
-                    ];
-                    tamTemplates = [
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து நினைவூட்டல். உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக நிலுவையில் உள்ளது. கட்டணத்தை விரைந்து செலுத்தவும்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான நிலுவைத் தொகை ரூ. {formattedPending} கடந்த {displayDays} நாட்களாகச் செலுத்தப்படவில்லை என்பதைத் தெரிவித்துக் கொள்கிறோம். விரைவான கட்டணத்தை எதிர்பார்க்கிறோம்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்காக நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} ({displayDays} நாட்கள் நிலுவை) குறித்த நினைவூட்டல் இது. கூடிய விரைவில் தொகையைச் செலுத்தவும்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) {displayDays} நாட்களாக நிலுவையில் உள்ளது. நாங்களும் டீலர்களிடம் பொருட்களை வாங்கி அவர்களுக்கு பணம் செலுத்த வேண்டி உள்ளதால், விரைந்து தொகையைச் செலுத்தவும்.`,
-                        `வணக்கம் {cName}. இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending}. சப்ளையர்களுக்கு நாங்கள் சரியான நேரத்தில் பணம் செலுத்த வேண்டியுள்ளதால், உங்களின் ஒத்துழைப்பை எதிர்பார்க்கிறோம். தாமதம்: {displayDays} நாட்கள்.`,
-                        `வணக்கம் {cName}, வியாபார சுழற்சியை முறையாக பராமரிக்கவும், நாங்கள் டீலர்களுக்கு செலுத்த வேண்டிய தொகையை கட்டவும், தங்களின் இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending} ({displayDays} நாட்கள்) தொகையை உடனே அளிக்குமாறு கேட்டுக்கொள்கிறோம்.`
-                    ];
-                } else if (rawDays > 0) {
-                    // 🟢 LIGHT - Gentle Reminder with soft dealer context
-                    engTemplates = [
-                        `Hello {cName}, this is a gentle reminder from MEENA MARKETING that your payment of Rs. {formattedPending} for Invoice {invNo} is pending for {displayDays} days. Please clear it at your earliest convenience.`,
-                        `Hi {cName}, MEENA MARKETING hopes you are doing well. Just a quick reminder regarding your pending payment of Rs. {formattedPending} for Invoice {invNo} ({displayDays} days).`,
-                        `Greetings {cName}, MEENA MARKETING kindly requests you to process the payment of Rs. {formattedPending} for Invoice {invNo}, which is currently pending for {displayDays} days.`,
-                        `Hi {cName}, just a gentle reminder from MEENA MARKETING for Rs. {formattedPending} (Invoice {invNo}). Prompt payments help us pay our suppliers on time so we can serve you better!`,
-                        `Dear {cName}, a friendly reminder from MEENA MARKETING regarding Invoice {invNo} for Rs. {formattedPending}. Your timely payments keep our wholesale supply chain running smoothly.`
-                    ];
-                    tamTemplates = [
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் {invNo}-க்கான கட்டணமான ரூ. {formattedPending}, {displayDays} நாட்களாக நிலுவையில் உள்ளது. தயவுசெய்து விரைவில் செலுத்தவும்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} நிலுவைத் தொகை ({displayDays} நாட்கள்) குறித்த ஒரு சுமுகமான நினைவூட்டல் இது.`,
-                        `அன்புடையீர் {cName}, MEENA MARKETING-ல் இருந்து. தற்சமயம் {displayDays} நாட்களாக நிலுவையில் உள்ள உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending}-ஐச் செலுத்துமாறு அன்புடன் கேட்டுக்கொள்கிறோம்.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து சிறிய நினைவூட்டல். ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) நிலுவையில் உள்ளது. நீங்கள் அளிக்கும் விரைவான கட்டணம், நாங்கள் டீலர்களுக்கு பணம் செலுத்த பெரிதும் உதவும்!`,
-                        `வணக்கம் {cName}, தங்களின் இன்வாய்ஸ் {invNo}-க்கான நிலுவை ரூ. {formattedPending}. நீங்கள் செய்யும் குறித்த நேரக் கட்டணம் எங்கள் சப்ளை செயினை தடையின்றி இயங்க வைக்கும். MEENA MARKETING.`
-                    ];
-                } else {
-                    // 🔵 VERY LIGHT - Upcoming Payment
-                    engTemplates = [
-                        `Hello {cName}, greetings from MEENA MARKETING. Your payment of Rs. {formattedPending} against Invoice {invNo} is upcoming. Thank you for your business.`,
-                        `Hi {cName}, MEENA MARKETING here. This is an advance notification for your upcoming bill of Rs. {formattedPending} (Invoice {invNo}). Have a great day!`,
-                        `Dear {cName}, thank you for choosing MEENA MARKETING. Your payment of Rs. {formattedPending} for Invoice {invNo} will be due soon.`,
-                        `Hello {cName}, we appreciate your business with MEENA MARKETING. This is a quick note that Invoice {invNo} for Rs. {formattedPending} is upcoming.`
-                    ];
-                    tamTemplates = [
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து அன்பான வாழ்த்துகள். உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் செலுத்தப்பட உள்ளது. தங்களின் ஆதரவுக்கு நன்றி.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. இது உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} வரவிருக்கும் கட்டணம் குறித்த ஒரு முன் அறிவிப்பாகும். இனிய நாளாக அமையட்டும்!`,
-                        `அன்பான {cName}, MEENA MARKETING-ஐத் தேர்ந்தெடுத்தமைக்கு நன்றி. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் வரவுள்ளது.`,
-                        `வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் அளிக்கும் ஆதரவிற்கு நன்றி. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் விரைவில் வரவுள்ளதை முன்கூட்டியே தெரிவித்துக்கொள்கிறோம்.`
-                    ];
-                }
-
-                // Mathematical Randomization for Millions of Permutations
-                const randomEngIndex = Math.floor(Math.random() * engTemplates.length);
-                const randomTamIndex = Math.floor(Math.random() * tamTemplates.length);
-                
-                // Real-time Placeholder Injector
-                let engMessage = engTemplates[randomEngIndex]
-                    .replace(/{cName}/g, cName)
-                    .replace(/{invNo}/g, invNo)
-                    .replace(/{formattedPending}/g, formattedPending)
-                    .replace(/{displayDays}/g, displayDays);
-                    
-                let tamMessage = tamTemplates[randomTamIndex]
-                    .replace(/{cName}/g, cName)
-                    .replace(/{invNo}/g, invNo)
-                    .replace(/{formattedPending}/g, formattedPending)
-                    .replace(/{displayDays}/g, displayDays);
-
-                const finalWaMsg = encodeURIComponent(`${engMessage}\n\n${tamMessage}`);
-                
-                // Natively trigger WhatsApp via API wrapper for maximum OS compatibility
-                const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${finalWaMsg}`;
-                // --- END AI WHATSAPP MESSAGE ALGORITHM ---
-
-
-                // Improved Staggered animation based on newly mapped index (i), creates a wave effect for new items
-                const delay = i * 0.05;
-                const inlineAnimation = isAppend ? `animation: slideUpFade 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s both;` : '';
-
-                return `
-                <div class="card" style="${inlineAnimation}">
-                    <div class="card-body-clickable" onclick="window.openPaymentManager('${item.id}')">
-                        <div class="card-header">
-                            <div>
-                                <div class="customer-name">${item.customerName || "Unknown Customer"}</div>
-                                <div class="invoice-number">${item.invoiceNumber || "N/A"}</div>
-                            </div>
-                            <div class="invoice-date">
-                                ${dateStr} • <span style="color: var(--meena-red); font-weight: bold;">${daysPendingText}</span>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="amount-row">
-                                <span class="total-amt">Total: ₹${formattedTotal}</span>
-                                <span class="pending-amt">₹${formattedPending}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="actions" onclick="event.stopPropagation()">
-                        <a href="tel:+91${cleanPhone}" class="btn btn-call">
-                            <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.03 21c.73 0 .96-.63.96-1.18v-3.45c0-.54-.45-.99-.99-.99z"></path></svg>
-                            Call
-                        </a>
-                        <a href="${waUrl}" target="_blank" class="btn btn-wa">
-                            <svg viewBox="0 0 24 24"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zm-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.4 0 4.66.94 6.36 2.64 1.7 1.7 2.64 3.96 2.64 6.36 0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.89 2.38 1.01 2.54c.12.17 1.73 2.64 4.19 3.7 1.73.74 2.38.8 3.23.68.85-.12 2.76-1.13 3.15-2.22.39-1.09.39-2.03.27-2.22-.11-.2-.38-.32-.63-.44z"></path></svg>
-                            WhatsApp
-                        </a>
-                    </div>
-                </div>`;
-            }).join('');
-
-            if (isAppend) {
-                container.insertAdjacentHTML('beforeend', html);
-            } else {
-                container.innerHTML = html;
-            }
-        }
-
-        // --- NATIVE HAPTIC VIBRATION ENGINE ---
-        function performHapticFeedback(duration = 15) {
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(duration);
-            }
-        }
-
-        // Dynamic High Performance Action Interceptor for Haptics
-        document.addEventListener('click', (event) => {
-            const targetElement = event.target.closest('.btn, .fab, .header-back-btn, .modal-back-btn, .edit-btn, .mini-modal-btn, .card-body-clickable, button, [type="submit"]');
-            if (targetElement) {
-                if (targetElement.classList.contains('btn-success') || targetElement.id === 'mini-modal-confirm') {
-                    performHapticFeedback(); // Success double pulse
-                } else if (targetElement.classList.contains('btn-mini-cancel') || targetElement.id === 'btn-clear-search') {
-                    performHapticFeedback(10); // Standard light cancel tick
-                } else {
-                    performHapticFeedback(20); // Normal action tap
-                }
-            }
-        });
-
-    </script>
-</body>
-</html>
+                        `தாமத அறிவிப்பு: வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}), {displayDays} நாட்களாகக் காலதாமதமாகி உள்ளத... (Response heavily truncated)
