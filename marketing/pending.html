@@ -215,18 +215,18 @@
         .pay-summary-card {
             background: var(--yt-card); border: 1px solid var(--yt-border);
             padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
-            position: relative; /* Added to support Edit Pencil */
+            position: relative;
         }
         .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; padding: 0 20px;}
         .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
         .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
         
-        /* NEW: Days pending element */
+        /* Days pending element */
         .pay-summary-days { font-size: 14px; font-weight: bold; color: var(--meena-white); margin-bottom: 10px; background: rgba(255,51,51,0.15); display: inline-block; padding: 4px 10px; border-radius: 15px; border: 1px solid rgba(255,51,51,0.3); }
 
         .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
 
-        /* NEW: PRODUCT ITEMS STYLING */
+        /* PRODUCT ITEMS STYLING */
         .products-container { margin-bottom: 25px; }
         .products-title { font-size: 12px; font-weight: 600; color: var(--yt-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -255,7 +255,7 @@
         .search-input::placeholder { color: var(--yt-text-secondary); }
         .empty-state { text-align: center; color: var(--yt-text-secondary); margin-top: 40px; }
 
-        /* NEW: PROFESSIONAL MINI MODAL */
+        /* PROFESSIONAL MINI MODAL */
         .mini-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.75); z-index: 200;
@@ -293,7 +293,7 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* --- NEW: EDIT & HISTORY STYLES --- */
+        /* EDIT & HISTORY STYLES */
         .edit-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.05); border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .edit-btn:active { background: rgba(255,255,255,0.15); }
         .edit-btn svg { fill: var(--yt-text-secondary); width: 18px; height: 18px; }
@@ -305,9 +305,9 @@
         .history-rem { font-size: 13px; color: var(--yt-text-primary); font-weight: 500;}
         .history-rem span { font-size: 11px; color: var(--yt-text-secondary); font-weight: normal; margin-right: 4px;}
         
-        #edit-modal { z-index: 120; } /* Ensures Edit Modal opens seamlessly above Pay Modal */
+        #edit-modal { z-index: 120; }
 
-        /* --- MAIN CARD SKELETON LOADING UI STYLES --- */
+        /* MAIN CARD SKELETON LOADING UI STYLES */
         .skeleton-card {
             background-color: var(--yt-card);
             border-radius: 12px;
@@ -526,7 +526,6 @@
 
     <script type="module">
         import { db } from './config.js';
-        // FIX: Version changed to 10.9.0. Added runTransaction for bulletproof data protection.
         import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
@@ -554,7 +553,7 @@
         const addModal = document.getElementById('add-modal');
         const payModal = document.getElementById('pay-modal');
         const searchModal = document.getElementById('search-modal');
-        const editModal = document.getElementById('edit-modal'); // NEW EDIT MODAL
+        const editModal = document.getElementById('edit-modal');
         const searchInput = document.getElementById('search-input');
         const btnClearSearch = document.getElementById('btn-clear-search');
         
@@ -569,42 +568,34 @@
         let isLoadingMain = false;
         let isLoadingSearch = false;
 
-        // --- BULLETPROOF SCROLL LISTENERS ---
-        // 1. For the main dashboard page
+        // SCROLL LISTENERS
         window.addEventListener('scroll', () => {
             if (isLoadingMain) return;
-            
-            // If user scrolls within 600px of the bottom of the page
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
                 if (mainVisibleCount < pendingData.length) {
                     isLoadingMain = true;
                     const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
                     renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
                     mainVisibleCount += ITEMS_PER_PAGE;
-                    
                     setTimeout(() => { isLoadingMain = false; }, 50);
                 }
             }
         });
 
-        // 2. For the search modal (which scrolls internally)
         const searchContentBox = document.querySelector('#search-modal .modal-content');
         searchContentBox.addEventListener('scroll', () => {
             if (isLoadingSearch) return;
-
             if (searchContentBox.scrollTop + searchContentBox.clientHeight >= searchContentBox.scrollHeight - 600) {
                 if (searchVisibleCount < currentSearchResults.length) {
                     isLoadingSearch = true;
                     const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
                     renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
                     searchVisibleCount += ITEMS_PER_PAGE;
-                    
                     setTimeout(() => { isLoadingSearch = false; }, 50);
                 }
             }
         });
 
-        // Check if items don't even fill the screen (on very large monitors)
         function checkFillScreen() {
             if (mainVisibleCount < pendingData.length && document.body.offsetHeight <= window.innerHeight + 100) {
                 const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
@@ -614,8 +605,7 @@
             }
         }
 
-
-        // --- NEW: DAYS PENDING CALCULATOR WITH EDGE CASE FIX ---
+        // DAYS PENDING CALCULATOR
         function getDaysText(dateString) {
             if (!dateString) return "Unknown";
             const invoiceDate = new Date(dateString);
@@ -633,13 +623,12 @@
             return diffDays + " Days";
         }
 
-        // --- NEW: MINI MODAL SYSTEM ---
+        // MINI MODAL SYSTEM
         let activeConfirmCallback = null;
         
         function openMiniModal(title, message, isAlert = false, callback = null) {
             document.getElementById('mini-modal-title').innerHTML = title;
             document.getElementById('mini-modal-message').innerHTML = message;
-            
             activeConfirmCallback = callback;
             
             if (isAlert) {
@@ -668,8 +657,7 @@
             if (activeConfirmCallback) activeConfirmCallback();
         });
 
-
-        // --- MOBILE BACK BUTTON & MODAL LOGIC ---
+        // MODAL TOGGLE ENGINE
         function openModal(modalEl, stateName) {
             modalEl.classList.add('active');
             document.body.classList.add('no-scroll');
@@ -682,7 +670,6 @@
             document.body.classList.remove('no-scroll');
         }
 
-        // Add Listeners
         document.getElementById('btn-open-add').addEventListener('click', () => {
             document.getElementById('add-date').valueAsDate = new Date();
             openModal(addModal, 'addOpen');
@@ -691,12 +678,10 @@
             if (history.state?.addOpen) history.back(); else closeModal(addModal);
         });
 
-        // Pay Listeners
         document.getElementById('btn-close-pay').addEventListener('click', () => {
             if (history.state?.payOpen) history.back(); else closeModal(payModal);
         });
 
-        // Live Preview Amount Listener
         document.getElementById('pay-input-amount').addEventListener('input', function() {
             let val = parseFloat(this.value) || 0;
             let current = parseFloat(currentEditRecord?.pendingAmount || 0);
@@ -708,7 +693,6 @@
                     previewBox.innerHTML = "Bill will be <b>Fully Paid</b>";
                     previewBox.style.color = "var(--success-color)";
                 } else {
-                    // Correct mathematical processing ensuring decimal robustness in half/partial calculations
                     previewBox.innerHTML = "Remaining balance will be: <b>₹" + remains.toLocaleString('en-IN', {maximumFractionDigits: 2}) + "</b>";
                     previewBox.style.color = "var(--call-blue)";
                 }
@@ -717,7 +701,6 @@
             }
         });
 
-        // Search Listeners
         document.getElementById('btn-open-search').addEventListener('click', () => {
             searchInput.value = '';
             currentSearchResults = [];
@@ -729,7 +712,6 @@
             if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
         });
 
-        // NEW: Edit Modal Listeners
         document.getElementById('btn-open-edit').addEventListener('click', () => {
             if(!currentEditRecord) return;
             document.getElementById('edit-name').value = currentEditRecord.customerName || '';
@@ -749,7 +731,6 @@
             if (history.state?.editOpen) history.back(); else closeModal(editModal);
         });
 
-        // Popstate Engine updated to handle Mini Modal & Edit Modal
         window.addEventListener('popstate', (e) => {
             if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
             if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
@@ -758,36 +739,25 @@
             if (!e.state?.miniModalOpen && document.getElementById('mini-modal').classList.contains('active')) closeMiniModal();
         });
 
-
-        // --- FIREBASE LOGIC (1 Read/Write Constraint) ---
+        // CORE REALTIME SNAPSHOT LISTENER
         const docRef = doc(db, 'pending_payments', 'all_data');
 
         onSnapshot(docRef, (snap) => {
-            // FIX: Wait for snapshot to resolve before allowing the user to click the ADD button.
-            // This prevents adding to an empty array before data finishes downloading.
+            // Unlock FAB button visually only when initial file query load is complete
             document.getElementById('btn-open-add').style.display = 'flex';
 
             if (snap.exists()) {
                 pendingData = snap.data().records || []; 
-                
-                // Sort Oldest at the top
                 pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
                 
-                // Render Dashboard Stats (Robust Amount Calculation)
                 const totalPending = pendingData.reduce((sum, item) => sum + (parseFloat(item.pendingAmount) || 0), 0);
                 document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
                 document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
                 
-                // Ensure visible count doesn't reset to 15 if user has already scrolled down, 
-                // keeping their scroll context alive during background database updates.
                 if(mainVisibleCount < ITEMS_PER_PAGE) mainVisibleCount = ITEMS_PER_PAGE;
                 
                 renderGrid(pendingData.slice(0, mainVisibleCount), 'main-grid', 0, false);
-                
-                // If on a huge screen, auto-load enough to scroll
                 setTimeout(checkFillScreen, 200);
-                
-                // Update search dynamically if open
                 if(searchModal.classList.contains('active')) handleSearch();
             } else {
                 setDoc(docRef, { records: [] });
@@ -798,11 +768,9 @@
             }
         });
 
-        // --- FETCH PRODUCTS DYNAMICALLY (1 Read Limit) ---
+        // SINGLE READ TARGETED INVOICE PRODUCT CHECK
         async function fetchProductsForInvoice(invoiceNumber) {
             const productsContainer = document.getElementById('purchased-products-container');
-            
-            // Show Skeleton Loader
             productsContainer.innerHTML = `
                 <div class="products-title">Purchased Items</div>
                 <div class="product-tags">
@@ -818,7 +786,6 @@
             }
 
             try {
-                // Execute highly targeted 1-read query against sellings collection
                 const q = query(collection(db, 'sellings'), where('invoiceNo', '==', invoiceNumber), limit(1));
                 const snap = await getDocs(q);
                 
@@ -827,7 +794,6 @@
                     return;
                 }
                 
-                // FIXED: 'snap.docs' is an array. Must read index before calling data()
                 const data = snap.docs.data(); 
                 const productsArray = data.purchasedProductNames || [];
                 
@@ -836,9 +802,7 @@
                     return;
                 }
                 
-                // Render pills safely
                 const pillsHtml = productsArray.map(pName => {
-                    // Cleanse XSS potential just in case data isn't sanitised
                     const safeName = document.createElement('div');
                     safeName.innerText = pName;
                     return `<div class="product-pill">${safeName.innerHTML}</div>`;
@@ -848,35 +812,29 @@
                     <div class="products-title">Purchased Items</div>
                     <div class="product-tags">${pillsHtml}</div>
                 `;
-                
             } catch (err) {
                 productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products" style="color: var(--meena-red);">Error loading products</div>`;
                 console.error("Fetch products error:", err);
             }
         }
 
-        // --- GLOBAL FUNCTION FOR CLICKING A CARD ---
         window.openPaymentManager = function(recordId) {
             const record = pendingData.find(r => r.id === recordId);
             if(!record) return;
             
             currentEditRecord = record;
 
-            // Populate Modal UI & Calculate Days Pending
             document.getElementById('pay-ui-name').innerText = record.customerName || "Unknown Customer";
             document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber || "N/A"}`;
             document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
             document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
             document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
             
-            // Reset input and preview
             document.getElementById('pay-input-amount').value = '';
             document.getElementById('pay-live-preview').innerHTML = '';
 
-            // Render Payment History Native Array Map
             const historyContainer = document.getElementById('payment-history-list');
             if (record.paymentHistory && record.paymentHistory.length > 0) {
-                // Sort array to display the most recent payments at the top
                 const sortedHistory = [...record.paymentHistory].sort((a,b) => new Date(b.date) - new Date(a.date));
                 historyContainer.innerHTML = sortedHistory.map(h => `
                     <div class="history-item">
@@ -891,15 +849,11 @@
                 historyContainer.innerHTML = `<div class="no-products" style="text-align: center;">No prior partial payments recorded.</div>`;
             }
 
-            // Trigger the 1-read targeted fetch for products
             fetchProductsForInvoice(record.invoiceNumber);
-
             openModal(payModal, 'payOpen');
         };
 
-
-        // --- PAYMENT MODAL ACTIONS (FIXED: NOW BULLETPROOF VIA FIRESTORE TRANSACTIONS) ---
-        // 1. Partial Payment Logic (Robust processing + History Addition)
+        // TRANSACTIONAL DUE DEDUCTION FORM
         document.getElementById('pay-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-update-partial');
@@ -917,14 +871,13 @@
             try {
                 let isFullyPaid = false;
 
-                // TRANSACTION: Forces Firebase to grab the 100% current server data before editing
                 await runTransaction(db, async (transaction) => {
                     const sfDoc = await transaction.get(docRef);
                     if (!sfDoc.exists()) throw "Database document missing!";
                     
                     const serverRecords = sfDoc.data().records || [];
                     const serverRecord = serverRecords.find(r => r.id === currentEditRecord.id);
-                    if (!serverRecord) throw "Record not found on server. It may have been deleted by someone else.";
+                    if (!serverRecord) throw "Record not found on server.";
 
                     let currentPending = parseFloat(serverRecord.pendingAmount || 0);
                     let newPending = currentPending - amountReceived;
@@ -964,7 +917,7 @@
             }
         });
 
-        // 2. Mark Full Payment (Removes from array automatically)
+        // TRANSACTIONAL FULL PURGE ACTION
         document.getElementById('btn-mark-full').addEventListener('click', function() {
             const btnEl = this;
             openMiniModal(
@@ -976,7 +929,6 @@
                     btnEl.disabled = true;
                     btnEl.innerHTML = "Processing...";
                     try {
-                        // TRANSACTION: Safely removes item without wiping other users' new additions
                         await runTransaction(db, async (transaction) => {
                             const sfDoc = await transaction.get(docRef);
                             if (!sfDoc.exists()) throw "Database document missing!";
@@ -995,9 +947,7 @@
             );
         });
 
-
-        // --- FORM SUBMIT (ADD DATA) ---
-        // ArrayUnion is inherently safe from overwrites, so it does not need a transaction.
+        // ATOMIC RECORD INSERTION
         document.getElementById('add-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-add');
@@ -1005,7 +955,6 @@
             const totalAmt = parseFloat(document.getElementById('add-total').value) || 0;
             const pendingAmt = parseFloat(document.getElementById('add-pending').value) || 0;
             
-            // EDGE CASE FIX: Pending amount cannot be greater than Total amount
             if (pendingAmt > totalAmt) {
                 openMiniModal("Invalid Amount", "Pending amount cannot be strictly greater than the Total Bill amount.", true);
                 return;
@@ -1026,7 +975,7 @@
                 date: document.getElementById('add-date').value,
                 totalAmount: totalAmt,
                 pendingAmount: pendingAmt,
-                paymentHistory: [] // Initialize History Array natively
+                paymentHistory: []
             };
 
             try {
@@ -1041,7 +990,7 @@
             }
         });
 
-        // --- NEW: FORM SUBMIT (EDIT DATA - FIXED VIA TRANSACTION) ---
+        // TRANSACTIONAL RECORDS EDIT ENGINE
         document.getElementById('edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-edit');
@@ -1056,7 +1005,6 @@
             const updatedPhone = document.getElementById('edit-phone').value;
 
             try {
-                // TRANSACTION: Safe updating prevents local stale arrays from deleting new data
                 await runTransaction(db, async (transaction) => {
                     const sfDoc = await transaction.get(docRef);
                     if (!sfDoc.exists()) throw "Database document missing!";
@@ -1073,12 +1021,10 @@
                     transaction.update(docRef, { records: updatedRecords });
                 });
                 
-                // Keep local UI fast tracking mapped objects immediately
                 currentEditRecord.customerName = updatedCustomerName;
                 currentEditRecord.phone = updatedPhone;
                 currentEditRecord.invoiceNumber = combinedInvoiceString;
                 
-                // Directly map UI strings
                 document.getElementById('pay-ui-name').innerText = currentEditRecord.customerName;
                 document.getElementById('pay-ui-inv').innerText = `Invoice: ${currentEditRecord.invoiceNumber}`;
                 
@@ -1091,8 +1037,7 @@
             }
         });
 
-
-        // --- SEARCH LOGIC ---
+        // FILTERS / SEARCH HANDLER
         function handleSearch() {
             const query = searchInput.value.toLowerCase().trim();
             btnClearSearch.style.display = query ? 'block' : 'none';
@@ -1125,8 +1070,7 @@
             searchInput.focus();
         });
 
-
-        // --- UI RENDERER (Supports Infinite Scroll Appending with Improved Animation) ---
+        // UI RENDER ENGINE & WHATSAPP TEMPLATES ALGORITHM
         function renderGrid(dataArray, targetContainerId, startIndex = 0, isAppend = false) {
             const container = document.getElementById(targetContainerId);
             
@@ -1134,10 +1078,9 @@
                 const cleanPhone = (item.phone || "").replace(/[^0-9]/g, '');
                 
                 let dateStr = "Unknown Date";
-                let rawDays = 0; // Added for AI algorithm
+                let rawDays = 0; 
                 if (item.date && !isNaN(new Date(item.date).getTime())) {
                     dateStr = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                    
                     const invoiceDateObj = new Date(item.date);
                     const todayObj = new Date();
                     invoiceDateObj.setHours(0,0,0,0);
@@ -1146,7 +1089,6 @@
                 }
                 
                 const daysPendingText = getDaysText(item.date);
-                
                 const formattedPending = parseFloat(item.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
                 const formattedTotal = parseFloat(item.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
 
@@ -1156,36 +1098,125 @@
                 const invNo = item.invoiceNumber || "N/A";
                 const displayDays = rawDays > 0 ? rawDays : 0; 
                 
-                // Supercharged AI Variables for Millions of Permutations
                 let engTemplates = [];
                 let tamTemplates = [];
 
                 if (rawDays > 60 || (rawAmt > 10000 && rawDays > 30)) {
                     // 🔴 VERY HARSH - Critical Delay & Business Impact
                     engTemplates = [
-                        `FINAL NOTICE: {cName}, MEENA MARKETING is notifying you that your payment of Rs. {formattedPending} for Invoice {invNo} is overdue by {displayDays} days. This delay is completely unacceptable. Pay immediately to avoid further strict actions.`,
-                        `URGENT & FINAL: {cName}, this is MEENA MARKETING. Your long-pending due of Rs. {formattedPending} for Invoice {invNo} has crossed {displayDays} days. Immediate clearance is required to prevent account suspension.`,
-                        `CRITICAL ALERT: {cName}, your pending balance of Rs. {formattedPending} with MEENA MARKETING (Invoice {invNo}) is {displayDays} days late. We cannot accommodate further delays. Process the payment today.`,
-                        `CRITICAL ALERT: {cName}, MEENA MARKETING is facing severe supplier issues due to your non-payment of Rs. {formattedPending} (Invoice {invNo}) delayed by {displayDays} days. We strictly need to pay our dealers. Clear this immediately.`,
-                        `ATTENTION {cName}: We trusted you with our goods, but your delay of {displayDays} days for Rs. {formattedPending} (Invoice {invNo}) is forcing us to default on our own dealer payments. We require immediate settlement today.`
+                        `FINAL NOTICE: ${cName}, MEENA MARKETING is notifying you that your payment of Rs. ${formattedPending} for Invoice ${invNo} is overdue by ${displayDays} days. This delay is completely unacceptable. Pay immediately to avoid further strict actions.`,
+                        `URGENT & FINAL: ${cName}, this is MEENA MARKETING. Your long-pending due of Rs. ${formattedPending} for Invoice ${invNo} has crossed ${displayDays} days. Immediate clearance is required to prevent account suspension.`,
+                        `CRITICAL ALERT: ${cName}, your pending balance of Rs. ${formattedPending} with MEENA MARKETING (Invoice ${invNo}) is ${displayDays} days late. We cannot accommodate further delays. Process the payment today.`,
+                        `CRITICAL ALERT: ${cName}, MEENA MARKETING is facing severe supplier issues due to your non-payment of Rs. ${formattedPending} (Invoice ${invNo}) delayed by ${displayDays} days. We strictly need to pay our dealers. Clear this immediately.`,
+                        `ATTENTION ${cName}: We trusted you with our goods, but your delay of ${displayDays} days for Rs. ${formattedPending} (Invoice ${invNo}) is forcing us to default on our own dealer payments. We require immediate settlement today.`
                     ];
                     tamTemplates = [
-                        `இறுதி அறிவிப்பு: {cName}, உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக நிலுவையில் உள்ளது என்பதை MEENA MARKETING தெரிவிக்கிறது. இந்த மாபெரும் தாமதம் ஏற்றுக்கொள்ள முடியாதது. கடுமையான நடவடிக்கைகளைத் தவிர்க்க உடனடியாக தொகையைச் செலுத்தவும்.`,
-                        `மிக அவசரம்: {cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் {invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. {formattedPending}, {displayDays} நாட்களைத் தாண்டிவிட்டது. உங்கள் கணக்கு முடக்கப்படுவதைத் தவிர்க்க இப்போதே பணத்தைச் செலுத்தவும்.`,
-                        `முக்கிய எச்சரிக்கை: {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}) {displayDays} நாட்களாக நிலுவையில் உள்ளது. இனிமேலும் தாமதத்தை ஏற்க இயலாது. இன்றே கட்டணத்தைச் செலுத்தவும்.`,
-                        `முக்கிய எச்சரிக்கை: {cName}, உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} ({displayDays} நாட்கள்) நிலுவையால் நாங்கள் டீலர்களுக்கு பணம் செலுத்த முடியாமல் தவிக்கிறோம். உடனடியாக தொகையைச் செலுத்தவும்.`,
-                        `கவனத்திற்கு {cName}: உங்களை நம்பி வியாபாரம் செய்தோம், ஆனால் ரூ. {formattedPending} ({displayDays} நாட்கள்) காலதாமதத்தால் நாங்களும் எங்கள் சப்ளையர்களுக்கு பணம் செலுத்த முடியாத இக்கட்டான நிலையில் உள்ளோம். இன்றே கட்டணத்தை முடித்து தரவும்.`
+                        `இறுதி அறிவிப்பு: ${cName}, உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக நிலுவையில் உள்ளது என்பதை MEENA MARKETING தெரிவிக்கிறது. இந்த மாபெரும் தாமதம் ஏற்றுக்கொள்ள முடியாதது. கடுமையான நடவடிக்கைகளைத் தவிர்க்க உடனடியாக தொகையைச் செலுத்தவும்.`,
+                        `மிக அவசரம்: ${cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் ${invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. ${formattedPending}, ${displayDays} நாட்களைத் தாண்டிவிட்டது. உங்கள் கணக்கு முடக்கப்படுவதைத் தவிர்க்க இப்போதே பணத்தைச் செலுத்தவும்.`,
+                        `முக்கிய எச்சரிக்கை: ${cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. ${formattedPending} (இன்வாய்ஸ் ${invNo}) ${displayDays} நாட்களாக நிலுவையில் உள்ளது. இனிமேலும் தாமதத்தை ஏற்க இயலாது. இன்றே கட்டணத்தைச் செலுத்தவும்.`,
+                        `முக்கிய எச்சரிக்கை: ${cName}, உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} (${displayDays} நாட்கள்) நிலுவையால் நாங்கள் டீலர்களுக்கு பணம் செலுத்த முடியாமல் தவிக்கிறோம். உடனடியாக தொகையைச் செலுத்தவும்.`,
+                        `கவனத்திற்கு ${cName}: உங்களை நம்பி வியாபாரம் செய்தோம், ஆனால் ரூ. ${formattedPending} (${displayDays} நாட்கள்) காலதாமதத்தால் நாங்களும் எங்கள் சப்ளையர்களுக்கு பணம் செலுத்த முடியாத இக்கட்டான நிலையில் உள்ளோம். இன்றே கட்டணத்தை முடித்து தரவும்.`
                     ];
                 } else if (rawDays > 30 || (rawAmt > 5000 && rawDays > 15)) {
                     // 🟠 HARSH - Severe Delay & Fund Rotation Impact
                     engTemplates = [
-                        `URGENT: Hello {cName}, this is from MEENA MARKETING. Your payment of Rs. {formattedPending} for Invoice {invNo} is severely overdue by {displayDays} days. Please clear your dues immediately.`,
-                        `ATTENTION: {cName}, MEENA MARKETING reminds you that Invoice {invNo} for Rs. {formattedPending} is {displayDays} days overdue. Kindly prioritize this payment today.`,
-                        `OVERDUE NOTICE: Hello {cName}, your payment of Rs. {formattedPending} to MEENA MARKETING is delayed by {displayDays} days for Invoice {invNo}. We request immediate settlement.`,
-                        `URGENT: Hello {cName}, from MEENA MARKETING. Invoice {invNo} for Rs. {formattedPending} is {displayDays} days late. We rotate funds to pay our wholesalers, and your delay is directly affecting our purchases. Kindly pay today.`,
-                        `Hi {cName}, MEENA MARKETING here. Our suppliers are waiting for their payments, which we cannot process due to your pending Rs. {formattedPending} ({displayDays} days overdue). Please clear your Invoice {invNo} without further delay.`
+                        `URGENT: Hello ${cName}, this is from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is severely overdue by ${displayDays} days. Please clear your dues immediately.`,
+                        `ATTENTION: ${cName}, MEENA MARKETING reminds you that Invoice ${invNo} for Rs. ${formattedPending} is ${displayDays} days overdue. Kindly prioritize this payment today.`,
+                        `OVERDUE NOTICE: Hello ${cName}, your payment of Rs. ${formattedPending} to MEENA MARKETING is delayed by ${displayDays} days for Invoice ${invNo}. We request immediate settlement.`,
+                        `URGENT: Hello ${cName}, from MEENA MARKETING. Invoice ${invNo} for Rs. ${formattedPending} is ${displayDays} days late. We rotate funds to pay our wholesalers, and your delay is directly affecting our purchases. Kindly pay today.`,
+                        `Hi ${cName}, MEENA MARKETING here. Our suppliers are waiting for their payments, which we cannot process due to your pending Rs. ${formattedPending} (${displayDays} days overdue). Please clear your Invoice ${invNo} without further delay.`
                     ];
                     tamTemplates = [
-                        `அவசரம்: வணக்கம் {cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் {invNo}-க்கான ரூ. {formattedPending} கட்டணம் {displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. உடனடியாக கட்டணத்தை செலுத்தவும்.`,
-                        `கவனத்திற்கு: {cName}, இன்வாய்ஸ் {invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. {formattedPending}, {displayDays} நாட்களாகத் தாமதமாகியுள்ளது என்பதை MEENA MARKETING நினைவூட்டுகிறது. தயவுசெய்து இன்றே இக்கட்டணத்தைச் செலுத்த முன்னுரிமை அளிக்கவும்.`,
-                        `தாமத அறிவிப்பு: வணக்கம் {cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. {formattedPending} (இன்வாய்ஸ் {invNo}), {displayDays} நாட்களாகக் காலதாமதமாகி உள்ளத... (Response heavily truncated)
+                        `அவசரம்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. உடனடியாக கட்டணத்தை செலுத்தவும்.`,
+                        `கவனத்திற்கு: ${cName}, இன்வாய்ஸ் ${invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. ${formattedPending}, ${displayDays} நாட்களாகத் தாமதமாகியுள்ளது என்பதை MEENA MARKETING நினைவூட்டுகிறது. தயவுசெய்து இன்றே இக்கட்டணத்தைச் செலுத்த முன்னுரிமை அளிக்கவும்.`,
+                        `தாமத அறிவிப்பு: வணக்கம் ${cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. ${formattedPending} (இன்வாய்ஸ் ${invNo}), ${displayDays} நாட்களாகக் காலதாமதமாகி உள்ளது. தயவுசெய்து இதைச் சரிசெய்யவும்.`,
+                        `அவசரம் ${cName}: உங்கள் இன்வாய்ஸ் ${invNo} (ரூ. ${formattedPending}) {displayDays} நாட்களாக நிலுவையில் உள்ளது. இதனால் எங்கள் ஹோல்சேல் கொள்முதல் பாதிக்கப்படுகிறது. இன்றே பணம் அனுப்பவும்.`,
+                        `வணக்கம் ${cName}, MEENA MARKETING. எங்களுடைய சப்ளையர் பில்களை முடிக்க வேண்டியுள்ளதால், உங்களின் ரூ. ${formattedPending} நிலுவையை (${displayDays} நாட்கள் தாமதம்) உடனடியாக செலுத்தி உதவவும்.`
+                    ];
+                } else {
+                    // 🟡 GENTLE - Friendly Reminder / Recent Bills
+                    engTemplates = [
+                        `Friendly Reminder: Hello ${cName}, this is a gentle reminder from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is currently pending (${displayDays} days). Kindly process it at your earliest convenience. Thank you!`,
+                        `Payment Reminder: Dear ${cName}, your invoice ${invNo} with MEENA MARKETING shows a pending balance of Rs. ${formattedPending}. It has been ${displayDays} days. Please check and clear it. Thanks.`,
+                        `Hello ${cName}, just reminding you about the outstanding amount of Rs. ${formattedPending} for Invoice ${invNo} with MEENA MARKETING. Your support is highly appreciated!`,
+                        `Hello ${cName}, from MEENA MARKETING. Just a quick update that Rs. ${formattedPending} is pending for Invoice ${invNo} (${displayDays} days). We appreciate your prompt payment!`,
+                        `Dear ${cName}, hope you are doing well. This is a quick note from MEENA MARKETING regarding Invoice ${invNo} balance of Rs. ${formattedPending}. Kindly clear it when free.`
+                    ];
+                    tamTemplates = [
+                        `அன்பான நினைவூட்டல்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் (${displayDays} நாட்கள்) நிலுவையில் உள்ளது. உங்கள் வசதிக்கேற்ப விரைவில் அதைச் செலுத்தவும். நன்றி!`,
+                        `கட்டண நினைவூட்டல்: அன்பான ${cName}, MEENA MARKETING-ல் உங்கள் இன்வாய்ஸ் ${invNo}-க்கான நிலுவைத் தொகை ரூ. ${formattedPending} (${displayDays} நாட்கள்) ஆக உள்ளது. தயவுசெய்து சரிபார்த்து செலுத்தவும். நன்றி.`,
+                        `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவைத் தொகையை நினைவூட்டுகிறோம். உங்கள் ஒத்துழைப்பிற்கு மிக்க நன்றி!`,
+                        `வணக்கம் ${cName}, MEENA MARKETING. இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவையில் உள்ளது (${displayDays} நாட்கள்) என்பதைத் தெரிவித்துக் கொள்கிறோம். விரைவில் செலுத்தவும்.`,
+                        `அன்பான ${cName}, நலமாக இருக்கிறீர்களா? MEENA MARKETING-ல் இருந்து இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவைத் தொகை குறித்த சிறிய நினைவூட்டல். தயவுசெய்து செலுத்தவும்.`
+                    ];
+                }
+
+                const formulaIndex = (Math.floor(rawAmt) + displayDays + i) % 5;
+                const selectedEngMsg = encodeURIComponent(engTemplates[formulaIndex]);
+                const selectedTamMsg = encodeURIComponent(tamTemplates[formulaIndex]);
+                // --- END AI WHATSAPP MESSAGE ALGORITHM ---
+
+                return `
+                    <div class="card" data-id="${item.id}">
+                        <div class="card-body-clickable" onclick="openPaymentManager('${item.id}')">
+                            <div class="card-header">
+                                <div>
+                                    <div class="customer-name">${item.customerName || "Unknown"}</div>
+                                    <div class="invoice-number">${item.invoiceNumber || "N/A"}</div>
+                                </div>
+                                <div class="invoice-date">${dateStr}</div>
+                            </div>
+                            <div class="amount-row">
+                                <div class="pending-amt">₹${formattedPending}</div>
+                                <div class="total-amt">Total: ₹${formattedTotal}</div>
+                            </div>
+                            <div style="font-size: 11px; font-weight: bold; color: var(--yt-text-secondary); margin-top: -4px;">
+                                Overdue: <span style="color: ${rawDays > 30 ? 'var(--meena-red)' : 'var(--call-blue)'};">${daysPendingText}</span>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <a href="tel:${cleanPhone}" class="btn btn-call">
+                                <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.57a1 1 0 0 0-1.01.24l-1.57 1.57c-2.83-1.44-5.15-3.76-6.59-6.59l1.57-1.57a1 1 0 0 0 .24-1.01 11.28 11.28 0 0 1-.57-3.53c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.58c0-.55-.45-1-1-1z"></path></svg>
+                                Call
+                            </a>
+                            <a href="https://wa.me/91${cleanPhone}?text=${selectedEngMsg}" class="btn btn-wa" target="_blank">
+                                <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.819 9.819 0 0 0 12.04 2zm5.88 14.12c-.24.69-1.43 1.26-1.95 1.33-.46.06-.92.08-2.61-.59-2.16-.85-3.51-3.05-3.62-3.2-.11-.15-.89-1.18-.89-2.26 0-1.08.54-1.61.73-1.83.19-.22.42-.27.56-.27h.39c.13 0 .31-.05.48.36.18.43.6 1.48.66 1.59.06.11.09.25.02.39-.08.14-.11.24-.23.37-.11.13-.24.3-.34.41-.11.12-.23.25-.1.47.13.22.58.96 1.24 1.55.85.76 1.56 1 1.78 1.1.22.1.35.08.48-.06.13-.15.56-.65.71-.88.15-.22.3-.18.51-.1.21.08 1.34.63 1.58.75.24.12.39.18.45.28.06.1.06.57-.18 1.26z"></path></svg>
+                                English
+                            </a>
+                            <a href="https://wa.me/91${cleanPhone}?text=${selectedTamMsg}" class="btn btn-wa" target="_blank" style="background-color: rgba(37,211,102,0.08); font-size: 13px;">
+                                <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.819 9.819 0 0 0 12.04 2zm5.88 14.12c-.24.69-1.43 1.26-1.95 1.33-.46.06-.92.08-2.61-.59-2.16-.85-3.51-3.05-3.62-3.2-.11-.15-.89-1.18-.89-2.26 0-1.08.54-1.61.73-1.83.19-.22.42-.27.56-.27h.39c.13 0 .31-.05.48.36.18.43.6 1.48.66 1.59.06.11.09.25.02.39-.08.14-.11.24-.23.37-.11.13-.24.3-.34.41-.11.12-.23.25-.1.47.13.22.58.96 1.24 1.55.85.76 1.56 1 1.78 1.1.22.1.35.08.48-.06.13-.15.56-.65.71-.88.15-.22.3-.18.51-.1.21.08 1.34.63 1.58.75.24.12.39.18.45.28.06.1.06.57-.18 1.26z"></path></svg>
+                                Tamil
+                            </a>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            if (isAppend) {
+                container.insertAdjacentHTML('beforeend', html);
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+        // NATIVE HAPTIC VIBRATION ENGINE
+        function performHapticFeedback(duration = 15) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            const targetElement = event.target.closest('.btn, .fab, .header-back-btn, .modal-back-btn, .edit-btn, .mini-modal-btn, .card-body-clickable, button, [type="submit"]');
+            if (targetElement) {
+                if (targetElement.classList.contains('btn-success') || targetElement.id === 'mini-modal-confirm') {
+                    performHapticFeedback();
+                } else if (targetElement.classList.contains('btn-mini-cancel') || targetElement.id === 'btn-clear-search') {
+                    performHapticFeedback(10);
+                } else {
+                    performHapticFeedback(20);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
