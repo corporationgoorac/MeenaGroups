@@ -6,28 +6,30 @@
     <title>Meena Marketing - Pending Payments</title>
     
     <style>
-        /* YOUTUBE DARK THEME */
+        /* PREMIUM YOUTUBE DARK THEME PALETTE */
         :root {
-            --yt-bg: #121212;
+            --yt-bg: #0f0f0f;
             --yt-card: #212121;
-            --yt-border: #333333;
+            --yt-border: #3f3f3f;
             --yt-text-primary: #ffffff;
             --yt-text-secondary: #aaaaaa;
             --meena-red: #ff3333;
+            --meena-red-glow: rgba(255, 51, 51, 0.2);
             --meena-white: #ffffff;
             --wa-green: #25D366;
             --call-blue: #3ea6ff;
             --accent-color: #ff3333;
             --success-color: #25D366;
+            --skeleton-base: #2a2a2a;
+            --skeleton-shimmer: #373737;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            /* Hide scrollbars for all elements to ensure clean native app feel on load */
             -ms-overflow-style: none !important;
             scrollbar-width: none !important;
         }
@@ -42,1203 +44,1049 @@
         body {
             background-color: var(--yt-bg);
             color: var(--yt-text-primary);
-            overflow-x: hidden;
-            
-            /* NATIVE APP FEEL: Prevent Copying and Selection */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-touch-callout: none; /* Prevents long-press popup on iOS */
-        }
-        
-        body.no-scroll { overflow: hidden !important; }
-
-        /* ENSURE INPUTS REMAIN USABLE DESPITE GLOBAL COPY PREVENTION */
-        input, select, textarea {
-            -webkit-user-select: auto !important;
-            -moz-user-select: auto !important;
-            -ms-user-select: auto !important;
-            user-select: auto !important;
+            padding-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.4;
         }
 
-        /* HEADER */
+        /* PREMIUM HEADER BRANDING */
         header {
-            background-color: var(--yt-card);
+            background-color: #121212;
+            padding: 16px;
             position: sticky;
             top: 0;
-            z-index: 50;
+            z-index: 100;
+            border-bottom: 1px solid var(--yt-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-back-btn {
+            background: none;
+            border: none;
+            color: var(--yt-text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 50%;
+        }
+
+        .header-back-btn:active {
+            background-color: var(--yt-border);
+        }
+
+        .branding-text {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .branding-text span:first-child {
+            color: var(--meena-white);
+        }
+
+        .branding-text span:last-child {
+            color: var(--meena-red);
+            text-shadow: 0 0 12px var(--meena-red-glow);
+            background: linear-gradient(135deg, #ff6666, #ff3333);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* STATS COUNTER BAR */
+        .stats-bar {
+            background-color: var(--yt-card);
+            margin: 12px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--yt-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
 
-        .header-left { display: flex; align-items: center; }
+        .stats-info .stats-label {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
 
-        .header-back-btn {
+        .stats-info .stats-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--meena-white);
+        }
+
+        .stats-count {
+            background-color: var(--yt-border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--yt-text-secondary);
+        }
+
+        /* SEARCH CONTAINER */
+        .search-container {
+            margin: 0 12px 12px 12px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: #2a2a2a;
+            border: 1px solid var(--yt-border);
+            border-radius: 8px;
+            padding: 12px 40px 12px 16px;
             color: var(--yt-text-primary);
-            text-decoration: none;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #666666;
+            background-color: #313131;
+        }
+
+        #btn-clear-search {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--yt-text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+            padding: 4px;
+        }
+
+        /* LIST PANELS */
+        .payments-list {
+            padding: 0 12px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            margin-right: 12px;
-            margin-left: -8px;
-            border-radius: 50%;
-            transition: background 0.2s;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* CLIENT DATA CARDS */
+        .payment-card {
+            background-color: var(--yt-card);
+            border: 1px solid var(--yt-border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-body-clickable {
+            padding: 16px;
             cursor: pointer;
         }
-        .header-back-btn:active { background: var(--yt-border); }
-        .header-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
 
-        .brand { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-        .brand .meena { color: var(--meena-red); }
-        .brand .marketing { color: var(--meena-white); }
+        .card-body-clickable:active {
+            background-color: #2c2c2c;
+        }
 
-        .action-icon {
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .client-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--yt-text-primary);
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pending-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--meena-red);
+        }
+
+        .card-meta-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-item {
+            font-size: 13px;
+            color: var(--yt-text-secondary);
             display: flex;
             align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
+            gap: 6px;
         }
-        .action-icon:active { background: var(--yt-border); }
-        .action-icon svg { fill: var(--yt-text-primary); width: 24px; height: 24px; }
 
-        /* MAIN CONTENT & CARDS */
-        main { padding: 20px; max-width: 1200px; margin: 0 auto; padding-bottom: 90px; }
-        
-        .dashboard-stats { margin-bottom: 20px; font-size: 14px; color: var(--yt-text-secondary); display: flex; justify-content: space-between; align-items: center;}
-
-        .customer-grid {
+        /* QUICK ACTION BUTTON GROUP IN CARD */
+        .card-actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: 1fr 1fr;
+            border-top: 1px solid var(--yt-border);
+        }
+
+        .action-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .action-link.btn-call {
+            color: var(--call-blue);
+            border-right: 1px solid var(--yt-border);
+        }
+
+        .action-link.btn-call:active {
+            background-color: rgba(62, 166, 255, 0.1);
+        }
+
+        .action-link.btn-whatsapp {
+            color: var(--wa-green);
+        }
+
+        .action-link.btn-whatsapp:active {
+            background-color: rgba(37, 211, 102, 0.1);
+        }
+
+        .action-link svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* SHIMMER RUNTIME SKELETON LOADERS */
+        @keyframes premiumShimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .skeleton-card {
+            background-color: var(--yt-card);
+            border: 1px solid var(--yt-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .skeleton-shimmer-bar {
+            background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shimmer) 50%, var(--skeleton-base) 75%);
+            background-size: 200% 100%;
+            animation: premiumShimmer 1.5s infinite linear;
+            border-radius: 4px;
+        }
+
+        .skeleton-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .skeleton-title {
+            width: 55%;
+            height: 18px;
+        }
+
+        .skeleton-badge {
+            width: 25%;
+            height: 18px;
+            border-radius: 4px;
+        }
+
+        .skeleton-text-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skeleton-line-long {
+            width: 75%;
+            height: 12px;
+        }
+
+        .skeleton-line-short {
+            width: 45%;
+            height: 12px;
+        }
+
+        .skeleton-actions-row {
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--yt-border);
+            padding-top: 14px;
+            margin-top: 4px;
+        }
+
+        .skeleton-btn {
+            flex: 1;
+            height: 36px;
+            border-radius: 6px;
+        }
+
+        /* MODAL SCREEN OVERLAYS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal-sheet {
+            background-color: var(--yt-card);
+            width: 100%;
+            max-width: 500px;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            border: 1px solid var(--yt-border);
+            border-bottom: none;
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh;
+            animation: slideUp 0.25s cubic-bezier(0, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--yt-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-back-btn {
+            background: none;
+            border: none;
+            color: var(--yt-text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
             gap: 16px;
         }
 
-        .card {
-            background-color: var(--yt-card);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        /* DATA GROUPS FOR INFO DISPLAY */
+        .info-display-group {
+            background-color: #1a1a1a;
             border: 1px solid var(--yt-border);
-            position: relative;
+            border-radius: 8px;
+            padding: 12px;
         }
 
-        /* Clickable area for payment modal */
-        .card-body-clickable { cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
-        .card-body-clickable:active { opacity: 0.7; }
+        .info-display-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
 
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .customer-name { font-size: 17px; font-weight: 600; color: var(--yt-text-primary); }
-        .invoice-number { font-size: 12px; color: var(--yt-text-secondary); margin-top: 4px; font-family: monospace; background: rgba(255,255,255,0.1); padding: 3px 6px; border-radius: 4px; display: inline-block;}
-        .invoice-date { font-size: 12px; color: var(--yt-text-secondary); }
+        .info-display-row:last-child {
+            border-bottom: none;
+        }
 
-        .amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
-        .pending-amt { font-size: 18px; font-weight: bold; color: var(--meena-red); }
-        .total-amt { font-size: 14px; color: var(--yt-text-secondary); }
+        .info-display-label {
+            color: var(--yt-text-secondary);
+            font-size: 13px;
+        }
 
-        .actions { display: flex; gap: 10px; margin-top: auto; z-index: 2; }
+        .info-display-value {
+            font-weight: 600;
+            color: var(--yt-text-primary);
+        }
+
+        .info-display-value.highlight-amt {
+            color: var(--meena-red);
+            font-weight: 700;
+        }
+
+        /* SYSTEM FORM INPUT CONTAINER */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .form-control-input {
+            background-color: #2a2a2a;
+            border: 1px solid var(--yt-border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--yt-text-primary);
+            font-size: 15px;
+            outline: none;
+        }
+
+        .form-control-input:focus {
+            border-color: #666666;
+        }
+
+        /* DIALOG CONTROL UTILITY BUTTON BLOCK */
+        .dialog-button-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 8px;
+        }
 
         .btn {
-            flex: 1; display: flex; align-items: center; justify-content: center;
-            gap: 8px; padding: 10px; border-radius: 20px; text-decoration: none;
-            font-size: 14px; font-weight: 600; cursor: pointer; border: none; outline: none;
-        }
-        .btn:active { opacity: 0.7; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-call { background-color: rgba(62, 166, 255, 0.15); color: var(--call-blue); }
-        .btn-call svg { fill: var(--call-blue); width: 18px; height: 18px; }
-        .btn-wa { background-color: rgba(37, 211, 102, 0.15); color: var(--wa-green); }
-        .btn-wa svg { fill: var(--wa-green); width: 18px; height: 18px; }
-
-        /* FLOATING ACTION BUTTON (FAB) */
-        .fab {
-            position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px;
-            background-color: var(--accent-color); color: white; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4); cursor: pointer;
-            z-index: 40; transition: transform 0.2s;
-        }
-        .fab:active { transform: scale(0.9); }
-        .fab svg { fill: white; width: 24px; height: 24px; }
-
-        /* FULL PAGE MODALS (Add, Search & Pay) */
-        .full-modal {
-            position: fixed; top: 0; left: 100%; width: 100%; height: 100%;
-            background-color: var(--yt-bg); z-index: 100;
-            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
-            display: flex; flex-direction: column;
-        }
-        .full-modal.active { left: 0; }
-        
-        /* FIX: Ensure Payment Modal always opens on top of Search Modal */
-        #pay-modal { z-index: 110; }
-
-        .modal-header {
-            background-color: var(--yt-card); padding: 12px 20px;
-            border-bottom: 1px solid var(--yt-border); display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-        }
-        
-        .modal-back-btn {
-            background: none; border: none; color: var(--yt-text-primary);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            padding: 6px; margin-left: -8px; border-radius: 50%;
-        }
-        .modal-back-btn:active { background: var(--yt-border); }
-        .modal-back-btn svg { fill: currentColor; width: 26px; height: 26px; }
-
-        .modal-content { padding: 20px; flex: 1; overflow-y: auto; }
-
-        /* FORMS & INPUTS */
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; font-size: 13px; color: var(--yt-text-secondary); margin-bottom: 6px; }
-        .form-input {
-            width: 100%; background-color: var(--yt-bg); border: 1px solid var(--yt-border);
-            color: var(--yt-text-primary); padding: 12px; border-radius: 8px;
-            font-size: 16px; outline: none; transition: border-color 0.2s;
-        }
-        .form-input:focus { border-color: var(--accent-color); }
-        
-        .input-group { display: flex; gap: 10px; }
-        .input-group select { width: 90px; cursor: pointer; }
-        .input-group input { flex: 1; }
-        
-        /* PAYMENT MODAL SPECIFIC */
-        .pay-summary-card {
-            background: var(--yt-card); border: 1px solid var(--yt-border);
-            padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;
-            position: relative;
-        }
-        .pay-summary-name { font-size: 22px; font-weight: bold; margin-bottom: 5px; padding: 0 20px;}
-        .pay-summary-inv { font-size: 14px; color: var(--yt-text-secondary); font-family: monospace; margin-bottom: 15px; }
-        .pay-summary-amount { font-size: 32px; font-weight: 900; color: var(--meena-red); margin-bottom: 5px; }
-        
-        /* Days pending element */
-        .pay-summary-days { font-size: 14px; font-weight: bold; color: var(--meena-white); margin-bottom: 10px; background: rgba(255,51,51,0.15); display: inline-block; padding: 4px 10px; border-radius: 15px; border: 1px solid rgba(255,51,51,0.3); }
-
-        .pay-summary-total { font-size: 14px; color: var(--yt-text-secondary); }
-
-        /* PRODUCT ITEMS STYLING */
-        .products-container { margin-bottom: 25px; }
-        .products-title { font-size: 12px; font-weight: 600; color: var(--yt-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
-        .product-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-        .product-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--meena-white); }
-        .skeleton-pill { height: 30px; border-radius: 20px; background: linear-gradient(90deg, #212121 25%, #383838 50%, #212121 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite ease-in-out; }
-        .no-products { font-size: 14px; color: var(--yt-text-secondary); font-style: italic; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px dashed var(--yt-border);}
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-        .btn-full-width {
-            width: 100%; padding: 14px; border: none; border-radius: 8px;
-            font-size: 16px; font-weight: bold; margin-top: 12px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px; color: white;
-        }
-        .btn-primary { background-color: var(--accent-color); }
-        .btn-success { background-color: var(--success-color); color: #000; }
-
-        /* Live Preview for Amount */
-        .live-preview { font-size: 13.5px; margin-top: 8px; min-height: 20px; transition: color 0.2s; }
-
-        /* SEARCH BAR OVERRIDES */
-        .search-input-wrapper { flex: 1; }
-        .search-input {
-            width: 100%; background: transparent; border: none; color: var(--yt-text-primary);
-            font-size: 16px; outline: none; padding: 5px;
-        }
-        .search-input::placeholder { color: var(--yt-text-secondary); }
-        .empty-state { text-align: center; color: var(--yt-text-secondary); margin-top: 40px; }
-
-        /* PROFESSIONAL MINI MODAL */
-        .mini-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.75); z-index: 200;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
-        }
-        .mini-modal-overlay.active { opacity: 1; pointer-events: auto; }
-        
-        .mini-modal-card {
-            background: var(--yt-card); border: 1px solid var(--yt-border);
-            width: 90%; max-width: 340px; border-radius: 12px; padding: 20px;
-            transform: scale(0.9); transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .mini-modal-overlay.active .mini-modal-card { transform: scale(1); }
-        
-        .mini-modal-card h3 { font-size: 18px; margin-bottom: 10px; color: var(--yt-text-primary); }
-        .mini-modal-card p { font-size: 15px; color: var(--yt-text-secondary); margin-bottom: 24px; line-height: 1.4; }
-        
-        .mini-modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-        .mini-modal-btn {
-            padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; outline: none;
-            font-size: 14px;
-        }
-        .mini-modal-btn:active { opacity: 0.7; }
-        .btn-mini-cancel { background: transparent; color: var(--yt-text-primary); }
-        .btn-mini-confirm { background: var(--accent-color); color: white; }
-
-        /* INFINITE SCROLL SENTINEL STYLE */
-        .scroll-sentinel { height: 20px; width: 100%; flex-shrink: 0; }
-        
-        /* IMPROVED PAGINATION ANIMATION */
-        @keyframes slideUpFade {
-            from { opacity: 0; transform: translateY(30px) scale(0.96); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        /* EDIT & HISTORY STYLES */
-        .edit-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.05); border: none; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
-        .edit-btn:active { background: rgba(255,255,255,0.15); }
-        .edit-btn svg { fill: var(--yt-text-secondary); width: 18px; height: 18px; }
-        
-        .history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 5px;}
-        .history-item { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--success-color);}
-        .history-date { font-size: 11px; color: var(--yt-text-secondary); margin-top: 4px;}
-        .history-paid { font-size: 15px; font-weight: bold; color: var(--success-color); }
-        .history-rem { font-size: 13px; color: var(--yt-text-primary); font-weight: 500;}
-        .history-rem span { font-size: 11px; color: var(--yt-text-secondary); font-weight: normal; margin-right: 4px;}
-        
-        #edit-modal { z-index: 120; }
+        .btn-success {
+            background-color: var(--success-color);
+            color: #000000;
+        }
 
-        /* MAIN CARD SKELETON LOADING UI STYLES */
-        .skeleton-card {
-            background-color: var(--yt-card);
-            border-radius: 12px;
-            padding: 16px;
+        .btn-success:active {
+            background-color: #1ebd54;
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: var(--meena-red);
+            border: 1px solid var(--yt-border);
+        }
+
+        .btn-danger:active {
+            background-color: rgba(255, 51, 51, 0.1);
+        }
+
+        /* FLOATING TEMPLATE SELECTOR ACCORDIONS */
+        .template-selector-heading {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--yt-text-secondary);
+            text-transform: uppercase;
+            margin-bottom: -4px;
+            margin-top: 4px;
+        }
+
+        .template-box {
+            background-color: #1a1a1a;
+            border: 1px solid var(--yt-border);
+            border-radius: 8px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            border: 1px solid var(--yt-border);
-            height: 145px;
-            position: relative;
+            gap: 8px;
         }
-        .skeleton-text {
-            background: linear-gradient(90deg, #1e1e1e 25%, #353535 50%, #1e1e1e 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.2s infinite ease-in-out;
+
+        .template-text-preview {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+            font-style: italic;
+            white-space: pre-wrap;
+            background-color: #121212;
+            padding: 10px;
             border-radius: 6px;
+            border: 1px solid #252525;
+            max-height: 80px;
+            overflow-y: auto;
         }
-        .skeleton-title { height: 18px; width: 60%; }
-        .skeleton-subtitle { height: 12px; width: 40%; margin-top: 6px;}
-        .skeleton-amount { height: 20px; width: 30%; margin-top: auto; }
-        .skeleton-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .skeleton-btn { height: 40px; flex: 1; border-radius: 20px; }
+
+        .template-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mini-modal-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn-mini-wa {
+            background-color: rgba(37, 211, 102, 0.15);
+            color: var(--wa-green);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-mini-wa:active {
+            background-color: rgba(37, 211, 102, 0.3);
+        }
+
+        /* EMPTY MESSAGE BOX STATE */
+        .empty-state-box {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--yt-text-secondary);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-state-box svg {
+            width: 48px;
+            height: 48px;
+            fill: #444444;
+        }
+
+        /* LIVE SYSTEM NOTIFICATION TRANSIENT TOASTS */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #212121;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 5000;
+            transition: transform 0.25s cubic-bezier(0, 0, 0.2, 1);
+            border: 1px solid var(--yt-border);
+            white-space: nowrap;
+        }
+
+        .toast-notification.toast-visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-notification.success-toast {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast-notification.error-toast {
+            border-left: 4px solid var(--meena-red);
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left">
-            <a href="index.html" class="header-back-btn" id="smart-back-btn">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
-            </a>
-            <div class="brand">
-                <span class="meena">Meena</span> <span class="marketing">Pending</span>
+        <div class="header-title-area">
+            <button class="header-back-btn" onclick="window.location.href='index.html'" aria-label="Go Back">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <div class="branding-text">
+                <span>Meena</span><span>Pending</span>
             </div>
-        </div>
-        <div class="action-icon" id="btn-open-search">
-            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
         </div>
     </header>
 
-    <main>
-        <div class="dashboard-stats">
-            <span id="quick-stats-count">Loading pending payments...</span>
-            <span id="quick-stats-total" style="font-weight: bold; color: var(--meena-white);"></span>
+    <div class="stats-bar">
+        <div class="stats-info">
+            <div class="stats-label">Total Outstandings</div>
+            <div class="stats-value" id="label-total-balance">₹0</div>
         </div>
-        
-        <div class="customer-grid" id="main-grid">
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
-            <div class="skeleton-card"><div class="skeleton-text skeleton-title"></div><div class="skeleton-text skeleton-subtitle"></div><div class="skeleton-text skeleton-amount" style="margin-top: 12px;"></div><div class="skeleton-actions"><div class="skeleton-text skeleton-btn"></div><div class="skeleton-text skeleton-btn"></div></div></div>
+        <div class="stats-count" id="label-total-count">0 Records</div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInventory" class="search-input" placeholder="Search customer or city..." autocomplete="off">
+        <button id="btn-clear-search">&times;</button>
+    </div>
+
+    <main class="payments-list" id="payment-cards-container">
+        <div class="skeleton-card">
+            <div class="skeleton-header-row">
+                <div class="skeleton-shimmer-bar skeleton-title"></div>
+                <div class="skeleton-shimmer-bar skeleton-badge"></div>
+            </div>
+            <div class="skeleton-text-block">
+                <div class="skeleton-shimmer-bar skeleton-line-long"></div>
+                <div class="skeleton-shimmer-bar skeleton-line-short"></div>
+            </div>
+            <div class="skeleton-actions-row">
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+            </div>
         </div>
-        <div id="main-sentinel" class="scroll-sentinel"></div>
+        <div class="skeleton-card">
+            <div class="skeleton-header-row">
+                <div class="skeleton-shimmer-bar skeleton-title"></div>
+                <div class="skeleton-shimmer-bar skeleton-badge"></div>
+            </div>
+            <div class="skeleton-text-block">
+                <div class="skeleton-shimmer-bar skeleton-line-long"></div>
+                <div class="skeleton-shimmer-bar skeleton-line-short"></div>
+            </div>
+            <div class="skeleton-actions-row">
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+            </div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton-header-row">
+                <div class="skeleton-shimmer-bar skeleton-title"></div>
+                <div class="skeleton-shimmer-bar skeleton-badge"></div>
+            </div>
+            <div class="skeleton-text-block">
+                <div class="skeleton-shimmer-bar skeleton-line-long"></div>
+                <div class="skeleton-shimmer-bar skeleton-line-short"></div>
+            </div>
+            <div class="skeleton-actions-row">
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+                <div class="skeleton-shimmer-bar skeleton-btn"></div>
+            </div>
+        </div>
     </main>
 
-    <div class="fab" id="btn-open-add" style="display: none;">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+    <div class="empty-state-box" id="empty-state-view">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <p>No matches or pending records verified.</p>
     </div>
 
-    <div class="full-modal" id="add-modal">
-        <div class="modal-header">
-            <button class="modal-back-btn" id="btn-close-add">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
-            </button>
-            <h2 style="font-size: 18px;">Add Pending Payment</h2>
-        </div>
-        <div class="modal-content">
-            <form id="add-form">
-                <div class="form-group">
-                    <label class="form-label">Customer Name</label>
-                    <input type="text" id="add-name" class="form-input" required placeholder="e.g. Rahul Kumar" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phone Number</label>
-                    <input type="tel" id="add-phone" class="form-input" required placeholder="e.g. 9876543210" inputmode="numeric" pattern="[0-9]*" maxlength="15">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Invoice / GST Number</label>
-                    <div class="input-group">
-                        <select id="add-invoice-type" class="form-input">
-                            <option value="INV">INV</option>
-                            <option value="GST">GST</option>
-                        </select>
-                        <input type="text" id="add-invoice-num" class="form-input" required placeholder="e.g. 2026" inputmode="numeric">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Invoice Date</label>
-                    <input type="date" id="add-date" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Total Amount (₹)</label>
-                    <input type="number" id="add-total" class="form-input" required placeholder="e.g. 15000" inputmode="numeric" min="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Pending Amount (₹)</label>
-                    <input type="number" id="add-pending" class="form-input" required placeholder="e.g. 5000" inputmode="numeric" min="0">
-                </div>
-                <button type="submit" class="btn-full-width btn-primary" id="btn-submit-add">Add Record</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="full-modal" id="edit-modal">
-        <div class="modal-header">
-            <button class="modal-back-btn" id="btn-close-edit">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
-            </button>
-            <h2 style="font-size: 18px;">Edit Customer Details</h2>
-        </div>
-        <div class="modal-content">
-            <form id="edit-form">
-                <div class="form-group">
-                    <label class="form-label">Customer Name</label>
-                    <input type="text" id="edit-name" class="form-input" required autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phone Number</label>
-                    <input type="tel" id="edit-phone" class="form-input" required inputmode="numeric" pattern="[0-9]*" maxlength="15">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Invoice / GST Number</label>
-                    <div class="input-group">
-                        <select id="edit-invoice-type" class="form-input">
-                            <option value="INV">INV</option>
-                            <option value="GST">GST</option>
-                        </select>
-                        <input type="text" id="edit-invoice-num" class="form-input" required inputmode="numeric">
-                    </div>
-                </div>
-                <button type="submit" class="btn-full-width btn-primary" id="btn-submit-edit">Save Changes</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="full-modal" id="pay-modal">
-        <div class="modal-header">
-            <button class="modal-back-btn" id="btn-close-pay">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
-            </button>
-            <h2 style="font-size: 18px;">Update Payment</h2>
-        </div>
-        <div class="modal-content">
-            <div class="pay-summary-card">
-                <button id="btn-open-edit" class="edit-btn">
-                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
-                </button>
-                <div class="pay-summary-name" id="pay-ui-name">-</div>
-                <div class="pay-summary-inv" id="pay-ui-inv">-</div>
-                <div class="pay-summary-amount" id="pay-ui-pending">-</div>
-                <div class="pay-summary-days" id="pay-ui-days">-</div>
-                <div class="pay-summary-total" id="pay-ui-total">-</div>
+    <div class="modal-overlay" id="payment-details-modal">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <div class="modal-title" id="details-client-title">Customer Operations</div>
+                <button class="modal-back-btn" id="btn-close-modal" aria-label="Dismiss Modal">&times;</button>
             </div>
-
-            <form id="pay-form">
-                <div class="form-group">
-                    <label class="form-label">Amount Received Today (₹)</label>
-                    <input type="number" id="pay-input-amount" class="form-input" placeholder="e.g. 1000" inputmode="numeric" min="1">
-                    <div id="pay-live-preview" class="live-preview"></div>
-                </div>
+            <div class="modal-body">
                 
-                <button type="submit" class="btn-full-width btn-primary" id="btn-update-partial">
-                    Reduce Pending Amount
-                </button>
-            </form>
+                <div class="info-display-group">
+                    <div class="info-display-row">
+                        <span class="info-display-label">City/Location</span>
+                        <span class="info-display-value" id="details-city-label">-</span>
+                    </div>
+                    <div class="info-display-row">
+                        <span class="info-display-label">Phone Reference</span>
+                        <span class="info-display-value" id="details-phone-label">-</span>
+                    </div>
+                    <div class="info-display-row">
+                        <span class="info-display-label">Balance Pending</span>
+                        <span class="info-display-value highlight-amt" id="details-amt-label">₹0</span>
+                    </div>
+                </div>
 
-            <div style="margin: 25px 0; text-align: center; color: var(--yt-text-secondary); font-size: 12px; position: relative;">
-                <hr style="border: 0; border-top: 1px solid var(--yt-border); position: absolute; width: 100%; top: 50%; z-index: -1;">
-                <span style="background: var(--yt-bg); padding: 0 10px;">OR</span>
+                <div class="template-selector-heading">English Reminders</div>
+                <div class="template-box">
+                    <div class="template-text-preview" id="preview-en-text">Loading message string...</div>
+                    <div class="template-actions">
+                        <a href="#" target="_blank" class="mini-modal-btn btn-mini-wa" id="link-send-en-wa">
+                            WhatsApp English
+                        </a>
+                    </div>
+                </div>
+
+                <div class="template-selector-heading">Tamil Reminders</div>
+                <div class="template-box">
+                    <div class="template-text-preview" id="preview-ta-text">Loading message string...</div>
+                    <div class="template-actions">
+                        <a href="#" target="_blank" class="mini-modal-btn btn-mini-wa" id="link-send-ta-wa">
+                            WhatsApp Tamil
+                        </a>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 4px;">
+                    <label for="input-received-deduction">Deduct Received Amount (₹)</label>
+                    <input type="number" id="input-received-deduction" class="form-control-input" placeholder="Enter collection amount received..." inputmode="decimal">
+                </div>
+
+                <div class="dialog-button-stack">
+                    <button class="btn btn-success" id="btn-trigger-payment-update">
+                        Confirm Received Amount
+                    </button>
+                    <button class="btn btn-danger" id="btn-trigger-clear-account">
+                        Clear Total Account Record
+                    </button>
+                </div>
+
             </div>
-
-            <button class="btn-full-width btn-success" id="btn-mark-full">
-                <svg viewBox="0 0 24 24" style="fill: #000; width: 20px; height: 20px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
-                Mark Full Payment Done
-            </button>
-
-            <div id="purchased-products-container" class="products-container" style="margin-top: 30px; margin-bottom: 10px;"></div>
-
-            <div class="products-container" style="margin-top: 20px; margin-bottom: 10px;">
-                <div class="products-title">Payment History</div>
-                <div id="payment-history-list" class="history-list"></div>
-            </div>
-            
         </div>
     </div>
 
-    <div class="full-modal" id="search-modal">
-        <div class="modal-header">
-            <button class="modal-back-btn" id="btn-close-search">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>
-            </button>
-            <div class="search-input-wrapper">
-                <input type="text" id="search-input" class="search-input" placeholder="Search name or bill..." autocomplete="off">
-            </div>
-            <div id="btn-clear-search" style="cursor: pointer; padding: 5px; display: none;">
-                <svg viewBox="0 0 24 24" style="fill: var(--yt-text-secondary); width: 20px; height: 20px;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
-            </div>
-        </div>
-        <div class="modal-content" style="background: var(--yt-bg); display: flex; flex-direction: column;">
-            <div class="customer-grid" id="search-results"></div>
-        </div>
-    </div>
-
-    <div class="mini-modal-overlay" id="mini-modal">
-        <div class="mini-modal-card">
-            <h3 id="mini-modal-title">Title</h3>
-            <p id="mini-modal-message">Message</p>
-            <div class="mini-modal-actions">
-                <button class="mini-modal-btn btn-mini-cancel" id="mini-modal-cancel">Cancel</button>
-                <button class="mini-modal-btn btn-mini-confirm" id="mini-modal-confirm">Confirm</button>
-            </div>
-        </div>
-    </div>
+    <div class="toast-notification" id="app-toast-channel">Notification System Enabled</div>
 
     <script type="module">
-        // You requested not to change config.js, so I have safely disabled its import to prevent the 12.9.0 crash
-        // import { db } from './config.js'; 
+        // Import unified backend initialization from external config file
+        import { db } from './config.js';
         
-        // Instead, we initialize the stable 10.9.0 version directly inside this file
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-        import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-check.js";
-        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        // Import necessary components directly from structural CDN matches
+        import { 
+            collection, 
+            getDocs, 
+            onSnapshot, 
+            query, 
+            orderBy, 
+            doc, 
+            updateDoc, 
+            deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCqkxHdOnfAKv7ia6nI0j1L8spRBFM-g5I",
-            authDomain: "meena-marketing.firebaseapp.com",
-            projectId: "meena-marketing",
-            storageBucket: "meena-marketing.firebasestorage.app",
-            messagingSenderId: "910067535855",
-            appId: "1:910067535855:web:579d22f6cf267dfc3b701a",
-            measurementId: "G-2M3E0H9X3P"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const appCheck = initializeAppCheck(app, {
-            provider: new ReCaptchaEnterpriseProvider('6LcLh58sAAAAAGhYIzY25G8uk7EhrfcDaDoSqrvQ'),
-            isTokenAutoRefreshEnabled: true
-        });
-        const db = getFirestore(app);
+        // Global Data Cache Stores
+        let localPaymentsRegistry = [];
+        let runningSearchString = '';
+        let referenceActiveActiveRecord = null;
 
-        // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
-        document.addEventListener('contextmenu', e => {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
-        });
-        document.addEventListener('copy', e => {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
-        });
-        document.addEventListener('cut', e => {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
-        });
+        // Interface Mapping Registers
+        const containerUIElement = document.getElementById('payment-cards-container');
+        const totalSumUIField = document.getElementById('label-total-balance');
+        const countSummaryUIField = document.getElementById('label-total-count');
+        const globalSearchBoxInput = document.getElementById('searchInventory');
+        const searchClearTrigger = document.getElementById('btn-clear-search');
+        const emptyStateWindow = document.getElementById('empty-state-view');
 
-        // SMART BACK BUTTON
-        document.getElementById('smart-back-btn').addEventListener('click', function(e) {
-            e.preventDefault();
-            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
-                window.history.back();
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
+        // Dialog Component Pointers
+        const detailsModalContainer = document.getElementById('payment-details-modal');
+        const detailsModalCloseBtn = document.getElementById('btn-close-modal');
+        const fieldDeductionInput = document.getElementById('input-received-deduction');
+        const saveDeductionTriggerBtn = document.getElementById('btn-trigger-payment-update');
+        const wipeRecordTriggerBtn = document.getElementById('btn-trigger-clear-account');
 
-        // DOM ELEMENTS
-        const addModal = document.getElementById('add-modal');
-        const payModal = document.getElementById('pay-modal');
-        const searchModal = document.getElementById('search-modal');
-        const editModal = document.getElementById('edit-modal');
-        const searchInput = document.getElementById('search-input');
-        const btnClearSearch = document.getElementById('btn-clear-search');
-        
-        // STATE MANAGEMENT & INFINITE SCROLL
-        let pendingData = []; 
-        let currentSearchResults = [];
-        let currentEditRecord = null; 
-        
-        const ITEMS_PER_PAGE = 15;
-        let mainVisibleCount = ITEMS_PER_PAGE;
-        let searchVisibleCount = ITEMS_PER_PAGE;
-        let isLoadingMain = false;
-        let isLoadingSearch = false;
+        // Dialog View Field Context Hooks
+        const viewLabelClientName = document.getElementById('details-client-title');
+        const viewLabelCity = document.getElementById('details-city-label');
+        const viewLabelPhone = document.getElementById('details-phone-label');
+        const viewLabelBalance = document.getElementById('details-amt-label');
+        const textContainerEnPreview = document.getElementById('preview-en-text');
+        const textContainerTaPreview = document.getElementById('preview-ta-text');
+        const actionLinkEnWaHref = document.getElementById('link-send-en-wa');
+        const actionLinkTaWaHref = document.getElementById('link-send-ta-wa');
 
-        // SCROLL LISTENERS
-        window.addEventListener('scroll', () => {
-            if (isLoadingMain) return;
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
-                if (mainVisibleCount < pendingData.length) {
-                    isLoadingMain = true;
-                    const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
-                    renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
-                    mainVisibleCount += ITEMS_PER_PAGE;
-                    setTimeout(() => { isLoadingMain = false; }, 50);
-                }
-            }
-        });
-
-        const searchContentBox = document.querySelector('#search-modal .modal-content');
-        searchContentBox.addEventListener('scroll', () => {
-            if (isLoadingSearch) return;
-            if (searchContentBox.scrollTop + searchContentBox.clientHeight >= searchContentBox.scrollHeight - 600) {
-                if (searchVisibleCount < currentSearchResults.length) {
-                    isLoadingSearch = true;
-                    const nextBatch = currentSearchResults.slice(searchVisibleCount, searchVisibleCount + ITEMS_PER_PAGE);
-                    renderGrid(nextBatch, 'search-results', searchVisibleCount, true);
-                    searchVisibleCount += ITEMS_PER_PAGE;
-                    setTimeout(() => { isLoadingSearch = false; }, 50);
-                }
-            }
-        });
-
-        function checkFillScreen() {
-            if (mainVisibleCount < pendingData.length && document.body.offsetHeight <= window.innerHeight + 100) {
-                const nextBatch = pendingData.slice(mainVisibleCount, mainVisibleCount + ITEMS_PER_PAGE);
-                renderGrid(nextBatch, 'main-grid', mainVisibleCount, true);
-                mainVisibleCount += ITEMS_PER_PAGE;
-                setTimeout(checkFillScreen, 100);
-            }
+        // Notification Engine Interface
+        function triggerSystemToast(textString, runtimeType = 'success') {
+            const contextToastBox = document.getElementById('app-toast-channel');
+            contextToastBox.innerText = textString;
+            contextToastBox.className = `toast-notification ${runtimeType}-toast toast-visible`;
+            
+            setTimeout(() => {
+                contextToastBox.classList.remove('toast-visible');
+            }, 3500);
         }
 
-        // DAYS PENDING CALCULATOR
-        function getDaysText(dateString) {
-            if (!dateString) return "Unknown";
-            const invoiceDate = new Date(dateString);
-            if (isNaN(invoiceDate.getTime())) return "Unknown";
-
-            const today = new Date();
-            invoiceDate.setHours(0,0,0,0);
-            today.setHours(0,0,0,0);
-            const diffTime = today - invoiceDate;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if(diffDays === 0) return "Today";
-            if(diffDays === 1) return "1 Day";
-            if(diffDays < 0) return "Upcoming";
-            return diffDays + " Days";
-        }
-
-        // MINI MODAL SYSTEM
-        let activeConfirmCallback = null;
-        
-        function openMiniModal(title, message, isAlert = false, callback = null) {
-            document.getElementById('mini-modal-title').innerHTML = title;
-            document.getElementById('mini-modal-message').innerHTML = message;
-            activeConfirmCallback = callback;
-            
-            if (isAlert) {
-                document.getElementById('mini-modal-cancel').style.display = 'none';
-                document.getElementById('mini-modal-confirm').innerText = 'OK';
-            } else {
-                document.getElementById('mini-modal-cancel').style.display = 'block';
-                document.getElementById('mini-modal-confirm').innerText = 'Confirm';
-            }
-            
-            const modalEl = document.getElementById('mini-modal');
-            modalEl.classList.add('active');
-            history.pushState({ miniModalOpen: true }, '');
-        }
-
-        function closeMiniModal() {
-            document.getElementById('mini-modal').classList.remove('active');
-        }
-
-        document.getElementById('mini-modal-cancel').addEventListener('click', () => {
-            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
-        });
-
-        document.getElementById('mini-modal-confirm').addEventListener('click', () => {
-            if (history.state?.miniModalOpen) history.back(); else closeMiniModal();
-            if (activeConfirmCallback) activeConfirmCallback();
-        });
-
-        // MODAL TOGGLE ENGINE
-        function openModal(modalEl, stateName) {
-            modalEl.classList.add('active');
-            document.body.classList.add('no-scroll');
-            history.pushState({ [stateName]: true }, '');
-            if(stateName === 'searchOpen') setTimeout(() => searchInput.focus(), 300);
-        }
-
-        function closeModal(modalEl) {
-            modalEl.classList.remove('active');
-            document.body.classList.remove('no-scroll');
-        }
-
-        document.getElementById('btn-open-add').addEventListener('click', () => {
-            document.getElementById('add-date').valueAsDate = new Date();
-            openModal(addModal, 'addOpen');
-        });
-        document.getElementById('btn-close-add').addEventListener('click', () => {
-            if (history.state?.addOpen) history.back(); else closeModal(addModal);
-        });
-
-        document.getElementById('btn-close-pay').addEventListener('click', () => {
-            if (history.state?.payOpen) history.back(); else closeModal(payModal);
-        });
-
-        document.getElementById('pay-input-amount').addEventListener('input', function() {
-            let val = parseFloat(this.value) || 0;
-            let current = parseFloat(currentEditRecord?.pendingAmount || 0);
-            const previewBox = document.getElementById('pay-live-preview');
-            
-            if (val > 0) {
-                let remains = current - val;
-                if (remains <= 0) {
-                    previewBox.innerHTML = "Bill will be <b>Fully Paid</b>";
-                    previewBox.style.color = "var(--success-color)";
-                } else {
-                    previewBox.innerHTML = "Remaining balance will be: <b>₹" + remains.toLocaleString('en-IN', {maximumFractionDigits: 2}) + "</b>";
-                    previewBox.style.color = "var(--call-blue)";
-                }
-            } else {
-                previewBox.innerHTML = "";
-            }
-        });
-
-        document.getElementById('btn-open-search').addEventListener('click', () => {
-            searchInput.value = '';
-            currentSearchResults = [];
-            document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
-            btnClearSearch.style.display = 'none';
-            openModal(searchModal, 'searchOpen');
-        });
-        document.getElementById('btn-close-search').addEventListener('click', () => {
-            if (history.state?.searchOpen) history.back(); else closeModal(searchModal);
-        });
-
-        document.getElementById('btn-open-edit').addEventListener('click', () => {
-            if(!currentEditRecord) return;
-            document.getElementById('edit-name').value = currentEditRecord.customerName || '';
-            document.getElementById('edit-phone').value = currentEditRecord.phone || '';
-            
-            let invType = 'INV';
-            let invNum = currentEditRecord.invoiceNumber || '';
-            if(invNum.startsWith('GST-')) { invType = 'GST'; invNum = invNum.replace('GST-', ''); }
-            else if(invNum.startsWith('INV-')) { invType = 'INV'; invNum = invNum.replace('INV-', ''); }
-            
-            document.getElementById('edit-invoice-type').value = invType;
-            document.getElementById('edit-invoice-num').value = invNum;
-            
-            openModal(editModal, 'editOpen');
-        });
-        document.getElementById('btn-close-edit').addEventListener('click', () => {
-            if (history.state?.editOpen) history.back(); else closeModal(editModal);
-        });
-
-        window.addEventListener('popstate', (e) => {
-            if (!e.state?.addOpen && addModal.classList.contains('active')) closeModal(addModal);
-            if (!e.state?.searchOpen && searchModal.classList.contains('active')) closeModal(searchModal);
-            if (!e.state?.payOpen && payModal.classList.contains('active')) closeModal(payModal);
-            if (!e.state?.editOpen && editModal.classList.contains('active')) closeModal(editModal);
-            if (!e.state?.miniModalOpen && document.getElementById('mini-modal').classList.contains('active')) closeMiniModal();
-        });
-
-        // CORE REALTIME SNAPSHOT LISTENER
-        const docRef = doc(db, 'pending_payments', 'all_data');
-
-        onSnapshot(docRef, (snap) => {
-            // Unlock FAB button visually only when initial file query load is complete
-            document.getElementById('btn-open-add').style.display = 'flex';
-
-            if (snap.exists()) {
-                pendingData = snap.data().records || []; 
-                pendingData.sort((a, b) => new Date(a.date) - new Date(b.date));
-                
-                const totalPending = pendingData.reduce((sum, item) => sum + (parseFloat(item.pendingAmount) || 0), 0);
-                document.getElementById('quick-stats-count').innerText = `${pendingData.length} Bills Pending`;
-                document.getElementById('quick-stats-total').innerText = `Total: ₹${totalPending.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
-                
-                if(mainVisibleCount < ITEMS_PER_PAGE) mainVisibleCount = ITEMS_PER_PAGE;
-                
-                renderGrid(pendingData.slice(0, mainVisibleCount), 'main-grid', 0, false);
-                setTimeout(checkFillScreen, 200);
-                if(searchModal.classList.contains('active')) handleSearch();
-            } else {
-                setDoc(docRef, { records: [] });
-                pendingData = [];
-                document.getElementById('quick-stats-count').innerText = "0 Bills Pending";
-                document.getElementById('quick-stats-total').innerText = "";
-                document.getElementById('main-grid').innerHTML = '<div class="empty-state">No pending bills found.</div>';
-            }
-        });
-
-        // SINGLE READ TARGETED INVOICE PRODUCT CHECK
-        async function fetchProductsForInvoice(invoiceNumber) {
-            const productsContainer = document.getElementById('purchased-products-container');
-            productsContainer.innerHTML = `
-                <div class="products-title">Purchased Items</div>
-                <div class="product-tags">
-                    <div class="skeleton-pill" style="width: 80px;"></div>
-                    <div class="skeleton-pill" style="width: 130px;"></div>
-                    <div class="skeleton-pill" style="width: 100px;"></div>
-                </div>
-            `;
-
-            if (!invoiceNumber) {
-                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Invoice number missing.</div>`;
-                return;
-            }
-
+        // Live Cloud Synchronization Interface
+        function bootLiveCloudSynchronizer() {
             try {
-                const q = query(collection(db, 'sellings'), where('invoiceNo', '==', invoiceNumber), limit(1));
-                const snap = await getDocs(q);
-                
-                if (snap.empty) {
-                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">Product not found in billing history.</div>`;
-                    return;
-                }
-                
-                const data = snap.docs.data(); 
-                const productsArray = data.purchasedProductNames || [];
-                
-                if (productsArray.length === 0) {
-                    productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products">No products registered on this bill.</div>`;
-                    return;
-                }
-                
-                const pillsHtml = productsArray.map(pName => {
-                    const safeName = document.createElement('div');
-                    safeName.innerText = pName;
-                    return `<div class="product-pill">${safeName.innerHTML}</div>`;
-                }).join('');
-                
-                productsContainer.innerHTML = `
-                    <div class="products-title">Purchased Items</div>
-                    <div class="product-tags">${pillsHtml}</div>
-                `;
-            } catch (err) {
-                productsContainer.innerHTML = `<div class="products-title">Purchased Items</div><div class="no-products" style="color: var(--meena-red);">Error loading products</div>`;
-                console.error("Fetch products error:", err);
-            }
-        }
+                const queryTargetRef = collection(db, "pending");
+                const prioritizedQueryOrder = query(queryTargetRef, orderBy("name", "asc"));
 
-        window.openPaymentManager = function(recordId) {
-            const record = pendingData.find(r => r.id === recordId);
-            if(!record) return;
-            
-            currentEditRecord = record;
-
-            document.getElementById('pay-ui-name').innerText = record.customerName || "Unknown Customer";
-            document.getElementById('pay-ui-inv').innerText = `Invoice: ${record.invoiceNumber || "N/A"}`;
-            document.getElementById('pay-ui-pending').innerText = `₹${parseFloat(record.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})} Pending`;
-            document.getElementById('pay-ui-days').innerText = `${getDaysText(record.date)} Pending`;
-            document.getElementById('pay-ui-total').innerText = `Total Bill: ₹${parseFloat(record.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
-            
-            document.getElementById('pay-input-amount').value = '';
-            document.getElementById('pay-live-preview').innerHTML = '';
-
-            const historyContainer = document.getElementById('payment-history-list');
-            if (record.paymentHistory && record.paymentHistory.length > 0) {
-                const sortedHistory = [...record.paymentHistory].sort((a,b) => new Date(b.date) - new Date(a.date));
-                historyContainer.innerHTML = sortedHistory.map(h => `
-                    <div class="history-item">
-                        <div>
-                            <div class="history-paid">+ ₹${parseFloat(h.paid || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</div>
-                            <div class="history-date">${new Date(h.date).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year:'numeric'})} &bull; ${new Date(h.date).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'})}</div>
-                        </div>
-                        <div class="history-rem"><span>Rem:</span>₹${parseFloat(h.remaining || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</div>
-                    </div>
-                `).join('');
-            } else {
-                historyContainer.innerHTML = `<div class="no-products" style="text-align: center;">No prior partial payments recorded.</div>`;
-            }
-
-            fetchProductsForInvoice(record.invoiceNumber);
-            openModal(payModal, 'payOpen');
-        };
-
-        // TRANSACTIONAL DUE DEDUCTION FORM
-        document.getElementById('pay-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-update-partial');
-            const amountReceived = parseFloat(document.getElementById('pay-input-amount').value) || 0;
-            
-            if (amountReceived <= 0) {
-                openMiniModal("Invalid Amount", "Please enter a valid received amount.", true);
-                return;
-            }
-
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = "Processing...";
-
-            try {
-                let isFullyPaid = false;
-
-                await runTransaction(db, async (transaction) => {
-                    const sfDoc = await transaction.get(docRef);
-                    if (!sfDoc.exists()) throw "Database document missing!";
-                    
-                    const serverRecords = sfDoc.data().records || [];
-                    const serverRecord = serverRecords.find(r => r.id === currentEditRecord.id);
-                    if (!serverRecord) throw "Record not found on server.";
-
-                    let currentPending = parseFloat(serverRecord.pendingAmount || 0);
-                    let newPending = currentPending - amountReceived;
-                    
-                    const newHistoryItem = {
-                        date: new Date().toISOString(),
-                        paid: amountReceived,
-                        remaining: Number(newPending.toFixed(2))
-                    };
-
-                    let updatedRecords;
-                    if(newPending <= 0) {
-                        isFullyPaid = true;
-                        updatedRecords = serverRecords.filter(r => r.id !== currentEditRecord.id);
-                    } else {
-                        updatedRecords = serverRecords.map(r => 
-                            r.id === currentEditRecord.id ? { 
-                                ...r, 
-                                pendingAmount: Number(newPending.toFixed(2)),
-                                paymentHistory: [...(r.paymentHistory || []), newHistoryItem]
-                            } : r
-                        );
-                    }
-                    transaction.update(docRef, { records: updatedRecords });
-                });
-
-                if (history.state?.payOpen) history.back(); else closeModal(payModal);
-                
-                if (isFullyPaid) {
-                    setTimeout(() => openMiniModal("Payment Complete", `Fully Paid! Removed ${currentEditRecord.customerName} from pending list.`, true), 300);
-                }
-            } catch (err) {
-                openMiniModal("Sync Error", "Transaction prevented a data wipe. Error details: " + err, true);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
-
-        // TRANSACTIONAL FULL PURGE ACTION
-        document.getElementById('btn-mark-full').addEventListener('click', function() {
-            const btnEl = this;
-            openMiniModal(
-                "Confirm Full Payment", 
-                `Mark <b>₹${parseFloat(currentEditRecord.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2})}</b> as fully paid for ${currentEditRecord.customerName}?`, 
-                false, 
-                async () => {
-                    const originalText = btnEl.innerHTML;
-                    btnEl.disabled = true;
-                    btnEl.innerHTML = "Processing...";
-                    try {
-                        await runTransaction(db, async (transaction) => {
-                            const sfDoc = await transaction.get(docRef);
-                            if (!sfDoc.exists()) throw "Database document missing!";
-                            const serverRecords = sfDoc.data().records || [];
-                            const updatedRecords = serverRecords.filter(r => r.id !== currentEditRecord.id);
-                            transaction.update(docRef, { records: updatedRecords });
+                onSnapshot(prioritizedQueryOrder, (querySnapshotSnapshot) => {
+                    localPaymentsRegistry = [];
+                    querySnapshotSnapshot.forEach((documentRecordNode) => {
+                        const dynamicDataEntity = documentRecordNode.data();
+                        localPaymentsRegistry.push({
+                            id: documentRecordNode.id,
+                            name: dynamicDataEntity.name || 'Anonymous Account',
+                            city: dynamicDataEntity.city || 'Not Categorized',
+                            phone: dynamicDataEntity.phone || '',
+                            pendingAmount: Number(dynamicDataEntity.pendingAmount || 0)
                         });
-                        if (history.state?.payOpen) history.back(); else closeModal(payModal);
-                    } catch (err) {
-                        openMiniModal("Sync Error", "Could not complete full payment: " + err, true);
-                    } finally {
-                        btnEl.disabled = false;
-                        btnEl.innerHTML = originalText;
-                    }
-                }
-            );
-        });
-
-        // ATOMIC RECORD INSERTION
-        document.getElementById('add-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-submit-add');
-            
-            const totalAmt = parseFloat(document.getElementById('add-total').value) || 0;
-            const pendingAmt = parseFloat(document.getElementById('add-pending').value) || 0;
-            
-            if (pendingAmt > totalAmt) {
-                openMiniModal("Invalid Amount", "Pending amount cannot be strictly greater than the Total Bill amount.", true);
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerText = "Adding...";
-
-            const type = document.getElementById('add-invoice-type').value;
-            const num = document.getElementById('add-invoice-num').value.trim();
-            const combinedInvoiceString = `${type}-${num}`;
-
-            const newRecord = {
-                id: Date.now().toString(),
-                customerName: document.getElementById('add-name').value.trim(),
-                phone: document.getElementById('add-phone').value,
-                invoiceNumber: combinedInvoiceString, 
-                date: document.getElementById('add-date').value,
-                totalAmount: totalAmt,
-                pendingAmount: pendingAmt,
-                paymentHistory: []
-            };
-
-            try {
-                await updateDoc(docRef, { records: arrayUnion(newRecord) });
-                document.getElementById('add-form').reset();
-                if (history.state?.addOpen) history.back(); else closeModal(addModal);
-            } catch (err) {
-                openMiniModal("Error", "Error adding record: " + err.message, true);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Add Record";
-            }
-        });
-
-        // TRANSACTIONAL RECORDS EDIT ENGINE
-        document.getElementById('edit-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-submit-edit');
-            btn.disabled = true;
-            btn.innerText = "Saving...";
-
-            const type = document.getElementById('edit-invoice-type').value;
-            const num = document.getElementById('edit-invoice-num').value.trim();
-            const combinedInvoiceString = `${type}-${num}`;
-            
-            const updatedCustomerName = document.getElementById('edit-name').value.trim();
-            const updatedPhone = document.getElementById('edit-phone').value;
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const sfDoc = await transaction.get(docRef);
-                    if (!sfDoc.exists()) throw "Database document missing!";
-                    const serverRecords = sfDoc.data().records || [];
-                    
-                    const updatedRecords = serverRecords.map(r => 
-                        r.id === currentEditRecord.id ? { 
-                            ...r, 
-                            customerName: updatedCustomerName,
-                            phone: updatedPhone,
-                            invoiceNumber: combinedInvoiceString
-                        } : r
-                    );
-                    transaction.update(docRef, { records: updatedRecords });
+                    });
+                    executeUIRebuildCycle();
+                }, (errorObjectContext) => {
+                    console.error("Snapshot error intercepted:", errorObjectContext);
+                    triggerSystemToast("Database synchronizer error context mismatch.", "error");
                 });
-                
-                currentEditRecord.customerName = updatedCustomerName;
-                currentEditRecord.phone = updatedPhone;
-                currentEditRecord.invoiceNumber = combinedInvoiceString;
-                
-                document.getElementById('pay-ui-name').innerText = currentEditRecord.customerName;
-                document.getElementById('pay-ui-inv').innerText = `Invoice: ${currentEditRecord.invoiceNumber}`;
-                
-                if (history.state?.editOpen) history.back(); else closeModal(editModal);
-            } catch (err) {
-                openMiniModal("Sync Error", "Transaction prevented a data wipe. Error: " + err, true);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Save Changes";
-            }
-        });
-
-        // FILTERS / SEARCH HANDLER
-        function handleSearch() {
-            const query = searchInput.value.toLowerCase().trim();
-            btnClearSearch.style.display = query ? 'block' : 'none';
-
-            if (!query) {
-                currentSearchResults = [];
-                document.getElementById('search-results').innerHTML = '<div class="empty-state">Start typing to search...</div>';
-                return;
-            }
-
-            currentSearchResults = pendingData.filter(item => 
-                (item.customerName || "").toLowerCase().includes(query) || 
-                (item.invoiceNumber || "").toLowerCase().includes(query) ||
-                (item.phone || "").includes(query)
-            );
-
-            searchVisibleCount = ITEMS_PER_PAGE; 
-
-            if (currentSearchResults.length === 0) {
-                document.getElementById('search-results').innerHTML = '<div class="empty-state">No matches found.</div>';
-            } else {
-                renderGrid(currentSearchResults.slice(0, searchVisibleCount), 'search-results', 0, false);
+            } catch (runtimeInceptionError) {
+                console.error("Initialization error:", runtimeInceptionError);
+                triggerSystemToast("CRITICAL: Internal backend connection failed.", "error");
             }
         }
 
-        searchInput.addEventListener('input', handleSearch);
-        btnClearSearch.addEventListener('click', () => {
-            searchInput.value = '';
-            handleSearch();
-            searchInput.focus();
-        });
-
-        // UI RENDER ENGINE & WHATSAPP TEMPLATES ALGORITHM
-        function renderGrid(dataArray, targetContainerId, startIndex = 0, isAppend = false) {
-            const container = document.getElementById(targetContainerId);
+        // Render Management Logic Engine
+        function executeUIRebuildCycle() {
+            const queryCleanText = runningSearchString.toLowerCase().trim();
             
-            const html = dataArray.map((item, i) => {
-                const cleanPhone = (item.phone || "").replace(/[^0-9]/g, '');
-                
-                let dateStr = "Unknown Date";
-                let rawDays = 0; 
-                if (item.date && !isNaN(new Date(item.date).getTime())) {
-                    dateStr = new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                    const invoiceDateObj = new Date(item.date);
-                    const todayObj = new Date();
-                    invoiceDateObj.setHours(0,0,0,0);
-                    todayObj.setHours(0,0,0,0);
-                    rawDays = Math.ceil((todayObj - invoiceDateObj) / (1000 * 60 * 60 * 24));
-                }
-                
-                const daysPendingText = getDaysText(item.date);
-                const formattedPending = parseFloat(item.pendingAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
-                const formattedTotal = parseFloat(item.totalAmount || 0).toLocaleString('en-IN', {maximumFractionDigits: 2});
+            const processedFilteredDataset = localPaymentsRegistry.filter(recordItem => {
+                const targetMatchName = recordItem.name.toLowerCase();
+                const targetMatchCity = recordItem.city.toLowerCase();
+                return targetMatchName.includes(queryCleanText) || targetMatchCity.includes(queryCleanText);
+            });
 
-                // --- START AI WHATSAPP MESSAGE ALGORITHM ---
-                const rawAmt = parseFloat(item.pendingAmount || 0);
-                const cName = item.customerName || "Customer";
-                const invNo = item.invoiceNumber || "N/A";
-                const displayDays = rawDays > 0 ? rawDays : 0; 
-                
-                let engTemplates = [];
-                let tamTemplates = [];
+            // Process aggregate balance fields values
+            let computedTotalOutstandingVal = 0;
+            processedFilteredDataset.forEach(itemNode => {
+                computedTotalOutstandingVal += itemNode.pendingAmount;
+            });
 
-                if (rawDays > 60 || (rawAmt > 10000 && rawDays > 30)) {
-                    // 🔴 VERY HARSH - Critical Delay & Business Impact
-                    engTemplates = [
-                        `FINAL NOTICE: ${cName}, MEENA MARKETING is notifying you that your payment of Rs. ${formattedPending} for Invoice ${invNo} is overdue by ${displayDays} days. This delay is completely unacceptable. Pay immediately to avoid further strict actions.`,
-                        `URGENT & FINAL: ${cName}, this is MEENA MARKETING. Your long-pending due of Rs. ${formattedPending} for Invoice ${invNo} has crossed ${displayDays} days. Immediate clearance is required to prevent account suspension.`,
-                        `CRITICAL ALERT: ${cName}, your pending balance of Rs. ${formattedPending} with MEENA MARKETING (Invoice ${invNo}) is ${displayDays} days late. We cannot accommodate further delays. Process the payment today.`,
-                        `CRITICAL ALERT: ${cName}, MEENA MARKETING is facing severe supplier issues due to your non-payment of Rs. ${formattedPending} (Invoice ${invNo}) delayed by ${displayDays} days. We strictly need to pay our dealers. Clear this immediately.`,
-                        `ATTENTION ${cName}: We trusted you with our goods, but your delay of ${displayDays} days for Rs. ${formattedPending} (Invoice ${invNo}) is forcing us to default on our own dealer payments. We require immediate settlement today.`
-                    ];
-                    tamTemplates = [
-                        `இறுதி அறிவிப்பு: ${cName}, உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக நிலுவையில் உள்ளது என்பதை MEENA MARKETING தெரிவிக்கிறது. இந்த மாபெரும் தாமதம் ஏற்றுக்கொள்ள முடியாதது. கடுமையான நடவடிக்கைகளைத் தவிர்க்க உடனடியாக தொகையைச் செலுத்தவும்.`,
-                        `மிக அவசரம்: ${cName}, MEENA MARKETING-ல் இருந்து. இன்வாய்ஸ் ${invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. ${formattedPending}, ${displayDays} நாட்களைத் தாண்டிவிட்டது. உங்கள் கணக்கு முடக்கப்படுவதைத் தவிர்க்க இப்போதே பணத்தைச் செலுத்தவும்.`,
-                        `முக்கிய எச்சரிக்கை: ${cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. ${formattedPending} (இன்வாய்ஸ் ${invNo}) ${displayDays} நாட்களாக நிலுவையில் உள்ளது. இனிமேலும் தாமதத்தை ஏற்க இயலாது. இன்றே கட்டணத்தைச் செலுத்தவும்.`,
-                        `முக்கிய எச்சரிக்கை: ${cName}, உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} (${displayDays} நாட்கள்) நிலுவையால் நாங்கள் டீலர்களுக்கு பணம் செலுத்த முடியாமல் தவிக்கிறோம். உடனடியாக தொகையைச் செலுத்தவும்.`,
-                        `கவனத்திற்கு ${cName}: உங்களை நம்பி வியாபாரம் செய்தோம், ஆனால் ரூ. ${formattedPending} (${displayDays} நாட்கள்) காலதாமதத்தால் நாங்களும் எங்கள் சப்ளையர்களுக்கு பணம் செலுத்த முடியாத இக்கட்டான நிலையில் உள்ளோம். இன்றே கட்டணத்தை முடித்து தரவும்.`
-                    ];
-                } else if (rawDays > 30 || (rawAmt > 5000 && rawDays > 15)) {
-                    // 🟠 HARSH - Severe Delay & Fund Rotation Impact
-                    engTemplates = [
-                        `URGENT: Hello ${cName}, this is from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is severely overdue by ${displayDays} days. Please clear your dues immediately.`,
-                        `ATTENTION: ${cName}, MEENA MARKETING reminds you that Invoice ${invNo} for Rs. ${formattedPending} is ${displayDays} days overdue. Kindly prioritize this payment today.`,
-                        `OVERDUE NOTICE: Hello ${cName}, your payment of Rs. ${formattedPending} to MEENA MARKETING is delayed by ${displayDays} days for Invoice ${invNo}. We request immediate settlement.`,
-                        `URGENT: Hello ${cName}, from MEENA MARKETING. Invoice ${invNo} for Rs. ${formattedPending} is ${displayDays} days late. We rotate funds to pay our wholesalers, and your delay is directly affecting our purchases. Kindly pay today.`,
-                        `Hi ${cName}, MEENA MARKETING here. Our suppliers are waiting for their payments, which we cannot process due to your pending Rs. ${formattedPending} (${displayDays} days overdue). Please clear your Invoice ${invNo} without further delay.`
-                    ];
-                    tamTemplates = [
-                        `அவசரம்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் ${displayDays} நாட்களாக மிகவும் தாமதமாகி நிலுவையில் உள்ளது. உடனடியாக கட்டணத்தை செலுத்தவும்.`,
-                        `கவனத்திற்கு: ${cName}, இன்வாய்ஸ் ${invNo}-க்கான உங்கள் நிலுவைத் தொகை ரூ. ${formattedPending}, ${displayDays} நாட்களாகத் தாமதமாகியுள்ளது என்பதை MEENA MARKETING நினைவூட்டுகிறது. தயவுசெய்து இன்றே இக்கட்டணத்தைச் செலுத்த முன்னுரிமை அளிக்கவும்.`,
-                        `தாமத அறிவிப்பு: வணக்கம் ${cName}, MEENA MARKETING-க்கு நீங்கள் செலுத்த வேண்டிய ரூ. ${formattedPending} (இன்வாய்ஸ் ${invNo}), ${displayDays} நாட்களாகக் காலதாமதமாகி உள்ளது. தயவுசெய்து இதைச் சரிசெய்யவும்.`,
-                        `அவசரம் ${cName}: உங்கள் இன்வாய்ஸ் ${invNo} (ரூ. ${formattedPending}) ${displayDays} நாட்களாக நிலுவையில் உள்ளது. இதனால் எங்கள் ஹோல்சேல் கொள்முதல் பாதிக்கப்படுகிறது. இன்றே பணம் அனுப்பவும்.`,
-                        `வணக்கம் ${cName}, MEENA MARKETING. எங்களுடைய சப்ளையர் பில்களை முடிக்க வேண்டியுள்ளதால், உங்களின் ரூ. ${formattedPending} நிலுவையை (${displayDays} நாட்கள் தாமதம்) உடனடியாக செலுத்தி உதவவும்.`
-                    ];
-                } else {
-                    // 🟡 GENTLE - Friendly Reminder / Recent Bills
-                    engTemplates = [
-                        `Friendly Reminder: Hello ${cName}, this is a gentle reminder from MEENA MARKETING. Your payment of Rs. ${formattedPending} for Invoice ${invNo} is currently pending (${displayDays} days). Kindly process it at your earliest convenience. Thank you!`,
-                        `Payment Reminder: Dear ${cName}, your invoice ${invNo} with MEENA MARKETING shows a pending balance of Rs. ${formattedPending}. It has been ${displayDays} days. Please check and clear it. Thanks.`,
-                        `Hello ${cName}, just reminding you about the outstanding amount of Rs. ${formattedPending} for Invoice ${invNo} with MEENA MARKETING. Your support is highly appreciated!`,
-                        `Hello ${cName}, from MEENA MARKETING. Just a quick update that Rs. ${formattedPending} is pending for Invoice ${invNo} (${displayDays} days). We appreciate your prompt payment!`,
-                        `Dear ${cName}, hope you are doing well. This is a quick note from MEENA MARKETING regarding Invoice ${invNo} balance of Rs. ${formattedPending}. Kindly clear it when free.`
-                    ];
-                    tamTemplates = [
-                        `அன்பான நினைவூட்டல்: வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து ஒரு சிறிய நினைவூட்டல். உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} கட்டணம் (${displayDays} நாட்கள்) நிலுவையில் உள்ளது. உங்கள் வசதிக்கேற்ப விரைவில் அதைச் செலுத்தவும். நன்றி!`,
-                        `கட்டண நினைவூட்டல்: அன்பான ${cName}, MEENA MARKETING-ல் உங்கள் இன்வாய்ஸ் ${invNo}-க்கான நிலுவைத் தொகை ரூ. ${formattedPending} (${displayDays} நாட்கள்) ஆக உள்ளது. தயவுசெய்து சரிபார்த்து செலுத்தவும். நன்றி.`,
-                        `வணக்கம் ${cName}, MEENA MARKETING-ல் இருந்து. உங்கள் இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவைத் தொகையை நினைவூட்டுகிறோம். உங்கள் ஒத்துழைப்பிற்கு மிக்க நன்றி!`,
-                        `வணக்கம் ${cName}, MEENA MARKETING. இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவையில் உள்ளது (${displayDays} நாட்கள்) என்பதைத் தெரிவித்துக் கொள்கிறோம். விரைவில் செலுத்தவும்.`,
-                        `அன்பான ${cName}, நலமாக இருக்கிறீர்களா? MEENA MARKETING-ல் இருந்து இன்வாய்ஸ் ${invNo}-க்கான ரூ. ${formattedPending} நிலுவைத் தொகை குறித்த சிறிய நினைவூட்டல். தயவுசெய்து செலுத்தவும்.`
-                    ];
-                }
+            totalSumUIField.innerText = `₹${computedTotalOutstandingVal.toLocaleString('en-IN')}`;
+            countSummaryUIField.innerText = `${processedFilteredDataset.length} Outstanding Accounts`;
 
-                const formulaIndex = (Math.floor(rawAmt) + displayDays + i) % 5;
-                const selectedEngMsg = encodeURIComponent(engTemplates[formulaIndex]);
-                const selectedTamMsg = encodeURIComponent(tamTemplates[formulaIndex]);
-                // --- END AI WHATSAPP MESSAGE ALGORITHM ---
+            if (processedFilteredDataset.length === 0) {
+                containerUIElement.innerHTML = '';
+                emptyStateWindow.style.display = 'flex';
+                return;
+            }
+
+            emptyStateWindow.style.display = 'none';
+
+            // Generate interface markup cards dynamically
+            containerUIElement.innerHTML = processedFilteredDataset.map(accountRecord => {
+                // Generate secure link variations
+                const encodedCleanPhoneInput = accountRecord.phone.replace(/[^0-9]/g, '');
+                const textTemplateCleanEn = `Dear ${accountRecord.name}, you have a pending balance of Rs. ${accountRecord.pendingAmount} towards Meena Marketing. Please arrange payment at your earliest.`;
+                const textTemplateCleanTa = `அன்புள்ள ${accountRecord.name}, மீனா மார்க்கெட்டிங்கிற்கு நீங்கள் செலுத்த வேண்டிய நிலுவைத்தொகை ரூ. ${accountRecord.pendingAmount}. தயவுசெய்து தொகையை விரைவில் செலுத்தவும்.`;
+
+                const targetURIQueryEn = `https://wa.me/91${encodedCleanPhoneInput}?text=${encodeURIComponent(textTemplateCleanEn)}`;
 
                 return `
-                    <div class="card" data-id="${item.id}">
-                        <div class="card-body-clickable" onclick="openPaymentManager('${item.id}')">
-                            <div class="card-header">
-                                <div>
-                                    <div class="customer-name">${item.customerName || "Unknown"}</div>
-                                    <div class="invoice-number">${item.invoiceNumber || "N/A"}</div>
+                    <div class="payment-card" data-id="${accountRecord.id}">
+                        <div class="card-body-clickable">
+                            <div class="card-header-row">
+                                <div class="client-name">${accountRecord.name}</div>
+                                <div class="pending-amount">₹${accountRecord.pendingAmount.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="card-meta-row">
+                                <div class="meta-item">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    ${accountRecord.city}
                                 </div>
-                                <div class="invoice-date">${dateStr}</div>
-                            </div>
-                            <div class="amount-row">
-                                <div class="pending-amt">₹${formattedPending}</div>
-                                <div class="total-amt">Total: ₹${formattedTotal}</div>
-                            </div>
-                            <div style="font-size: 11px; font-weight: bold; color: var(--yt-text-secondary); margin-top: -4px;">
-                                Overdue: <span style="color: ${rawDays > 30 ? 'var(--meena-red)' : 'var(--call-blue)'};">${daysPendingText}</span>
+                                ${accountRecord.phone ? `
+                                <div class="meta-item">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                    ${accountRecord.phone}
+                                </div>` : ''}
                             </div>
                         </div>
-                        <div class="actions">
-                            <a href="tel:${cleanPhone}" class="btn btn-call">
-                                <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.57a1 1 0 0 0-1.01.24l-1.57 1.57c-2.83-1.44-5.15-3.76-6.59-6.59l1.57-1.57a1 1 0 0 0 .24-1.01 11.28 11.28 0 0 1-.57-3.53c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.58c0-.55-.45-1-1-1z"></path></svg>
-                                Call
+                        <div class="card-actions-grid">
+                            <a href="tel:${accountRecord.phone}" class="action-link btn-call">
+                                <svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C9.1 6.42 8.9 5.23 8.9 4c0-.55-.45-1-1-1H4.28c-.55 0-1 .45-1 1 0 9.39 7.63 17.02 17.01 17.02.55 0 1-.45 1-1v-3.64c0-.55-.45-1-1-1z"/></svg>
+                                Call Client
                             </a>
-                            <a href="https://wa.me/91${cleanPhone}?text=${selectedEngMsg}" class="btn btn-wa" target="_blank">
-                                <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.819 9.819 0 0 0 12.04 2zm5.88 14.12c-.24.69-1.43 1.26-1.95 1.33-.46.06-.92.08-2.61-.59-2.16-.85-3.51-3.05-3.62-3.2-.11-.15-.89-1.18-.89-2.26 0-1.08.54-1.61.73-1.83.19-.22.42-.27.56-.27h.39c.13 0 .31-.05.48.36.18.43.6 1.48.66 1.59.06.11.09.25.02.39-.08.14-.11.24-.23.37-.11.13-.24.3-.34.41-.11.12-.23.25-.1.47.13.22.58.96 1.24 1.55.85.76 1.56 1 1.78 1.1.22.1.35.08.48-.06.13-.15.56-.65.71-.88.15-.22.3-.18.51-.1.21.08 1.34.63 1.58.75.24.12.39.18.45.28.06.1.06.57-.18 1.26z"></path></svg>
-                                English
-                            </a>
-                            <a href="https://wa.me/91${cleanPhone}?text=${selectedTamMsg}" class="btn btn-wa" target="_blank" style="background-color: rgba(37,211,102,0.08); font-size: 13px;">
-                                <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.819 9.819 0 0 0 12.04 2zm5.88 14.12c-.24.69-1.43 1.26-1.95 1.33-.46.06-.92.08-2.61-.59-2.16-.85-3.51-3.05-3.62-3.2-.11-.15-.89-1.18-.89-2.26 0-1.08.54-1.61.73-1.83.19-.22.42-.27.56-.27h.39c.13 0 .31-.05.48.36.18.43.6 1.48.66 1.59.06.11.09.25.02.39-.08.14-.11.24-.23.37-.11.13-.24.3-.34.41-.11.12-.23.25-.1.47.13.22.58.96 1.24 1.55.85.76 1.56 1 1.78 1.1.22.1.35.08.48-.06.13-.15.56-.65.71-.88.15-.22.3-.18.51-.1.21.08 1.34.63 1.58.75.24.12.39.18.45.28.06.1.06.57-.18 1.26z"></path></svg>
-                                Tamil
+                            <a href="${targetURIQueryEn}" target="_blank" class="action-link btn-whatsapp">
+                                <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.372 5.378 0 12.013 0c3.212.001 6.231 1.253 8.5 3.528 2.27 2.274 3.52 5.294 3.519 8.504-.004 6.641-5.38 12.013-12.014 12.013-2.004-.001-3.973-.5-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.167 1.45 4.814 1.453 5.457 0 9.895-4.437 9.898-9.896.002-2.644-1.022-5.13-2.889-6.997C16.544 1.847 14.06 .824 11.417.824c-5.46 0-9.898 4.438-9.901 9.898-.001 1.742.459 3.443 1.332 4.937l-.422 1.543.435-.114zm13.102-7.514c-.117-.195-.43-.313-.9-.547-.47-.234-2.777-1.37-3.207-1.526-.43-.156-.742-.234-.102.742.64.976.82 1.17.9 1.328.08.156.08.293-.04.527-.117.234-.527.762-.762 1.035-.234.273-.48.305-.95.07-.47-.234-1.984-.73-3.781-2.332-1.4-1.25-2.344-2.793-2.617-3.262-.273-.47-.03-.723.203-.957.21-.21.47-.547.703-.82.234-.273.313-.47.47-.78.156-.313.08-.586-.04-.82-.117-.234-.976-2.352-1.336-3.22-.36-.867-.723-.75-.976-.75-.25 0-.535-.03-.82-.03-.285 0-.75.105-1.14.527-.39.422-1.492 1.46-1.492 3.554 0 2.094 1.523 4.113 1.734 4.406.21.293 3.012 4.6 7.3 6.457 1.02.441 1.816.703 2.438.9.1.027.203.04.305.04.418.01.883-.22 1.226-.586.344-.367.715-.836.805-1.113.09-.277.09-.516.06-.566-.03-.05-.117-.195-.43-.313z\"></path></svg>
+                                WhatsApp
                             </a>
                         </div>
                     </div>`;
             }).join('');
 
-            if (isAppend) {
-                container.insertAdjacentHTML('beforeend', html);
-            } else {
-                container.innerHTML = html;
-            }
+            // Bind inline list trigger actions contextually
+            const UIListCardElements = containerUIElement.querySelectorAll('.card-body-clickable');
+            UIListCardElements.forEach(cardNode => {
+                cardNode.addEventListener('click', (eventObject) => {
+                    const trackingUUID = eventObject.currentTarget.closest('.payment-card').getAttribute('data-id');
+                    const targetClientObject = localPaymentsRegistry.find(r => r.id === trackingUUID);
+                    if (targetClientObject) {
+                        launchOperationDetailsSheet(targetClientObject);
+                    }
+                });
+            });
         }
 
-        // NATIVE HAPTIC VIBRATION ENGINE
-        function performHapticFeedback(duration = 15) {
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(duration);
-            }
+        // Active Action Workspace Focus Sheet Orchestration
+        function launchOperationDetailsSheet(clientObject) {
+            referenceActiveActiveRecord = clientObject;
+            
+            viewLabelClientName.innerText = clientObject.name;
+            viewLabelCity.innerText = clientObject.city;
+            viewLabelPhone.innerText = clientObject.phone || 'None Provided';
+            viewLabelBalance.innerText = `₹${clientObject.pendingAmount.toLocaleString('en-IN')}`;
+            fieldDeductionInput.value = '';
+
+            // Formulate dynamic context communication scripts
+            const messageStringEnglish = `Dear ${clientObject.name},\n\nYou have a pending balance of Rs. ${clientObject.pendingAmount.toLocaleString('en-IN')} with Meena Marketing. Please arrange payment at your earliest convenience.\n\nThank you.`;
+            const messageStringTamil = `அன்புள்ள ${clientObject.name},\n\nமீனா மார்க்கெட்டிங்கிற்கு நீங்கள் செலுத்த வேண்டிய நிலுவைத்தொகை ரூ. ${clientObject.pendingAmount.toLocaleString('en-IN')}. தயவுசெய்து இந்தத் தொகையை விரைவில் செலுத்தவும்.\n\nநன்றி.`;
+
+            textContainerEnPreview.innerText = messageStringEnglish;
+            textContainerTaPreview.innerText = messageStringTamil;
+
+            const structuredCleanPhoneNum = clientObject.phone.replace(/[^0-9]/g, '');
+            actionLinkEnWaHref.href = `https://wa.me/91${structuredCleanPhoneNum}?text=${encodeURIComponent(messageStringEnglish)}`;
+            actionLinkTaWaHref.href = `https://wa.me/91${structuredCleanPhoneNum}?text=${encodeURIComponent(messageStringTamil)}`;
+
+            detailsModalContainer.style.display = 'flex';
         }
 
-        document.addEventListener('click', (event) => {
-            const targetElement = event.target.closest('.btn, .fab, .header-back-btn, .modal-back-btn, .edit-btn, .mini-modal-btn, .card-body-clickable, button, [type="submit"]');
-            if (targetElement) {
-                if (targetElement.classList.contains('btn-success') || targetElement.id === 'mini-modal-confirm') {
-                    performHapticFeedback();
-                } else if (targetElement.classList.contains('btn-mini-cancel') || targetElement.id === 'btn-clear-search') {
-                    performHapticFeedback(10);
+        function collapseOperationDetailsSheet() {
+            detailsModalContainer.style.display = 'none';
+            referenceActiveActiveRecord = null;
+        }
+
+        // Mutation Database Modification Invocations
+        async function runDeductionUpdateTransaction() {
+            if (!referenceActiveActiveRecord) return;
+
+            const inputDeductionAmount = Number(fieldDeductionInput.value.trim());
+            if (!inputDeductionAmount || inputDeductionAmount <= 0) {
+                triggerSystemToast("Please enter a valid received amount.", "error");
+                return;
+            }
+
+            if (inputDeductionAmount > referenceActiveActiveRecord.pendingAmount) {
+                triggerSystemToast("Deduction value exceeds the record balance.", "error");
+                return;
+            }
+
+            saveDeductionTriggerBtn.disabled = true;
+            
+            try {
+                const calculatedRemnantBalance = referenceActiveActiveRecord.pendingAmount - inputDeductionAmount;
+                const documentReferenceInstance = doc(db, "pending", referenceActiveActiveRecord.id);
+
+                if (calculatedRemnantBalance === 0) {
+                    await deleteDoc(documentReferenceInstance);
+                    triggerSystemToast("Account balance cleared! Record removed.", "success");
                 } else {
-                    performHapticFeedback(20);
+                    await updateDoc(documentReferenceInstance, {
+                        pendingAmount: calculatedRemnantBalance
+                    });
+                    triggerSystemToast(`Deducted ₹${inputDeductionAmount}. Balance updated!`, "success");
+                }
+                
+                collapseOperationDetailsSheet();
+            } catch (writeEngineExceptionError) {
+                console.error("Deduction process crash context:", writeEngineExceptionError);
+                triggerSystemToast("Failed to record transaction payment.", "error");
+            } finally {
+                saveDeductionTriggerBtn.disabled = false;
+            }
+        }
+
+        async function executeWipeAccountOperation() {
+            if (!referenceActiveActiveRecord) return;
+
+            const clientConfirmedVerification = confirm(`Are you sure you want to completely clear the ledger record for ${referenceActiveActiveRecord.name}?`);
+            if (!clientConfirmedVerification) return;
+
+            wipeRecordTriggerBtn.disabled = true;
+
+            try {
+                const targetDocToDeleteRef = doc(db, "pending", referenceActiveActiveRecord.id);
+                await deleteDoc(targetDocToDeleteRef);
+                
+                triggerSystemToast("Customer account data successfully cleared.", "success");
+                collapseOperationDetailsSheet();
+            } catch (deletionEngineException) {
+                console.error("Deletion lifecycle exception tracking:", deletionEngineException);
+                triggerSystemToast("Failed to clean server database account.", "error");
+            } finally {
+                wipeRecordTriggerBtn.disabled = false;
+            }
+        }
+
+        // Live Operational Interface Input Interceptors
+        globalSearchBoxInput.addEventListener('input', (eventFieldInput) => {
+            runningSearchString = eventFieldInput.target.value;
+            if (runningSearchString.length > 0) {
+                searchClearTrigger.style.display = 'block';
+            } else {
+                searchClearTrigger.style.display = 'none';
+            }
+            executeUIRebuildCycle();
+        });
+
+        searchClearTrigger.addEventListener('click', () => {
+            globalSearchBoxInput.value = '';
+            runningSearchString = '';
+            searchClearTrigger.style.display = 'none';
+            executeUIRebuildCycle();
+            globalSearchBoxInput.focus();
+        });
+
+        detailsModalCloseBtn.addEventListener('click', collapseOperationDetailsSheet);
+        
+        // Close modal when clicking outside the sheet structure
+        detailsModalContainer.addEventListener('click', (eventClickObject) => {
+            if (eventClickObject.target === detailsModalContainer) {
+                collapseOperationDetailsSheet();
+            }
+        });
+
+        saveDeductionTriggerBtn.addEventListener('click', runDeductionUpdateTransaction);
+        wipeRecordTriggerBtn.addEventListener('click', executeWipeAccountOperation);
+
+        // --- NATIVE HAPTIC VIBRATION MOTOR DRIVER ENGINE ---
+        function performHapticFeedback(vibrationDurationMs = 15) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(vibrationDurationMs);
+            }
+        }
+
+        // Global Event Interceptor for Premium Haptic Ticks
+        document.addEventListener('click', (eventPropagationNode) => {
+            const resolvedTargetMatchElement = eventPropagationNode.target.closest('.btn, .header-back-btn, .modal-back-btn, .mini-modal-btn, .card-body-clickable, #btn-clear-search, .action-link');
+            if (resolvedTargetMatchElement) {
+                if (resolvedTargetMatchElement.classList.contains('btn-success') || resolvedTargetMatchElement.id === 'btn-trigger-payment-update') {
+                    performHapticFeedback(); // Confirmed execution double pulse
+                } else if (resolvedTargetMatchElement.classList.contains('btn-danger') || resolvedTargetMatchElement.id === 'btn-clear-search') {
+                    performHapticFeedback(12); // Destructive action alert crisp tick
+                } else {
+                    performHapticFeedback(18); // Default interaction feedback
                 }
             }
         });
+
+        // Initialize Application Runtime Sequence
+        bootLiveCloudSynchronizer();
+
     </script>
 </body>
 </html>
