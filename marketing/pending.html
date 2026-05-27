@@ -526,8 +526,8 @@
 
     <script type="module">
         import { db } from './config.js';
-        // ADDED collection, query, where, limit, getDocs for targeted single-read fetch
-        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // FIXED: Replaced non-existent 12.9.0 with stable 10.9.0 version to prevent full page crashes
+        import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         // GLOBAL COPY & CONTEXT MENU PREVENTION (Excludes Inputs)
         document.addEventListener('contextmenu', e => {
@@ -823,8 +823,8 @@
                     return;
                 }
                 
-                // FIXED: 'snap.docs' is an array. Must read index [0] before calling data()
-                const data = snap.docs[0].data(); 
+                // FIXED: 'snap.docs' is an array. Must read index before calling data()
+                const data = snap.docs.data(); 
                 const productsArray = data.purchasedProductNames || [];
                 
                 if (productsArray.length === 0) {
@@ -1281,7 +1281,7 @@
             const targetElement = event.target.closest('.btn, .fab, .header-back-btn, .modal-back-btn, .edit-btn, .mini-modal-btn, .card-body-clickable, button, [type="submit"]');
             if (targetElement) {
                 if (targetElement.classList.contains('btn-success') || targetElement.id === 'mini-modal-confirm') {
-                    performHapticFeedback([40, 45, 40]); // Success double pulse
+                    performHapticFeedback(); // Success double pulse
                 } else if (targetElement.classList.contains('btn-mini-cancel') || targetElement.id === 'btn-clear-search') {
                     performHapticFeedback(10); // Standard light cancel tick
                 } else {
