@@ -94,7 +94,7 @@
             line-height: 1.1;
         }
 
-        /* Modified: Made the branding text a bit smaller (1.05em instead of 1.2em) */
+        /* Modified branding text to be a bit smaller */
         .brand-title { font-size: 1.05em; font-weight: bold; }
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
@@ -112,40 +112,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             flex-shrink: 0; /* Added to prevent icons from squishing on small screens */
-        }
-        
-        /* NEW: Profile Picture UI for Header */
-        .profile-container {
-            position: relative;
-            width: 32px;
-            height: 32px;
-            margin-left: 5px;
-            cursor: pointer;
-            flex-shrink: 0;
-            border-radius: 50%;
-        }
-        
-        .profile-pic {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid #444;
-            display: none; /* Hidden until loaded from cache/firebase */
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        
-        .profile-pic:hover {
-            transform: scale(1.1);
-            border-color: var(--meena-red);
-        }
-
-        .profile-skel {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: absolute;
-            top: 0; left: 0;
         }
 
         /* Sleek Marketing Agent Button Styles */
@@ -547,10 +513,9 @@
                     `);
                 })();
             </script>
-            
-            <div class="profile-container" onclick="window.location.href='settings.html'" title="Settings">
-                <div class="skeleton-box profile-skel" id="header-dp-skel"></div>
-                <img src="" alt="Profile" class="profile-pic" id="header-dp-img">
+            <div id="user-profile-container" onclick="window.location.href='settings.html'" style="position: relative; width: 32px; height: 32px; border-radius: 50%; overflow: hidden; cursor: pointer; flex-shrink: 0; border: 1px solid #444;" title="Settings">
+                <div id="profile-skeleton" class="skeleton-box" style="position: absolute; top:0; left:0; width:100%; height:100%;"></div>
+                <img id="user-dp-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: relative; z-index: 2;" alt="Profile">
             </div>
         </div>
     </header>
@@ -677,7 +642,7 @@
         document.addEventListener('click', function(e) {
             // Check if the clicked element is an anchor tag, button, fab, or action icon
             /* ORIGINAL: const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]'); */
-            const interactiveElement = e.target.closest('a, button, .fab-left, .fab-right, .header-actions span, .profile-container, .stat-card, [onclick]');
+            const interactiveElement = e.target.closest('a, button, .fab-left, .fab-right, .header-actions span, .stat-card, [onclick]');
             
             if (interactiveElement && navigator.vibrate) {
                 // Trigger a crisp 40ms haptic feedback
@@ -718,36 +683,40 @@
             }
         });
 
-        // 0ms Load DP from LocalStorage before Firebase Auth initializes
-        const headerDpSkel = document.getElementById('header-dp-skel');
-        const headerDpImg = document.getElementById('header-dp-img');
-        const cachedUserDP = localStorage.getItem('google_user_dp');
-        
-        if (cachedUserDP) {
-            headerDpImg.src = cachedUserDP;
-            headerDpImg.style.display = 'block';
-            headerDpSkel.style.display = 'none';
-        }
-
         // 2. Firebase Import & Data Fetching (Added 'where' for read optimization)
         import { db, auth } from './config.js';
         import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-        // Authentication State Observer
+        // --- NEW: Auth Check & Instant DP Load ---
+        const dpImg = document.getElementById('user-dp-img');
+        const dpSkel = document.getElementById('profile-skeleton');
+        const cachedDp = localStorage.getItem('user_dp');
+        
+        // 0ms load if cached
+        if (cachedDp) {
+            dpImg.src = cachedDp;
+            dpImg.style.display = 'block';
+            dpSkel.style.display = 'none';
+        }
+
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                // Not logged in, redirect to login page immediately
-                window.location.href = 'login.html';
-            } else {
-                // Logged in, grab photoURL and update UI/Cache
-                const photoURL = user.photoURL || 'https://via.placeholder.com/100/333/fff?text=U';
-                if (cachedUserDP !== photoURL) {
-                    headerDpImg.src = photoURL;
-                    headerDpImg.style.display = 'block';
-                    headerDpSkel.style.display = 'none';
-                    localStorage.setItem('google_user_dp', photoURL);
+            if (user) {
+                // Update DP if it's new or wasn't cached
+                if (user.photoURL && user.photoURL !== cachedDp) {
+                    localStorage.setItem('user_dp', user.photoURL);
+                    dpImg.src = user.photoURL;
+                    dpImg.style.display = 'block';
+                    dpSkel.style.display = 'none';
+                } else if (!user.photoURL && !cachedDp) {
+                    // Fallback if no photo
+                    dpImg.src = 'https://via.placeholder.com/32/333/fff?text=U';
+                    dpImg.style.display = 'block';
+                    dpSkel.style.display = 'none';
                 }
+            } else {
+                // Not logged in -> redirect to login
+                window.location.replace('login.html');
             }
         });
 
