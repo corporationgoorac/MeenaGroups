@@ -46,21 +46,6 @@
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
 
-        /* Profile Elements */
-        .header-right { display: flex; align-items: center; }
-        .profile-pic { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 2px solid var(--accent-color); object-fit: cover; transition: transform 0.2s ease;}
-        .profile-pic:active { transform: scale(0.9); }
-        
-        .profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(5px); }
-        .profile-modal.show { display: flex; opacity: 1; }
-        .profile-modal-content { background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: center; position: relative; width: 90%; max-width: 320px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.8); transform: translateY(20px); transition: transform 0.3s ease;}
-        .profile-modal.show .profile-modal-content { transform: translateY(0); }
-        .close-modal-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; }
-        .modal-profile-pic { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--accent-color); object-fit: cover;}
-        #modalProfileName { margin: 0 0 20px 0; font-size: 1.2em; color: var(--marketing-white); }
-        .btn-logout { background: var(--meena-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 1em; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-logout:hover { background: #d32f2f; }
-
         /* Custom Install Popup */
         #installPopup { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid var(--accent-color); }
         .install-img { width: 40px; height: 40px; border-radius: 8px; }
@@ -144,7 +129,8 @@
 
         @media print {
             /* Safely hide app UI without relying on absolute positioning overlays */
-            header, #installPopup, .main-scroll-area, .toast-msg, .profile-modal { display: none !important; }
+            header, #installPopup, .main-scroll-area, .toast-msg { display: none !important; }
+            #dpModal { display: none !important; }
 
             /* Force 1 page and remove browser headers/footers */
             @page {
@@ -301,21 +287,10 @@
                 </div>
             </div>
         </div>
-        <div class="header-right">
-            <img src="" alt="Profile" id="headerProfilePic" class="profile-pic" style="display:none;">
+        <div class="header-right" style="display: flex; align-items: center;">
+            <img src="icon.png" id="headerDp" alt="Profile" style="width: 36px; height: 36px; border-radius: 50%; cursor: pointer; object-fit: cover; border: 2px solid var(--accent-color);">
         </div>
     </header>
-
-    <div id="profileModal" class="profile-modal">
-        <div class="profile-modal-content">
-            <button id="closeProfileModal" class="close-modal-btn">&times;</button>
-            <img src="" id="modalProfilePic" class="modal-profile-pic">
-            <h3 id="modalProfileName">Loading...</h3>
-            <button id="btnLogout" class="btn-logout">
-                <span class="material-symbols-outlined">logout</span> Logout
-            </button>
-        </div>
-    </div>
 
     <div id="installPopup">
         <img src="icon.png" alt="App Icon" class="install-img">
@@ -461,6 +436,17 @@
 
     </div>
 
+    <!-- DP / User Auth Modal -->
+    <div id="dpModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: center; border: 1px solid #444; width: 80%; max-width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.9);">
+            <img src="icon.png" id="modalDp" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 15px; object-fit: cover; border: 3px solid var(--accent-color);">
+            <h3 id="modalUserName" style="margin: 0 0 5px 0; color: white; font-size: 1.2em;">User</h3>
+            <p id="modalUserEmail" style="margin: 0 0 20px 0; font-size: 0.85em; color: var(--text-secondary);"></p>
+            <button id="logoutBtn" style="background: var(--meena-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 1em;"><span class="material-symbols-outlined">logout</span> Logout</button>
+            <button id="closeDpModal" style="background: transparent; color: var(--text-secondary); border: 1px solid #555; padding: 10px 20px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; font-size: 0.95em;">Close</button>
+        </div>
+    </div>
+
     <div id="printArea">
         <div class="print-top-band">
             <div class="print-header-left">
@@ -568,82 +554,6 @@
 
 
     <script type="module">
-        // --- SECURE IMPORTS (Auth initialized via config.js) ---
-        import { db, auth } from './config.js';
-        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-
-        // --- AUTH & PROFILE LOGIC (0ms Rendering + Session Handling) ---
-        const headerPic = document.getElementById('headerProfilePic');
-        const modalPic = document.getElementById('modalProfilePic');
-        const modalName = document.getElementById('modalProfileName');
-        const profileModal = document.getElementById('profileModal');
-
-        // 1. Instantly pull cached picture from local storage (0ms loading)
-        const cachedPic = localStorage.getItem('profilePicData');
-        if (cachedPic) {
-            headerPic.src = cachedPic;
-            modalPic.src = cachedPic;
-            headerPic.style.display = 'block';
-        }
-
-        // 2. Validate Firebase Authentication Session
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                // Not authenticated, redirect immediately
-                window.location.replace('login.html');
-            } else {
-                // Successfully authenticated
-                const displayName = user.displayName || 'Admin User';
-                const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0056b3&color=fff&rounded=true`;
-                
-                // Update UI and Cache
-                headerPic.src = photoURL;
-                modalPic.src = photoURL;
-                modalName.innerText = displayName;
-                headerPic.style.display = 'block';
-                
-                localStorage.setItem('profilePicData', photoURL);
-            }
-        });
-
-        // 3. Mobile-friendly Back-Button Supported Modal Logic
-        function openProfileModal() {
-            profileModal.style.display = 'flex';
-            setTimeout(() => profileModal.classList.add('show'), 10);
-            // Push history state to capture back button
-            history.pushState({ modalOpen: true }, '');
-        }
-
-        function closeProfileModal() {
-            profileModal.classList.remove('show');
-            setTimeout(() => profileModal.style.display = 'none', 300);
-        }
-
-        headerPic.addEventListener('click', openProfileModal);
-
-        document.getElementById('closeProfileModal').addEventListener('click', () => {
-            history.back(); // Triggers popstate to close beautifully
-        });
-
-        window.addEventListener('popstate', (e) => {
-            if (profileModal.classList.contains('show')) {
-                closeProfileModal();
-            }
-        });
-
-        // 4. Secure Logout Action
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                localStorage.removeItem('profilePicData'); // Clear visual cache
-                window.location.replace('login.html');
-            } catch (error) {
-                console.error("Logout Error", error);
-                showToast("Failed to log out.");
-            }
-        });
-
         // 1. Service Worker & Install Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
         let deferredPrompt; const installPopup = document.getElementById('installPopup');
@@ -651,13 +561,60 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
+        // --- IMPORT WITH PAGINATION SUPPORT & AUTH ---
+        import { db, auth } from './config.js'; // Assuming auth is exported from config.js
+        import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js"; // New Auth Import
+
+        // --- AUTH CHECK & MODAL LOGIC (Mobile Back Button Supported) ---
+        const dpModal = document.getElementById('dpModal');
+        const headerDp = document.getElementById('headerDp');
+        
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    const dpUrl = user.photoURL || 'icon.png';
+                    headerDp.src = dpUrl;
+                    document.getElementById('modalDp').src = dpUrl;
+                    document.getElementById('modalUserName').innerText = user.displayName || 'Billing User';
+                    document.getElementById('modalUserEmail').innerText = user.email || '';
+                } else {
+                    window.location.replace('index.html'); // Redirect to login
+                }
+            });
+        }
+
+        headerDp.addEventListener('click', () => {
+            dpModal.style.display = 'flex';
+            history.pushState({ dpModalOpen: true }, ''); // Push state for mobile back button
+        });
+
+        document.getElementById('closeDpModal').addEventListener('click', () => {
+            dpModal.style.display = 'none';
+            if (history.state && history.state.dpModalOpen) history.back();
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (dpModal.style.display === 'flex') {
+                dpModal.style.display = 'none';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (auth) {
+                signOut(auth).then(() => {
+                    window.location.replace('index.html');
+                }).catch(err => console.error('Logout error', err));
+            } else {
+                window.location.replace('index.html');
+            }
+        });
+        // --- END AUTH LOGIC ---
+
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
         const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-        const dateInput = document.getElementById('cDate');
-        if (dateInput) {
-            dateInput.value = localIso;
-        }
+        document.getElementById('cDate').value = localIso;
 
         // Toast Helper
         window.showToast = function(msg, type = "error") {
