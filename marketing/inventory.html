@@ -594,7 +594,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
-            vibrateApp(type === "error" ? [50, 50, 100] : [40, 50]);
+            vibrateApp(type === "error" ? :);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -650,7 +650,7 @@
 
             if (currentAdminPin.length === 4) {
                 if (currentAdminPin === CORRECT_PIN) {
-                    vibrateApp([30, 50]);
+                    vibrateApp();
                     setTimeout(unlockAdminDashboard, 200);
                 } else {
                     showToast("Incorrect PIN. Access Denied.", "error");
@@ -702,7 +702,7 @@
         }
 
         window.triggerMassDelete = async function() {
-            vibrateApp([100, 50, 100, 50, 200]);
+            vibrateApp();
             const countStr = document.getElementById('deadStockCount').innerText;
             const count = parseInt(countStr);
             if (isNaN(count) || count === 0) return;
@@ -896,9 +896,9 @@
 
             // --- NEW: DISPLAY DYNAMIC HISTORY SENTENCE ---
             const historySentenceDiv = document.getElementById('infoHistorySentence');
-            if (item.lastEditReason && item.lastEditBy && item.previousQty !== undefined && item.qty !== item.previousQty) {
+            if (item.lastEditBy && item.previousQty !== undefined && item.qty !== item.previousQty) {
                 let action = item.qty > item.previousQty ? "increased" : "reduced";
-                historySentenceDiv.innerHTML = `<strong>${item.lastEditBy}</strong> ${action} the quantity from <strong>${item.previousQty}</strong> to <strong>${item.qty}</strong> for: <strong>${item.lastEditReason}</strong>.`;
+                historySentenceDiv.innerHTML = `<strong>${item.lastEditBy}</strong> ${action} the quantity from <strong>${item.previousQty}</strong> to <strong>${item.qty}</strong> for: <strong>${item.lastEditReason || "N/A"}</strong>.`;
                 historySentenceDiv.style.display = 'block';
             } else {
                 historySentenceDiv.style.display = 'none';
@@ -922,11 +922,19 @@
                 return;
             }
 
+            // If quantity is the same, do nothing
+            if (parsedQty === currentQty) {
+                showToast("Quantity unchanged.", "success");
+                return;
+            }
+
             try {
                 const itemRef = doc(db, "inventory", id);
                 await updateDoc(itemRef, { 
                     qty: parsedQty,
                     previousQty: currentQty,
+                    lastEditBy: "Admin",
+                    lastEditReason: "N/A",
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Push to top
                 });
@@ -982,7 +990,8 @@
                 const oldMyRate = item ? (item.myRate || 0) : 0;
 
                 const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
+                
+                const payload = { 
                     name: newName,
                     model: newModel,
                     mrp: newMrp,
@@ -996,7 +1005,15 @@
                     previousMyRate: oldMyRate,
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Pushes to the top naturally
-                });
+                };
+
+                // Add accountability fields automatically if Qty changes
+                if (newQty !== oldQty) {
+                    payload.lastEditBy = "Admin";
+                    payload.lastEditReason = "N/A";
+                }
+
+                await updateDoc(itemRef, payload);
                 showToast("Product updated successfully!", "success");
                 history.back(); 
                 loadInventory(); 
@@ -1103,7 +1120,7 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/);
                     if (isLoadMore && lastVisibleItem) {
                         // NO orderBy here to avoid requiring composite indexes for search
                         q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(lastVisibleItem), limit(10));
@@ -1387,7 +1404,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs[0];
+                        const existingDoc = snap.docs;
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1476,7 +1493,7 @@
 
         // Final Save to Firestore
         document.getElementById('btnSaveInventory').addEventListener('click', async () => {
-            vibrateApp([50, 50]);
+            vibrateApp();
             if (pendingCart.length === 0) return;
             
             const btnSave = document.getElementById('btnSaveInventory');
