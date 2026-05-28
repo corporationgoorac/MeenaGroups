@@ -152,9 +152,10 @@
         /* Advanced Form Inputs */
         .input-wrapper { position: relative; margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.85em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        input { width: 100%; padding: 16px 16px; border-radius: 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1.05em; font-family: 'Inter', sans-serif; box-sizing: border-box; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
-        input:focus { border-color: var(--accent-color); background: #233147; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
+        input, select { width: 100%; padding: 16px 16px; border-radius: 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1.05em; font-family: 'Inter', sans-serif; box-sizing: border-box; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        input:focus, select:focus { border-color: var(--accent-color); background: #233147; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
         input::placeholder { color: #64748b; }
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         
         .row-inputs { display: flex; gap: 15px; }
         .row-inputs > div { flex: 1; }
@@ -258,11 +259,8 @@
             </div>
         </div>
         <div class="header-actions" style="display: flex; align-items: center; gap: 12px;">
-            <!-- Admin Icon Hidden as Requested -->
             <span class="material-symbols-outlined" style="display: none; cursor: pointer; font-size: 28px; color: var(--text-secondary); transition: color 0.2s;" onclick="vibrateApp(40); openAdminPanel()" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">admin_panel_settings</span>
-            <!-- New Sleek Pending Icon -->
             <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--info-color); transition: all 0.2s ease; filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));" onclick="vibrateApp(40); window.location.href='pending.html'" onmouseover="this.style.color='white'; this.style.transform='scale(1.1)'" onmouseout="this.style.color='var(--info-color)'; this.style.transform='scale(1)'">pending_actions</span>
-            <!-- New Sleek Offer Icon -->
             <span class="material-symbols-outlined" style="cursor: pointer; font-size: 28px; color: var(--warning-color); transition: all 0.2s ease; filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));" onclick="vibrateApp(40); window.location.href='offer.html'" onmouseover="this.style.color='white'; this.style.transform='scale(1.1)'" onmouseout="this.style.color='var(--warning-color)'; this.style.transform='scale(1)'">local_offer</span>
         </div>
     </header>
@@ -285,7 +283,6 @@
             </div>
 
             <div class="inv-grid" id="inventoryGrid">
-                <!-- Skeleton loader injected via JS initially -->
                 <div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px;">Initializing interface...</div>
             </div>
         </div>
@@ -399,6 +396,13 @@
                 </div>
             </div>
 
+            <div class="input-wrapper" id="editReasonContainer" style="display: none; margin-top: 10px;">
+                <label>Reason for Quantity Change <span style="color:var(--meena-red);">*</span></label>
+                <select id="editReasonSelect">
+                    <option value="">Select a reason...</option>
+                </select>
+            </div>
+
             <button type="button" class="btn-primary" id="btnSaveEditItem" style="width: 100%; margin: 25px 0 0 0;">
                 <span class="material-symbols-outlined">save</span>
                 Update Product
@@ -434,6 +438,9 @@
             <div style="text-align: center; color: var(--text-secondary); font-size: 0.85em; margin-top: 35px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;" id="infoTimestamp">
                 <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
             </div>
+
+            <div id="infoHistorySentence" style="text-align: center; color: var(--marketing-white); font-size: 0.9em; margin-top: 15px; background: rgba(13, 148, 136, 0.1); padding: 15px; border-radius: 12px; border: 1px solid rgba(13, 148, 136, 0.3); display: none; line-height: 1.5;"></div>
+
         </div>
     </div>
 
@@ -493,6 +500,9 @@
             <div class="form-group" style="padding: 25px;">
                 <p id="confirmMessage" style="font-size: 1.1em; line-height: 1.6; color: var(--marketing-white); text-align: center; margin-bottom: 5px; font-weight: 500;"></p>
                 <input type="number" id="confirmInput" placeholder="Enter value..." class="input-wrapper">
+                
+                <select id="confirmReasonSelect" class="input-wrapper" style="display: none; width: 100%; margin-top: 20px; padding: 15px; border-radius: 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1.05em; outline: none;"></select>
+
                 <div class="confirm-actions">
                     <button class="btn-cancel" id="btnCancelConfirm">Cancel</button>
                     <button class="btn-confirm" id="btnAcceptConfirm">Confirm</button>
@@ -501,7 +511,6 @@
         </div>
     </div>
 
-    <!-- NEW Ask Processing Modal -->
     <div class="modal" id="modalProcessing">
         <div class="processing-wrap">
             <span class="material-symbols-outlined spin-anim" id="procIcon" style="font-size: 4em; color: var(--accent-color);">autorenew</span>
@@ -528,8 +537,20 @@
         // 2. Firebase Imports 
         import { db } from './config.js';
         
+        // --- ADDED AUTHENTICATION IMPORT FOR ZERO-READ USER FETCHING ---
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        
         // --- Added setDoc to imports ---
         import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- NEW: INITIALIZE AUTH & CACHE USER NAME ---
+        const auth = getAuth();
+        let currentUserName = "Staff"; // Fallback name
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserName = user.displayName || user.email?.split('@')[0] || "Staff";
+            }
+        });
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
@@ -831,26 +852,48 @@
             }
         };
 
-        // --- CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL ---
+        // --- CUSTOM PROMISE-BASED CONFIRM & PROMPT MODAL (NOW SUPPORTS REASON DROPDOWN) ---
         let confirmResolve = null;
-        window.openConfirmModal = function(title, message, isPrompt = false, defaultValue = "", confirmColor = "var(--meena-red)", confirmText = "Confirm") {
+        window.openConfirmModal = function(title, message, isPrompt = false, defaultValue = "", confirmColor = "var(--meena-red)", confirmText = "Confirm", isReasonMode = false, reasonModeType = "") {
             vibrateApp(40);
             return new Promise((resolve) => {
                 document.getElementById('confirmTitle').innerText = title;
                 document.getElementById('confirmMessage').innerText = message;
                 
                 const input = document.getElementById('confirmInput');
-                if (isPrompt) {
-                    input.style.display = 'block';
-                    input.value = defaultValue;
-                    // Focus works better after a tiny delay on mobile
-                    setTimeout(() => input.focus(), 100);
-                } else {
+                const select = document.getElementById('confirmReasonSelect');
+                const btnAccept = document.getElementById('btnAcceptConfirm');
+
+                if (isReasonMode) {
                     input.style.display = 'none';
-                    input.value = '';
+                    select.style.display = 'block';
+                    btnAccept.style.display = 'none'; // Hide until valid selection
+                    
+                    if (reasonModeType === "reduce") {
+                        select.innerHTML = `<option value="">Select reason...</option><option value="Sent to Meena Agency">Sent to Meena Agency</option><option value="Product Missing">Product Missing</option><option value="Damaged Product">Damaged Product</option><option value="Returned to Dealer">Returned to Dealer</option>`;
+                    } else {
+                        select.innerHTML = `<option value="">Select reason...</option><option value="New Stock">New Stock</option><option value="Customer Return">Customer Return</option><option value="Counting Mistake">Counting Mistake</option>`;
+                    }
+
+                    select.onchange = () => {
+                        if (select.value !== "") btnAccept.style.display = 'block';
+                        else btnAccept.style.display = 'none';
+                    };
+                } else {
+                    select.style.display = 'none';
+                    btnAccept.style.display = 'block';
+                    
+                    if (isPrompt) {
+                        input.style.display = 'block';
+                        input.value = defaultValue;
+                        // Focus works better after a tiny delay on mobile
+                        setTimeout(() => input.focus(), 100);
+                    } else {
+                        input.style.display = 'none';
+                        input.value = '';
+                    }
                 }
 
-                const btnAccept = document.getElementById('btnAcceptConfirm');
                 btnAccept.style.backgroundColor = confirmColor;
                 if(confirmColor === "var(--meena-red)") {
                     btnAccept.style.boxShadow = "0 4px 15px rgba(239, 68, 68, 0.3)";
@@ -886,11 +929,16 @@
         };
         
         document.getElementById('btnCancelConfirm').addEventListener('click', () => { vibrateApp(20); if(confirmResolve) confirmResolve(null); });
+        
         document.getElementById('btnAcceptConfirm').addEventListener('click', () => { 
             vibrateApp(30);
             if(confirmResolve) {
                 const input = document.getElementById('confirmInput');
-                if(input.style.display !== 'none') {
+                const select = document.getElementById('confirmReasonSelect');
+                
+                if (select.style.display === 'block') {
+                    confirmResolve(select.value);
+                } else if (input.style.display !== 'none') {
                     confirmResolve(input.value);
                 } else {
                     confirmResolve(true);
@@ -947,16 +995,28 @@
             }
             document.getElementById('infoTimestamp').innerHTML = dateStr;
 
+            // --- NEW: DISPLAY DYNAMIC HISTORY SENTENCE ---
+            const historySentenceDiv = document.getElementById('infoHistorySentence');
+            if (item.lastEditReason && item.lastEditBy && item.previousQty !== undefined && item.qty !== item.previousQty) {
+                let action = item.qty > item.previousQty ? "increased" : "reduced";
+                historySentenceDiv.innerHTML = `<strong>${item.lastEditBy}</strong> ${action} the quantity from <strong>${item.previousQty}</strong> to <strong>${item.qty}</strong> for: <strong>${item.lastEditReason}</strong>.`;
+                historySentenceDiv.style.display = 'block';
+            } else {
+                historySentenceDiv.style.display = 'none';
+            }
+
             openModal('modalProductInfo');
         };
 
         // --- EDIT AND DELETE FUNCTIONS ---
+        
+        // --- UPGRADED QUICK EDIT FUNCTION (SUPPORTS REASON RECORDING) ---
         window.editQty = async function(id, currentQty) {
             vibrateApp(30);
             const item = inventoryCache.find(i => i.id === id);
             if (!item) return;
 
-            const newQtyStr = await openConfirmModal("Quick Edit Quantity", `Enter new quantity for ${item.name}:`, true, currentQty, "var(--accent-color)", "Save Update");
+            const newQtyStr = await openConfirmModal("Quick Edit Quantity", `Enter new quantity for ${item.name}:`, true, currentQty, "var(--accent-color)", "Continue to Next Step");
             if (newQtyStr === null || newQtyStr.trim() === "") return;
             const parsedQty = parseInt(newQtyStr);
             
@@ -965,14 +1025,30 @@
                 return;
             }
 
+            // If quantity is the same, do nothing
+            if (parsedQty === currentQty) {
+                showToast("Quantity unchanged.", "success");
+                return;
+            }
+
+            // Step 2: Prompt for Reason!
+            const reasonType = parsedQty < currentQty ? "reduce" : "increase";
+            const reason = await openConfirmModal("Reason for Change", "Please select the reason for updating the stock:", false, "", "var(--accent-color)", "Update Stock", true, reasonType);
+            
+            if (!reason) return; // User cancelled at the reason selection
+
             try {
                 const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
+                const payload = { 
                     qty: parsedQty,
                     previousQty: currentQty,
+                    lastEditReason: reason,
+                    lastEditBy: currentUserName,
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Push to top
-                });
+                };
+
+                await updateDoc(itemRef, payload);
                 showToast("Quantity updated successfully!", "success");
                 loadInventory(); // Refresh the list
             } catch (err) {
@@ -980,6 +1056,42 @@
                 showToast(err.message || "Failed to update quantity.", "error");
             }
         };
+
+        // --- DYNAMIC DROPDOWN LOGIC FOR FULL EDIT MODAL ---
+        let currentEditOriginalQty = 0;
+        const editQtyInput = document.getElementById('editQty');
+        const editReasonContainer = document.getElementById('editReasonContainer');
+        const editReasonSelect = document.getElementById('editReasonSelect');
+        const btnSaveEditItem = document.getElementById('btnSaveEditItem');
+
+        function updateEditDropdownLogic() {
+            const newQty = parseInt(editQtyInput.value) || 0;
+            if (newQty < currentEditOriginalQty) {
+                editReasonSelect.innerHTML = `<option value="">Select reason...</option><option value="Sent to Meena Agency">Sent to Meena Agency</option><option value="Product Missing">Product Missing</option><option value="Damaged Product">Damaged Product</option><option value="Returned to Dealer">Returned to Dealer</option>`;
+                editReasonContainer.style.display = 'block';
+                checkReasonSelection();
+            } else if (newQty > currentEditOriginalQty) {
+                editReasonSelect.innerHTML = `<option value="">Select reason...</option><option value="New Stock">New Stock</option><option value="Customer Return">Customer Return</option><option value="Counting Mistake">Counting Mistake</option>`;
+                editReasonContainer.style.display = 'block';
+                checkReasonSelection();
+            } else {
+                editReasonContainer.style.display = 'none';
+                editReasonSelect.value = "";
+                btnSaveEditItem.style.display = 'flex';
+            }
+        }
+
+        function checkReasonSelection() {
+            if (editReasonSelect.value === "") {
+                btnSaveEditItem.style.display = 'none';
+            } else {
+                btnSaveEditItem.style.display = 'flex';
+            }
+        }
+
+        editQtyInput.addEventListener('input', updateEditDropdownLogic);
+        editReasonSelect.addEventListener('change', checkReasonSelection);
+
 
         window.editItemFull = async function(id) {
             vibrateApp(30);
@@ -991,7 +1103,12 @@
             document.getElementById('editModel').value = item.model || '';
             document.getElementById('editMrp').value = item.mrp || 0;
             document.getElementById('editPrice').value = item.price || 0;
-            document.getElementById('editQty').value = item.qty || 0;
+            
+            // Set and cache Original Qty to drive the logic
+            currentEditOriginalQty = item.qty || 0;
+            document.getElementById('editQty').value = currentEditOriginalQty;
+            
+            updateEditDropdownLogic(); // Initialize state
 
             openModal('modalEditInventory');
         };
@@ -1022,7 +1139,8 @@
                 const oldMrp = item ? (item.mrp || 0) : 0;
 
                 const itemRef = doc(db, "inventory", id);
-                await updateDoc(itemRef, { 
+                
+                const payload = { 
                     name: newName,
                     model: newModel,
                     mrp: newMrp,
@@ -1034,7 +1152,15 @@
                     previousMrp: oldMrp,
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Pushes to the top naturally
-                });
+                };
+
+                // Add accountability fields strictly when Qty changes
+                if (newQty !== oldQty) {
+                    payload.lastEditReason = editReasonSelect.value;
+                    payload.lastEditBy = currentUserName;
+                }
+
+                await updateDoc(itemRef, payload);
                 showToast("Product updated successfully!", "success");
                 history.back(); 
                 loadInventory(); 
