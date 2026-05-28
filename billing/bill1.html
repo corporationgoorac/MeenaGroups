@@ -653,8 +653,11 @@
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
-        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
-        document.getElementById('cDate').value = localIso;
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const dateInput = document.getElementById('cDate');
+        if (dateInput) {
+            dateInput.value = localIso;
+        }
 
         // Toast Helper
         window.showToast = function(msg, type = "error") {
@@ -746,7 +749,7 @@
             }
 
             try {
-                const searchWord = suggCurrentTerm.split(/[\s\-_]+/);
+                const searchWord = suggCurrentTerm.split(/[\s\-_]+/)[0];
                 if (!searchWord) {
                     suggestionsBox.style.display = 'none';
                     suggIsFetching = false;
@@ -1078,7 +1081,7 @@
                     // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
                     const numMatch = customVal.match(/(\d+)$/);
                     if(numMatch) {
-                        const parsedNum = parseInt(numMatch, 10);
+                        const parsedNum = parseInt(numMatch[1], 10);
                         if(hasGst) smartNextGst = parsedNum + 1;
                         else smartNextNormal = parsedNum + 1;
                     }
