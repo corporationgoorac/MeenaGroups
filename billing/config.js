@@ -4,6 +4,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
+// Import Firebase Auth module
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 // Your Meena Marketing Firebase configuration
 const firebaseConfig = {
@@ -28,5 +30,8 @@ const appCheck = initializeAppCheck(app, {
 // Initialize Firestore to handle your company and balance data
 const db = getFirestore(app);
 
+// Initialize Firebase Authentication
+const auth = getAuth(app);
+
 // Export the instances so they can be imported into your other HTML/JS files
-export { app, db };
+export { app, db, auth };
