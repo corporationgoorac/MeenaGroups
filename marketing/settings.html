@@ -221,7 +221,7 @@
             transform: translateY(0);
         }
 
-        /* Mini Bottom-Middle Modal for Logout */
+        /* Mini Bottom-Middle Modal for Logout & Confirmations */
         .mini-modal-content {
             background: var(--surface-color);
             width: 90%;
@@ -237,7 +237,8 @@
             margin-bottom: 30px; /* Float above the bottom slightly */
         }
         
-        #logout-modal.active .mini-modal-content {
+        #logout-modal.active .mini-modal-content,
+        #delete-confirm-modal.active .mini-modal-content {
             transform: translateY(0) scale(1);
         }
 
@@ -398,9 +399,40 @@
         .btn-delete:active {
             background: rgba(255, 51, 51, 0.15);
         }
+
+        /* --- NEW: Custom Error Toast Notification --- */
+        .error-toast {
+            position: fixed;
+            top: -100px; /* Hidden by default */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--meena-red);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(255, 51, 51, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            transition: top 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            max-width: 90%;
+            width: max-content;
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        .error-toast.show {
+            top: 25px; /* Slide down into view */
+        }
     </style>
 </head>
 <body>
+
+    <div id="error-toast" class="error-toast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="error-toast-msg">An error occurred.</span>
+    </div>
 
     <header>
         <div class="header-left">
@@ -489,6 +521,18 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="delete-confirm-modal">
+        <div class="mini-modal-content">
+            <h3 class="mini-modal-title" style="color: var(--meena-red);">Delete User?</h3>
+            <p class="mini-modal-desc">Are you absolutely sure you want to delete this user completely? This action cannot be undone.</p>
+            
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button class="btn btn-cancel" id="cancel-delete-btn">Cancel</button>
+                <button class="btn btn-save" style="background: var(--meena-red);" id="confirm-delete-action-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Haptic Feedback for interactive elements
         document.addEventListener('click', function(e) {
@@ -509,6 +553,18 @@
         onAuthStateChanged(auth, (user) => {
             if (!user) window.location.replace('login.html');
         });
+
+        // --- NEW: Custom Error Toast Function ---
+        function showError(message) {
+            const toast = document.getElementById('error-toast');
+            const msgEl = document.getElementById('error-toast-msg');
+            msgEl.innerText = message;
+            toast.classList.add('show');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Aggressive feedback for error
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
 
         // --- Logout Modal Logic ---
         const logoutModalOverlay = document.getElementById('logout-modal');
@@ -533,8 +589,13 @@
 
         confirmLogoutBtn.addEventListener('click', async () => {
             confirmLogoutBtn.innerText = "Signing out...";
-            await signOut(auth);
-            window.location.replace('login.html');
+            try {
+                await signOut(auth);
+                window.location.replace('login.html');
+            } catch (error) {
+                showError("Failed to sign out: " + error.message);
+                confirmLogoutBtn.innerText = "Sign Out";
+            }
         });
 
         // --- User Pagination Logic ---
@@ -603,6 +664,7 @@
 
             } catch (error) {
                 console.error("Error fetching users:", error);
+                showError("Database Error: " + error.message);
                 if (isInitial) {
                     userListContainer.innerHTML = `
                         <div style="background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); padding: 15px; border-radius: 12px; margin-top: 10px;">
@@ -636,6 +698,11 @@
         const saveBtn = document.getElementById('save-modal-btn');
         const deleteBtn = document.getElementById('delete-user-btn');
         const editNameInput = document.getElementById('edit-user-name'); 
+        
+        // --- NEW: Delete confirm variables ---
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const confirmDeleteActionBtn = document.getElementById('confirm-delete-action-btn');
+        
         let currentEditingUserId = null;
 
         function openModal(id, name, email, dp, isAdmin) {
@@ -659,13 +726,16 @@
             currentEditingUserId = null;
         }
 
-        // Handle mobile back button for BOTH modals
+        // Handle mobile back button for ALL modals
         window.addEventListener('popstate', (e) => {
             if (modalOverlay.classList.contains('active')) {
                 closeModal();
             }
             if (logoutModalOverlay.classList.contains('active')) {
                 closeLogoutModal();
+            }
+            if (deleteConfirmModal.classList.contains('active')) {
+                deleteConfirmModal.classList.remove('active');
             }
         });
 
@@ -737,23 +807,38 @@
                 history.back();
             } catch (error) {
                 console.error("Error updating user:", error);
-                alert("Failed to update user: " + error.message);
+                // UPGRADED: Replaced alert with custom error toast
+                showError("Failed to update user: " + error.message);
             } finally {
                 saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
             }
         });
 
-        // Delete User Logic
-        deleteBtn.addEventListener('click', async () => {
+        // Delete User Logic (Opening the Custom Confirmation Modal)
+        deleteBtn.addEventListener('click', () => {
             if (!currentEditingUserId) return;
 
-            const confirmDelete = confirm("Are you absolutely sure you want to delete this user completely? This action cannot be undone.");
-            if (!confirmDelete) return;
+            // UPGRADED: Replaced window.confirm() with custom modal trigger
+            deleteConfirmModal.classList.add('active');
+            history.pushState({ modalOpen: true, type: 'confirm-delete' }, "", "#confirm-delete");
+        });
 
-            const originalText = deleteBtn.innerHTML;
-            deleteBtn.innerHTML = '<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span> Deleting...';
-            deleteBtn.disabled = true;
+        // Close delete modal on overlay click
+        deleteConfirmModal.addEventListener('click', (e) => {
+            if (e.target === deleteConfirmModal) history.back();
+        });
+
+        // Close delete modal via its Cancel button
+        document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+            history.back();
+        });
+
+        // Proceeding with Actual Deletion from inside Custom Confirm Modal
+        confirmDeleteActionBtn.addEventListener('click', async () => {
+            const originalText = confirmDeleteActionBtn.innerHTML;
+            confirmDeleteActionBtn.innerHTML = '<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span> Deleting...';
+            confirmDeleteActionBtn.disabled = true;
 
             try {
                 // Delete from Firestore
@@ -766,18 +851,20 @@
                     if (card) card.remove();
                 }
 
-                // Close modal
-                history.back();
+                // Close the delete confirm modal and then the edit modal safely
+                window.history.go(-2); 
             } catch (error) {
                 console.error("Error deleting user:", error);
-                alert("Failed to delete user: " + error.message);
-                deleteBtn.innerHTML = originalText;
-                deleteBtn.disabled = false;
+                // UPGRADED: Replaced alert with custom error toast
+                showError("Failed to delete user: " + error.message);
+                
+                confirmDeleteActionBtn.innerHTML = originalText;
+                confirmDeleteActionBtn.disabled = false;
             } finally {
                 // Reset button state just in case it stays in DOM
                 setTimeout(() => {
-                    deleteBtn.innerHTML = originalText;
-                    deleteBtn.disabled = false;
+                    confirmDeleteActionBtn.innerHTML = originalText;
+                    confirmDeleteActionBtn.disabled = false;
                 }, 500);
             }
         });
