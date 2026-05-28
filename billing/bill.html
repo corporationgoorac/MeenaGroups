@@ -262,6 +262,23 @@
             }
             .print-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         }
+
+        /* --- NEW PROFILE UI & MODAL CSS --- */
+        .header-right { display: flex; align-items: center; }
+        .header-dp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid #444; cursor: pointer; transition: transform 0.2s; background: #111; }
+        .header-dp:active { transform: scale(0.9); }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 2000; display: none; opacity: 0; transition: opacity 0.3s ease; align-items: flex-end; justify-content: center; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .mini-modal-content { background: var(--surface-color); width: 90%; max-width: 350px; border-radius: 20px; padding: 25px 20px; box-sizing: border-box; transform: translateY(20px) scale(0.95); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 30px; }
+        .modal-overlay.active .mini-modal-content { transform: translateY(0) scale(1); }
+        .mini-modal-title { font-size: 1.2em; font-weight: bold; margin: 0 0 5px 0; color: var(--marketing-white); }
+        .mini-modal-desc { font-size: 0.85em; color: var(--text-secondary); margin: 0 0 20px 0; }
+        .modal-actions { display: flex; gap: 15px; margin-top: 20px; }
+        .btn-modal { flex: 1; padding: 14px; border-radius: 12px; font-size: 1em; font-weight: bold; cursor: pointer; border: none; transition: transform 0.2s; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-modal:active { transform: scale(0.96); }
+        .btn-cancel { background: #333; color: white; }
+        .btn-logout { background: var(--meena-red); color: white; }
     </style>
 </head>
 <body>
@@ -285,6 +302,9 @@
                     <span class="page-title">Billing Desk</span>
                 </div>
             </div>
+        </div>
+        <div class="header-right">
+            <img src="" alt="Profile" id="header-dp" class="header-dp" style="display: none;">
         </div>
     </header>
 
@@ -537,6 +557,18 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="profile-modal">
+        <div class="mini-modal-content">
+            <img src="" id="modal-user-dp" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--meena-red); margin: 0 auto 15px auto; object-fit: cover; background: #111; display: block;">
+            <h3 class="mini-modal-title" id="modal-user-name">User Name</h3>
+            <p class="mini-modal-desc">Manage your session</p>
+            
+            <div class="modal-actions">
+                <button class="btn-modal btn-cancel" id="close-profile-btn">Close</button>
+                <button class="btn-modal btn-logout" id="logout-action-btn"><span class="material-symbols-outlined" style="font-size: 20px;">logout</span>Sign Out</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         // 1. Service Worker & Install Logic
@@ -546,13 +578,89 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // --- IMPORT WITH PAGINATION SUPPORT ---
-        import { db } from './config.js';
+        // --- IMPORT WITH PAGINATION SUPPORT & AUTHENTICATION ---
+        import { db, app } from './config.js';
         import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        // --- NEW: AUTHENTICATION CHECK & PROFILE UI ---
+        const auth = getAuth(app);
+        const headerDp = document.getElementById('header-dp');
+        const modalUserDp = document.getElementById('modal-user-dp');
+        const modalUserName = document.getElementById('modal-user-name');
+        const profileModal = document.getElementById('profile-modal');
+        
+        // 0ms Cache Load
+        const cachedDp = localStorage.getItem('user_dp');
+        const cachedName = localStorage.getItem('user_name');
+        
+        if (cachedDp) {
+            headerDp.src = cachedDp;
+            headerDp.style.display = 'block';
+            modalUserDp.src = cachedDp;
+        }
+        if (cachedName) {
+            modalUserName.innerText = cachedName;
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Determine user details
+                const dpUrl = user.photoURL || 'https://via.placeholder.com/36/333/fff?text=' + (user.displayName ? user.displayName.charAt(0) : 'U');
+                const uName = user.displayName || 'User';
+                
+                // Update Cache and UI if changed
+                if (dpUrl !== cachedDp) {
+                    localStorage.setItem('user_dp', dpUrl);
+                    headerDp.src = dpUrl;
+                    modalUserDp.src = dpUrl;
+                }
+                if (uName !== cachedName) {
+                    localStorage.setItem('user_name', uName);
+                    modalUserName.innerText = uName;
+                }
+                headerDp.style.display = 'block';
+            } else {
+                window.location.replace('login.html');
+            }
+        });
+
+        // Profile Modal Listeners
+        headerDp.addEventListener('click', () => {
+            if(navigator.vibrate) navigator.vibrate(40);
+            profileModal.classList.add('active');
+            history.pushState({ modalOpen: true, type: 'profile' }, "", "#profile");
+        });
+
+        function closeProfileModal() {
+            profileModal.classList.remove('active');
+        }
+
+        document.getElementById('close-profile-btn').addEventListener('click', () => {
+            history.back();
+        });
+
+        profileModal.addEventListener('click', (e) => {
+            if (e.target === profileModal) history.back();
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (profileModal.classList.contains('active')) {
+                closeProfileModal();
+            }
+        });
+
+        document.getElementById('logout-action-btn').addEventListener('click', async () => {
+            if(navigator.vibrate) navigator.vibrate(40);
+            const logoutBtn = document.getElementById('logout-action-btn');
+            logoutBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></span> Signing out...';
+            await signOut(auth);
+            window.location.replace('login.html');
+        });
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
-        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
         document.getElementById('cDate').value = localIso;
 
         // Toast Helper
@@ -645,7 +753,7 @@
             }
 
             try {
-                const searchWord = suggCurrentTerm.split(/[\s\-_]+/)[0];
+                const searchWord = suggCurrentTerm.split(/[\s\-_]+/);
                 if (!searchWord) {
                     suggestionsBox.style.display = 'none';
                     suggIsFetching = false;
@@ -977,7 +1085,7 @@
                     // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
                     const numMatch = customVal.match(/(\d+)$/);
                     if(numMatch) {
-                        const parsedNum = parseInt(numMatch[1], 10);
+                        const parsedNum = parseInt(numMatch, 10);
                         if(hasGst) smartNextGst = parsedNum + 1;
                         else smartNextNormal = parsedNum + 1;
                     }
