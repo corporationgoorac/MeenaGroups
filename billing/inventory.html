@@ -1049,6 +1049,26 @@
                 };
 
                 await updateDoc(itemRef, payload);
+                
+                // --- NEW: ZERO-WASTE ALERT DOCUMENT OVERWRITE ---
+                if (parsedQty < currentQty) {
+                    try {
+                        await setDoc(doc(db, "alerts", "stock_reduction"), {
+                            name: item.name || '',
+                            model: item.model || 'N/A',
+                            price: item.price || 0,
+                            mrp: item.mrp || 0,
+                            qty: parsedQty,
+                            previousQty: currentQty,
+                            lastEditBy: currentUserName,
+                            lastEditReason: reason,
+                            lastUpdated: new Date().toISOString()
+                        });
+                    } catch (alertErr) {
+                        console.error("Failed to write alert document:", alertErr);
+                    }
+                }
+
                 showToast("Quantity updated successfully!", "success");
                 loadInventory(); // Refresh the list
             } catch (err) {
@@ -1161,6 +1181,26 @@
                 }
 
                 await updateDoc(itemRef, payload);
+                
+                // --- NEW: ZERO-WASTE ALERT DOCUMENT OVERWRITE ---
+                if (newQty < oldQty) {
+                    try {
+                        await setDoc(doc(db, "alerts", "stock_reduction"), {
+                            name: newName || '',
+                            model: newModel || 'N/A',
+                            price: newPrice || 0,
+                            mrp: newMrp || 0,
+                            qty: newQty,
+                            previousQty: oldQty,
+                            lastEditBy: currentUserName,
+                            lastEditReason: editReasonSelect.value || "N/A",
+                            lastUpdated: new Date().toISOString()
+                        });
+                    } catch (alertErr) {
+                        console.error("Failed to write alert document:", alertErr);
+                    }
+                }
+
                 showToast("Product updated successfully!", "success");
                 history.back(); 
                 loadInventory(); 
