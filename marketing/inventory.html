@@ -594,7 +594,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
-            vibrateApp(type === "error" ? :);
+            vibrateApp(type === "error" ? [50, 50, 100] : [40, 50]);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -650,7 +650,7 @@
 
             if (currentAdminPin.length === 4) {
                 if (currentAdminPin === CORRECT_PIN) {
-                    vibrateApp();
+                    vibrateApp([30, 50]);
                     setTimeout(unlockAdminDashboard, 200);
                 } else {
                     showToast("Incorrect PIN. Access Denied.", "error");
@@ -702,7 +702,7 @@
         }
 
         window.triggerMassDelete = async function() {
-            vibrateApp();
+            vibrateApp([100, 50, 100, 50, 200]);
             const countStr = document.getElementById('deadStockCount').innerText;
             const count = parseInt(countStr);
             if (isNaN(count) || count === 0) return;
@@ -901,7 +901,7 @@
                 historySentenceDiv.innerHTML = `<strong>${item.lastEditBy}</strong> ${action} the quantity from <strong>${item.previousQty}</strong> to <strong>${item.qty}</strong> for: <strong>${item.lastEditReason || "N/A"}</strong>.`;
                 historySentenceDiv.style.display = 'block';
             } else {
-                historySentenceDiv.style.display = 'none';
+                if (historySentenceDiv) historySentenceDiv.style.display = 'none';
             }
 
             openModal('modalProductInfo');
@@ -919,12 +919,6 @@
             
             if (isNaN(parsedQty) || parsedQty < 0) {
                 showToast("Please enter a valid number.", "error");
-                return;
-            }
-
-            // If quantity is the same, do nothing
-            if (parsedQty === currentQty) {
-                showToast("Quantity unchanged.", "success");
                 return;
             }
 
@@ -1120,7 +1114,7 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/);
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
                     if (isLoadMore && lastVisibleItem) {
                         // NO orderBy here to avoid requiring composite indexes for search
                         q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(lastVisibleItem), limit(10));
@@ -1404,7 +1398,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs;
+                        const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1493,7 +1487,7 @@
 
         // Final Save to Firestore
         document.getElementById('btnSaveInventory').addEventListener('click', async () => {
-            vibrateApp();
+            vibrateApp([50, 50]);
             if (pendingCart.length === 0) return;
             
             const btnSave = document.getElementById('btnSaveInventory');
