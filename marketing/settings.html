@@ -263,7 +263,7 @@
         .modal-name { font-size: 1.2em; font-weight: bold; margin: 0; }
         .modal-email { font-size: 0.8em; color: var(--text-secondary); margin: 5px 0 0 0; }
 
-        /* NEW: Input Group Styles for Editing Name */
+        /* Input Group Styles for Editing Name */
         .input-group {
             margin-bottom: 20px;
             text-align: left;
@@ -361,17 +361,25 @@
         .btn-cancel { background: #333; color: white; }
         .btn-save { background: var(--meena-red); color: white; }
         
-        /* Skeleton UI for Users */
-        .skel-card { opacity: 0.6; pointer-events: none; }
+        /* UPGRADED: Skeleton UI for Users */
+        .skel-card { 
+            opacity: 0.75; 
+            pointer-events: none; 
+            border-color: rgba(255, 255, 255, 0.02);
+        }
         .skeleton-box {
             background-color: #2a2a2a;
-            position: relative; overflow: hidden; border-radius: 4px;
+            position: relative; 
+            overflow: hidden; 
+            border-radius: 4px;
         }
         .skeleton-box::after {
             position: absolute; top: 0; right: 0; bottom: 0; left: 0;
             transform: translateX(-100%);
-            background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            animation: shimmer 1.5s infinite; content: '';
+            /* Smoother, brighter shimmer effect */
+            background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            animation: shimmer 1.2s infinite; 
+            content: '';
         }
         @keyframes shimmer { 100% { transform: translateX(100%); } }
 
@@ -399,6 +407,7 @@
                     <div class="skeleton-box" style="width: 60%; height: 20px; margin-bottom: 6px;"></div>
                     <div class="skeleton-box" style="width: 40%; height: 16px; border-radius: 10px;"></div>
                 </div>
+                <div class="skeleton-box" style="width: 44px; height: 44px; border-radius: 50%; margin-left: auto;"></div>
             </div>
             <div class="user-card skel-card">
                 <div class="user-dp skeleton-box"></div>
@@ -406,6 +415,7 @@
                     <div class="skeleton-box" style="width: 50%; height: 20px; margin-bottom: 6px;"></div>
                     <div class="skeleton-box" style="width: 30%; height: 16px; border-radius: 10px;"></div>
                 </div>
+                <div class="skeleton-box" style="width: 44px; height: 44px; border-radius: 50%; margin-left: auto;"></div>
             </div>
         </div>
 
@@ -518,7 +528,12 @@
         async function fetchUsers(isInitial = false) {
             if (isFetching || !hasMoreUsers) return;
             isFetching = true;
-            loadingSpinner.style.display = 'inline-block';
+            
+            // UPGRADED: Only show the bottom loading spinner if it is NOT the initial load
+            // (Because the skeletons handle the loading visuals during the initial load)
+            if (!isInitial) {
+                loadingSpinner.style.display = 'inline-block';
+            }
 
             try {
                 let q;
@@ -598,7 +613,7 @@
         const modalOverlay = document.getElementById('edit-modal');
         const adminToggle = document.getElementById('admin-toggle');
         const saveBtn = document.getElementById('save-modal-btn');
-        const editNameInput = document.getElementById('edit-user-name'); // NEW: Reference for the name input
+        const editNameInput = document.getElementById('edit-user-name'); 
         let currentEditingUserId = null;
 
         function openModal(id, name, email, dp, isAdmin) {
@@ -607,7 +622,6 @@
             document.getElementById('modal-email').innerText = email || 'No email provided';
             document.getElementById('modal-dp').src = dp || 'https://via.placeholder.com/60/333/fff?text=U';
             
-            // NEW: Populate the input field with the user's current name
             editNameInput.value = name || '';
             
             adminToggle.checked = isAdmin === 'true';
@@ -666,7 +680,7 @@
             saveBtn.disabled = true;
 
             const makeAdmin = adminToggle.checked;
-            const newName = editNameInput.value.trim(); // NEW: Capture the new name from input
+            const newName = editNameInput.value.trim(); 
 
             try {
                 // Update Firestore with the new name and roles
