@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Settings - Meena Marketing</title>
+    
+    <meta name="theme-color" content="#121212">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+    
+    <style>
+        /* Meena Marketing Dark Theme Palette */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --nav-bg: #1a1a1a;
+        }
+
+        /* Anti-copy and anti-zoom global rules */
+        html, body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation; 
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        ::-webkit-scrollbar { display: none; }
+
+        /* Professional Top App Bar */
+        header {
+            background-color: var(--surface-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(33, 33, 33, 0.9);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-left .material-symbols-outlined {
+            font-size: 28px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .header-left .material-symbols-outlined:active { transform: scale(0.9); }
+
+        .header-title {
+            font-size: 1.25em;
+            font-weight: bold;
+            color: var(--marketing-white);
+        }
+
+        .logout-btn {
+            color: var(--meena-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border-radius: 50%;
+            background: rgba(255, 51, 51, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .logout-btn:active { transform: scale(0.9); background: rgba(255, 51, 51, 0.2); }
+
+        /* Container & Cards */
+        .container {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .section-title {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* User List & Infinity Scroll */
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .user-card {
+            background-color: var(--surface-color);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .user-card:active { transform: scale(0.98); }
+
+        .user-dp {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #333;
+            background-color: #111;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .user-name {
+            font-size: 1.05em;
+            font-weight: bold;
+            color: var(--marketing-white);
+            margin: 0 0 4px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-role {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .user-role.admin {
+            color: var(--meena-red);
+            background: rgba(255, 51, 51, 0.15);
+        }
+
+        .edit-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Loader element for infinity scroll */
+        .scroll-loader {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        /* Custom Professional Modal (Bottom Sheet style) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            align-items: flex-end; /* Align to bottom for mobile feel */
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            width: 100%;
+            max-width: 500px;
+            border-radius: 24px 24px 0 0;
+            padding: 30px 25px;
+            box-sizing: border-box;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .modal-dp {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--meena-red);
+        }
+
+        .modal-name { font-size: 1.2em; font-weight: bold; margin: 0; }
+        .modal-email { font-size: 0.8em; color: var(--text-secondary); margin: 5px 0 0 0; }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+
+        .setting-label {
+            font-size: 1.05em;
+            font-weight: 500;
+        }
+        .setting-desc {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Professional Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .3s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--meena-red); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .modal-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-cancel { background: #333; color: white; }
+        .btn-save { background: var(--meena-red); color: white; }
+        
+        /* Skeleton UI for Users */
+        .skel-card { opacity: 0.6; pointer-events: none; }
+        .skeleton-box {
+            background-color: #2a2a2a;
+            position: relative; overflow: hidden; border-radius: 4px;
+        }
+        .skeleton-box::after {
+            position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            animation: shimmer 1.5s infinite; content: '';
+        }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <span class="material-symbols-outlined" onclick="window.history.back()">arrow_back</span>
+            <span class="header-title">Settings</span>
+        </div>
+        <div class="logout-btn" id="logout-btn" title="Logout">
+            <span class="material-symbols-outlined">logout</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="section-title">Team Members</div>
+        
+        <div class="user-list" id="user-list-container">
+            <!-- Initial Skeleton Loaders -->
+            <div class="user-card skel-card">
+                <div class="user-dp skeleton-box"></div>
+                <div class="user-info">
+                    <div class="skeleton-box" style="width: 60%; height: 20px; margin-bottom: 6px;"></div>
+                    <div class="skeleton-box" style="width: 40%; height: 16px; border-radius: 10px;"></div>
+                </div>
+            </div>
+            <div class="user-card skel-card">
+                <div class="user-dp skeleton-box"></div>
+                <div class="user-info">
+                    <div class="skeleton-box" style="width: 50%; height: 20px; margin-bottom: 6px;"></div>
+                    <div class="skeleton-box" style="width: 30%; height: 16px; border-radius: 10px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scroll-trigger" class="scroll-loader">
+            <span class="material-symbols-outlined" style="animation: spin 1s linear infinite; display: none;" id="loading-spinner">sync</span>
+        </div>
+    </div>
+
+    <!-- Professional Edit Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img src="" alt="User" class="modal-dp" id="modal-dp">
+                <div>
+                    <h3 class="modal-name" id="modal-name">User Name</h3>
+                    <p class="modal-email" id="modal-email">user@email.com</p>
+                </div>
+            </div>
+            
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Administrator Access</div>
+                    <div class="setting-desc">Allow user to modify system data</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="admin-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-cancel" id="close-modal-btn">Cancel</button>
+                <button class="btn btn-save" id="save-modal-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Scripts -->
+    <script>
+        // Haptic Feedback for interactive elements
+        document.addEventListener('click', function(e) {
+            const interactive = e.target.closest('.btn, .logout-btn, .material-symbols-outlined, .edit-btn, .slider');
+            if (interactive && navigator.vibrate) navigator.vibrate(40);
+        });
+    </script>
+
+    <script type="module">
+        import { app, db } from './config.js';
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { collection, query, orderBy, limit, getDocs, startAfter, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const auth = getAuth(app);
+        
+        // Ensure user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.replace('login.html');
+        });
+
+        // Logout Logic
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            if(confirm("Are you sure you want to logout?")) {
+                await signOut(auth);
+                window.location.replace('login.html');
+            }
+        });
+
+        // --- User Pagination Logic ---
+        const userListContainer = document.getElementById('user-list-container');
+        const scrollTrigger = document.getElementById('scroll-trigger');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        let lastVisibleDoc = null;
+        let isFetching = false;
+        let hasMoreUsers = true;
+
+        async function fetchUsers(isInitial = false) {
+            if (isFetching || !hasMoreUsers) return;
+            isFetching = true;
+            loadingSpinner.style.display = 'inline-block';
+
+            try {
+                let q;
+                const usersRef = collection(db, "users");
+                
+                // Assuming 'createdAt' exists. If not, orderBy("name") or remove orderBy.
+                if (isInitial || !lastVisibleDoc) {
+                    q = query(usersRef, limit(10)); // Adjust orderBy if you have a specific timestamp field
+                } else {
+                    q = query(usersRef, startAfter(lastVisibleDoc), limit(10));
+                }
+
+                const querySnapshot = await getDocs(q);
+                
+                if (isInitial) userListContainer.innerHTML = ''; // Clear skeletons
+
+                if (querySnapshot.empty) {
+                    hasMoreUsers = false;
+                    scrollTrigger.innerHTML = '<span style="color:#555;">No more users</span>';
+                    isFetching = false;
+                    return;
+                }
+
+                lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+                querySnapshot.forEach((document) => {
+                    const userData = document.data();
+                    const userId = document.id;
+                    const isAdmin = userData.admin === true || userData.role === 'admin';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'user-card';
+                    card.innerHTML = `
+                        <img src="${userData.photoURL || 'https://via.placeholder.com/50/333/fff?text=U'}" alt="DP" class="user-dp">
+                        <div class="user-info">
+                            <h4 class="user-name">${userData.name || 'Unknown User'}</h4>
+                            <span class="user-role ${isAdmin ? 'admin' : ''}" id="badge-${userId}">
+                                ${isAdmin ? 'Admin' : 'Staff'}
+                            </span>
+                        </div>
+                        <button class="edit-btn" data-id="${userId}" data-name="${userData.name}" data-email="${userData.email}" data-dp="${userData.photoURL}" data-admin="${isAdmin}">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                    `;
+                    userListContainer.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                if (isInitial) userListContainer.innerHTML = '<p style="color:#ff3333; padding:10px;">Failed to load users.</p>';
+            }
+
+            loadingSpinner.style.display = 'none';
+            isFetching = false;
+        }
+
+        // Initialize Intersection Observer for Infinity Scroll
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasMoreUsers) {
+                fetchUsers();
+            }
+        }, { threshold: 0.5 });
+
+        observer.observe(scrollTrigger);
+        
+        // Initial Fetch
+        fetchUsers(true);
+
+
+        // --- Professional Modal & Mobile Back Button Logic ---
+        const modalOverlay = document.getElementById('edit-modal');
+        const adminToggle = document.getElementById('admin-toggle');
+        const saveBtn = document.getElementById('save-modal-btn');
+        let currentEditingUserId = null;
+
+        function openModal(id, name, email, dp, isAdmin) {
+            currentEditingUserId = id;
+            document.getElementById('modal-name').innerText = name || 'Unknown';
+            document.getElementById('modal-email').innerText = email || 'No email provided';
+            document.getElementById('modal-dp').src = dp || 'https://via.placeholder.com/60/333/fff?text=U';
+            adminToggle.checked = isAdmin === 'true';
+
+            modalOverlay.classList.add('active');
+            
+            // Push state to history to enable mobile back button support
+            history.pushState({ modalOpen: true }, "", "#edit");
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            currentEditingUserId = null;
+        }
+
+        // Listen for mobile back button to close modal safely
+        window.addEventListener('popstate', (e) => {
+            if (modalOverlay.classList.contains('active')) {
+                closeModal();
+            }
+        });
+
+        // Close on Cancel button
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            history.back(); // Triggers popstate to close modal properly
+        });
+
+        // Close if clicking outside the modal content
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) history.back();
+        });
+
+        // Event Delegation for Edit Buttons (since cards are loaded dynamically)
+        userListContainer.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            if (editBtn) {
+                openModal(
+                    editBtn.dataset.id,
+                    editBtn.dataset.name,
+                    editBtn.dataset.email,
+                    editBtn.dataset.dp,
+                    editBtn.dataset.admin
+                );
+            }
+        });
+
+        // Save Changes Logic
+        saveBtn.addEventListener('click', async () => {
+            if (!currentEditingUserId) return;
+            
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "Saving...";
+            saveBtn.disabled = true;
+
+            const makeAdmin = adminToggle.checked;
+
+            try {
+                // Update Firestore
+                await updateDoc(doc(db, "users", currentEditingUserId), {
+                    admin: makeAdmin,
+                    role: makeAdmin ? "admin" : "staff"
+                });
+
+                // Update UI locally without reloading the page
+                const badge = document.getElementById(`badge-${currentEditingUserId}`);
+                const editBtn = document.querySelector(`.edit-btn[data-id="${currentEditingUserId}"]`);
+                
+                if (badge) {
+                    badge.innerText = makeAdmin ? "Admin" : "Staff";
+                    if (makeAdmin) badge.classList.add('admin');
+                    else badge.classList.remove('admin');
+                }
+                
+                if (editBtn) {
+                    editBtn.dataset.admin = makeAdmin.toString();
+                }
+
+                // Close modal
+                history.back();
+            } catch (error) {
+                console.error("Error updating user:", error);
+                alert("Failed to update user permissions.");
+            } finally {
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
