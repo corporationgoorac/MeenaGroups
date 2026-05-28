@@ -46,6 +46,21 @@
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
 
+        /* Profile & Modal Additions */
+        .header-right { display: flex; align-items: center; justify-content: center; }
+        .profile-pic { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; object-fit: cover; border: 2px solid var(--accent-color); transition: border-color 0.3s; }
+        .profile-pic:hover { border-color: var(--success-color); }
+        
+        .profile-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
+        .profile-modal-overlay.show { display: flex; opacity: 1; }
+        .profile-modal { background: var(--surface-color); border: 1px solid var(--accent-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); position: relative; transform: scale(0.9); transition: transform 0.3s; }
+        .profile-modal-overlay.show .profile-modal { transform: scale(1); }
+        .close-profile { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; }
+        .modal-pic { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--marketing-white); margin-bottom: 15px; }
+        .modal-name { font-size: 1.2em; margin: 0 0 20px 0; color: var(--marketing-white); font-weight: bold; }
+        .btn-logout { background: var(--meena-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 1em; transition: 0.2s; }
+        .btn-logout:hover { background: #d32f2f; }
+
         /* Custom Install Popup */
         #installPopup { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: var(--nav-bg); padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); z-index: 1001; align-items: center; gap: 15px; width: 90%; max-width: 380px; border: 1px solid var(--accent-color); }
         .install-img { width: 40px; height: 40px; border-radius: 8px; }
@@ -129,7 +144,7 @@
 
         @media print {
             /* Safely hide app UI without relying on absolute positioning overlays */
-            header, #installPopup, .main-scroll-area, .toast-msg { display: none !important; }
+            header, #installPopup, .main-scroll-area, .toast-msg, .profile-modal-overlay { display: none !important; }
 
             /* Force 1 page and remove browser headers/footers */
             @page {
@@ -286,7 +301,21 @@
                 </div>
             </div>
         </div>
+        <div class="header-right">
+            <img src="icon.png" id="headProfilePic" class="profile-pic" alt="Profile" onclick="openProfileModal()">
+        </div>
     </header>
+
+    <div id="profileOverlay" class="profile-modal-overlay">
+        <div class="profile-modal">
+            <button class="close-profile" onclick="closeProfileModal()">&times;</button>
+            <img src="icon.png" id="modProfilePic" class="modal-pic" alt="Profile">
+            <h3 id="modProfileName" class="modal-name">Loading...</h3>
+            <button class="btn-logout" id="btnLogout">
+                <span class="material-symbols-outlined">logout</span> Logout
+            </button>
+        </div>
+    </div>
 
     <div id="installPopup">
         <img src="icon.png" alt="App Icon" class="install-img">
@@ -546,13 +575,74 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // --- IMPORT WITH PAGINATION SUPPORT ---
-        import { db } from './config.js';
+        // --- IMPORT WITH PAGINATION SUPPORT & AUTHENTICATION ---
+        import { db, auth } from './config.js';
         import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        // --- AUTH, PROFILE & LOCAL STORAGE LOGIC ---
+        const headProfilePic = document.getElementById('headProfilePic');
+        const modProfilePic = document.getElementById('modProfilePic');
+        const modProfileName = document.getElementById('modProfileName');
+        const profileOverlay = document.getElementById('profileOverlay');
+
+        // Load instantly from localStorage for 0ms visual delay
+        const storedPic = localStorage.getItem('userProfilePic');
+        if (storedPic) {
+            headProfilePic.src = storedPic;
+            modProfilePic.src = storedPic;
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const photo = user.photoURL || 'icon.png';
+                const name = user.displayName || user.email || 'User';
+                
+                // Store/Update Data
+                localStorage.setItem('userProfilePic', photo);
+                headProfilePic.src = photo;
+                modProfilePic.src = photo;
+                modProfileName.innerText = name;
+            } else {
+                window.location.href = 'login.html'; // Redirect if not logged in
+            }
+        });
+
+        // --- MOBILE BACK BUTTON SUPPORTED MODAL ---
+        window.openProfileModal = function() {
+            profileOverlay.classList.add('show');
+            history.pushState({ profileModalOpen: true }, "");
+        };
+
+        window.closeProfileModal = function() {
+            if (history.state && history.state.profileModalOpen) {
+                history.back(); // Triggers the popstate event to clean up natively
+            } else {
+                profileOverlay.classList.remove('show');
+            }
+        };
+
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.profileModalOpen) {
+                profileOverlay.classList.add('show');
+            } else {
+                profileOverlay.classList.remove('show');
+            }
+        });
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                localStorage.removeItem('userProfilePic');
+                window.location.href = 'login.html';
+            } catch (err) {
+                showToast("Failed to logout.", "error");
+            }
+        });
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
-        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
         document.getElementById('cDate').value = localIso;
 
         // Toast Helper
@@ -645,7 +735,7 @@
             }
 
             try {
-                const searchWord = suggCurrentTerm.split(/[\s\-_]+/)[0];
+                const searchWord = suggCurrentTerm.split(/[\s\-_]+/);
                 if (!searchWord) {
                     suggestionsBox.style.display = 'none';
                     suggIsFetching = false;
@@ -977,7 +1067,7 @@
                     // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
                     const numMatch = customVal.match(/(\d+)$/);
                     if(numMatch) {
-                        const parsedNum = parseInt(numMatch[1], 10);
+                        const parsedNum = parseInt(numMatch, 10);
                         if(hasGst) smartNextGst = parsedNum + 1;
                         else smartNextNormal = parsedNum + 1;
                     }
