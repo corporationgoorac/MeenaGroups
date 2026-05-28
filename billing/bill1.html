@@ -436,7 +436,6 @@
 
     </div>
 
-    <!-- DP / User Auth Modal -->
     <div id="dpModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
         <div style="background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: center; border: 1px solid #444; width: 80%; max-width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.9);">
             <img src="icon.png" id="modalDp" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 15px; object-fit: cover; border: 3px solid var(--accent-color);">
@@ -569,16 +568,28 @@
         // --- AUTH CHECK & MODAL LOGIC (Mobile Back Button Supported) ---
         const dpModal = document.getElementById('dpModal');
         const headerDp = document.getElementById('headerDp');
+        const modalDp = document.getElementById('modalDp');
         
+        // --- 0ms Instant Load (Local Storage) ---
+        const cachedDp = localStorage.getItem('userProfilePic');
+        if (cachedDp) {
+            headerDp.src = cachedDp;
+            modalDp.src = cachedDp;
+        }
+
         if (auth) {
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     const dpUrl = user.photoURL || 'icon.png';
                     headerDp.src = dpUrl;
-                    document.getElementById('modalDp').src = dpUrl;
+                    modalDp.src = dpUrl;
                     document.getElementById('modalUserName').innerText = user.displayName || 'Billing User';
                     document.getElementById('modalUserEmail').innerText = user.email || '';
+                    
+                    // Update cache with fresh URL
+                    localStorage.setItem('userProfilePic', dpUrl);
                 } else {
+                    localStorage.removeItem('userProfilePic');
                     window.location.replace('index.html'); // Redirect to login
                 }
             });
@@ -603,9 +614,11 @@
         document.getElementById('logoutBtn').addEventListener('click', () => {
             if (auth) {
                 signOut(auth).then(() => {
+                    localStorage.removeItem('userProfilePic');
                     window.location.replace('index.html');
                 }).catch(err => console.error('Logout error', err));
             } else {
+                localStorage.removeItem('userProfilePic');
                 window.location.replace('index.html');
             }
         });
