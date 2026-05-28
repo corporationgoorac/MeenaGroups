@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Reusable function to check if the user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 2. Reusable function to check if the logged-in user is an admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // ----------------------------------------------------------------------
+    // SPECIFIC RULES: 'users' collection (Prevents users from making themselves admin)
+    // ----------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      
+      // Allow user to create their own profile, but forces 'admin' to be false
+      allow create: if isAdmin() || 
+                    (request.auth.uid == userId && 
+                     request.resource.data.get('admin', false) == false);
+                     
+      // Allow user to update their own profile, but strictly BLOCKS changing 'admin' or 'role' fields
+      allow update: if isAdmin() || 
+                    (request.auth.uid == userId && 
+                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin', 'role']));
+                     
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // ----------------------------------------------------------------------
+    // DEFAULT RULES: All other collections
+    // ----------------------------------------------------------------------
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+  }
+}
