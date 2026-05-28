@@ -94,7 +94,8 @@
             line-height: 1.1;
         }
 
-        .brand-title { font-size: 1.2em; font-weight: bold; }
+        /* Modified: Made the branding text a bit smaller (1.05em instead of 1.2em) */
+        .brand-title { font-size: 1.05em; font-weight: bold; }
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
         .goorac { font-size: 0.7em; color: var(--text-secondary); }
@@ -111,6 +112,40 @@
             cursor: pointer;
             transition: all 0.3s ease;
             flex-shrink: 0; /* Added to prevent icons from squishing on small screens */
+        }
+        
+        /* NEW: Profile Picture UI for Header */
+        .profile-container {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            margin-left: 5px;
+            cursor: pointer;
+            flex-shrink: 0;
+            border-radius: 50%;
+        }
+        
+        .profile-pic {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #444;
+            display: none; /* Hidden until loaded from cache/firebase */
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .profile-pic:hover {
+            transform: scale(1.1);
+            border-color: var(--meena-red);
+        }
+
+        .profile-skel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: absolute;
+            top: 0; left: 0;
         }
 
         /* Sleek Marketing Agent Button Styles */
@@ -512,6 +547,11 @@
                     `);
                 })();
             </script>
+            
+            <div class="profile-container" onclick="window.location.href='settings.html'" title="Settings">
+                <div class="skeleton-box profile-skel" id="header-dp-skel"></div>
+                <img src="" alt="Profile" class="profile-pic" id="header-dp-img">
+            </div>
         </div>
     </header>
 
@@ -589,7 +629,6 @@
             <div class="panel">
                 <h2>Top Pending Balances</h2>
                 <ul class="debtor-list" id="debtors-list">
-                    <!-- Skeleton list items automatically replaced when JS updates the innerHTML -->
                     <li>
                         <div class="skel-list-item">
                             <div class="skeleton-box skel-avatar"></div>
@@ -624,7 +663,6 @@
         </div>
     </div>
 
-    <!-- NEW: Sleek Floating Ask Icon -->
     <div class="fab-left" onclick="window.location.href='ask.html'" title="Ask a Question">
         <span class="material-symbols-outlined">question_mark</span>
     </div>
@@ -639,7 +677,7 @@
         document.addEventListener('click', function(e) {
             // Check if the clicked element is an anchor tag, button, fab, or action icon
             /* ORIGINAL: const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]'); */
-            const interactiveElement = e.target.closest('a, button, .fab-left, .fab-right, .header-actions span, .stat-card, [onclick]');
+            const interactiveElement = e.target.closest('a, button, .fab-left, .fab-right, .header-actions span, .profile-container, .stat-card, [onclick]');
             
             if (interactiveElement && navigator.vibrate) {
                 // Trigger a crisp 40ms haptic feedback
@@ -680,9 +718,38 @@
             }
         });
 
+        // 0ms Load DP from LocalStorage before Firebase Auth initializes
+        const headerDpSkel = document.getElementById('header-dp-skel');
+        const headerDpImg = document.getElementById('header-dp-img');
+        const cachedUserDP = localStorage.getItem('google_user_dp');
+        
+        if (cachedUserDP) {
+            headerDpImg.src = cachedUserDP;
+            headerDpImg.style.display = 'block';
+            headerDpSkel.style.display = 'none';
+        }
+
         // 2. Firebase Import & Data Fetching (Added 'where' for read optimization)
-        import { db } from './config.js';
+        import { db, auth } from './config.js';
         import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        // Authentication State Observer
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // Not logged in, redirect to login page immediately
+                window.location.href = 'login.html';
+            } else {
+                // Logged in, grab photoURL and update UI/Cache
+                const photoURL = user.photoURL || 'https://via.placeholder.com/100/333/fff?text=U';
+                if (cachedUserDP !== photoURL) {
+                    headerDpImg.src = photoURL;
+                    headerDpImg.style.display = 'block';
+                    headerDpSkel.style.display = 'none';
+                    localStorage.setItem('google_user_dp', photoURL);
+                }
+            }
+        });
 
         // Global instances for charts to properly destroy before rebuilding (prevents visual bugs on refresh)
         let paymentChartInstance = null;
@@ -736,7 +803,7 @@
             if (data.topDebtors && data.topDebtors.length > 0) {
                 
                 // Capture the highest balance to calculate the progress bar fill percentages dynamically
-                const maxBalance = data.topDebtors[0]?.balance || 1; 
+                const maxBalance = data.topDebtors?.balance || 1; 
 
                 data.topDebtors.forEach((debtor, index) => {
                     if (debtor.balance > 0) {
