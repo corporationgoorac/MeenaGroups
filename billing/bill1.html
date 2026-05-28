@@ -46,19 +46,19 @@
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
 
-        /* Profile & Modal Additions */
-        .header-right { display: flex; align-items: center; justify-content: center; }
-        .profile-pic { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; object-fit: cover; border: 2px solid var(--accent-color); transition: border-color 0.3s; }
-        .profile-pic:hover { border-color: var(--success-color); }
+        /* Profile Elements */
+        .header-right { display: flex; align-items: center; }
+        .profile-pic { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 2px solid var(--accent-color); object-fit: cover; transition: transform 0.2s ease;}
+        .profile-pic:active { transform: scale(0.9); }
         
-        .profile-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
-        .profile-modal-overlay.show { display: flex; opacity: 1; }
-        .profile-modal { background: var(--surface-color); border: 1px solid var(--accent-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); position: relative; transform: scale(0.9); transition: transform 0.3s; }
-        .profile-modal-overlay.show .profile-modal { transform: scale(1); }
-        .close-profile { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; }
-        .modal-pic { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--marketing-white); margin-bottom: 15px; }
-        .modal-name { font-size: 1.2em; margin: 0 0 20px 0; color: var(--marketing-white); font-weight: bold; }
-        .btn-logout { background: var(--meena-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 1em; transition: 0.2s; }
+        .profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(5px); }
+        .profile-modal.show { display: flex; opacity: 1; }
+        .profile-modal-content { background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: center; position: relative; width: 90%; max-width: 320px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.8); transform: translateY(20px); transition: transform 0.3s ease;}
+        .profile-modal.show .profile-modal-content { transform: translateY(0); }
+        .close-modal-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 1.5em; cursor: pointer; }
+        .modal-profile-pic { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--accent-color); object-fit: cover;}
+        #modalProfileName { margin: 0 0 20px 0; font-size: 1.2em; color: var(--marketing-white); }
+        .btn-logout { background: var(--meena-red); color: white; border: none; padding: 12px 20px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 1em; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-logout:hover { background: #d32f2f; }
 
         /* Custom Install Popup */
@@ -144,7 +144,7 @@
 
         @media print {
             /* Safely hide app UI without relying on absolute positioning overlays */
-            header, #installPopup, .main-scroll-area, .toast-msg, .profile-modal-overlay { display: none !important; }
+            header, #installPopup, .main-scroll-area, .toast-msg, .profile-modal { display: none !important; }
 
             /* Force 1 page and remove browser headers/footers */
             @page {
@@ -302,16 +302,16 @@
             </div>
         </div>
         <div class="header-right">
-            <img src="icon.png" id="headProfilePic" class="profile-pic" alt="Profile" onclick="openProfileModal()">
+            <img src="" alt="Profile" id="headerProfilePic" class="profile-pic" style="display:none;">
         </div>
     </header>
 
-    <div id="profileOverlay" class="profile-modal-overlay">
-        <div class="profile-modal">
-            <button class="close-profile" onclick="closeProfileModal()">&times;</button>
-            <img src="icon.png" id="modProfilePic" class="modal-pic" alt="Profile">
-            <h3 id="modProfileName" class="modal-name">Loading...</h3>
-            <button class="btn-logout" id="btnLogout">
+    <div id="profileModal" class="profile-modal">
+        <div class="profile-modal-content">
+            <button id="closeProfileModal" class="close-modal-btn">&times;</button>
+            <img src="" id="modalProfilePic" class="modal-profile-pic">
+            <h3 id="modalProfileName">Loading...</h3>
+            <button id="btnLogout" class="btn-logout">
                 <span class="material-symbols-outlined">logout</span> Logout
             </button>
         </div>
@@ -568,13 +568,81 @@
 
 
     <script type="module">
-        // --- ALL IMPORTS PLACED STRICTLY AT THE TOP ---
-        import { db, app } from './config.js';
+        // --- SECURE IMPORTS (Auth initialized via config.js) ---
+        import { db, auth } from './config.js';
         import { collection, getDocs, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-        // --- FIREBASE AUTH INITIALIZED DIRECTLY IN THIS FILE ---
-        const auth = getAuth(app);
+        // --- AUTH & PROFILE LOGIC (0ms Rendering + Session Handling) ---
+        const headerPic = document.getElementById('headerProfilePic');
+        const modalPic = document.getElementById('modalProfilePic');
+        const modalName = document.getElementById('modalProfileName');
+        const profileModal = document.getElementById('profileModal');
+
+        // 1. Instantly pull cached picture from local storage (0ms loading)
+        const cachedPic = localStorage.getItem('profilePicData');
+        if (cachedPic) {
+            headerPic.src = cachedPic;
+            modalPic.src = cachedPic;
+            headerPic.style.display = 'block';
+        }
+
+        // 2. Validate Firebase Authentication Session
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // Not authenticated, redirect immediately
+                window.location.replace('login.html');
+            } else {
+                // Successfully authenticated
+                const displayName = user.displayName || 'Admin User';
+                const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0056b3&color=fff&rounded=true`;
+                
+                // Update UI and Cache
+                headerPic.src = photoURL;
+                modalPic.src = photoURL;
+                modalName.innerText = displayName;
+                headerPic.style.display = 'block';
+                
+                localStorage.setItem('profilePicData', photoURL);
+            }
+        });
+
+        // 3. Mobile-friendly Back-Button Supported Modal Logic
+        function openProfileModal() {
+            profileModal.style.display = 'flex';
+            setTimeout(() => profileModal.classList.add('show'), 10);
+            // Push history state to capture back button
+            history.pushState({ modalOpen: true }, '');
+        }
+
+        function closeProfileModal() {
+            profileModal.classList.remove('show');
+            setTimeout(() => profileModal.style.display = 'none', 300);
+        }
+
+        headerPic.addEventListener('click', openProfileModal);
+
+        document.getElementById('closeProfileModal').addEventListener('click', () => {
+            history.back(); // Triggers popstate to close beautifully
+        });
+
+        window.addEventListener('popstate', (e) => {
+            if (profileModal.classList.contains('show')) {
+                closeProfileModal();
+            }
+        });
+
+        // 4. Secure Logout Action
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                localStorage.removeItem('profilePicData'); // Clear visual cache
+                window.location.replace('login.html');
+            } catch (error) {
+                console.error("Logout Error", error);
+                showToast("Failed to log out.");
+            }
+        });
 
         // 1. Service Worker & Install Logic
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.error('SW Error', err)); }); }
@@ -583,72 +651,9 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // --- AUTH, PROFILE & LOCAL STORAGE LOGIC ---
-        const headProfilePic = document.getElementById('headProfilePic');
-        const modProfilePic = document.getElementById('modProfilePic');
-        const modProfileName = document.getElementById('modProfileName');
-        const profileOverlay = document.getElementById('profileOverlay');
-
-        // Load instantly from localStorage for 0ms visual delay
-        const storedPic = localStorage.getItem('userProfilePic');
-        if (storedPic) {
-            headProfilePic.src = storedPic;
-            modProfilePic.src = storedPic;
-        }
-
-        // Login check and UI population
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const photo = user.photoURL || 'icon.png';
-                const name = user.displayName || user.email || 'User';
-                
-                // Store/Update Data
-                localStorage.setItem('userProfilePic', photo);
-                headProfilePic.src = photo;
-                modProfilePic.src = photo;
-                modProfileName.innerText = name;
-            } else {
-                // Instantly redirect if not logged in
-                window.location.href = 'login.html'; 
-            }
-        });
-
-        // --- MOBILE BACK BUTTON SUPPORTED MODAL ---
-        window.openProfileModal = function() {
-            profileOverlay.classList.add('show');
-            history.pushState({ profileModalOpen: true }, "");
-        };
-
-        window.closeProfileModal = function() {
-            if (history.state && history.state.profileModalOpen) {
-                history.back(); // Triggers the popstate event to clean up natively
-            } else {
-                profileOverlay.classList.remove('show');
-            }
-        };
-
-        window.addEventListener('popstate', (e) => {
-            if (e.state && e.state.profileModalOpen) {
-                profileOverlay.classList.add('show');
-            } else {
-                profileOverlay.classList.remove('show');
-            }
-        });
-
-        // Logout execution
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                localStorage.removeItem('userProfilePic');
-                window.location.href = 'login.html';
-            } catch (err) {
-                showToast("Failed to logout.", "error");
-            }
-        });
-
-        // --- BUG FIX APPLIED HERE --- Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
+        // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
-        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T'); 
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
         document.getElementById('cDate').value = localIso;
 
         // Toast Helper
@@ -741,7 +746,6 @@
             }
 
             try {
-                // --- BUG FIX APPLIED HERE --- Properly isolate the search string
                 const searchWord = suggCurrentTerm.split(/[\s\-_]+/);
                 if (!searchWord) {
                     suggestionsBox.style.display = 'none';
