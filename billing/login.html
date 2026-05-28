@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Login - Meena Marketing</title>
+    
+    <meta name="theme-color" content="#121212">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+    
+    <style>
+        /* Meena Marketing Dark Theme Palette */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --button-hover: rgba(255, 51, 51, 0.1);
+        }
+
+        /* UPGRADED: Anti-copy and anti-zoom global rules */
+        html, body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Prevents bounce scrolling on mobile */
+            
+            /* Completely disable text selection, long-press menus, and double-tap zoom */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: manipulation; 
+        }
+
+        /* UPGRADED: Professional Sleek Login Card */
+        .auth-container {
+            background: linear-gradient(145deg, #1e1e1e, #121212);
+            padding: 45px 35px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05); /* Premium subtle border */
+            width: 88%;
+            max-width: 380px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
+            text-align: center;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .brand-logo {
+            width: 75px;
+            height: 75px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        /* Redesigned to match the sleek header from index.html */
+        .brand-title { 
+            font-size: 1.5em; 
+            font-weight: 800; 
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        
+        .subtitle { 
+            font-size: 0.85em; 
+            color: var(--text-secondary); 
+            margin-bottom: 35px; 
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        /* UPGRADED: Modern Google Button optimized for mobile thumbs */
+        .google-btn {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0 20px;
+            height: 52px; /* Standard mobile touch target size */
+            border-radius: 26px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .google-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .google-btn:active { 
+            transform: scale(0.96); 
+            box-shadow: none;
+        }
+
+        .google-icon { width: 22px; height: 22px; }
+
+        /* Setup Profile Section */
+        #setup-section {
+            display: none;
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .profile-dp {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--meena-red);
+            margin: 0 auto 20px auto;
+            object-fit: cover;
+            display: block;
+            box-shadow: 0 0 30px rgba(255, 51, 51, 0.25);
+            background-color: #111;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            margin-left: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px; /* 16px is critical to prevent iOS auto-zoom on focus */
+            border-radius: 14px;
+            font-size: 16px; /* 16px is critical to prevent iOS auto-zoom on focus */
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .input-group input:focus {
+            border-color: var(--meena-red);
+            background-color: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 51, 51, 0.15), inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--meena-red), #cc0000);
+            color: white;
+            border: none;
+            height: 52px;
+            border-radius: 14px;
+            font-size: 1.05em;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 20px rgba(255, 51, 51, 0.3);
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 12px 25px rgba(255, 51, 51, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .submit-btn:active { 
+            transform: scale(0.96); 
+            box-shadow: 0 4px 10px rgba(255, 51, 51, 0.3);
+        }
+
+        /* Loader */
+        #loader {
+            display: none;
+            margin: 25px auto;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid var(--meena-red);
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* =========================================================================
+           NEW UPGRADES: HIDDEN SCROLLBAR & ENHANCED PROFESSIONAL STYLING
+           ========================================================================= */
+        
+        /* 1. Completely hide the scrollbar across all major browsers */
+        ::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        html, body {
+            -ms-overflow-style: none !important;  /* IE and Edge */
+            scrollbar-width: none !important;  /* Firefox */
+            
+            /* Allow vertical scrolling ONLY if the keyboard forces the screen up, 
+               preventing elements from being hidden off-screen */
+            overflow-y: auto !important; 
+            overflow-x: hidden !important;
+            
+            /* Add a subtle, high-end studio lighting glow to the dark background */
+            background-image: 
+                radial-gradient(circle at top right, rgba(255, 51, 51, 0.04), transparent 40%), 
+                radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.02), transparent 40%) !important;
+        }
+
+        /* 2. Make the Auth Container feel more premium (Glassmorphism & Depth) */
+        .auth-container {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(145deg, rgba(30, 30, 30, 0.85), rgba(18, 18, 18, 0.95)) !important;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+            margin: 20px 0; /* Add margin so it breathes when scrolling on small screens */
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <div id="login-section">
+            <img src="icon.png" alt="Meena Marketing" class="brand-logo" onerror="this.src='https://via.placeholder.com/70/212121/ff3333?text=MM'">
+            <div class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></div>
+            <div class="subtitle">Secure Partner Login</div>
+            
+            <button class="google-btn" id="google-login-btn">
+                <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Sign in with Google
+            </button>
+
+            <div id="loader"></div>
+        </div>
+
+        <div id="setup-section">
+            <div class="brand-title" style="font-size: 1.3em; margin-bottom: 20px;">Welcome to the Team!</div>
+            
+            <img id="user-dp" class="profile-dp" src="" alt="Profile Picture">
+            
+            <div class="input-group">
+                <label for="user-name">Confirm your full name</label>
+                <input type="text" id="user-name" placeholder="E.g. Meena Kumar">
+            </div>
+
+            <button class="submit-btn" id="complete-setup-btn">Complete Setup</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Make sure your config.js exports 'auth' and 'db'
+        import { auth, db } from './config.js';
+        import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const loginSection = document.getElementById('login-section');
+        const setupSection = document.getElementById('setup-section');
+        const googleBtn = document.getElementById('google-login-btn');
+        const loader = document.getElementById('loader');
+        
+        const userDp = document.getElementById('user-dp');
+        const userNameInput = document.getElementById('user-name');
+        const completeSetupBtn = document.getElementById('complete-setup-btn');
+
+        let pendingUser = null; // Store user details temporarily if they are new
+
+        // Handle Google Login Click
+        googleBtn.addEventListener('click', async () => {
+            if (navigator.vibrate) navigator.vibrate(40);
+            
+            googleBtn.style.display = 'none';
+            loader.style.display = 'block';
+            
+            const provider = new GoogleAuthProvider();
+            
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                // Check if user already exists in Firestore
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    // User exists, send to dashboard!
+                    window.location.href = 'index.html';
+                } else {
+                    // User is NEW. Hide login, show setup UI.
+                    pendingUser = user;
+                    
+                    loginSection.style.display = 'none';
+                    setupSection.style.display = 'block';
+                    
+                    // Populate data from Google
+                    userDp.src = user.photoURL || 'https://via.placeholder.com/90/333/fff?text=User';
+                    userNameInput.value = user.displayName || '';
+                }
+
+            } catch (error) {
+                console.error("Login Failed:", error);
+                alert("Login failed. Please try again.");
+                googleBtn.style.display = 'flex';
+                loader.style.display = 'none';
+            }
+        });
+
+        // Handle Complete Setup Click
+        completeSetupBtn.addEventListener('click', async () => {
+            if (navigator.vibrate) navigator.vibrate(40);
+            
+            const finalName = userNameInput.value.trim();
+            if (!finalName) {
+                alert("Please enter your name.");
+                return;
+            }
+
+            const originalText = completeSetupBtn.innerText;
+            completeSetupBtn.innerText = "Saving...";
+            completeSetupBtn.disabled = true;
+
+            try {
+                // Create document in Firestore
+                await setDoc(doc(db, "users", pendingUser.uid), {
+                    uid: pendingUser.uid,
+                    name: finalName,
+                    email: pendingUser.email,
+                    photoURL: pendingUser.photoURL,
+                    role: "staff", // You can default roles here
+                    createdAt: serverTimestamp()
+                });
+
+                // Redirect to dashboard
+                window.location.href = 'index.html';
+                
+            } catch (error) {
+                console.error("Error saving user data:", error);
+                alert("Failed to save data. Please try again.");
+                completeSetupBtn.innerText = originalText;
+                completeSetupBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
