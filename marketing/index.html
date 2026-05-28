@@ -94,7 +94,7 @@
             line-height: 1.1;
         }
 
-        /* Modified branding text to be a bit smaller */
+        /* Branding text made smaller as requested */
         .brand-title { font-size: 1.05em; font-weight: bold; }
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
@@ -356,29 +356,6 @@
         
         .chart-container { position: relative; height: 250px; width: 100%; }
 
-        /* Floating Inventory Icon */
-        /* ORIGINAL: 
-        .fab-left {
-            position: fixed;
-            bottom: 90px;
-            left: 20px;
-            background-color: var(--accent-color);
-            color: white;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            z-index: 1000;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .fab-left:active { transform: scale(0.95); }
-        .fab-left .material-symbols-outlined { font-size: 28px; }
-        */
-
         /* --- NEW: Sleek Floating Ask Icon --- */
         .fab-left {
             position: fixed;
@@ -638,14 +615,9 @@
 
     <script>
         // Global Vibration Integration
-        // Automatically attach vibration to anything clickable on the dashboard
         document.addEventListener('click', function(e) {
-            // Check if the clicked element is an anchor tag, button, fab, or action icon
-            /* ORIGINAL: const interactiveElement = e.target.closest('a, button, .fab-left, .header-actions span, .stat-card, [onclick]'); */
             const interactiveElement = e.target.closest('a, button, .fab-left, .fab-right, .header-actions span, .stat-card, [onclick]');
-            
             if (interactiveElement && navigator.vibrate) {
-                // Trigger a crisp 40ms haptic feedback
                 navigator.vibrate(40);
             }
         });
@@ -665,11 +637,8 @@
         const installPopup = document.getElementById('installPopup');
         
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
             e.preventDefault();
-            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            // Update UI to notify the user they can add to home screen
             installPopup.style.display = 'flex';
         });
 
@@ -683,12 +652,16 @@
             }
         });
 
-        // 2. Firebase Import & Data Fetching (Added 'where' for read optimization)
-        import { db, auth } from './config.js';
+        // 2. Firebase Import & Data Fetching
+        // Using "app" directly to avoid crash if "auth" isn't exported from config.js
+        import { app, db } from './config.js';
         import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-        // --- NEW: Auth Check & Instant DP Load ---
+        // Initialize auth locally to prevent undefined module errors
+        const auth = getAuth(app);
+
+        // --- Auth Check & Instant DP Load ---
         const dpImg = document.getElementById('user-dp-img');
         const dpSkel = document.getElementById('profile-skeleton');
         const cachedDp = localStorage.getItem('user_dp');
@@ -710,8 +683,10 @@
                     dpSkel.style.display = 'none';
                 } else if (!user.photoURL && !cachedDp) {
                     // Fallback if no photo
-                    dpImg.src = 'https://via.placeholder.com/32/333/fff?text=U';
+                    dpImg.src = 'https://via.placeholder.com/32/333/fff?text=' + (user.displayName ? user.displayName.charAt(0) : 'U');
                     dpImg.style.display = 'block';
+                    dpSkel.style.display = 'none';
+                } else {
                     dpSkel.style.display = 'none';
                 }
             } else {
@@ -720,7 +695,7 @@
             }
         });
 
-        // Global instances for charts to properly destroy before rebuilding (prevents visual bugs on refresh)
+        // Global instances for charts
         let paymentChartInstance = null;
         let debtorsChartInstance = null;
 
@@ -734,13 +709,11 @@
         }
 
         async function loadDashboardData() {
-            // Fetch live metadata
             try {
                 const docRef = doc(db, "metadata", "dashboard");
                 const docSnap = await getDoc(docRef);
                 const metaData = docSnap.exists() ? docSnap.data() : { totalBilled: 0, totalPaid: 0, totalBalance: 0, totalCompanies: 0 };
 
-                // Fetch Top 10 Debtors in Real-time (Optimized: Added 'where' filter to save document reads)
                 const q = query(collection(db, "companies"), where("balance", ">", 0), orderBy("balance", "desc"), limit(10));
                 const snap = await getDocs(q);
                 const topDebtors = [];
@@ -749,13 +722,18 @@
                 const finalData = { ...metaData, topDebtors };
                 updateDashboardUI(finalData);
                 
-                // Cache for next instant load
                 localStorage.setItem('dashboardDataCache', JSON.stringify(finalData));
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
-                // Fallback to cache if network fails
+                
+                // CRITICAL FIX: Ensure skeletons clear even if Firebase fails
                 const cached = localStorage.getItem('dashboardDataCache');
-                if (cached) updateDashboardUI(JSON.parse(cached));
+                if (cached) {
+                    updateDashboardUI(JSON.parse(cached));
+                } else {
+                    // Force clear the UI with empty data if cache is empty
+                    updateDashboardUI({ totalBilled: 0, totalPaid: 0, totalBalance: 0, totalCompanies: 0, topDebtors: [] });
+                }
             }
         }
 
@@ -763,15 +741,13 @@
             document.getElementById('total-billed').innerText = formatIndianCurrency(data.totalBilled);
             document.getElementById('total-paid').innerText = formatIndianCurrency(data.totalPaid);
             document.getElementById('total-balance').innerText = formatIndianCurrency(data.totalBalance);
-            
-            /* ORIGINAL: document.getElementById('total-entities').innerText = `${data.totalCompanies} / ${data.totalProducts}`; */
             document.getElementById('total-companies').innerText = data.totalCompanies || 0;
 
             const debtorsList = document.getElementById('debtors-list');
             debtorsList.innerHTML = '';
             if (data.topDebtors && data.topDebtors.length > 0) {
                 
-                // FIX: Capture the highest balance to calculate the progress bar fill percentages dynamically
+                // Get the max balance to scale the backgrounds
                 const maxBalance = data.topDebtors?.balance || 1; 
 
                 data.topDebtors.forEach((debtor, index) => {
@@ -799,14 +775,18 @@
             Chart.defaults.color = '#aaaaaa'; 
             Chart.defaults.font.family = "'Segoe UI', sans-serif";
             
-            // Fade out and remove the skeleton overlays the moment charts are about to render
+            // Fade out and remove the skeleton overlays
             const skelPaymentChart = document.getElementById('skel-payment-chart');
-            if(skelPaymentChart) skelPaymentChart.style.opacity = '0';
-            setTimeout(() => { if(skelPaymentChart) skelPaymentChart.style.display = 'none'; }, 300);
+            if(skelPaymentChart) {
+                skelPaymentChart.style.opacity = '0';
+                setTimeout(() => { skelPaymentChart.style.display = 'none'; }, 300);
+            }
 
             const skelDebtorsChart = document.getElementById('skel-debtors-chart');
-            if(skelDebtorsChart) skelDebtorsChart.style.opacity = '0';
-            setTimeout(() => { if(skelDebtorsChart) skelDebtorsChart.style.display = 'none'; }, 300);
+            if(skelDebtorsChart) {
+                skelDebtorsChart.style.opacity = '0';
+                setTimeout(() => { skelDebtorsChart.style.display = 'none'; }, 300);
+            }
 
             if (paymentChartInstance) paymentChartInstance.destroy();
             if (debtorsChartInstance) debtorsChartInstance.destroy();
