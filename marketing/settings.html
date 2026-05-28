@@ -333,7 +333,6 @@
         <div class="section-title">Team Members</div>
         
         <div class="user-list" id="user-list-container">
-            <!-- Initial Skeleton Loaders -->
             <div class="user-card skel-card">
                 <div class="user-dp skeleton-box"></div>
                 <div class="user-info">
@@ -355,7 +354,6 @@
         </div>
     </div>
 
-    <!-- Professional Edit Modal -->
     <div class="modal-overlay" id="edit-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -384,7 +382,6 @@
         </div>
     </div>
 
-    <!-- Global Scripts -->
     <script>
         // Haptic Feedback for interactive elements
         document.addEventListener('click', function(e) {
@@ -431,11 +428,11 @@
                 let q;
                 const usersRef = collection(db, "users");
                 
-                // Assuming 'createdAt' exists. If not, orderBy("name") or remove orderBy.
+                // FIXED: Firebase REQUIRES an orderBy clause when using startAfter()
                 if (isInitial || !lastVisibleDoc) {
-                    q = query(usersRef, limit(10)); // Adjust orderBy if you have a specific timestamp field
+                    q = query(usersRef, orderBy("name"), limit(10)); 
                 } else {
-                    q = query(usersRef, startAfter(lastVisibleDoc), limit(10));
+                    q = query(usersRef, orderBy("name"), startAfter(lastVisibleDoc), limit(10));
                 }
 
                 const querySnapshot = await getDocs(q);
@@ -475,7 +472,15 @@
 
             } catch (error) {
                 console.error("Error fetching users:", error);
-                if (isInitial) userListContainer.innerHTML = '<p style="color:#ff3333; padding:10px;">Failed to load users.</p>';
+                // FIXED: Now renders the exact Firebase error onto the screen instead of a generic message
+                if (isInitial) {
+                    userListContainer.innerHTML = `
+                        <div style="background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); padding: 15px; border-radius: 12px; margin-top: 10px;">
+                            <h4 style="color: var(--meena-red); margin: 0 0 5px 0;">Database Error</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9em; margin: 0; word-break: break-word;">${error.message}</p>
+                        </div>
+                    `;
+                }
             }
 
             loadingSpinner.style.display = 'none';
@@ -484,7 +489,7 @@
 
         // Initialize Intersection Observer for Infinity Scroll
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMoreUsers) {
+            if (entries.isIntersecting && hasMoreUsers) {
                 fetchUsers();
             }
         }, { threshold: 0.5 });
@@ -585,7 +590,7 @@
                 history.back();
             } catch (error) {
                 console.error("Error updating user:", error);
-                alert("Failed to update user permissions.");
+                alert("Failed to update user permissions: " + error.message);
             } finally {
                 saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
