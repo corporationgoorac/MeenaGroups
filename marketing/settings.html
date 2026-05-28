@@ -221,6 +221,29 @@
             transform: translateY(0);
         }
 
+        /* NEW: Mini Bottom-Middle Modal for Logout */
+        .mini-modal-content {
+            background: var(--surface-color);
+            width: 90%;
+            max-width: 350px;
+            border-radius: 20px;
+            padding: 25px 20px;
+            box-sizing: border-box;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            margin-bottom: 30px; /* Float above the bottom slightly */
+        }
+        
+        #logout-modal.active .mini-modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .mini-modal-title { font-size: 1.1em; font-weight: bold; margin: 0 0 10px 0; }
+        .mini-modal-desc { font-size: 0.9em; color: var(--text-secondary); margin: 0 0 20px 0; }
+
         .modal-header {
             display: flex;
             align-items: center;
@@ -382,6 +405,18 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="logout-modal">
+        <div class="mini-modal-content">
+            <h3 class="mini-modal-title">Sign Out</h3>
+            <p class="mini-modal-desc">Are you sure you want to log out of your account?</p>
+            
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button class="btn btn-cancel" id="cancel-logout-btn">Cancel</button>
+                <button class="btn btn-save" id="confirm-logout-btn">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Haptic Feedback for interactive elements
         document.addEventListener('click', function(e) {
@@ -402,12 +437,31 @@
             if (!user) window.location.replace('login.html');
         });
 
-        // Logout Logic
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            if(confirm("Are you sure you want to logout?")) {
-                await signOut(auth);
-                window.location.replace('login.html');
-            }
+        // --- Logout Modal Logic ---
+        const logoutModalOverlay = document.getElementById('logout-modal');
+        const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+        
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            logoutModalOverlay.classList.add('active');
+            history.pushState({ modalOpen: true, type: 'logout' }, "", "#logout");
+        });
+
+        function closeLogoutModal() {
+            logoutModalOverlay.classList.remove('active');
+        }
+
+        document.getElementById('cancel-logout-btn').addEventListener('click', () => {
+            history.back(); // Closes via popstate
+        });
+
+        logoutModalOverlay.addEventListener('click', (e) => {
+            if (e.target === logoutModalOverlay) history.back();
+        });
+
+        confirmLogoutBtn.addEventListener('click', async () => {
+            confirmLogoutBtn.innerText = "Signing out...";
+            await signOut(auth);
+            window.location.replace('login.html');
         });
 
         // --- User Pagination Logic ---
@@ -428,7 +482,6 @@
                 let q;
                 const usersRef = collection(db, "users");
                 
-                // FIXED: Firebase REQUIRES an orderBy clause when using startAfter()
                 if (isInitial || !lastVisibleDoc) {
                     q = query(usersRef, orderBy("name"), limit(10)); 
                 } else {
@@ -448,9 +501,10 @@
 
                 lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-                querySnapshot.forEach((document) => {
-                    const userData = document.data();
-                    const userId = document.id;
+                // FIXED: Renamed 'document' to 'docSnap' to prevent overriding the window.document object
+                querySnapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
+                    const userId = docSnap.id;
                     const isAdmin = userData.admin === true || userData.role === 'admin';
                     
                     const card = document.createElement('div');
@@ -472,7 +526,6 @@
 
             } catch (error) {
                 console.error("Error fetching users:", error);
-                // FIXED: Now renders the exact Firebase error onto the screen instead of a generic message
                 if (isInitial) {
                     userListContainer.innerHTML = `
                         <div style="background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); padding: 15px; border-radius: 12px; margin-top: 10px;">
@@ -516,7 +569,7 @@
             modalOverlay.classList.add('active');
             
             // Push state to history to enable mobile back button support
-            history.pushState({ modalOpen: true }, "", "#edit");
+            history.pushState({ modalOpen: true, type: 'edit' }, "", "#edit");
         }
 
         function closeModal() {
@@ -524,10 +577,13 @@
             currentEditingUserId = null;
         }
 
-        // Listen for mobile back button to close modal safely
+        // Handle mobile back button for BOTH modals
         window.addEventListener('popstate', (e) => {
             if (modalOverlay.classList.contains('active')) {
                 closeModal();
+            }
+            if (logoutModalOverlay.classList.contains('active')) {
+                closeLogoutModal();
             }
         });
 
@@ -541,7 +597,7 @@
             if (e.target === modalOverlay) history.back();
         });
 
-        // Event Delegation for Edit Buttons (since cards are loaded dynamically)
+        // Event Delegation for Edit Buttons
         userListContainer.addEventListener('click', (e) => {
             const editBtn = e.target.closest('.edit-btn');
             if (editBtn) {
