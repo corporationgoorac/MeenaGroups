@@ -61,33 +61,90 @@ let isConnected = false;
 app.get('/', (req, res) => {
     if (isConnected) {
         res.send(`
-            <html>
-                <body style="background:#09090b; color:#10b981; text-align:center; padding:50px; font-family:sans-serif; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; margin:0;">
-                    <h1 style="font-size:3rem; margin-bottom:10px;">✅ Online</h1>
-                    <p style="color:#a1a1aa; font-size:1.2rem;">Meena Marketing WhatsApp Server is Connected.</p>
-                </body>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <title>Server Status - Meena Marketing</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                <style>
+                    body { background: #0b111a; color: #10b981; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
+                    .card { background: #131b26; padding: 40px 30px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; }
+                    h1 { font-size: 2.5rem; margin: 0 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 700; letter-spacing: -0.5px;}
+                    p { color: #94a3b8; font-size: 1.05rem; margin: 0; line-height: 1.5; font-weight: 400;}
+                    .pulse { display: inline-block; width: 18px; height: 18px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
+                    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1><span class="pulse"></span> Online</h1>
+                    <p>Meena Marketing WhatsApp Server is securely connected and actively listening.</p>
+                </div>
+            </body>
             </html>
         `);
     } else if (qrDataURL) {
         res.send(`
-            <html>
-                <head><meta http-equiv="refresh" content="25"></head>
-                <body style="background:#09090b; color:white; text-align:center; padding:50px; font-family:sans-serif; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; margin:0;">
-                    <h2 style="color:#3b82f6; margin-bottom:20px;">Scan to Login - Meena Marketing</h2>
-                    <div style="background:white; padding:20px; border-radius:16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                        <img src="${qrDataURL}" alt="WhatsApp QR" style="width:300px; height:300px;"/>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta http-equiv="refresh" content="25">
+                <title>WhatsApp Login - Meena Marketing</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                <style>
+                    body { background: #0b111a; color: #ffffff; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
+                    .card { background: #131b26; padding: 30px 20px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+                    h2 { color: #3b82f6; font-size: 1.5rem; margin: 0 0 5px 0; font-weight: 700; letter-spacing: -0.5px;}
+                    .subtitle { color: #94a3b8; font-size: 0.95rem; margin: 0 0 25px 0; font-weight: 400;}
+                    .qr-container { background: #ffffff; padding: 15px; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); display: inline-block; width: 100%; max-width: 280px; box-sizing: border-box;}
+                    .qr-container img { width: 100%; height: auto; display: block; border-radius: 8px; }
+                    .footer { color: #64748b; margin-top: 25px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; font-weight: 500;}
+                    .loader { width: 12px; height: 12px; border: 2px solid #64748b; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+                    @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h2>Scan to Login</h2>
+                    <p class="subtitle">Meena Marketing Server</p>
+                    <div class="qr-container">
+                        <img src="${qrDataURL}" alt="WhatsApp QR Code"/>
                     </div>
-                    <p style="color:#71717a; margin-top:20px;">Page auto-refreshes every 25 seconds.</p>
-                </body>
+                    <div class="footer"><span class="loader"></span> Auto-refreshing in 25s</div>
+                </div>
+            </body>
             </html>
         `);
     } else {
         res.send(`
-            <html>
-                <head><meta http-equiv="refresh" content="5"></head>
-                <body style="background:#09090b; color:#a1a1aa; text-align:center; padding:50px; font-family:sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;">
-                    <h2>Generating Secure QR Code... Please wait.</h2>
-                </body>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta http-equiv="refresh" content="5">
+                <title>Starting Server - Meena Marketing</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+                <style>
+                    body { background: #0b111a; color: #a1a1aa; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
+                    .card { background: #131b26; padding: 40px 30px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+                    .spinner { width: 42px; height: 42px; border: 4px solid rgba(59, 130, 246, 0.15); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; margin: 0 auto 20px auto; }
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                    h2 { font-size: 1.3rem; margin: 0; color: #e2e8f0; font-weight: 600; letter-spacing: -0.5px;}
+                    p { margin: 10px 0 0 0; font-size: 0.95rem; color: #94a3b8; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="spinner"></div>
+                    <h2>Generating Secure QR</h2>
+                    <p>Initializing WhatsApp Engine...</p>
+                </div>
+            </body>
             </html>
         `);
     }
@@ -438,7 +495,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                         let parsedItemText = '';
                         if (billData.items && Array.isArray(billData.items) && billData.items.length > 0) {
                             if (billData.items.length === 1) {
-                                const item = billData.items[0];
+                                const item = billData.items;
                                 const pName = item.name || 'பொருள்';
                                 const pQty = parseInt(item.qty) || 1;
                                 const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
@@ -705,6 +762,87 @@ _Request has been successfully dispatched to Admin for final review if further n
 }, (error) => {
     // PRODUCTION FIX: Catch Firestore Ask network drop errors natively
     console.error('🔥 [FATAL] Firestore Ask Snapshot Error:', error);
+});
+
+// ---------------------------------------------------------
+// 5C. REAL-TIME INVENTORY REDUCTION ALERT (ZERO-WASTE READS)
+// ---------------------------------------------------------
+db.collection('alerts').doc('stock_reduction').onSnapshot(async (docSnap) => {
+    if (!docSnap.exists) return;
+    const alertData = docSnap.data();
+
+    let editTime = null;
+    if (alertData.lastUpdated) {
+        editTime = new Date(alertData.lastUpdated);
+    }
+
+    // Prevent firing old alerts on server boot
+    if (editTime && editTime < serverStartTime) return;
+
+    if (!currentAdminPhone1) {
+        console.log("⚠️ Stock reduction alert received but Admin 1 phone number is unset. Dispatch aborted.");
+        return;
+    }
+
+    const prodName = alertData.name || 'N/A';
+    const prodModel = alertData.model || 'N/A';
+    const oldQty = alertData.previousQty || 0;
+    const newQty = alertData.qty || 0;
+    const reducedBy = oldQty - newQty;
+    const prodPrice = alertData.price || 0;
+    const staffName = alertData.lastEditBy || 'Unknown Staff';
+    const editReason = alertData.lastEditReason || 'No reason provided';
+
+    // 12-hour format time string
+    let timeString = "Unknown Time";
+    if (editTime) {
+        timeString = editTime.toLocaleString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true,
+            day: '2-digit', month: 'short', year: 'numeric'
+        });
+    }
+
+    // Perfect WhatsApp Message
+    const alertMessage = `📉 *STOCK REDUCTION ALERT*
+━━━━━━━━━━━━━━━━━━
+📦 *Product:* ${prodName}
+🔖 *Model:* ${prodModel}
+💰 *Base Price:* Rs. ${prodPrice.toLocaleString()}
+
+📉 *Stock Change:* ${oldQty} ➔ ${newQty} (-${reducedBy})
+👤 *Edited By:* ${staffName}
+⏱️ *Time:* ${timeString}
+
+🚨 *Reason:* _*${editReason}*_
+━━━━━━━━━━━━━━━━━━
+_Meena Marketing Security_`;
+
+    // Send to Admin 1 bypassing sales mute
+    const adminPlainPhone = currentAdminPhone1 ? String(currentAdminPhone1).replace(/\D/g, '') : '';
+    try {
+        await sleep(1500); // DOM margin delay
+        const adminContactId = await client.getNumberId(adminPlainPhone);
+        const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+        
+        try {
+            await client.sendMessage(verifiedAdminId, alertMessage);
+            console.log(`✅ Stock reduction alert sent to Admin 1 for "${prodName}"`);
+        } catch (sendErr) {
+            // Multi-device sync fallback (Initialization workaround)
+            if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                console.log(`⚠️ Applying path initialization workaround for Stock Alert Channel...`);
+                await client.sendMessage(verifiedAdminId, `🔎 Syncing Inventory Alert Stream...`);
+                await sleep(1500);
+                await client.sendMessage(verifiedAdminId, alertMessage);
+            } else {
+                throw sendErr;
+            }
+        }
+    } catch (err) {
+        console.error("Error sending stock reduction alert:", err.message);
+    }
+}, (error) => {
+    console.error('🔥 [FATAL] Firestore Stock Alert Snapshot Error:', error);
 });
 
 // ---------------------------------------------------------
