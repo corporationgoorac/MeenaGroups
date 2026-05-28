@@ -221,7 +221,7 @@
             transform: translateY(0);
         }
 
-        /* NEW: Mini Bottom-Middle Modal for Logout */
+        /* Mini Bottom-Middle Modal for Logout */
         .mini-modal-content {
             background: var(--surface-color);
             width: 90%;
@@ -262,6 +262,43 @@
 
         .modal-name { font-size: 1.2em; font-weight: bold; margin: 0; }
         .modal-email { font-size: 0.8em; color: var(--text-secondary); margin: 5px 0 0 0; }
+
+        /* NEW: Input Group Styles for Editing Name */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            margin-left: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .input-group input:focus {
+            border-color: var(--meena-red);
+            background-color: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 51, 51, 0.15), inset 0 2px 4px rgba(0,0,0,0.5);
+        }
 
         .setting-row {
             display: flex;
@@ -387,6 +424,11 @@
                 </div>
             </div>
             
+            <div class="input-group">
+                <label for="edit-user-name">Full Name</label>
+                <input type="text" id="edit-user-name" placeholder="Enter full name">
+            </div>
+
             <div class="setting-row">
                 <div>
                     <div class="setting-label">Administrator Access</div>
@@ -501,7 +543,6 @@
 
                 lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-                // FIXED: Renamed 'document' to 'docSnap' to prevent overriding the window.document object
                 querySnapshot.forEach((docSnap) => {
                     const userData = docSnap.data();
                     const userId = docSnap.id;
@@ -517,7 +558,7 @@
                                 ${isAdmin ? 'Admin' : 'Staff'}
                             </span>
                         </div>
-                        <button class="edit-btn" data-id="${userId}" data-name="${userData.name}" data-email="${userData.email}" data-dp="${userData.photoURL}" data-admin="${isAdmin}">
+                        <button class="edit-btn" data-id="${userId}" data-name="${userData.name || ''}" data-email="${userData.email || ''}" data-dp="${userData.photoURL || ''}" data-admin="${isAdmin}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
                     `;
@@ -557,6 +598,7 @@
         const modalOverlay = document.getElementById('edit-modal');
         const adminToggle = document.getElementById('admin-toggle');
         const saveBtn = document.getElementById('save-modal-btn');
+        const editNameInput = document.getElementById('edit-user-name'); // NEW: Reference for the name input
         let currentEditingUserId = null;
 
         function openModal(id, name, email, dp, isAdmin) {
@@ -564,6 +606,10 @@
             document.getElementById('modal-name').innerText = name || 'Unknown';
             document.getElementById('modal-email').innerText = email || 'No email provided';
             document.getElementById('modal-dp').src = dp || 'https://via.placeholder.com/60/333/fff?text=U';
+            
+            // NEW: Populate the input field with the user's current name
+            editNameInput.value = name || '';
+            
             adminToggle.checked = isAdmin === 'true';
 
             modalOverlay.classList.add('active');
@@ -620,33 +666,42 @@
             saveBtn.disabled = true;
 
             const makeAdmin = adminToggle.checked;
+            const newName = editNameInput.value.trim(); // NEW: Capture the new name from input
 
             try {
-                // Update Firestore
+                // Update Firestore with the new name and roles
                 await updateDoc(doc(db, "users", currentEditingUserId), {
                     admin: makeAdmin,
-                    role: makeAdmin ? "admin" : "staff"
+                    role: makeAdmin ? "admin" : "staff",
+                    name: newName
                 });
 
                 // Update UI locally without reloading the page
                 const badge = document.getElementById(`badge-${currentEditingUserId}`);
                 const editBtn = document.querySelector(`.edit-btn[data-id="${currentEditingUserId}"]`);
                 
+                // Update the badge
                 if (badge) {
                     badge.innerText = makeAdmin ? "Admin" : "Staff";
                     if (makeAdmin) badge.classList.add('admin');
                     else badge.classList.remove('admin');
                 }
                 
+                // Update the data attributes and the visible name on the user card
                 if (editBtn) {
                     editBtn.dataset.admin = makeAdmin.toString();
+                    editBtn.dataset.name = newName;
+                    
+                    const card = editBtn.closest('.user-card');
+                    const userNameEl = card.querySelector('.user-name');
+                    if (userNameEl) userNameEl.innerText = newName || 'Unknown User';
                 }
 
                 // Close modal
                 history.back();
             } catch (error) {
                 console.error("Error updating user:", error);
-                alert("Failed to update user permissions: " + error.message);
+                alert("Failed to update user: " + error.message);
             } finally {
                 saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
