@@ -440,6 +440,8 @@
             <div style="text-align: center; color: var(--text-secondary); font-size: 0.85em; margin-top: 35px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;" id="infoTimestamp">
                 <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
             </div>
+
+            <div id="infoHistorySentence" style="text-align: center; color: var(--marketing-white); font-size: 0.9em; margin-top: 15px; background: rgba(13, 148, 136, 0.1); padding: 15px; border-radius: 12px; border: 1px solid rgba(13, 148, 136, 0.3); display: none; line-height: 1.5;"></div>
         </div>
     </div>
 
@@ -891,6 +893,16 @@
                 dateStr = `<span class='material-symbols-outlined' style='font-size:16px;'>schedule</span> Last updated: ${d.toLocaleString('en-US', options)}`;
             }
             document.getElementById('infoTimestamp').innerHTML = dateStr;
+
+            // --- NEW: DISPLAY DYNAMIC HISTORY SENTENCE ---
+            const historySentenceDiv = document.getElementById('infoHistorySentence');
+            if (item.lastEditReason && item.lastEditBy && item.previousQty !== undefined && item.qty !== item.previousQty) {
+                let action = item.qty > item.previousQty ? "increased" : "reduced";
+                historySentenceDiv.innerHTML = `<strong>${item.lastEditBy}</strong> ${action} the quantity from <strong>${item.previousQty}</strong> to <strong>${item.qty}</strong> for: <strong>${item.lastEditReason}</strong>.`;
+                historySentenceDiv.style.display = 'block';
+            } else {
+                historySentenceDiv.style.display = 'none';
+            }
 
             openModal('modalProductInfo');
         };
