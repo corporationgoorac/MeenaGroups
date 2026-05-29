@@ -1244,6 +1244,65 @@
             }
         });
 
+        // --- ENTER & ARROW KEYS FIELD NAVIGATION LOGIC ---
+        document.getElementById('appUI').addEventListener('keydown', function (e) {
+            const navKeys = ['Enter', 'ArrowDown', 'ArrowUp'];
+            if (!navKeys.includes(e.key)) return;
+
+            const target = e.target;
+
+            // 1. Allow buttons to be activated naturally with Enter
+            if (target.tagName === 'BUTTON' && e.key === 'Enter') {
+                return; 
+            }
+
+            // 2. Safeguards for Arrow Keys: 
+            // Do NOT intercept Up/Down arrows if the user is interacting with dropdowns, 
+            // number inputs, or the product search autocomplete box.
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                if (target.tagName === 'SELECT') return; 
+                if (target.tagName === 'INPUT' && target.type === 'number') return;
+                if (target.id === 'pSearch' && document.getElementById('pSuggestions').style.display === 'block') return;
+            }
+
+            // 3. Gather all currently visible, non-disabled interactive elements inside the form
+            const fields = Array.from(
+                document.querySelectorAll('#appUI input:not([type="hidden"]):not([disabled]), #appUI select:not([disabled]), #appUI button:not([disabled]):not(.c-del)')
+            ).filter(el => {
+                // Ensure elements are physically visible on the screen (handles conditional elements like invoice number)
+                return el.offsetWidth > 0 || el.offsetHeight > 0;
+            });
+
+            const currentIndex = fields.indexOf(target);
+            if (currentIndex === -1) return;
+
+            // 4. Perform Navigation
+            if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                // Move Forward
+                if (currentIndex < fields.length - 1) {
+                    e.preventDefault(); // Stop default form submissions or screen scrolling
+                    const nextField = fields[currentIndex + 1];
+                    nextField.focus();
+                    
+                    // Auto-highlight existing text for faster replacement typing
+                    if (nextField.tagName === 'INPUT' && typeof nextField.select === 'function') {
+                        nextField.select();
+                    }
+                }
+            } else if (e.key === 'ArrowUp') {
+                // Move Backward
+                if (currentIndex > 0) {
+                    e.preventDefault();
+                    const prevField = fields[currentIndex - 1];
+                    prevField.focus();
+                    
+                    if (prevField.tagName === 'INPUT' && typeof prevField.select === 'function') {
+                        prevField.select();
+                    }
+                }
+            }
+        });
+
     </script>
 </body>
 </html>
