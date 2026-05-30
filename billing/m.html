@@ -86,17 +86,21 @@
         .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
         .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        /* Advanced Search Bar */
+        /* Advanced Search Bar - MODIFIED FOR ANIMATED FILTER BUTTON */
         .search-bar-container { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 14px; padding: 0 10px 0 18px; margin-bottom: 24px; transition: all 0.3s ease; width: 100%; box-sizing: border-box; box-shadow: var(--shadow-sm); overflow: hidden; }
         .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: var(--shadow-glow); background: var(--surface-hover); }
         .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; transition: color 0.3s; }
         .search-bar-container:focus-within > .search-input-wrapper .material-symbols-outlined { color: var(--accent-color); }
+        
         .search-input-wrapper { display: flex; flex-grow: 1; align-items: center; }
         .search-bar-container input { border: none; background: transparent; width: 100%; padding: 18px 12px; color: white; font-size: 1.05em; outline: none; font-family: 'Inter', sans-serif;}
         .search-bar-container input::placeholder { color: var(--text-secondary); }
+        
         .filter-btn-wrap { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
         .filter-btn-wrap:active { background: rgba(255,255,255,0.1); }
         .search-bar-container:focus-within .filter-btn-wrap { width: 0px; opacity: 0; margin: 0; padding: 0; border: none; pointer-events: none; overflow: hidden; }
+        
+        /* Filter Active Badge */
         .filter-active-badge { position: absolute; top: 4px; right: 4px; background: var(--accent-color); color: white; border-radius: 50%; width: 10px; height: 10px; box-shadow: 0 0 5px var(--accent-color); display: none; }
 
         /* Skeleton Loading Animation - Improved for smoother shimmer */
@@ -247,6 +251,7 @@
         .type-item { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
         .type-item:active { background: rgba(255,255,255,0.05); }
         .type-item-custom { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); margin-bottom: 15px; color: var(--accent-color); font-weight: 600; box-shadow: var(--shadow-sm); }
+
     </style>
 </head>
 <body>
@@ -340,7 +345,7 @@
                 <label>Product ID / Model</label>
                 <input type="text" id="iModel" placeholder="e.g. PDS-100X">
             </div>
-
+            
             <div class="input-wrapper">
                 <label>Product Type <span style="color:var(--meena-red);">*</span></label>
                 <div style="position: relative;" onclick="vibrateApp(20); openTypeSelectModal('add')">
@@ -348,7 +353,7 @@
                     <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;">arrow_drop_down</span>
                 </div>
             </div>
-            
+
             <div class="row-inputs">
                 <div class="input-wrapper">
                     <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
@@ -404,7 +409,7 @@
                 <label>Product ID / Model</label>
                 <input type="text" id="editModel" placeholder="e.g. PDS-100X">
             </div>
-
+            
             <div class="input-wrapper">
                 <label>Product Type <span style="color:var(--meena-red);">*</span></label>
                 <div style="position: relative;" onclick="vibrateApp(20); openTypeSelectModal('edit')">
@@ -412,7 +417,7 @@
                     <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;">arrow_drop_down</span>
                 </div>
             </div>
-            
+
             <div class="row-inputs">
                 <div class="input-wrapper">
                     <label>MRP (₹) <span style="color:var(--meena-red);">*</span></label>
@@ -585,12 +590,26 @@
 
         // 2. Firebase Imports 
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
+        // --- ADDED AUTHENTICATION IMPORT FOR ZERO-READ USER FETCHING ---
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        
+        // --- Added setDoc and getDoc to imports ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-        // --- NEW: FETCH JSON PRODUCT TYPES (With fallback) ---
+        // --- NEW: INITIALIZE AUTH & CACHE USER NAME ---
+        const auth = getAuth();
+        let currentUserName = "Staff"; // Fallback name
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserName = user.displayName || user.email?.split('@') || "Staff";
+            }
+        });
+
+        // --- NEW: FETCH JSON PRODUCT TYPES (With robust fallback for production safety) ---
         let cachedProductTypes = [];
         let currentTypeFilter = "";
-        let currentTypeSelectMode = ""; 
+        let currentTypeSelectMode = ""; // 'add', 'edit', 'filter'
         
         async function fetchProductTypes() {
             try {
@@ -598,18 +617,21 @@
                 if (response.ok) {
                     cachedProductTypes = await response.json();
                 } else {
+                    console.warn("products.json missing, using fallback array.");
                     cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
                 }
             } catch (error) {
+                console.error("Error fetching types:", error);
                 cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
             }
         }
         fetchProductTypes();
 
+        // --- NEW: TYPE SELECTION MODAL LOGIC ---
         window.openTypeSelectModal = function(mode) {
             currentTypeSelectMode = mode;
             const searchInput = document.getElementById('typeSearchInput');
-            searchInput.value = ''; 
+            searchInput.value = ''; // clear previous search
             
             document.getElementById('typeModalTitle').innerText = mode === 'filter' ? 'Filter by Type' : 'Select Product Type';
             document.getElementById('btnClearFilter').style.display = (mode === 'filter' && currentTypeFilter !== '') ? 'block' : 'none';
@@ -617,6 +639,7 @@
             renderTypeList();
             openModal('modalTypeSelect');
             
+            // Auto focus on open (slight delay required for mobile transition to finish)
             setTimeout(() => { searchInput.focus(); }, 350);
         };
 
@@ -631,7 +654,9 @@
             
             let html = '';
             
+            // "Smart dynamic creation" if exact string doesn't exist
             if (term && !cachedProductTypes.some(t => t.toLowerCase() === term)) {
+                // Capitalize first letters for clean UI injection
                 const customType = term.replace(/\b\w/g, l => l.toUpperCase());
                 html += `
                     <div class="type-item type-item-custom" onclick="selectType('${customType}', true)">
@@ -660,10 +685,13 @@
 
         window.selectType = function(type, isCustom = false) {
             vibrateApp(20);
+            
+            // Automatically inject custom types into the local session cache
             if (isCustom && !cachedProductTypes.includes(type)) {
                 cachedProductTypes.push(type);
                 cachedProductTypes.sort();
             }
+            
             if (currentTypeSelectMode === 'add') {
                 document.getElementById('iType').value = type;
                 history.back();
@@ -675,6 +703,7 @@
                 document.getElementById('filterActiveBadge').style.display = 'block';
                 document.getElementById('searchInventory').placeholder = `Searching ${type}...`;
                 history.back();
+                // Reset search box text so filter isn't fighting text search
                 document.getElementById('searchInventory').value = '';
                 currentSearchTerm = '';
                 loadInventory();
@@ -689,6 +718,22 @@
             history.back();
             loadInventory();
         };
+
+        // --- NEW HELPER: Fetch fresh name strictly on demand ---
+        async function getFreshUserName() {
+            const user = auth.currentUser;
+            if (!user) return currentUserName; // Fallback
+            
+            try {
+                const userSnap = await getDoc(doc(db, "users", user.uid));
+                if (userSnap.exists() && userSnap.data().name) {
+                    return userSnap.data().name; // Return Firestore name
+                }
+            } catch (error) {
+                console.error("Failed to fetch custom name from Firestore:", error);
+            }
+            return currentUserName; // Fallback
+        }
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
@@ -743,7 +788,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
-            vibrateApp(type === "error" ? :);
+            vibrateApp(type === "error" ? 40 : 20);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -1177,17 +1222,40 @@
 
             try {
                 const itemRef = doc(db, "inventory", id);
+                
+                // Fetch the exact name from Firestore before saving
+                const realEditorName = await getFreshUserName();
 
                 const payload = { 
                     qty: parsedQty,
                     previousQty: currentQty,
                     lastEditReason: reason,
+                    lastEditBy: realEditorName, // Use the fetched name here
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Push to top
                 };
 
                 await updateDoc(itemRef, payload);
                 
+                // --- NEW: ZERO-WASTE ALERT DOCUMENT OVERWRITE ---
+                if (parsedQty < currentQty) {
+                    try {
+                        await setDoc(doc(db, "alerts", "stock_reduction"), {
+                            name: item.name || '',
+                            model: item.model || 'N/A',
+                            price: item.price || 0,
+                            mrp: item.mrp || 0,
+                            qty: parsedQty,
+                            previousQty: currentQty,
+                            lastEditBy: realEditorName, // Safely pass the fetched name to the alert doc too
+                            lastEditReason: reason,
+                            lastUpdated: new Date().toISOString()
+                        });
+                    } catch (alertErr) {
+                        console.error("Failed to write alert document:", alertErr);
+                    }
+                }
+
                 showToast("Quantity updated successfully!", "success");
                 loadInventory(); // Refresh the list
             } catch (err) {
@@ -1240,7 +1308,7 @@
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
-            document.getElementById('editType').value = item.type || '';
+            document.getElementById('editType').value = item.type || ''; // NEW: Prefill Type
             document.getElementById('editMrp').value = item.mrp || 0;
             document.getElementById('editPrice').value = item.price || 0;
             
@@ -1258,7 +1326,7 @@
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
             const newModel = document.getElementById('editModel').value.trim();
-            const newType = document.getElementById('editType').value.trim();
+            const newType = document.getElementById('editType').value.trim(); // NEW: Grab Type
             const newMrp = parseFloat(document.getElementById('editMrp').value);
             const newPrice = parseFloat(document.getElementById('editPrice').value);
             const newQty = parseInt(document.getElementById('editQty').value);
@@ -1281,10 +1349,12 @@
 
                 const itemRef = doc(db, "inventory", id);
                 
+                let realEditorName = currentUserName; // Fallback
+                
                 const payload = { 
                     name: newName,
                     model: newModel,
-                    type: newType,
+                    type: newType, // NEW: Update Type
                     mrp: newMrp,
                     price: newPrice,
                     qty: newQty,
@@ -1298,11 +1368,34 @@
 
                 // Add accountability fields strictly when Qty changes
                 if (newQty !== oldQty) {
+                    realEditorName = await getFreshUserName(); // Fetch exact name from Firestore
+                    
                     payload.lastEditReason = editReasonSelect.value;
+                    payload.lastEditBy = realEditorName; // Safely log fetched name in payload
                 }
 
                 await updateDoc(itemRef, payload);
                 
+                // --- NEW: ZERO-WASTE ALERT DOCUMENT OVERWRITE ---
+                if (newQty < oldQty) {
+                    try {
+                        await setDoc(doc(db, "alerts", "stock_reduction"), {
+                            name: newName || '',
+                            model: newModel || 'N/A',
+                            type: newType || 'N/A', // Update Alert
+                            price: newPrice || 0,
+                            mrp: newMrp || 0,
+                            qty: newQty,
+                            previousQty: oldQty,
+                            lastEditBy: realEditorName, // Safely pass the fetched name to the alert doc too
+                            lastEditReason: editReasonSelect.value || "N/A",
+                            lastUpdated: new Date().toISOString()
+                        });
+                    } catch (alertErr) {
+                        console.error("Failed to write alert document:", alertErr);
+                    }
+                }
+
                 showToast("Product updated successfully!", "success");
                 history.back(); 
                 loadInventory(); 
@@ -1392,6 +1485,7 @@
                 let q;
                 let typeFilter = currentTypeFilter ? [where("type", "==", currentTypeFilter)] : [];
 
+                // ZERO FIREBASE READ WASTE ALGORITHM - Kept original lines intact, added type filter securely
                 if (showingLowStock) {
                     if (isLoadMore && lastVisibleItem) {
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, startAfter(lastVisibleItem), limit(10));
@@ -1407,6 +1501,7 @@
                     }
                 } else {
                     if (currentTypeFilter) {
+                        // Prevent composite index crash by removing orderBy when filtering solely by Type
                         if (isLoadMore && lastVisibleItem) {
                              q = query(collection(db, "inventory"), where("type", "==", currentTypeFilter), startAfter(lastVisibleItem), limit(10));
                         } else {
@@ -1644,7 +1739,7 @@
             vibrateApp(40);
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
-            const type = document.getElementById('iType').value.trim();
+            const type = document.getElementById('iType').value.trim(); // NEW: Grab Type
             const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
             const price = parseFloat(document.getElementById('iPrice').value) || 0;
             const qty = parseInt(document.getElementById('iQty').value) || 1;
@@ -1669,7 +1764,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs;
+                        const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1689,7 +1784,7 @@
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
                     model, 
-                    type,
+                    type, // NEW: Add Type to cart
                     mrp,
                     price, 
                     qty, 
@@ -1700,7 +1795,7 @@
                 
                 document.getElementById('iName').value = '';
                 document.getElementById('iModel').value = '';
-                document.getElementById('iType').value = '';
+                document.getElementById('iType').value = ''; // Reset Type
                 document.getElementById('iMrp').value = '';
                 document.getElementById('iPrice').value = '';
                 document.getElementById('iQty').value = '1';
@@ -1780,5 +1875,38 @@
                         batch.set(newRef, {
                             name: item.name,
                             model: item.model,
-                            type: item.type,
-                            mrp
+                            type: item.type, // NEW: Save Type to DB
+                            mrp: item.mrp,
+                            price: item.price,
+                            qty: item.qty,
+                            searchKeywords: generateKeywords(item.name, item.model),
+                            createdAt: serverTimestamp()
+                        });
+                    }
+                });
+
+                await batch.commit();
+
+                showToast("Inventory successfully updated!", "success");
+                
+                pendingCart = [];
+                renderPendingList();
+                history.back(); 
+                
+                currentSearchTerm = ''; // Reset search on new item creation
+                document.getElementById('searchInventory').value = '';
+                loadInventory();
+
+            } catch (err) {
+                console.error("Batch save failed", err);
+                showToast(err.message || "Error saving data. Check console.", "error");
+                btnSave.disabled = false;
+                renderPendingList(); 
+            }
+        });
+
+        // Initialize Data on Load
+        loadInventory();
+    </script>
+</body>
+</html>
