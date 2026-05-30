@@ -459,7 +459,7 @@
             </div>
         </div>
         
-        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 30px;">
+        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 110px;">
             </div>
     </div>
 
@@ -1486,14 +1486,11 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    // Keep it as an array of words, safely filtered for Firestore limits
-                    const searchWords = currentSearchTerm.split(/[\s\-_]+/).filter(w => w !== "").slice(0, 10);
-                    const queryWords = searchWords.length > 0 ? searchWords : [""]; // Fallback to avoid empty array crash
-                    
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
                     if (isLoadMore && lastVisibleItem) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains-any", queryWords), ...typeFilter, startAfter(lastVisibleItem), limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains-any", queryWords), ...typeFilter, limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, limit(10));
                     }
                 } else {
                     if (currentTypeFilter) {
@@ -1760,7 +1757,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs;
+                        const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
