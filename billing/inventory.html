@@ -104,6 +104,7 @@
         /* Filter Active Badge */
         .filter-active-badge { position: absolute; top: 4px; right: 4px; background: var(--accent-color); color: white; border-radius: 50%; width: 10px; height: 10px; box-shadow: 0 0 5px var(--accent-color); display: none; }
 
+
         /* Skeleton Loading Animation - Improved for smoother shimmer */
         .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -252,7 +253,7 @@
         .type-item { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
         .type-item:active { background: rgba(255,255,255,0.05); }
         .type-item-custom { background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); margin-bottom: 15px; color: var(--accent-color); font-weight: 600; box-shadow: var(--shadow-sm); }
-        
+
     </style>
 </head>
 <body>
@@ -644,7 +645,7 @@
             setTimeout(() => { searchInput.focus(); }, 350);
         };
 
-        function renderTypeList() {
+        window.renderTypeList = function() {
             const container = document.getElementById('typeListContainer');
             const term = document.getElementById('typeSearchInput').value.toLowerCase().trim();
             
@@ -680,7 +681,7 @@
             }
             
             container.innerHTML = html;
-        }
+        };
 
         document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
 
@@ -719,7 +720,6 @@
             history.back();
             loadInventory();
         };
-
 
         // --- NEW HELPER: Fetch fresh name strictly on demand ---
         async function getFreshUserName() {
@@ -1310,7 +1310,7 @@
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
-            document.getElementById('editType').value = item.type || ''; // Prefill Type
+            document.getElementById('editType').value = item.type || ''; // Pre-fill Type
             document.getElementById('editMrp').value = item.mrp || 0;
             document.getElementById('editPrice').value = item.price || 0;
             
@@ -1484,32 +1484,35 @@
             }
 
             try {
-                // --- HIGHLY OPTIMIZED DYNAMIC QUERY BUILDER (ZERO EXTRA READS) ---
-                let constraints = [];
-                
+                let q;
                 if (showingLowStock) {
-                    constraints.push(where("qty", "<", 3));
-                }
-                if (currentTypeFilter) {
-                    constraints.push(where("type", "==", currentTypeFilter));
-                }
-                if (currentSearchTerm !== '') {
+                    if (isLoadMore && lastVisibleItem) {
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), limit(10));
+                    }
+                } else if (currentTypeFilter) {
+                    if (isLoadMore && lastVisibleItem) {
+                        q = query(collection(db, "inventory"), where("type", "==", currentTypeFilter), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), where("type", "==", currentTypeFilter), limit(10));
+                    }
+                } else if (currentSearchTerm !== '') {
                     const searchWord = currentSearchTerm.split(/[\s\-_]+/);
-                    constraints.push(where("searchKeywords", "array-contains", searchWord));
+                    if (isLoadMore && lastVisibleItem) {
+                        // NO orderBy here to avoid requiring composite indexes for search
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(10));
+                    }
+                } else {
+                    if (isLoadMore && lastVisibleItem) {
+                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                    } else {
+                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                    }
                 }
-                
-                // Only order by date if we aren't doing complex cross-filtering that requires composite indexes we may not have yet
-                if (!showingLowStock && currentSearchTerm === '' && !currentTypeFilter) {
-                     constraints.push(orderBy("createdAt", "desc"));
-                }
-                
-                if (isLoadMore && lastVisibleItem) {
-                    constraints.push(startAfter(lastVisibleItem));
-                }
-                
-                constraints.push(limit(10));
-                
-                const q = query(collection(db, "inventory"), ...constraints);
+
                 const snap = await getDocs(q);
                 
                 if (snap.empty) {
@@ -1554,7 +1557,7 @@
             } catch (err) {
                 console.error(err);
                 if (!isLoadMore) {
-                    grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px; background:rgba(239,68,68,0.1); border-radius:12px; border:1px solid rgba(239,68,68,0.3); margin-top:20px;">Error loading inventory. Check Firebase Indexes in console.</div>';
+                    grid.innerHTML = '<div style="color:var(--meena-red); text-align:center; width:100%; padding:20px; background:rgba(239,68,68,0.1); border-radius:12px; border:1px solid rgba(239,68,68,0.3); margin-top:20px;">Error loading inventory. Check permissions.</div>';
                 }
                 showToast(err.message || "Failed to load inventory data.", "error");
             } finally {
@@ -1567,7 +1570,7 @@
             const element = e.target;
             // If the user scrolls within 100 pixels of the bottom of the container
             if (element.scrollHeight - element.scrollTop <= element.clientHeight + 100) {
-                loadInventory(true); // Trigger loadMore seamlessly for Search, Low Stock, Type Filter, or Default
+                loadInventory(true); // Trigger loadMore seamlessly for Search, Low Stock, or Default
             }
         });
 
@@ -1739,7 +1742,7 @@
             const qty = parseInt(document.getElementById('iQty').value) || 1;
 
             if (!name || !type || mrp <= 0 || price <= 0 || qty < 1) {
-                showToast("Please enter a valid Name, Type, MRP, Price, and Qty.", "error");
+                showToast("Please enter a valid Name, Type, MRP, Price, and Quantity.", "error");
                 return;
             }
 
@@ -1777,7 +1780,7 @@
 
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
-                    model, 
+                    model,
                     type, // Passed to cart
                     mrp,
                     price, 
@@ -1873,7 +1876,7 @@
                             mrp: item.mrp,
                             price: item.price,
                             qty: item.qty,
-                            searchKeywords: generateKeywords(item.name, item.model), 
+                            searchKeywords: generateKeywords(item.name, item.model),
                             createdAt: serverTimestamp()
                         });
                     }
