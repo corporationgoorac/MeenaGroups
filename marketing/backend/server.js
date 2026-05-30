@@ -495,7 +495,7 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                         let parsedItemText = '';
                         if (billData.items && Array.isArray(billData.items) && billData.items.length > 0) {
                             if (billData.items.length === 1) {
-                                const item = billData.items;
+                                const item = billData.items[0]; // FIX APPLIED HERE
                                 const pName = item.name || 'பொருள்';
                                 const pQty = parseInt(item.qty) || 1;
                                 const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
