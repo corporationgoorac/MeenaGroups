@@ -166,9 +166,8 @@
         input::placeholder { color: #64748b; }
         select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
         
-        /* Fixed ALIGNMENT FOR INPUT ROWS */
-        .row-inputs { display: flex; gap: 15px; flex-wrap: wrap; }
-        .row-inputs > div { flex: 1 1 calc(33.333% - 15px); min-width: 90px; }
+        .row-inputs { display: flex; gap: 15px; }
+        .row-inputs > div { flex: 1; }
 
         .btn-secondary { background: var(--surface-color); color: white; border: 1px solid var(--input-border); padding: 16px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: 600; font-size: 1.05em; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 10px; font-family: 'Inter', sans-serif;}
         .btn-secondary:hover { background: var(--surface-hover); border-color: #475569; }
@@ -247,41 +246,10 @@
         .info-panel-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); margin-bottom: 16px; box-shadow: var(--shadow-sm); }
         .info-panel-header { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
 
-        /* --- UPGRADED: TYPE SELECTION MODAL CSS --- */
-        .type-list-container { padding: 15px 20px; }
-        .type-item { 
-            padding: 16px 20px; 
-            background: var(--surface-color); 
-            border: 1px solid var(--input-border); 
-            color: white; 
-            font-size: 1.05em; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            border-radius: 12px; 
-            margin-bottom: 10px; 
-            box-shadow: var(--shadow-sm); 
-        }
-        .type-item:hover, .type-item:active { 
-            border-color: var(--accent-color); 
-            background: var(--surface-hover); 
-            transform: translateY(-2px); 
-            box-shadow: var(--shadow-md); 
-        }
-        .type-item.selected { 
-            border-color: rgba(13, 148, 136, 0.5); 
-            background: rgba(13, 148, 136, 0.05); 
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1); 
-        }
-        #modalTypeSelect .input-wrapper input {
-            background: var(--surface-color);
-            border: 1px solid var(--input-border);
-            border-radius: 14px;
-            padding: 16px 20px 16px 45px; 
-            font-size: 1.05em;
-        }
+        /* --- NEW: TYPE SELECTION MODAL CSS --- */
+        .type-list-container { padding: 10px 20px; }
+        .type-item { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
+        .type-item:active { background: rgba(255,255,255,0.05); }
 
     </style>
 </head>
@@ -479,23 +447,20 @@
     </div>
 
     <div class="modal" id="modalTypeSelect" style="display: flex; flex-direction: column; overflow: hidden;">
-        <div class="modal-header" style="position: static; flex-shrink: 0; backdrop-filter: none; -webkit-backdrop-filter: none; display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
-                <h2 id="typeModalTitle">Select Type</h2>
-            </div>
-            <button id="btnClearFilter" style="display:none; background:rgba(239,68,68,0.1); color:var(--meena-red); border:1px solid rgba(239,68,68,0.3); padding:8px 16px; border-radius:10px; font-size:0.85em; font-weight:700; cursor:pointer;" onclick="clearTypeFilter()">Clear</button>
+        <div class="modal-header" style="position: static; flex-shrink: 0; backdrop-filter: none; -webkit-backdrop-filter: none;">
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2 id="typeModalTitle">Select Type</h2>
+            <button id="btnClearFilter" style="display:none; margin-left:auto; background:rgba(239,68,68,0.1); color:var(--meena-red); border:1px solid rgba(239,68,68,0.3); padding:8px 16px; border-radius:10px; font-size:0.85em; font-weight:700; cursor:pointer;" onclick="clearTypeFilter()">Clear</button>
         </div>
         
         <div style="padding: 15px 20px; flex-shrink: 0; background: var(--bg-color); z-index: 5; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div class="input-wrapper" style="margin-bottom: 0; position: relative;">
-                <span class="material-symbols-outlined" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; z-index: 2;">search</span>
+            <div class="input-wrapper" style="margin-bottom: 0;">
                 <input type="text" id="typeSearchInput" placeholder="Search categories..." autocomplete="off">
             </div>
         </div>
         
         <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 30px;">
-        </div>
+            </div>
     </div>
 
     <div class="modal" id="modalProductInfo">
@@ -661,13 +626,13 @@
         }
         fetchProductTypes();
 
-        // --- UPGRADED: TYPE SELECTION MODAL LOGIC WITH PROFESSIONAL RENDER ---
+        // --- NEW: TYPE SELECTION MODAL LOGIC ---
         window.openTypeSelectModal = function(mode) {
             currentTypeSelectMode = mode;
             const searchInput = document.getElementById('typeSearchInput');
             searchInput.value = ''; // clear previous search
             
-            document.getElementById('typeModalTitle').innerText = mode === 'filter' ? 'Filter by Type' : 'Select Category';
+            document.getElementById('typeModalTitle').innerText = mode === 'filter' ? 'Filter by Type' : 'Select Product Type';
             document.getElementById('btnClearFilter').style.display = (mode === 'filter' && currentTypeFilter !== '') ? 'block' : 'none';
             
             renderTypeList();
@@ -688,26 +653,19 @@
             
             let html = '';
             
+            // FIXED: Removed the dynamic "Add custom type" feature block as requested
+            
             filtered.forEach(type => {
-                const isSelected = (currentTypeSelectMode === 'filter' && currentTypeFilter === type) || 
-                                   (currentTypeSelectMode === 'add' && document.getElementById('iType').value === type) ||
-                                   (currentTypeSelectMode === 'edit' && document.getElementById('editType').value === type);
-                                   
+                const isSelected = (currentTypeSelectMode === 'filter' && currentTypeFilter === type);
                 html += `
-                    <div class="type-item ${isSelected ? 'selected' : ''}" onclick="selectType('${type}')">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="material-symbols-outlined" style="color: ${isSelected ? 'var(--accent-color)' : 'var(--text-secondary)'}; font-size: 20px;">category</span>
-                            <span style="${isSelected ? 'color: var(--accent-color); font-weight: 700;' : ''}">${type}</span>
-                        </div>
-                        ${isSelected ? '<span class="material-symbols-outlined" style="color: var(--accent-color);">check_circle</span>' : '<span class="material-symbols-outlined" style="color: var(--input-border);">chevron_right</span>'}
+                    <div class="type-item" onclick="selectType('${type}')">
+                        <span style="${isSelected ? 'color: var(--accent-color); font-weight: 700;' : ''}">${type}</span>
+                        ${isSelected ? '<span class="material-symbols-outlined" style="color: var(--accent-color);">check</span>' : ''}
                     </div>`;
             });
             
             if (filtered.length === 0) {
-                html = `<div style="text-align:center; padding: 40px 20px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                            <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.3;">search_off</span>
-                            <span>No categories matching "${term}"</span>
-                        </div>`;
+                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary);">No categories matching your search.</div>`;
             }
             
             container.innerHTML = html;
@@ -1528,8 +1486,7 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    // BUG FIX: Only pick the first word to satisfy Firestore's single array-contains requirement exactly like inventory.html
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/); 
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/);
                     if (isLoadMore && lastVisibleItem) {
                         q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
                     } else {
