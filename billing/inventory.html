@@ -540,8 +540,8 @@
         // --- ADDED AUTHENTICATION IMPORT FOR ZERO-READ USER FETCHING ---
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
         
-        // --- Added setDoc to imports ---
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // --- Added setDoc and getDoc to imports ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW: INITIALIZE AUTH & CACHE USER NAME ---
         const auth = getAuth();
@@ -551,6 +551,22 @@
                 currentUserName = user.displayName || user.email?.split('@')[0] || "Staff";
             }
         });
+
+        // --- NEW HELPER: Fetch fresh name strictly on demand ---
+        async function getFreshUserName() {
+            const user = auth.currentUser;
+            if (!user) return currentUserName; // Fallback
+            
+            try {
+                const userSnap = await getDoc(doc(db, "users", user.uid));
+                if (userSnap.exists() && userSnap.data().name) {
+                    return userSnap.data().name; // Return Firestore name
+                }
+            } catch (error) {
+                console.error("Failed to fetch custom name from Firestore:", error);
+            }
+            return currentUserName; // Fallback
+        }
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
@@ -1039,11 +1055,15 @@
 
             try {
                 const itemRef = doc(db, "inventory", id);
+                
+                // Fetch the exact name from Firestore before saving
+                const realEditorName = await getFreshUserName();
+
                 const payload = { 
                     qty: parsedQty,
                     previousQty: currentQty,
                     lastEditReason: reason,
-                    lastEditBy: currentUserName,
+                    lastEditBy: realEditorName, // Use the fetched name here
                     lastUpdated: new Date().toISOString(),
                     createdAt: serverTimestamp() // Push to top
                 };
@@ -1060,7 +1080,7 @@
                             mrp: item.mrp || 0,
                             qty: parsedQty,
                             previousQty: currentQty,
-                            lastEditBy: currentUserName,
+                            lastEditBy: realEditorName, // Safely pass the fetched name to the alert doc too
                             lastEditReason: reason,
                             lastUpdated: new Date().toISOString()
                         });
@@ -1160,6 +1180,8 @@
 
                 const itemRef = doc(db, "inventory", id);
                 
+                let realEditorName = currentUserName; // Fallback
+                
                 const payload = { 
                     name: newName,
                     model: newModel,
@@ -1176,8 +1198,10 @@
 
                 // Add accountability fields strictly when Qty changes
                 if (newQty !== oldQty) {
+                    realEditorName = await getFreshUserName(); // Fetch exact name from Firestore
+                    
                     payload.lastEditReason = editReasonSelect.value;
-                    payload.lastEditBy = currentUserName;
+                    payload.lastEditBy = realEditorName; // Safely log fetched name in payload
                 }
 
                 await updateDoc(itemRef, payload);
@@ -1192,7 +1216,7 @@
                             mrp: newMrp || 0,
                             qty: newQty,
                             previousQty: oldQty,
-                            lastEditBy: currentUserName,
+                            lastEditBy: realEditorName, // Safely pass the fetched name to the alert doc too
                             lastEditReason: editReasonSelect.value || "N/A",
                             lastUpdated: new Date().toISOString()
                         });
