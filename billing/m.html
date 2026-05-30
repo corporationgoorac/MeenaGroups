@@ -446,7 +446,7 @@
         </div>
     </div>
 
-    <div class="modal" id="modalTypeSelect" style="display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0;">
+    <div class="modal" id="modalTypeSelect" style="display: flex; flex-direction: column; overflow: hidden;">
         <div class="modal-header" style="position: static; flex-shrink: 0; backdrop-filter: none; -webkit-backdrop-filter: none;">
             <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
             <h2 id="typeModalTitle">Select Type</h2>
@@ -605,6 +605,104 @@
             }
         });
 
+        // --- NEW: FETCH JSON PRODUCT TYPES (With robust fallback for production safety) ---
+        let cachedProductTypes = [];
+        let currentTypeFilter = "";
+        let currentTypeSelectMode = ""; // 'add', 'edit', 'filter'
+        
+        async function fetchProductTypes() {
+            try {
+                const response = await fetch('products.json');
+                if (response.ok) {
+                    cachedProductTypes = await response.json();
+                } else {
+                    console.warn("products.json missing, using fallback array.");
+                    cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+                }
+            } catch (error) {
+                console.error("Error fetching types:", error);
+                cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+            }
+        }
+        fetchProductTypes();
+
+        // --- NEW: TYPE SELECTION MODAL LOGIC ---
+        window.openTypeSelectModal = function(mode) {
+            currentTypeSelectMode = mode;
+            const searchInput = document.getElementById('typeSearchInput');
+            searchInput.value = ''; // clear previous search
+            
+            document.getElementById('typeModalTitle').innerText = mode === 'filter' ? 'Filter by Type' : 'Select Product Type';
+            document.getElementById('btnClearFilter').style.display = (mode === 'filter' && currentTypeFilter !== '') ? 'block' : 'none';
+            
+            renderTypeList();
+            openModal('modalTypeSelect');
+            
+            // Auto focus on open (slight delay required for mobile transition to finish)
+            setTimeout(() => { searchInput.focus(); }, 350);
+        };
+
+        function renderTypeList() {
+            const container = document.getElementById('typeListContainer');
+            const term = document.getElementById('typeSearchInput').value.toLowerCase().trim();
+            
+            let filtered = cachedProductTypes;
+            if (term) {
+                filtered = cachedProductTypes.filter(t => t.toLowerCase().includes(term));
+            }
+            
+            let html = '';
+            
+            // FIXED: Removed the dynamic "Add custom type" feature block as requested
+            
+            filtered.forEach(type => {
+                const isSelected = (currentTypeSelectMode === 'filter' && currentTypeFilter === type);
+                html += `
+                    <div class="type-item" onclick="selectType('${type}')">
+                        <span style="${isSelected ? 'color: var(--accent-color); font-weight: 700;' : ''}">${type}</span>
+                        ${isSelected ? '<span class="material-symbols-outlined" style="color: var(--accent-color);">check</span>' : ''}
+                    </div>`;
+            });
+            
+            if (filtered.length === 0) {
+                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary);">No categories matching your search.</div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
+
+        window.selectType = function(type) {
+            vibrateApp(20);
+            
+            if (currentTypeSelectMode === 'add') {
+                document.getElementById('iType').value = type;
+                history.back();
+            } else if (currentTypeSelectMode === 'edit') {
+                document.getElementById('editType').value = type;
+                history.back();
+            } else if (currentTypeSelectMode === 'filter') {
+                currentTypeFilter = type;
+                document.getElementById('filterActiveBadge').style.display = 'block';
+                document.getElementById('searchInventory').placeholder = `Searching ${type}...`;
+                history.back();
+                // Reset search box text so filter isn't fighting text search
+                document.getElementById('searchInventory').value = '';
+                currentSearchTerm = '';
+                loadInventory();
+            }
+        };
+
+        window.clearTypeFilter = function() {
+            vibrateApp(20);
+            currentTypeFilter = "";
+            document.getElementById('filterActiveBadge').style.display = 'none';
+            document.getElementById('searchInventory').placeholder = `Search inventory...`;
+            history.back();
+            loadInventory();
+        };
+
         // --- NEW HELPER: Fetch fresh name strictly on demand ---
         async function getFreshUserName() {
             const user = auth.currentUser;
@@ -674,7 +772,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
-            vibrateApp(type === "error" ? :);
+            vibrateApp(type === "error" ? 40 : 20);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -691,8 +789,17 @@
             document.getElementById(modalId).classList.add('active');
             history.pushState({ modal: modalId }, '', `#${modalId}`);
         };
-        window.addEventListener('popstate', () => {
+
+        // FIXED: Nested Modal Popstate Logic
+        window.addEventListener('popstate', (e) => {
+            // Remove active from all modals
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            
+            // Check if history state actually holds an underlying modal (like Add or Edit)
+            // If it does, re-open just that specific one. This solves the double-closing bug perfectly!
+            if (e.state && e.state.modal) {
+                document.getElementById(e.state.modal).classList.add('active');
+            }
             
             // Auto-lock admin panel if closed via back button
             if (document.getElementById('adminUnlockedContent').style.display === 'block') {
@@ -1379,11 +1486,14 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/);
+                    // Keep it as an array of words, safely filtered for Firestore limits
+                    const searchWords = currentSearchTerm.split(/[\s\-_]+/).filter(w => w !== "").slice(0, 10);
+                    const queryWords = searchWords.length > 0 ? searchWords : [""]; // Fallback to avoid empty array crash
+                    
                     if (isLoadMore && lastVisibleItem) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains-any", queryWords), ...typeFilter, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains-any", queryWords), ...typeFilter, limit(10));
                     }
                 } else {
                     if (currentTypeFilter) {
@@ -1785,4 +1895,14 @@
 
             } catch (err) {
                 console.error("Batch save failed", err);
-                showToast(
+                showToast(err.message || "Error saving data. Check console.", "error");
+                btnSave.disabled = false;
+                renderPendingList(); 
+            }
+        });
+
+        // Initialize Data on Load
+        loadInventory();
+    </script>
+</body>
+</html>
