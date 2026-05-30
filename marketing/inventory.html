@@ -86,13 +86,22 @@
         .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
         .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        /* Advanced Search Bar */
-        .search-bar-container { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 14px; padding: 0 18px; margin-bottom: 24px; transition: all 0.3s ease; width: 100%; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+        /* Advanced Search Bar - MODIFIED FOR ANIMATED FILTER BUTTON */
+        .search-bar-container { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 14px; padding: 0 10px 0 18px; margin-bottom: 24px; transition: all 0.3s ease; width: 100%; box-sizing: border-box; box-shadow: var(--shadow-sm); overflow: hidden; }
         .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: var(--shadow-glow); background: var(--surface-hover); }
         .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; transition: color 0.3s; }
-        .search-bar-container:focus-within .material-symbols-outlined { color: var(--accent-color); }
+        .search-bar-container:focus-within > .search-input-wrapper .material-symbols-outlined { color: var(--accent-color); }
+        
+        .search-input-wrapper { display: flex; flex-grow: 1; align-items: center; }
         .search-bar-container input { border: none; background: transparent; width: 100%; padding: 18px 12px; color: white; font-size: 1.05em; outline: none; font-family: 'Inter', sans-serif;}
         .search-bar-container input::placeholder { color: var(--text-secondary); }
+        
+        .filter-btn-wrap { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+        .filter-btn-wrap:active { background: rgba(255,255,255,0.1); }
+        .search-bar-container:focus-within .filter-btn-wrap { width: 0px; opacity: 0; margin: 0; padding: 0; border: none; pointer-events: none; overflow: hidden; }
+        
+        /* Filter Active Badge */
+        .filter-active-badge { position: absolute; top: 4px; right: 4px; background: var(--accent-color); color: white; border-radius: 50%; width: 10px; height: 10px; box-shadow: 0 0 5px var(--accent-color); display: none; }
 
         /* Skeleton Loading Animation - Improved for smoother shimmer */
         .skeleton { background-color: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08), rgba(255,255,255,0)); background-size: 200% 100%; animation: shimmer 1.5s infinite ease-in-out; border-radius: 4px; }
@@ -226,6 +235,11 @@
         .info-panel-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); margin-bottom: 16px; box-shadow: var(--shadow-sm); }
         .info-panel-header { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
 
+        /* --- NEW: TYPE SELECTION MODAL CSS --- */
+        .type-list-container { padding: 10px 20px; }
+        .type-item { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
+        .type-item:active { background: rgba(255,255,255,0.05); }
+
     </style>
 </head>
 <body>
@@ -267,8 +281,14 @@
     <div class="main-scroll-area">
         <div class="container">
             <div class="search-bar-container">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
+                <div class="search-input-wrapper">
+                    <span class="material-symbols-outlined">search</span>
+                    <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
+                </div>
+                <div class="filter-btn-wrap" onclick="vibrateApp(20); openTypeSelectModal('filter')" title="Filter by Type">
+                    <span class="material-symbols-outlined" style="color: var(--accent-color);">tune</span>
+                    <span id="filterActiveBadge" class="filter-active-badge"></span>
+                </div>
             </div>
 
             <div class="inv-grid" id="inventoryGrid">
@@ -312,6 +332,14 @@
             <div class="input-wrapper">
                 <label>Product ID / Model</label>
                 <input type="text" id="iModel" placeholder="e.g. PDS-100X">
+            </div>
+
+            <div class="input-wrapper">
+                <label>Product Type <span style="color:var(--meena-red);">*</span></label>
+                <div style="position: relative;" onclick="vibrateApp(20); openTypeSelectModal('add')">
+                    <input type="text" id="iType" placeholder="Select type..." readonly style="cursor: pointer; padding-right: 40px; background-color: var(--input-bg);">
+                    <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;">arrow_drop_down</span>
+                </div>
             </div>
             
             <div class="row-inputs">
@@ -375,6 +403,14 @@
                 <label>Product ID / Model</label>
                 <input type="text" id="editModel" placeholder="e.g. PDS-100X">
             </div>
+
+            <div class="input-wrapper">
+                <label>Product Type <span style="color:var(--meena-red);">*</span></label>
+                <div style="position: relative;" onclick="vibrateApp(20); openTypeSelectModal('edit')">
+                    <input type="text" id="editType" placeholder="Select type..." readonly style="cursor: pointer; padding-right: 40px; background-color: var(--input-bg);">
+                    <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;">arrow_drop_down</span>
+                </div>
+            </div>
             
             <div class="row-inputs">
                 <div class="input-wrapper">
@@ -402,6 +438,23 @@
                 Update Product
             </button>
         </div>
+    </div>
+
+    <div class="modal" id="modalTypeSelect" style="display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0;">
+        <div class="modal-header" style="position: static; flex-shrink: 0; backdrop-filter: none; -webkit-backdrop-filter: none;">
+            <button class="close-modal" onclick="vibrateApp(30); history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2 id="typeModalTitle">Select Type</h2>
+            <button id="btnClearFilter" style="display:none; margin-left:auto; background:rgba(239,68,68,0.1); color:var(--meena-red); border:1px solid rgba(239,68,68,0.3); padding:8px 16px; border-radius:10px; font-size:0.85em; font-weight:700; cursor:pointer;" onclick="clearTypeFilter()">Clear</button>
+        </div>
+        
+        <div style="padding: 15px 20px; flex-shrink: 0; background: var(--bg-color); z-index: 5; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div class="input-wrapper" style="margin-bottom: 0;">
+                <input type="text" id="typeSearchInput" placeholder="Search categories..." autocomplete="off">
+            </div>
+        </div>
+        
+        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 20px;">
+            </div>
     </div>
 
     <div class="modal" id="modalProductInfo">
@@ -531,6 +584,102 @@
         // import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
         import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+        // --- NEW: FETCH JSON PRODUCT TYPES ---
+        let cachedProductTypes = [];
+        let currentTypeFilter = "";
+        let currentTypeSelectMode = ""; // 'add', 'edit', 'filter'
+        
+        async function fetchProductTypes() {
+            try {
+                const response = await fetch('products.json');
+                if (response.ok) {
+                    cachedProductTypes = await response.json();
+                } else {
+                    console.warn("products.json missing, using fallback array.");
+                    cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+                }
+            } catch (error) {
+                console.error("Error fetching types:", error);
+                cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+            }
+        }
+        fetchProductTypes();
+
+        // --- NEW: TYPE SELECTION MODAL LOGIC ---
+        window.openTypeSelectModal = function(mode) {
+            currentTypeSelectMode = mode;
+            const searchInput = document.getElementById('typeSearchInput');
+            searchInput.value = ''; // clear previous search
+            
+            document.getElementById('typeModalTitle').innerText = mode === 'filter' ? 'Filter by Type' : 'Select Product Type';
+            document.getElementById('btnClearFilter').style.display = (mode === 'filter' && currentTypeFilter !== '') ? 'block' : 'none';
+            
+            renderTypeList();
+            openModal('modalTypeSelect');
+            
+            // Auto focus on open (slight delay required for mobile transition to finish)
+            setTimeout(() => { searchInput.focus(); }, 350);
+        };
+
+        function renderTypeList() {
+            const container = document.getElementById('typeListContainer');
+            const term = document.getElementById('typeSearchInput').value.toLowerCase().trim();
+            
+            let filtered = cachedProductTypes;
+            if (term) {
+                filtered = cachedProductTypes.filter(t => t.toLowerCase().includes(term));
+            }
+            
+            let html = '';
+            
+            filtered.forEach(type => {
+                const isSelected = (currentTypeSelectMode === 'filter' && currentTypeFilter === type);
+                html += `
+                    <div class="type-item" onclick="selectType('${type}')">
+                        <span style="${isSelected ? 'color: var(--accent-color); font-weight: 700;' : ''}">${type}</span>
+                        ${isSelected ? '<span class="material-symbols-outlined" style="color: var(--accent-color);">check</span>' : ''}
+                    </div>`;
+            });
+            
+            if (filtered.length === 0) {
+                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary);">No categories matching your search.</div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
+
+        window.selectType = function(type) {
+            vibrateApp(20);
+            
+            if (currentTypeSelectMode === 'add') {
+                document.getElementById('iType').value = type;
+                history.back();
+            } else if (currentTypeSelectMode === 'edit') {
+                document.getElementById('editType').value = type;
+                history.back();
+            } else if (currentTypeSelectMode === 'filter') {
+                currentTypeFilter = type;
+                document.getElementById('filterActiveBadge').style.display = 'block';
+                document.getElementById('searchInventory').placeholder = `Searching ${type}...`;
+                history.back();
+                // Reset search box text so filter isn't fighting text search
+                document.getElementById('searchInventory').value = '';
+                currentSearchTerm = '';
+                loadInventory();
+            }
+        };
+
+        window.clearTypeFilter = function() {
+            vibrateApp(20);
+            currentTypeFilter = "";
+            document.getElementById('filterActiveBadge').style.display = 'none';
+            document.getElementById('searchInventory').placeholder = `Search inventory...`;
+            history.back();
+            loadInventory();
+        };
+
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
         function generateKeywords(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
@@ -611,9 +760,13 @@
             document.getElementById(modalId).classList.add('active');
             history.pushState({ modal: modalId }, '', `#${modalId}`);
         };
-        window.addEventListener('popstate', () => {
+        window.addEventListener('popstate', (e) => {
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
             
+            if (e.state && e.state.modal) {
+                document.getElementById(e.state.modal).classList.add('active');
+            }
+
             // Auto-lock admin panel if closed via back button
             if (document.getElementById('adminUnlockedContent').style.display === 'block') {
                 resetAdminLock();
@@ -948,6 +1101,7 @@
             document.getElementById('editId').value = id;
             document.getElementById('editName').value = item.name || '';
             document.getElementById('editModel').value = item.model || '';
+            document.getElementById('editType').value = item.type || ''; // PREFILL TYPE
             document.getElementById('editMrp').value = item.mrp || 0;
             document.getElementById('editMyRate').value = item.myRate || 0;
             document.getElementById('editPrice').value = item.price || 0;
@@ -961,13 +1115,14 @@
             const id = document.getElementById('editId').value;
             const newName = document.getElementById('editName').value.trim();
             const newModel = document.getElementById('editModel').value.trim();
+            const newType = document.getElementById('editType').value.trim(); // GRAB TYPE
             const newMrp = parseFloat(document.getElementById('editMrp').value);
             const newMyRate = parseFloat(document.getElementById('editMyRate').value);
             const newPrice = parseFloat(document.getElementById('editPrice').value);
             const newQty = parseInt(document.getElementById('editQty').value);
 
-            if (!newName || isNaN(newMrp) || newMrp < 0 || isNaN(newMyRate) || newMyRate < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
-                showToast("Please enter valid name, MRP, My Rate, base price, and quantity.", "error");
+            if (!newName || !newType || isNaN(newMrp) || newMrp < 0 || isNaN(newMyRate) || newMyRate < 0 || isNaN(newPrice) || newPrice < 0 || isNaN(newQty) || newQty < 0) {
+                showToast("Please enter valid name, type, MRP, My Rate, base price, and quantity.", "error");
                 return;
             }
 
@@ -988,6 +1143,7 @@
                 const payload = { 
                     name: newName,
                     model: newModel,
+                    type: newType, // UPDATE TYPE
                     mrp: newMrp,
                     myRate: newMyRate,
                     price: newPrice,
@@ -1095,37 +1251,37 @@
             }
 
             try {
-                // --- OLD STATIC LOAD COMMENTED OUT TO PRESERVE LINES ---
-                // const q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(50));
-                // const snap = await getDocs(q);
-                // inventoryCache = [];
-                // snap.forEach(doc => {
-                //     inventoryCache.push({ id: doc.id, ...doc.data() });
-                // });
-                // inventoryCache = advancedSort(inventoryCache);
-                // renderInventory(inventoryCache);
-                
-                // --- MODIFIED DYNAMIC PAGINATED QUERY (Handles Low Stock, Search, and Default) ---
                 let q;
+                let typeFilter = currentTypeFilter ? [where("type", "==", currentTypeFilter)] : [];
+
                 if (showingLowStock) {
                     if (isLoadMore && lastVisibleItem) {
-                        q = query(collection(db, "inventory"), where("qty", "<", 3), startAfter(lastVisibleItem), limit(10));
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("qty", "<", 3), limit(10));
+                        q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
                     const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
                     if (isLoadMore && lastVisibleItem) {
                         // NO orderBy here to avoid requiring composite indexes for search
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(lastVisibleItem), limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(10));
+                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, limit(10));
                     }
                 } else {
-                    if (isLoadMore && lastVisibleItem) {
-                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                    if (currentTypeFilter) {
+                        // Prevent composite index crash by removing orderBy when filtering solely by Type
+                        if (isLoadMore && lastVisibleItem) {
+                             q = query(collection(db, "inventory"), where("type", "==", currentTypeFilter), startAfter(lastVisibleItem), limit(10));
+                        } else {
+                             q = query(collection(db, "inventory"), where("type", "==", currentTypeFilter), limit(10));
+                        }
                     } else {
-                        q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                        if (isLoadMore && lastVisibleItem) {
+                            q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), startAfter(lastVisibleItem), limit(10));
+                        } else {
+                            q = query(collection(db, "inventory"), orderBy("createdAt", "desc"), limit(10));
+                        }
                     }
                 }
 
@@ -1145,15 +1301,6 @@
 
                 // Update the cursor to the very last document fetched
                 lastVisibleItem = snap.docs[snap.docs.length - 1];
-
-                // OLD snap logic commented out
-                // snap.forEach(doc => {
-                //     if(!inventoryCache.find(i => i.id === doc.id)) {
-                //         inventoryCache.push({ id: doc.id, ...doc.data() });
-                //     }
-                // });
-                // inventoryCache = advancedSort(inventoryCache);
-                // renderInventory(inventoryCache);
 
                 // NEW snap logic: Only sort the new batch, and smoothly append it without re-sorting old items
                 let newItems = [];
@@ -1222,13 +1369,14 @@
                 }
                 
                 const safeName = (item.name || '').replace(/'/g, "\\'");
+                const typeLabel = item.type ? `<span style="color: var(--accent-color); font-weight: 700;">${item.type}</span> • ` : '';
 
                 htmlBuffer += `
                     <div class="${cardClass}">
                         ${oosBadge}
                         <div class="inv-info">
                             <span class="inv-name" title="${item.name}">${item.name}</span>
-                            <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
+                            <span class="inv-model" title="${item.model || 'No Model ID'}">${typeLabel}${item.model || 'No Model ID'}</span>
                             
                             <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
                                 <span class="inv-price" style="margin-top:0; font-size: 0.95em;">
@@ -1275,13 +1423,14 @@
                 }
                 
                 const safeName = (item.name || '').replace(/'/g, "\\'");
+                const typeLabel = item.type ? `<span style="color: var(--accent-color); font-weight: 700;">${item.type}</span> • ` : '';
 
                 htmlBuffer += `
                     <div class="${cardClass}">
                         ${oosBadge}
                         <div class="inv-info">
                             <span class="inv-name" title="${item.name}">${item.name}</span>
-                            <span class="inv-model" title="${item.model || 'No Model ID'}">${item.model || 'No Model ID'}</span>
+                            <span class="inv-model" title="${item.model || 'No Model ID'}">${typeLabel}${item.model || 'No Model ID'}</span>
                             
                             <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
                                 <span class="inv-price" style="margin-top:0; font-size: 0.95em;">
@@ -1373,13 +1522,14 @@
             vibrateApp(40);
             const name = document.getElementById('iName').value.trim();
             const model = document.getElementById('iModel').value.trim();
+            const type = document.getElementById('iType').value.trim(); // GRAB TYPE
             const mrp = parseFloat(document.getElementById('iMrp').value) || 0;
             const myRate = parseFloat(document.getElementById('iMyRate').value) || 0;
             const price = parseFloat(document.getElementById('iPrice').value) || 0;
             const qty = parseInt(document.getElementById('iQty').value) || 1;
 
-            if (!name || mrp <= 0 || myRate <= 0 || price <= 0 || qty < 1) {
-                showToast("Please enter a valid Name, MRP, My Rate, Base Price, and Quantity.", "error");
+            if (!name || !type || mrp <= 0 || myRate <= 0 || price <= 0 || qty < 1) {
+                showToast("Please enter a valid Name, Type, MRP, My Rate, Base Price, and Quantity.", "error");
                 return;
             }
 
@@ -1418,6 +1568,7 @@
                 pendingCart.push({ 
                     name: isUpdate ? (name || "Existing Product") : name, 
                     model,
+                    type, // SAVE TYPE
                     mrp,
                     myRate,
                     price, 
@@ -1429,6 +1580,7 @@
                 
                 document.getElementById('iName').value = '';
                 document.getElementById('iModel').value = '';
+                document.getElementById('iType').value = ''; // RESET TYPE
                 document.getElementById('iMrp').value = '';
                 document.getElementById('iMyRate').value = '';
                 document.getElementById('iPrice').value = '';
@@ -1473,7 +1625,7 @@
                         <div>
                             <div style="font-weight:600; color:var(--marketing-white); font-size: 1.05em;">${item.name} <span style="font-weight:700; color:var(--accent-color); font-size: 0.9em; margin-left: 5px;">+${item.qty}</span> ${actionBadge}</div>
                             <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">
-                                ${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> Base: <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span> • <span style="color:#a78bfa; font-weight:600;">My Rate: ₹${item.myRate.toLocaleString()}</span>
+                                ${item.type} • ${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> Base: <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span> • <span style="color:#a78bfa; font-weight:600;">My Rate: ₹${item.myRate.toLocaleString()}</span>
                             </div>
                         </div>
                         <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
@@ -1511,6 +1663,7 @@
                         batch.set(newRef, {
                             name: item.name,
                             model: item.model,
+                            type: item.type, // SAVE TYPE TO FIREBASE
                             mrp: item.mrp,
                             myRate: item.myRate,
                             price: item.price,
@@ -1530,19 +1683,4 @@
                 history.back(); 
                 
                 currentSearchTerm = ''; // Reset search on new item creation
-                document.getElementById('searchInventory').value = '';
-                loadInventory();
-
-            } catch (err) {
-                console.error("Batch save failed", err);
-                showToast(err.message || "Error saving data. Check console.", "error");
-                btnSave.disabled = false;
-                renderPendingList(); 
-            }
-        });
-
-        // Initialize Data on Load
-        loadInventory();
-    </script>
-</body>
-</html>
+                document.getElementById('searchInventory').value =
