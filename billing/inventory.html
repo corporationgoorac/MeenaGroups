@@ -593,8 +593,8 @@
         // --- ADDED AUTHENTICATION IMPORT FOR ZERO-READ USER FETCHING ---
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
         
-        // --- Added setDoc and getDoc to imports ---
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // --- Added deleteField to imports ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW: INITIALIZE AUTH & CACHE USER NAME ---
         const auth = getAuth();
@@ -719,19 +719,19 @@
             return currentUserName; // Fallback
         }
 
-        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
-        function generateKeywords(name, model) {
+        // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
+        function generateSearchTokens(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
-            const prefixes = new Set();
+            const tokenMap = {};
             wordsArray.forEach(word => {
                 let prefix = '';
                 for (let i = 0; i < word.length; i++) {
                     prefix += word[i];
-                    prefixes.add(prefix);
+                    tokenMap[prefix] = true;
                 }
             });
-            return [...prefixes];
+            return tokenMap;
         }
 
         // --- ADVANCED SMART SORTING ALGORITHM ---
@@ -1351,7 +1351,8 @@
                     mrp: newMrp,
                     price: newPrice,
                     qty: newQty,
-                    searchKeywords: generateKeywords(newName, newModel), 
+                    searchTokens: generateSearchTokens(newName, newModel), // ADDED BOOLEAN SEARCH TOKEN GENERATOR
+                    searchKeywords: deleteField(), // CLEANS UP OLD DATA
                     previousQty: oldQty,
                     previousPrice: oldPrice,
                     previousMrp: oldMrp,
@@ -1478,7 +1479,7 @@
                 let q;
                 let typeFilter = currentTypeFilter ? [where("type", "==", currentTypeFilter)] : [];
 
-                // ZERO FIREBASE READ WASTE ALGORITHM - Kept original lines intact, added type filter securely
+                // ZERO FIREBASE READ WASTE ALGORITHM
                 if (showingLowStock) {
                     if (isLoadMore && lastVisibleItem) {
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, startAfter(lastVisibleItem), limit(10));
@@ -1486,11 +1487,23 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    // IMPLEMENTED BOOLEAN MULTI-WORD SEARCH ALGORITHM
+                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    
+                    q = collection(db, "inventory");
+                    
+                    searchWords.forEach(word => {
+                        q = query(q, where(`searchTokens.${word}`, "==", true));
+                    });
+
+                    if (currentTypeFilter) {
+                        q = query(q, ...typeFilter);
+                    }
+
                     if (isLoadMore && lastVisibleItem) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
+                        q = query(q, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, limit(10));
+                        q = query(q, limit(10));
                     }
                 } else {
                     if (currentTypeFilter) {
@@ -1593,7 +1606,7 @@
                 }
                 
                 const safeName = (item.name || '').replace(/'/g, "\\'");
-                const typeLabel = item.type ? `<span style="color: var(--accent-color); font-weight: 700;">${item.type}</span> • ` : '';
+                const typeLabel = item.type ? `<span style="display: none;">${item.type}</span>` : '';
 
                 htmlBuffer += `
                     <div class="${cardClass}">
@@ -1640,7 +1653,7 @@
                 }
                 
                 const safeName = (item.name || '').replace(/'/g, "\\'");
-                const typeLabel = item.type ? `<span style="color: var(--accent-color); font-weight: 700;">${item.type}</span> • ` : '';
+                const typeLabel = item.type ? `<span style="display: none;">${item.type}</span>` : '';
 
                 htmlBuffer += `
                     <div class="${cardClass}">
@@ -1757,7 +1770,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs[0];
+                        const existingDoc = snap.docs;
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1872,7 +1885,7 @@
                             mrp: item.mrp,
                             price: item.price,
                             qty: item.qty,
-                            searchKeywords: generateKeywords(item.name, item.model),
+                            searchTokens: generateSearchTokens(item.name, item.model), // ADDED BOOLEAN MAP
                             createdAt: serverTimestamp()
                         });
                     }
