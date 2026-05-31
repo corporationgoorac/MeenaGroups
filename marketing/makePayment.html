@@ -250,7 +250,11 @@
 
         // 2. Firebase Imports
         import { db } from './config.js';
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        
+        // --- ORIGINAL IMPORT PRESERVED ---
+        /* ORIGINAL: import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js"; */
+        // --- UPGRADED IMPORT FOR PAGINATION ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- UI & History API Logic ---
         window.openModal = function(modalId) {
@@ -342,6 +346,7 @@
         });
         ======================================================== */
 
+        /* === PRESERVED ORIGINAL SERVER-SIDE KEYWORD SEARCH LOGIC ===
         // --- NEW OPTIMIZED SERVER-SIDE KEYWORD SEARCH ---
         let searchTimeout;
         searchInput.addEventListener('input', (e) => {
@@ -391,6 +396,114 @@
                     resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding: 20px;">Search Failed</div>';
                 }
             }, 400); // 400ms debounce
+        });
+        ======================================================== */
+
+        // --- UPGRADED PAGINATED BOOLEAN MAP SEARCH ENGINE ---
+        let searchTimeout;
+        let compLastVisible = null;
+        let compIsFetching = false;
+        let compHasMore = true;
+        let compCurrentTerm = '';
+
+        async function searchCompanies(isLoadMore = false) {
+            if (isLoadMore) {
+                if (compIsFetching || !compHasMore) return;
+                compIsFetching = true;
+                const loader = document.createElement('div');
+                loader.id = 'compScrollLoader';
+                loader.style.cssText = "text-align:center; color:var(--text-secondary); padding: 10px; width: 100%; grid-column: 1 / -1; font-weight: bold;";
+                loader.innerText = "Loading more...";
+                resultsBox.appendChild(loader);
+            } else {
+                compHasMore = true;
+                compLastVisible = null;
+                compIsFetching = true;
+                resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding: 20px; width: 100%; grid-column: 1 / -1;">Searching database...</div>';
+            }
+
+            try {
+                const searchWords = compCurrentTerm.split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                if (searchWords.length === 0) {
+                    resultsBox.innerHTML = '';
+                    compIsFetching = false;
+                    return;
+                }
+
+                let qSearch = collection(db, "companies");
+                searchWords.forEach(word => {
+                    qSearch = query(qSearch, where(`searchTokens.${word}`, "==", true));
+                });
+
+                if (isLoadMore && compLastVisible) {
+                    qSearch = query(qSearch, startAfter(compLastVisible), limit(6));
+                } else {
+                    qSearch = query(qSearch, limit(6));
+                }
+
+                const snapSearch = await getDocs(qSearch);
+
+                if (snapSearch.empty) {
+                    compHasMore = false;
+                    if (isLoadMore && document.getElementById('compScrollLoader')) {
+                        document.getElementById('compScrollLoader').innerText = "End of results";
+                        setTimeout(() => { if(document.getElementById('compScrollLoader')) document.getElementById('compScrollLoader').style.display = 'none'; }, 1000);
+                    } else if (!isLoadMore) {
+                        resultsBox.innerHTML = '<div style="color:var(--text-secondary); padding: 10px; text-align:center; width: 100%; grid-column: 1 / -1;">No matching companies found.</div>';
+                    }
+                    compIsFetching = false;
+                    return;
+                }
+
+                compLastVisible = snapSearch.docs[snapSearch.docs.length - 1];
+
+                if (!isLoadMore) resultsBox.innerHTML = '';
+                if (isLoadMore && document.getElementById('compScrollLoader')) document.getElementById('compScrollLoader').remove();
+
+                snapSearch.forEach(doc => {
+                    const data = doc.data();
+                    const compData = encodeURIComponent(JSON.stringify({id: doc.id, name: data.name, balance: data.balance || 0}));
+                    
+                    resultsBox.innerHTML += `
+                        <div class="company-card" onclick="openPaymentModal('${compData}')">
+                            <h3>${data.name}</h3>
+                            <p><span>ID: ${data.companyId || 'N/A'}</span></p>
+                            <p><span>Pending: <span class="bal">₹${(data.balance || 0).toLocaleString()}</span></span></p>
+                            <p><span>Total Paid: <span class="paid">₹${(data.totalPaid || 0).toLocaleString()}</span></span></p>
+                        </div>
+                    `;
+                });
+
+            } catch (err) {
+                console.error("Search error", err);
+                if (!isLoadMore) resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding: 20px; width: 100%; grid-column: 1 / -1;">Search Failed</div>';
+            } finally {
+                compIsFetching = false;
+            }
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const val = e.target.value.toLowerCase().trim();
+            
+            if(val.length === 0) { 
+                resultsBox.innerHTML = ''; 
+                return; 
+            }
+
+            searchTimeout = setTimeout(() => {
+                compCurrentTerm = val;
+                searchCompanies(false);
+            }, 400);
+        });
+
+        // --- INFINITE SCROLL LISTENER ---
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+                if (compCurrentTerm.length > 0) {
+                    searchCompanies(true);
+                }
+            }
         });
 
 
