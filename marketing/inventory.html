@@ -8,78 +8,9 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b111a">
     
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" id="material-symbols-font" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <script>
-        // --- ENTERPRISE FIX: 0ms Local Storage Asset Caching System ---
-        (function() {
-            // 1. Vector Icons (Font) Cache Manager
-            const CACHE_KEY_FONT = 'enterprise_material_icons_v1';
-            const cachedFont = localStorage.getItem(CACHE_KEY_FONT);
-            
-            if (cachedFont) {
-                // Instantly inject cached SVG-based vector font
-                const style = document.createElement('style');
-                style.innerHTML = cachedFont;
-                document.head.appendChild(style);
-                
-                // Prevent duplicate network request to force 0ms load
-                document.addEventListener('DOMContentLoaded', () => {
-                    const fontLink = document.getElementById('material-symbols-font');
-                    if (fontLink) fontLink.removeAttribute('href');
-                });
-            } else {
-                // Fetch, convert to Base64, and cache into LocalStorage
-                fetch('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200')
-                    .then(res => res.text())
-                    .then(css => {
-                        const urls = css.match(/url\((https:\/\/[^)]+)\)/g);
-                        if (urls && urls.length > 0) {
-                            const fontUrl = urls[0].match(/url\((https:\/\/[^)]+)\)/)[1];
-                            fetch(fontUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                        const finalCss = css.replace(fontUrl, reader.result);
-                                        localStorage.setItem(CACHE_KEY_FONT, finalCss);
-                                    };
-                                    reader.readAsDataURL(blob);
-                                });
-                        }
-                    }).catch(e => console.warn('Vector cache failed:', e));
-            }
-
-            // 2. Icon Image Cache Manager
-            const ICON_KEY = 'enterprise_app_icon_v1';
-            const cachedIcon = localStorage.getItem(ICON_KEY);
-            window.appIconBase64 = cachedIcon;
-
-            if (!cachedIcon) {
-                fetch('icon.png').then(res => res.blob()).then(blob => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        localStorage.setItem(ICON_KEY, reader.result);
-                        window.appIconBase64 = reader.result;
-                        applyCachedImages();
-                    };
-                    reader.readAsDataURL(blob);
-                }).catch(e => console.warn('Image cache failed:', e));
-            }
-
-            function applyCachedImages() {
-                if (window.appIconBase64) {
-                    document.querySelectorAll('.logo-img, .install-img').forEach(img => {
-                        img.src = window.appIconBase64;
-                    });
-                }
-            }
-
-            document.addEventListener('DOMContentLoaded', applyCachedImages);
-        })();
-    </script>
-
     <style>
         /* Shared Core Theme - Professional Midnight Blue, Teal & Emerald Palette */
         :root {
@@ -122,6 +53,19 @@
             -ms-user-select: none; /* IE10+/Edge */
             user-select: none; /* Standard */
             -webkit-touch-callout: none; /* iOS Safari */
+        }
+
+        /* Enterprise SVG Integration Styling */
+        .material-symbols-outlined {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .material-symbols-outlined svg {
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         /* Standard Header with Glassmorphism */
@@ -312,6 +256,47 @@
     </style>
 </head>
 <body>
+
+    <script>
+        // Enterprise SVG Local Storage Injector for 0ms Load
+        class SVGCacheManager {
+            static async inject() {
+                const elements = document.querySelectorAll('.material-symbols-outlined');
+                const cache = JSON.parse(localStorage.getItem('app_svg_icons') || '{}');
+                let cacheUpdated = false;
+
+                for (let el of elements) {
+                    if (el.children.length > 0 && el.children[0].tagName.toLowerCase() === 'svg') continue;
+                    
+                    const iconName = el.getAttribute('data-icon') || el.innerText.trim();
+                    if (!iconName || iconName.includes('<span') || iconName.includes('<div')) continue;
+                    
+                    el.setAttribute('data-icon', iconName);
+
+                    if (cache[iconName]) {
+                        el.innerHTML = cache[iconName];
+                    } else {
+                        try {
+                            const res = await fetch(`https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/${iconName}/default/24px.svg`);
+                            if (res.ok) {
+                                let svgText = await res.text();
+                                cache[iconName] = svgText;
+                                cacheUpdated = true;
+                                el.innerHTML = svgText;
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to load SVG for ${iconName}`, e);
+                        }
+                    }
+                }
+                if (cacheUpdated) {
+                    localStorage.setItem('app_svg_icons', JSON.stringify(cache));
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', SVGCacheManager.inject);
+        window.updateIcons = SVGCacheManager.inject;
+    </script>
 
     <div class="toast-msg error" id="errorToast">
         <span class="material-symbols-outlined">error</span>
@@ -715,6 +700,7 @@
             }
             
             container.innerHTML = html;
+            if(window.updateIcons) window.updateIcons();
         }
 
         document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
@@ -751,9 +737,10 @@
 
         // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
         function generateSearchTokens(name, model) {
-            // ENTERPRISE FIX: Strip path-breaking characters like '/' to prevent Firestore query crashes
-            const combinedText = `${name || ''} ${model || ''}`.toLowerCase().replace(/[\/\\.~*\[\]]/g, ' ');
-            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
+            // FIX: Replace restricted Firebase characters (. / \ ~ * [ ]) to avoid path errors
+            const sanitizedText = combinedText.replace(/[.\/\\~*\[\]]/g, ' ');
+            const wordsArray = sanitizedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
             const tokenMap = {};
             wordsArray.forEach(word => {
                 let prefix = '';
@@ -772,6 +759,12 @@
                 const aName = (a.name || '').toLowerCase();
                 const bName = (b.name || '').toLowerCase();
                 
+                // Identify non-stick products
+                // const nonStickRegex = /non[\s\-]?stick/i;
+                // const nonStickRegex = /non[\s\-]?st[io]ck/i; // BUG FIX: Safely catches "non-stock" alongside "non-stick"
+                // const isANonStick = nonStickRegex.test(aName);
+                // const isBNonStick = nonStickRegex.test(bName);
+                
                 // --- NEW ADVANCED LOGIC: Identify out of stock items (Qty 0) to push to bottom ---
                 const isAOutOfStock = (a.qty || 0) === 0;
                 const isBOutOfStock = (b.qty || 0) === 0;
@@ -779,8 +772,12 @@
                 // Identify exact matches (Smart matching)
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
+
+                // 1. Non-stick always goes to the bottom
+                // if (isANonStick && !isBNonStick) return 1;
+                // if (!isANonStick && isBNonStick) return -1;
                 
-                // 1. Out of stock always goes to the bottom
+                // 1. Out of stock always goes to the bottom (Replaces the non-stick logic)
                 if (isAOutOfStock && !isBOutOfStock) return 1;
                 if (!isAOutOfStock && isBOutOfStock) return -1;
                 
@@ -807,6 +804,7 @@
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
+            if(window.updateIcons) window.updateIcons();
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => {
                 toast.classList.remove('show');
@@ -907,6 +905,7 @@
                     btn.style.background = "linear-gradient(135deg, var(--meena-red), #b91c1c)";
                     btn.style.boxShadow = "0 8px 25px rgba(239, 68, 68, 0.4)";
                 }
+                if(window.updateIcons) window.updateIcons();
             } catch (err) {
                 console.error("Failed to load dead stock", err);
                 showToast("Failed to connect to database.", "error");
@@ -969,6 +968,7 @@
                 btn.innerHTML = `<span class="material-symbols-outlined">check_circle</span> Database Cleaned`;
                 btn.style.background = "#334155";
                 btn.style.boxShadow = "none";
+                if(window.updateIcons) window.updateIcons();
                 
                 // Force reset standard UI lists
                 showingLowStock = false;
@@ -981,6 +981,7 @@
                 showToast("Server error during deletion. Try again.", "error");
                 btn.disabled = false;
                 btn.innerHTML = `<span class="material-symbols-outlined">delete_forever</span> Retry Deletion`;
+                if(window.updateIcons) window.updateIcons();
             }
         };
 
@@ -1117,6 +1118,7 @@
                 if (historySentenceDiv) historySentenceDiv.style.display = 'none';
             }
 
+            if(window.updateIcons) window.updateIcons();
             openModal('modalProductInfo');
         };
 
@@ -1234,6 +1236,7 @@
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerHTML = originalText;
+                if(window.updateIcons) window.updateIcons();
             }
         });
 
@@ -1322,9 +1325,8 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    // ENTERPRISE FIX: Double sanitize before Firestore query
-                    const safeSearchTerm = currentSearchTerm.replace(/[\/\\.~*\[\]]/g, ' ');
-                    const searchWords = safeSearchTerm.split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    // FIX: Replace restricted Firebase characters to avoid path parsing crash during search query formulation
+                    const searchWords = currentSearchTerm.toLowerCase().replace(/[.\/\\~*\[\]]/g, ' ').split(/[\s\-_]+/).filter(w => w.trim().length > 0);
                     
                     q = collection(db, "inventory");
                     
@@ -1366,8 +1368,10 @@
                     if (isLoadMore && document.getElementById('scrollLoader')) {
                         document.getElementById('scrollLoader').innerHTML = "<span class='material-symbols-outlined' style='font-size:18px;'>check_circle</span> End of inventory";
                         setTimeout(() => { if(document.getElementById('scrollLoader')) document.getElementById('scrollLoader').style.display = 'none'; }, 2000);
+                        if(window.updateIcons) window.updateIcons();
                     } else if (!isLoadMore) {
                         grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No matching products found.</div>';
+                        if(window.updateIcons) window.updateIcons();
                     }
                     isFetchingMore = false;
                     return;
@@ -1424,6 +1428,7 @@
             const grid = document.getElementById('inventoryGrid');
             if (dataArray.length === 0) {
                 grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No matching products found.</div>';
+                if(window.updateIcons) window.updateIcons();
                 return;
             }
 
@@ -1474,6 +1479,7 @@
                 `;
             });
             grid.innerHTML = htmlBuffer; 
+            if(window.updateIcons) window.updateIcons();
         }
 
         // --- NEW RENDER APPEND METHOD (PREVENTS SCROLL JUMPING) ---
@@ -1528,6 +1534,7 @@
                 `;
             });
             grid.insertAdjacentHTML('beforeend', htmlBuffer);
+            if(window.updateIcons) window.updateIcons();
         }
 
         // --- MODIFIED Low Stock Filter Logic (Now Uses Pagination Engine) ---
@@ -1566,9 +1573,7 @@
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
-                // ENTERPRISE FIX: Sanitize input live to prevent path-breaking characters in Firestore
-                const rawTerm = e.target.value.toLowerCase().trim();
-                const term = rawTerm.replace(/[\/\\.~*\[\]]/g, ' ');
+                const term = e.target.value.toLowerCase().trim();
                 
                 // --- NEW PAGINATED SEARCH LOGIC ---
                 currentSearchTerm = term;
@@ -1624,7 +1629,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs[0]; // ENTERPRISE FIX: Correctly access the first document in the array
+                        const existingDoc = snap.docs[0]; // FIX: Access the first document properly
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1636,6 +1641,7 @@
                         } else {
                             btnAdd.disabled = false;
                             btnAdd.innerHTML = originalText;
+                            if(window.updateIcons) window.updateIcons();
                             return; 
                         }
                     }
@@ -1670,6 +1676,7 @@
             } finally {
                 btnAdd.disabled = false;
                 btnAdd.innerHTML = originalText;
+                if(window.updateIcons) window.updateIcons();
             }
         });
 
@@ -1687,6 +1694,7 @@
                 list.innerHTML = '<div style="padding: 25px; text-align: center; color: var(--text-secondary); font-size: 0.9em; display:flex; flex-direction:column; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size: 2em; opacity: 0.5;">inventory_2</span>List is currently empty</div>';
                 btnSave.disabled = true;
                 btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All to Database`;
+                if(window.updateIcons) window.updateIcons();
                 return;
             }
 
@@ -1711,6 +1719,7 @@
             
             btnSave.disabled = false;
             btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
+            if(window.updateIcons) window.updateIcons();
         }
 
         // Final Save to Firestore
