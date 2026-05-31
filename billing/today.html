@@ -837,18 +837,22 @@
                     }
                     prodSuggHasMore = false; // No pagination needed for the hardcoded NS button
                 } else {
-                    const searchWord = prodSuggCurrentTerm.split(/[\s\-_]+/)[0];
-                    if (!searchWord) {
+                    const searchWords = prodSuggCurrentTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    if (searchWords.length === 0) {
                         resultsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-secondary);">Type a product name or "non stock" to see customers who bought it.</div>';
                         prodSuggIsFetching = false;
                         return;
                     }
 
-                    let q;
+                    let q = collection(db, "inventory");
+                    searchWords.forEach(word => {
+                        q = query(q, where(`searchTokens.${word}`, "==", true));
+                    });
+
                     if (isLoadMore && prodSuggLastVisible) {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(prodSuggLastVisible), limit(15));
+                        q = query(q, startAfter(prodSuggLastVisible), limit(15));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(15));
+                        q = query(q, limit(15));
                     }
 
                     const snap = await getDocs(q);
