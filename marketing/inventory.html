@@ -8,39 +8,78 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b111a">
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" id="material-symbols-font" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <script>
-        // Production Grade 0ms Local Storage Caching
+        // --- ENTERPRISE FIX: 0ms Local Storage Asset Caching System ---
         (function() {
-            // 1. Cache App Logo SVG in Local Storage
-            const appLogoSVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(135deg, var(--accent-color), #0f766e); width: 100%; height: 100%; border-radius: inherit;"><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-size="55" font-weight="bold" font-family="sans-serif">M</text></svg>`;
-            localStorage.setItem('meena_app_icon_svg', appLogoSVG);
-
-            // 2. Cache Material Symbols in Local Storage for 0ms offline-first load
-            const fontUrl = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200";
-            const cachedFont = localStorage.getItem('material_symbols_css');
+            // 1. Vector Icons (Font) Cache Manager
+            const CACHE_KEY_FONT = 'enterprise_material_icons_v1';
+            const cachedFont = localStorage.getItem(CACHE_KEY_FONT);
             
             if (cachedFont) {
+                // Instantly inject cached SVG-based vector font
                 const style = document.createElement('style');
                 style.innerHTML = cachedFont;
                 document.head.appendChild(style);
+                
+                // Prevent duplicate network request to force 0ms load
+                document.addEventListener('DOMContentLoaded', () => {
+                    const fontLink = document.getElementById('material-symbols-font');
+                    if (fontLink) fontLink.removeAttribute('href');
+                });
             } else {
-                fetch(fontUrl)
+                // Fetch, convert to Base64, and cache into LocalStorage
+                fetch('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200')
                     .then(res => res.text())
                     .then(css => {
-                        localStorage.setItem('material_symbols_css', css);
-                        const style = document.createElement('style');
-                        style.innerHTML = css;
-                        document.head.appendChild(style);
-                    }).catch(e => console.warn('Font cache failed', e));
+                        const urls = css.match(/url\((https:\/\/[^)]+)\)/g);
+                        if (urls && urls.length > 0) {
+                            const fontUrl = urls[0].match(/url\((https:\/\/[^)]+)\)/)[1];
+                            fetch(fontUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        const finalCss = css.replace(fontUrl, reader.result);
+                                        localStorage.setItem(CACHE_KEY_FONT, finalCss);
+                                    };
+                                    reader.readAsDataURL(blob);
+                                });
+                        }
+                    }).catch(e => console.warn('Vector cache failed:', e));
             }
+
+            // 2. Icon Image Cache Manager
+            const ICON_KEY = 'enterprise_app_icon_v1';
+            const cachedIcon = localStorage.getItem(ICON_KEY);
+            window.appIconBase64 = cachedIcon;
+
+            if (!cachedIcon) {
+                fetch('icon.png').then(res => res.blob()).then(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        localStorage.setItem(ICON_KEY, reader.result);
+                        window.appIconBase64 = reader.result;
+                        applyCachedImages();
+                    };
+                    reader.readAsDataURL(blob);
+                }).catch(e => console.warn('Image cache failed:', e));
+            }
+
+            function applyCachedImages() {
+                if (window.appIconBase64) {
+                    document.querySelectorAll('.logo-img, .install-img').forEach(img => {
+                        img.src = window.appIconBase64;
+                    });
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', applyCachedImages);
         })();
     </script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         /* Shared Core Theme - Professional Midnight Blue, Teal & Emerald Palette */
         :root {
@@ -285,8 +324,7 @@
 
     <header>
         <div class="brand-container">
-            <div id="headerLogoContainer" class="logo-img" style="box-shadow: var(--shadow-md); border-radius: 10px; overflow: hidden;"></div>
-            <script>document.getElementById('headerLogoContainer').innerHTML = localStorage.getItem('meena_app_icon_svg') || '';</script>
+            <img src="icon.png" alt="Icon" class="logo-img">
             <div class="brand-text">
                 <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
                 <span class="goorac">Powered by Goorac</span>
@@ -300,8 +338,7 @@
     </header>
 
     <div id="installPopup">
-        <div id="installLogoContainer" class="install-img" style="border-radius: 10px; overflow: hidden;"></div>
-        <script>document.getElementById('installLogoContainer').innerHTML = localStorage.getItem('meena_app_icon_svg') || '';</script>
+        <img src="icon.png" alt="App Icon" class="install-img">
         <div class="install-text">
             <h4>Install Quantum App</h4>
             <p>Add to homescreen for offline access</p>
@@ -714,9 +751,9 @@
 
         // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
         function generateSearchTokens(name, model) {
-            const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
-            // FIX: Added \/, \[, \], ~, *, and . to safely strip out invalid Firestore path characters
-            const wordsArray = combinedText.split(/[\s\-_\/\[\]~*.]+/).filter(word => word.trim().length > 0);
+            // ENTERPRISE FIX: Strip path-breaking characters like '/' to prevent Firestore query crashes
+            const combinedText = `${name || ''} ${model || ''}`.toLowerCase().replace(/[\/\\.~*\[\]]/g, ' ');
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
             const tokenMap = {};
             wordsArray.forEach(word => {
                 let prefix = '';
@@ -735,12 +772,6 @@
                 const aName = (a.name || '').toLowerCase();
                 const bName = (b.name || '').toLowerCase();
                 
-                // Identify non-stick products
-                // const nonStickRegex = /non[\s\-]?stick/i;
-                // const nonStickRegex = /non[\s\-]?st[io]ck/i; // BUG FIX: Safely catches "non-stock" alongside "non-stick"
-                // const isANonStick = nonStickRegex.test(aName);
-                // const isBNonStick = nonStickRegex.test(bName);
-                
                 // --- NEW ADVANCED LOGIC: Identify out of stock items (Qty 0) to push to bottom ---
                 const isAOutOfStock = (a.qty || 0) === 0;
                 const isBOutOfStock = (b.qty || 0) === 0;
@@ -748,12 +779,8 @@
                 // Identify exact matches (Smart matching)
                 const isAExact = term && (aName === term || (a.model || '').toLowerCase() === term);
                 const isBExact = term && (bName === term || (b.model || '').toLowerCase() === term);
-
-                // 1. Non-stick always goes to the bottom
-                // if (isANonStick && !isBNonStick) return 1;
-                // if (!isANonStick && isBNonStick) return -1;
                 
-                // 1. Out of stock always goes to the bottom (Replaces the non-stick logic)
+                // 1. Out of stock always goes to the bottom
                 if (isAOutOfStock && !isBOutOfStock) return 1;
                 if (!isAOutOfStock && isBOutOfStock) return -1;
                 
@@ -1295,8 +1322,9 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    // FIX: Added \/, \[, \], ~, *, and . to safely strip out invalid Firestore path characters
-                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_\/\[\]~*.]+/).filter(w => w.trim().length > 0);
+                    // ENTERPRISE FIX: Double sanitize before Firestore query
+                    const safeSearchTerm = currentSearchTerm.replace(/[\/\\.~*\[\]]/g, ' ');
+                    const searchWords = safeSearchTerm.split(/[\s\-_]+/).filter(w => w.trim().length > 0);
                     
                     q = collection(db, "inventory");
                     
@@ -1538,7 +1566,9 @@
         document.getElementById('searchInventory').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
-                const term = e.target.value.toLowerCase().trim();
+                // ENTERPRISE FIX: Sanitize input live to prevent path-breaking characters in Firestore
+                const rawTerm = e.target.value.toLowerCase().trim();
+                const term = rawTerm.replace(/[\/\\.~*\[\]]/g, ' ');
                 
                 // --- NEW PAGINATED SEARCH LOGIC ---
                 currentSearchTerm = term;
@@ -1594,7 +1624,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs[0]; // FIX: Restored [0] to correctly access the first document
+                        const existingDoc = snap.docs[0]; // ENTERPRISE FIX: Correctly access the first document in the array
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
