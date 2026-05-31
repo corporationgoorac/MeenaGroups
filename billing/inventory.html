@@ -55,6 +55,19 @@
             -webkit-touch-callout: none; /* iOS Safari */
         }
 
+        /* Enterprise SVG Integration Styling */
+        .material-symbols-outlined {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .material-symbols-outlined svg {
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
         /* Standard Header with Glassmorphism */
         header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
         .brand-container { display: flex; align-items: center; gap: 14px; }
@@ -254,6 +267,47 @@
     </style>
 </head>
 <body>
+
+    <script>
+        // Enterprise SVG Local Storage Injector for 0ms Load
+        class SVGCacheManager {
+            static async inject() {
+                const elements = document.querySelectorAll('.material-symbols-outlined');
+                const cache = JSON.parse(localStorage.getItem('app_svg_icons') || '{}');
+                let cacheUpdated = false;
+
+                for (let el of elements) {
+                    if (el.children.length > 0 && el.children[0].tagName.toLowerCase() === 'svg') continue;
+                    
+                    const iconName = el.getAttribute('data-icon') || el.innerText.trim();
+                    if (!iconName || iconName.includes('<span') || iconName.includes('<div')) continue;
+                    
+                    el.setAttribute('data-icon', iconName);
+
+                    if (cache[iconName]) {
+                        el.innerHTML = cache[iconName];
+                    } else {
+                        try {
+                            const res = await fetch(`https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/${iconName}/default/24px.svg`);
+                            if (res.ok) {
+                                let svgText = await res.text();
+                                cache[iconName] = svgText;
+                                cacheUpdated = true;
+                                el.innerHTML = svgText;
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to load SVG for ${iconName}`, e);
+                        }
+                    }
+                }
+                if (cacheUpdated) {
+                    localStorage.setItem('app_svg_icons', JSON.stringify(cache));
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', SVGCacheManager.inject);
+        window.updateIcons = SVGCacheManager.inject;
+    </script>
 
     <div class="toast-msg error" id="errorToast">
         <span class="material-symbols-outlined">error</span>
@@ -669,6 +723,7 @@
             }
             
             container.innerHTML = html;
+            if(window.updateIcons) window.updateIcons();
         }
 
         document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
@@ -722,7 +777,8 @@
         // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
         function generateSearchTokens(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
-            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const sanitizedText = combinedText.replace(/[.\/\\~*\[\]]/g, ' ');
+            const wordsArray = sanitizedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
             const tokenMap = {};
             wordsArray.forEach(word => {
                 let prefix = '';
@@ -776,6 +832,7 @@
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
+            if(window.updateIcons) window.updateIcons();
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => {
                 toast.classList.remove('show');
@@ -826,6 +883,7 @@
                 procIcon.style.color = 'var(--success-color)';
                 procTitle.innerText = 'Already processed correctly';
                 procCloseBtn.style.display = 'block';
+                if(window.updateIcons) window.updateIcons();
                 openModal('modalProcessing');
                 return;
             }
@@ -836,6 +894,7 @@
             procIcon.style.color = 'var(--accent-color)';
             procTitle.innerText = 'Your request is processing.';
             procCloseBtn.style.display = 'none';
+            if(window.updateIcons) window.updateIcons();
             openModal('modalProcessing');
 
             try {
@@ -859,6 +918,7 @@
                 procIcon.classList.remove('spin-anim');
                 procIcon.style.color = 'var(--success-color)';
                 procTitle.innerText = 'Request Processed Successfully!';
+                if(window.updateIcons) window.updateIcons();
                 
                 // Auto close after brief moment
                 setTimeout(() => {
@@ -874,6 +934,7 @@
                 procIcon.style.color = 'var(--meena-red)';
                 procTitle.innerText = 'Processing Failed.';
                 procCloseBtn.style.display = 'block';
+                if(window.updateIcons) window.updateIcons();
             }
         };
 
@@ -951,6 +1012,7 @@
                     btn.style.background = "linear-gradient(135deg, var(--meena-red), #b91c1c)";
                     btn.style.boxShadow = "0 8px 25px rgba(239, 68, 68, 0.4)";
                 }
+                if(window.updateIcons) window.updateIcons();
             } catch (err) {
                 console.error("Failed to load dead stock", err);
                 showToast("Failed to connect to database.", "error");
@@ -1013,6 +1075,7 @@
                 btn.innerHTML = `<span class="material-symbols-outlined">check_circle</span> Database Cleaned`;
                 btn.style.background = "#334155";
                 btn.style.boxShadow = "none";
+                if(window.updateIcons) window.updateIcons();
                 
                 // Force reset standard UI lists
                 showingLowStock = false;
@@ -1025,6 +1088,7 @@
                 showToast("Server error during deletion. Try again.", "error");
                 btn.disabled = false;
                 btn.innerHTML = `<span class="material-symbols-outlined">delete_forever</span> Retry Deletion`;
+                if(window.updateIcons) window.updateIcons();
             }
         };
 
@@ -1181,6 +1245,7 @@
                 historySentenceDiv.style.display = 'none';
             }
 
+            if(window.updateIcons) window.updateIcons();
             openModal('modalProductInfo');
         };
 
@@ -1311,6 +1376,7 @@
             
             updateEditDropdownLogic(); // Initialize state
 
+            if(window.updateIcons) window.updateIcons();
             openModal('modalEditInventory');
         };
 
@@ -1399,6 +1465,7 @@
             } finally {
                 btnSave.disabled = false;
                 btnSave.innerHTML = originalText;
+                if(window.updateIcons) window.updateIcons();
             }
         });
 
@@ -1488,7 +1555,7 @@
                     }
                 } else if (currentSearchTerm !== '') {
                     // IMPLEMENTED BOOLEAN MULTI-WORD SEARCH ALGORITHM
-                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    const searchWords = currentSearchTerm.toLowerCase().replace(/[.\/\\~*\[\]]/g, ' ').split(/[\s\-_]+/).filter(w => w.trim().length > 0);
                     
                     q = collection(db, "inventory");
                     
@@ -1529,8 +1596,10 @@
                     if (isLoadMore && document.getElementById('scrollLoader')) {
                         document.getElementById('scrollLoader').innerHTML = "<span class='material-symbols-outlined' style='font-size:18px;'>check_circle</span> End of inventory";
                         setTimeout(() => { if(document.getElementById('scrollLoader')) document.getElementById('scrollLoader').style.display = 'none'; }, 2000);
+                        if(window.updateIcons) window.updateIcons();
                     } else if (!isLoadMore) {
                         grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No matching products found.</div>';
+                        if(window.updateIcons) window.updateIcons();
                     }
                     isFetchingMore = false;
                     return;
@@ -1587,6 +1656,7 @@
             const grid = document.getElementById('inventoryGrid');
             if (dataArray.length === 0) {
                 grid.innerHTML = '<div style="text-align:center; color:var(--text-secondary); width:100%; padding:40px; display:flex; flex-direction:column; align-items:center; gap:10px;"><span class="material-symbols-outlined" style="font-size:40px; opacity:0.5;">inventory_2</span> No matching products found.</div>';
+                if(window.updateIcons) window.updateIcons();
                 return;
             }
 
@@ -1630,6 +1700,7 @@
                 `;
             });
             grid.innerHTML = htmlBuffer; 
+            if(window.updateIcons) window.updateIcons();
         }
 
         // --- NEW RENDER APPEND METHOD (PREVENTS SCROLL JUMPING) ---
@@ -1677,6 +1748,7 @@
                 `;
             });
             grid.insertAdjacentHTML('beforeend', htmlBuffer);
+            if(window.updateIcons) window.updateIcons();
         }
 
         // --- Low Stock Filter Logic (Now Uses Pagination Engine) ---
@@ -1770,7 +1842,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs;
+                        const existingDoc = snap.docs[0];
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1782,6 +1854,7 @@
                         } else {
                             btnAdd.disabled = false;
                             btnAdd.innerHTML = originalText;
+                            if(window.updateIcons) window.updateIcons();
                             return; 
                         }
                     }
@@ -1814,6 +1887,7 @@
             } finally {
                 btnAdd.disabled = false;
                 btnAdd.innerHTML = originalText;
+                if(window.updateIcons) window.updateIcons();
             }
         });
 
@@ -1831,6 +1905,7 @@
                 list.innerHTML = '<div style="padding: 25px; text-align: center; color: var(--text-secondary); font-size: 0.9em; display:flex; flex-direction:column; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size: 2em; opacity: 0.5;">inventory_2</span>List is currently empty</div>';
                 btnSave.disabled = true;
                 btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All to Database`;
+                if(window.updateIcons) window.updateIcons();
                 return;
             }
 
@@ -1853,6 +1928,7 @@
             
             btnSave.disabled = false;
             btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
+            if(window.updateIcons) window.updateIcons();
         }
 
         // Final Save to Firestore
