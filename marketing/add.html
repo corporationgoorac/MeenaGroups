@@ -273,7 +273,7 @@
     <script type="module">
         import { db } from './config.js';
         /* ORIGINAL: import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js"; */
-        import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment, deleteField, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW CUSTOM MODAL ENGINE ---
         let alertPromiseResolver = null;
@@ -382,7 +382,13 @@
                 let q;
                 if (searchStr.length > 0) {
                     // Prefix search for specific companies
-                    q = query(collection(db, "companies"), where("name", ">=", searchStr), where("name", "<=", searchStr + '\uf8ff'), limit(20));
+                    /* ORIGINAL: q = query(collection(db, "companies"), where("name", ">=", searchStr), where("name", "<=", searchStr + '\uf8ff'), limit(20)); */
+                    const searchWords = searchStr.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    q = collection(db, "companies");
+                    searchWords.forEach(word => {
+                        q = query(q, where(`searchTokens.${word}`, "==", true));
+                    });
+                    q = query(q, limit(20));
                 } else {
                     // Default view: 10 most recent
                     q = query(collection(db, "companies"), orderBy("createdAt", "desc"), limit(10));
@@ -628,8 +634,113 @@
         const suggestionsBox = document.getElementById('companySuggestions');
 
         let compSearchTimeout; // NEW DEBOUNCE TIMER
-        /* ORIGINAL: searchInput.addEventListener('input', async (e) => { */
-        searchInput.addEventListener('input', (e) => {
+        
+        // --- NEW PAGINATION VARIABLES FOR COMPANY SUGGESTIONS ---
+        let compSuggLastVisible = null;
+        let compSuggIsFetching = false;
+        let compSuggHasMore = true;
+        let compSuggCurrentTerm = '';
+        let compSuggCache = [];
+
+        async function loadCompanySuggestions(isLoadMore = false) {
+            if (isLoadMore) {
+                if (compSuggIsFetching || !compSuggHasMore) return;
+                compSuggIsFetching = true;
+                const loader = document.createElement('div');
+                loader.id = 'compSuggScrollLoader';
+                loader.style.cssText = "padding:10px; text-align:center; color:var(--accent-color); font-size:0.85em; font-weight:bold;";
+                loader.innerText = "Loading more...";
+                suggestionsBox.appendChild(loader);
+            } else {
+                compSuggHasMore = true;
+                compSuggLastVisible = null;
+                compSuggCache = [];
+                compSuggIsFetching = true;
+                suggestionsBox.style.display = 'block';
+                suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">Searching...</div>';
+            }
+
+            try {
+                const searchWords = compSuggCurrentTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                if (searchWords.length === 0) {
+                    suggestionsBox.style.display = 'none';
+                    compSuggIsFetching = false;
+                    return;
+                }
+
+                let q = collection(db, "companies");
+                searchWords.forEach(word => {
+                    q = query(q, where(`searchTokens.${word}`, "==", true));
+                });
+
+                if (isLoadMore && compSuggLastVisible) {
+                    q = query(q, startAfter(compSuggLastVisible), limit(10));
+                } else {
+                    q = query(q, limit(10));
+                }
+
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    compSuggHasMore = false;
+                    if (isLoadMore && document.getElementById('compSuggScrollLoader')) {
+                        document.getElementById('compSuggScrollLoader').innerText = "End of results";
+                        setTimeout(() => { if(document.getElementById('compSuggScrollLoader')) document.getElementById('compSuggScrollLoader').style.display = 'none'; }, 1000);
+                    } else if (!isLoadMore) {
+                        suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No companies found.</div>';
+                    }
+                    compSuggIsFetching = false;
+                    return;
+                }
+
+                compSuggLastVisible = snap.docs[snap.docs.length - 1];
+
+                let newItems = [];
+                snap.forEach(doc => {
+                    if(!compSuggCache.find(i => i.id === doc.id)) {
+                        newItems.push({ id: doc.id, ...doc.data() });
+                    }
+                });
+
+                compSuggCache = compSuggCache.concat(newItems);
+
+                if (isLoadMore) {
+                    if (document.getElementById('compSuggScrollLoader')) document.getElementById('compSuggScrollLoader').remove();
+                    renderCompanySuggestionsAppend(newItems);
+                } else {
+                    suggestionsBox.innerHTML = '';
+                    renderCompanySuggestionsAppend(newItems);
+                }
+            } catch (error) {
+                console.error("Search error:", error);
+                if (!isLoadMore) suggestionsBox.innerHTML = '<div style="padding:10px; color:var(--meena-red);">Error searching database.</div>';
+            } finally {
+                compSuggIsFetching = false;
+            }
+        }
+
+        function renderCompanySuggestionsAppend(dataArray) {
+            dataArray.forEach(d => {
+                const div = document.createElement('div'); div.className = 'suggestion-item';
+                div.innerText = `${d.name} (Bal: ₹${d.balance})`;
+                div.onclick = () => {
+                    searchInput.value = d.name; document.getElementById('selectedCompanyId').value = d.id;
+                    document.getElementById('selectedCompanyBalance').value = d.balance; suggestionsBox.style.display = 'none';
+                    document.getElementById('sumPrev').innerText = `₹${d.balance.toLocaleString()}`; updateCartSummary();
+                };
+                suggestionsBox.appendChild(div);
+            });
+        }
+
+        // Infinite scroll for suggestions box
+        suggestionsBox.addEventListener('scroll', (e) => {
+            const element = e.target;
+            if (element.scrollHeight - element.scrollTop <= element.clientHeight + 20) {
+                loadCompanySuggestions(true);
+            }
+        });
+
+        /* ORIGINAL: searchInput.addEventListener('input', async (e) => {
             clearTimeout(compSearchTimeout);
             compSearchTimeout = setTimeout(async () => {
                 const val = e.target.value.trim();
@@ -650,6 +761,20 @@
                     suggestionsBox.appendChild(div);
                 });
             }, 400); // 400ms delay
+        }); */
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(compSearchTimeout);
+            const val = e.target.value.trim().toLowerCase();
+            
+            if(val.length < 2) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+
+            compSearchTimeout = setTimeout(() => {
+                compSuggCurrentTerm = val;
+                loadCompanySuggestions(false);
+            }, 400); 
         });
 
         // --- PRODUCT NAME SUGGESTIONS (INVENTORY LOOKUP) ---
@@ -657,8 +782,114 @@
         const productSuggestionsBox = document.getElementById('productSuggestions');
         
         let prodSearchTimeout; // NEW DEBOUNCE TIMER
-        /* ORIGINAL: pNameInput.addEventListener('input', async (e) => { */
-        pNameInput.addEventListener('input', (e) => {
+        
+        // --- NEW PAGINATION VARIABLES FOR PRODUCT SUGGESTIONS ---
+        let prodSuggLastVisible = null;
+        let prodSuggIsFetching = false;
+        let prodSuggHasMore = true;
+        let prodSuggCurrentTerm = '';
+        let prodSuggCache = [];
+
+        async function loadProductSuggestions(isLoadMore = false) {
+            if (isLoadMore) {
+                if (prodSuggIsFetching || !prodSuggHasMore) return;
+                prodSuggIsFetching = true;
+                const loader = document.createElement('div');
+                loader.id = 'prodSuggScrollLoader';
+                loader.style.cssText = "padding:10px; text-align:center; color:var(--accent-color); font-size:0.85em; font-weight:bold;";
+                loader.innerText = "Loading more...";
+                productSuggestionsBox.appendChild(loader);
+            } else {
+                prodSuggHasMore = true;
+                prodSuggLastVisible = null;
+                prodSuggCache = [];
+                prodSuggIsFetching = true;
+                productSuggestionsBox.style.display = 'block';
+                productSuggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">Searching...</div>';
+            }
+
+            try {
+                const searchWords = prodSuggCurrentTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                if (searchWords.length === 0) {
+                    productSuggestionsBox.style.display = 'none';
+                    prodSuggIsFetching = false;
+                    return;
+                }
+
+                let q = collection(db, "inventory");
+                searchWords.forEach(word => {
+                    q = query(q, where(`searchTokens.${word}`, "==", true));
+                });
+
+                if (isLoadMore && prodSuggLastVisible) {
+                    q = query(q, startAfter(prodSuggLastVisible), limit(10));
+                } else {
+                    q = query(q, limit(10));
+                }
+
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    prodSuggHasMore = false;
+                    if (isLoadMore && document.getElementById('prodSuggScrollLoader')) {
+                        document.getElementById('prodSuggScrollLoader').innerText = "End of results";
+                        setTimeout(() => { if(document.getElementById('prodSuggScrollLoader')) document.getElementById('prodSuggScrollLoader').style.display = 'none'; }, 1000);
+                    } else if (!isLoadMore) {
+                        productSuggestionsBox.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">No products found.</div>';
+                    }
+                    prodSuggIsFetching = false;
+                    return;
+                }
+
+                prodSuggLastVisible = snap.docs[snap.docs.length - 1];
+
+                let newItems = [];
+                snap.forEach(doc => {
+                    if(!prodSuggCache.find(i => i.id === doc.id)) {
+                        newItems.push({ id: doc.id, ...doc.data() });
+                    }
+                });
+
+                prodSuggCache = prodSuggCache.concat(newItems);
+
+                if (isLoadMore) {
+                    if (document.getElementById('prodSuggScrollLoader')) document.getElementById('prodSuggScrollLoader').remove();
+                    renderProductSuggestionsAppend(newItems);
+                } else {
+                    productSuggestionsBox.innerHTML = '';
+                    renderProductSuggestionsAppend(newItems);
+                }
+            } catch (error) {
+                console.error("Search error:", error);
+                if (!isLoadMore) productSuggestionsBox.innerHTML = '<div style="padding:10px; color:var(--meena-red);">Error searching database.</div>';
+            } finally {
+                prodSuggIsFetching = false;
+            }
+        }
+
+        function renderProductSuggestionsAppend(dataArray) {
+            dataArray.forEach(d => {
+                const div = document.createElement('div'); div.className = 'suggestion-item';
+                div.innerHTML = `<strong>${d.name}</strong> <small>(${d.model || 'No ID'})</small> - Sell: ₹${d.price}`;
+                div.onclick = () => {
+                    pNameInput.value = d.name; 
+                    document.getElementById('pModel').value = d.model || '';
+                    document.getElementById('pSellingPrice').value = d.price || '';
+                    productSuggestionsBox.style.display = 'none';
+                };
+                productSuggestionsBox.appendChild(div);
+            });
+        }
+
+        // Infinite scroll for suggestions box
+        productSuggestionsBox.addEventListener('scroll', (e) => {
+            const element = e.target;
+            if (element.scrollHeight - element.scrollTop <= element.clientHeight + 20) {
+                loadProductSuggestions(true);
+            }
+        });
+
+        /* ORIGINAL: pNameInput.addEventListener('input', async (e) => {
             clearTimeout(prodSearchTimeout);
             prodSearchTimeout = setTimeout(async () => {
                 const val = e.target.value.trim();
@@ -666,14 +897,7 @@
                 if(val.length < 2) return;
                 
                 try {
-                    /* ORIGINAL: const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5)); */
-                    const searchWords = val.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
-                    let q = collection(db, "inventory");
-                    searchWords.forEach(word => {
-                        q = query(q, where(`searchTokens.${word}`, "==", true));
-                    });
-                    q = query(q, limit(5));
-
+                    const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
                     const snap = await getDocs(q);
                     productSuggestionsBox.innerHTML = '';
                     snap.forEach(doc => {
@@ -690,11 +914,25 @@
                     });
                 } catch (err) { console.error(err); }
             }, 400); // 400ms delay
+        }); */
+        pNameInput.addEventListener('input', (e) => {
+            clearTimeout(prodSearchTimeout);
+            const val = e.target.value.trim().toLowerCase();
+            
+            if(val.length < 2) {
+                productSuggestionsBox.style.display = 'none';
+                return;
+            }
+
+            prodSearchTimeout = setTimeout(() => {
+                prodSuggCurrentTerm = val;
+                loadProductSuggestions(false);
+            }, 400); 
         });
         
         // Hide suggestions on click outside
         document.addEventListener('click', (e) => {
-            if(e.target !== pNameInput) productSuggestionsBox.style.display = 'none';
+            if(e.target !== pNameInput && e.target !== productSuggestionsBox) productSuggestionsBox.style.display = 'none';
         });
 
         // --- PRODUCT MODEL/ID CHECK ---
@@ -706,7 +944,7 @@
                 const q = query(collection(db, "inventory"), where("model", "==", val), limit(1));
                 const snap = await getDocs(q);
                 if(!snap.empty) {
-                    const d = snap.docs.data();
+                    const d = snap.docs[0].data();
                     // Auto-fill existing details to help the user
                     document.getElementById('pName').value = d.name;
                     document.getElementById('pSellingPrice').value = d.price || '';
@@ -817,11 +1055,22 @@
                         
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
-                            const existingInvRef = doc(db, "inventory", invSnap.docs.id);
+                            /* ORIGINAL: const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
+                            const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
                             // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
+                            /* ORIGINAL:
                             batch.update(existingInvRef, { 
                                 qty: increment(item.qty),
                                 price: item.sellingPrice, // Optionally update selling price to newest entry
+                                // ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                                searchTokens: generateSearchTokens(item.name, item.model),
+                                searchKeywords: deleteField()
+                            });
+                            */
+                            batch.update(existingInvRef, { 
+                                qty: increment(item.qty),
+                                price: item.sellingPrice, // Optionally update selling price to newest entry
+                                myRate: item.price, // Save buying price to myRate
                                 /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
                                 searchTokens: generateSearchTokens(item.name, item.model),
                                 searchKeywords: deleteField()
@@ -830,11 +1079,23 @@
                             // Completely new product for inventory! Create it
                             const inventoryRef = doc(collection(db, "inventory"));
                             // Added searchTokens here too
+                            /* ORIGINAL:
                             batch.set(inventoryRef, {
                                 name: item.name,
                                 model: item.model,
                                 qty: item.qty,
                                 price: item.sellingPrice,
+                                createdAt: serverTimestamp(),
+                                // ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                                searchTokens: generateSearchTokens(item.name, item.model)
+                            });
+                            */
+                            batch.set(inventoryRef, {
+                                name: item.name,
+                                model: item.model,
+                                qty: item.qty,
+                                price: item.sellingPrice,
+                                myRate: item.price, // Save buying price to myRate
                                 createdAt: serverTimestamp(),
                                 /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
                                 searchTokens: generateSearchTokens(item.name, item.model)
