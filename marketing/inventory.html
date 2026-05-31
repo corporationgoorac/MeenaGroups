@@ -580,9 +580,8 @@
         // 2. Firebase Imports 
         import { db } from './config.js';
         
-        // --- COMMENTED OUT OLD IMPORT TO ADD PAGINATION (startAfter) ---
-        // import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // --- ADDED deleteField FOR AUTOMATICALLY WIPING OLD ARRAYS ON EDIT ---
+        import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW: FETCH JSON PRODUCT TYPES ---
         let cachedProductTypes = [];
@@ -680,19 +679,21 @@
             loadInventory();
         };
 
-        // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search Fixed) ---
-        function generateKeywords(name, model) {
+        // --- THE "BOOLEAN MAP" LOGIC FOR 100% SERVER-SIDE SEARCH ---
+        function generateSearchTokens(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
-            const prefixes = new Set();
+            const tokenMap = {};
+            
             wordsArray.forEach(word => {
                 let prefix = '';
                 for (let i = 0; i < word.length; i++) {
                     prefix += word[i];
-                    prefixes.add(prefix);
+                    tokenMap[prefix] = true; 
                 }
             });
-            return [...prefixes];
+            
+            return tokenMap;
         }
 
         // --- ADVANCED SMART SORTING ALGORITHM ---
@@ -743,7 +744,7 @@
 
         // Toast Helpers
         window.showToast = function(msg, type = "error") {
-            vibrateApp(type === "error" ? [50, 50, 100] : [40, 50]);
+            vibrateApp(type === "error" ? :);
             const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
             document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
             toast.style.display = 'flex';
@@ -803,7 +804,7 @@
 
             if (currentAdminPin.length === 4) {
                 if (currentAdminPin === CORRECT_PIN) {
-                    vibrateApp([30, 50]);
+                    vibrateApp();
                     setTimeout(unlockAdminDashboard, 200);
                 } else {
                     showToast("Incorrect PIN. Access Denied.", "error");
@@ -855,7 +856,7 @@
         }
 
         window.triggerMassDelete = async function() {
-            vibrateApp([100, 50, 100, 50, 200]);
+            vibrateApp();
             const countStr = document.getElementById('deadStockCount').innerText;
             const count = parseInt(countStr);
             if (isNaN(count) || count === 0) return;
@@ -1148,7 +1149,8 @@
                     myRate: newMyRate,
                     price: newPrice,
                     qty: newQty,
-                    searchKeywords: generateKeywords(newName, newModel), 
+                    searchTokens: generateSearchTokens(newName, newModel), // NEW TOKEN MAP
+                    searchKeywords: deleteField(), // AUTOMATICALLY WIPES OLD ARRAYS
                     previousQty: oldQty,
                     previousMrp: oldMrp,
                     previousPrice: oldPrice,
@@ -1261,12 +1263,20 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    // NEW: 100% SERVER-SIDE MAP-BASED SEARCH 
+                    let searchWords = currentSearchTerm.split(/[\s\-_]+/).filter(w => w.length > 0);
+                    q = collection(db, "inventory");
+                    
+                    searchWords.forEach(word => {
+                        q = query(q, where(`searchTokens.${word}`, "==", true));
+                    });
+
+                    if (currentTypeFilter) q = query(q, ...typeFilter);
+
                     if (isLoadMore && lastVisibleItem) {
-                        // NO orderBy here to avoid requiring composite indexes for search
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, startAfter(lastVisibleItem), limit(10));
+                        q = query(q, startAfter(lastVisibleItem), limit(10));
                     } else {
-                        q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), ...typeFilter, limit(10));
+                        q = query(q, limit(10));
                     }
                 } else {
                     if (currentTypeFilter) {
@@ -1548,7 +1558,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs[0];
+                        const existingDoc = snap.docs;
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
@@ -1639,7 +1649,7 @@
 
         // Final Save to Firestore
         document.getElementById('btnSaveInventory').addEventListener('click', async () => {
-            vibrateApp([50, 50]);
+            vibrateApp();
             if (pendingCart.length === 0) return;
             
             const btnSave = document.getElementById('btnSaveInventory');
@@ -1668,7 +1678,7 @@
                             myRate: item.myRate,
                             price: item.price,
                             qty: item.qty,
-                            searchKeywords: generateKeywords(item.name, item.model), // <-- ADDED KEYWORD GENERATION
+                            searchTokens: generateSearchTokens(item.name, item.model), // NEW BOOLEAN MAP
                             createdAt: serverTimestamp()
                         });
                     }
