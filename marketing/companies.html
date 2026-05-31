@@ -111,31 +111,34 @@
         .company-card:hover { background: #2a2a2a; border-color: #555; transform: translateY(-3px); }
         .company-card:active { transform: translateY(0); }
         
-        .avatar-circle { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 1.5em; font-weight: bold; text-transform: uppercase; }
+        .avatar-circle { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 1.5em; font-weight: bold; text-transform: uppercase; flex-shrink: 0; }
         
-        .c-info { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
-        .c-name { font-weight: bold; font-size: 1.2em; color: var(--marketing-white); }
-        .c-id { font-size: 0.8em; color: var(--text-secondary); }
-        .c-bal { font-size: 1.1em; font-weight: bold; color: var(--meena-red); margin-top: 5px; }
+        /* Updated c-info for massive numbers */
+        .c-info { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; /* Important for text truncation inside flexbox */ }
+        .c-name { font-weight: bold; font-size: 1.2em; color: var(--marketing-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .c-id { font-size: 0.8em; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Used clamp to scale font down naturally if the number gets crazy long, plus word-break to force wrap if it exhausts horizontal space */
+        .c-bal { font-size: clamp(0.9em, 4vw, 1.1em); font-weight: bold; color: var(--meena-red); margin-top: 5px; word-break: break-all; }
 
         /* Slide-in Modal (Profile UI) */
         .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.3s ease-in-out; overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
         .modal.active { right: 0; }
         
-        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
-        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; }
-        .modal-header h2 { margin: 0; font-size: 1.2em; }
+        .modal-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--surface-color); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; flex-shrink: 0;}
+        .close-modal { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 0; flex-shrink: 0;}
+        .modal-header h2 { margin: 0; font-size: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
         .profile-header { display: flex; flex-direction: column; align-items: center; padding: 30px 20px; background: linear-gradient(180deg, var(--surface-color) 0%, var(--bg-color) 100%); border-bottom: 1px solid #333; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 2.5em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .profile-name { font-size: 1.6em; font-weight: 800; color: white; margin-bottom: 5px; text-align: center; }
-        .profile-sub { color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; justify-content: center; align-items: center; font-size: 2.5em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-shrink: 0;}
+        .profile-name { font-size: 1.6em; font-weight: 800; color: white; margin-bottom: 5px; text-align: center; word-break: break-word; }
+        .profile-sub { color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px; text-align: center; }
 
+        /* Update stat row for massive digits */
         .stats-row { display: flex; width: 100%; max-width: 600px; justify-content: space-around; background: var(--nav-bg); padding: 15px 0; border-radius: 12px; border: 1px solid #444; }
-        .stat-item { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 33%; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 33%; padding: 0 5px;}
         .stat-item:not(:last-child) { border-right: 1px solid #444; }
-        .stat-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; }
-        .stat-val { font-size: 1.2em; font-weight: bold; }
+        .stat-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; text-align: center;}
+        .stat-val { font-size: clamp(0.9em, 4vw, 1.2em); font-weight: bold; text-align: center; word-break: break-word; }
         .val-bal { color: var(--meena-red); }
         .val-paid { color: var(--success-color); }
         .val-prod { color: var(--marketing-white); }
@@ -152,12 +155,13 @@
         .date-divider { font-size: 0.85em; font-weight: bold; color: var(--text-secondary); margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .date-divider::after { content: ""; flex-grow: 1; height: 1px; background: #333; }
 
-        .list-card { background: var(--surface-color); padding: 15px; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .list-card-left { display: flex; flex-direction: column; gap: 4px; }
-        .item-title { font-weight: bold; font-size: 1.05em; color: var(--marketing-white); }
+        /* Update list cards for large amounts to wrap instead of breaking table limits */
+        .list-card { background: var(--surface-color); padding: 15px; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;}
+        .list-card-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;}
+        .item-title { font-weight: bold; font-size: 1.05em; color: var(--marketing-white); word-break: break-word;}
         .item-sub { font-size: 0.8em; color: var(--text-secondary); }
-        .item-amt-buy { font-weight: bold; color: var(--meena-red); font-size: 1.1em; }
-        .item-amt-pay { font-weight: bold; color: var(--success-color); font-size: 1.1em; background: rgba(0, 200, 83, 0.1); padding: 5px 10px; border-radius: 6px; }
+        .item-amt-buy { font-weight: bold; color: var(--meena-red); font-size: clamp(1em, 4vw, 1.1em); word-break: break-word; text-align: right;}
+        .item-amt-pay { font-weight: bold; color: var(--success-color); font-size: clamp(1em, 4vw, 1.1em); background: rgba(0, 200, 83, 0.1); padding: 5px 10px; border-radius: 6px; word-break: break-word; text-align: right;}
 
         .load-more-btn { width: 100%; padding: 15px; background: var(--nav-bg); color: var(--accent-color); border: 1px solid #444; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.2s; }
         .load-more-btn:hover { background: #333; }
