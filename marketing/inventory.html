@@ -8,6 +8,10 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0b111a">
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" as="style">
+    
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
@@ -255,7 +259,9 @@
 
     <header>
         <div class="brand-container">
-            <img src="icon.png" alt="Icon" class="logo-img">
+            <svg class="logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(135deg, var(--accent-color), #0f766e);">
+                <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-size="55" font-weight="bold" font-family="sans-serif">M</text>
+            </svg>
             <div class="brand-text">
                 <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
                 <span class="goorac">Powered by Goorac</span>
@@ -269,7 +275,9 @@
     </header>
 
     <div id="installPopup">
-        <img src="icon.png" alt="App Icon" class="install-img">
+        <svg class="install-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(135deg, var(--accent-color), #0f766e);">
+            <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-size="55" font-weight="bold" font-family="sans-serif">M</text>
+        </svg>
         <div class="install-text">
             <h4>Install Quantum App</h4>
             <p>Add to homescreen for offline access</p>
@@ -683,7 +691,8 @@
         // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
         function generateSearchTokens(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
-            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            // FIX: Added \/, \[, \], ~, *, and . to safely strip out invalid Firestore path characters
+            const wordsArray = combinedText.split(/[\s\-_\/\[\]~*.]+/).filter(word => word.trim().length > 0);
             const tokenMap = {};
             wordsArray.forEach(word => {
                 let prefix = '';
@@ -1262,7 +1271,8 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    // FIX: Added \/, \[, \], ~, *, and . to safely strip out invalid Firestore path characters
+                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_\/\[\]~*.]+/).filter(w => w.trim().length > 0);
                     
                     q = collection(db, "inventory");
                     
@@ -1560,7 +1570,7 @@
                     const snap = await getDocs(q);
                     
                     if (!snap.empty) {
-                        const existingDoc = snap.docs; // FIX: Added to access the first document instead of the array
+                        const existingDoc = snap.docs[0]; // FIX: Added [0] to correctly access the first document
                         const existingData = existingDoc.data();
                         
                         const confirmUpdate = await openConfirmModal("Duplicate Product", `Product with Model ID "${model}" already exists as "${existingData.name}" (Current Qty: ${existingData.qty}). Do you want to add +${qty} to this existing product instead of creating a new one?`, false, "", "var(--warning-color)", "Update Existing");
