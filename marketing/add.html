@@ -272,7 +272,8 @@
 
     <script type="module">
         import { db } from './config.js';
-        import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        /* ORIGINAL: import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js"; */
+        import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW CUSTOM MODAL ENGINE ---
         let alertPromiseResolver = null;
@@ -332,6 +333,7 @@
 
         // --- NEW HELPER FOR SERVER-SIDE KEYWORDS (Prefix Search) ---
         // I injected this directly above your logic to ensure everything functions perfectly
+        /* ORIGINAL PRESERVED:
         function generateKeywords(text1, text2) {
             const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
@@ -344,6 +346,20 @@
                 }
             });
             return [...prefixes];
+        }
+        */
+        function generateSearchTokens(name, model) {
+            const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const tokenMap = {};
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    tokenMap[prefix] = true;
+                }
+            });
+            return tokenMap;
         }
 
         // --- MODAL & HISTORY API LOGIC ---
@@ -454,7 +470,7 @@
             try {
                 const batch = writeBatch(db);
                 
-                // 1. Update Company Doc (Now includes searchKeywords update)
+                // 1. Update Company Doc (Now includes searchTokens update)
                 const compRef = doc(db, "companies", id);
                 batch.update(compRef, {
                     name: updatedName,
@@ -463,7 +479,9 @@
                     mobile: document.getElementById('eMobile').value.trim(),
                     balance: newBalance,
                     totalBilled: increment(diff), // Assume balance change is a billing adjustment
-                    searchKeywords: generateKeywords(updatedName, updatedId) // <-- INJECTED HERE
+                    /* ORIGINAL: searchKeywords: generateKeywords(updatedName, updatedId) // <-- INJECTED HERE */
+                    searchTokens: generateSearchTokens(updatedName, updatedId),
+                    searchKeywords: deleteField()
                 });
 
                 // 2. Adjust Metadata if balance changed
@@ -579,11 +597,12 @@
 
                 const batch = writeBatch(db);
                 const newCompRef = doc(collection(db, "companies"));
-                // Added searchKeywords here
+                // Added searchTokens here
                 batch.set(newCompRef, {
                     name, companyId: cid, location, mobile, balance,
                     totalBilled: balance, totalPaid: 0, createdAt: serverTimestamp(),
-                    searchKeywords: generateKeywords(name, cid) // <-- INJECTED HERE
+                    /* ORIGINAL: searchKeywords: generateKeywords(name, cid) // <-- INJECTED HERE */
+                    searchTokens: generateSearchTokens(name, cid)
                 });
 
                 const metaRef = doc(db, "metadata", "dashboard");
@@ -647,7 +666,14 @@
                 if(val.length < 2) return;
                 
                 try {
-                    const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+                    /* ORIGINAL: const q = query(collection(db, "inventory"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5)); */
+                    const searchWords = val.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    let q = collection(db, "inventory");
+                    searchWords.forEach(word => {
+                        q = query(q, where(`searchTokens.${word}`, "==", true));
+                    });
+                    q = query(q, limit(5));
+
                     const snap = await getDocs(q);
                     productSuggestionsBox.innerHTML = '';
                     snap.forEach(doc => {
@@ -680,7 +706,7 @@
                 const q = query(collection(db, "inventory"), where("model", "==", val), limit(1));
                 const snap = await getDocs(q);
                 if(!snap.empty) {
-                    const d = snap.docs[0].data();
+                    const d = snap.docs.data();
                     // Auto-fill existing details to help the user
                     document.getElementById('pName').value = d.name;
                     document.getElementById('pSellingPrice').value = d.price || '';
@@ -768,12 +794,13 @@
                 
                 // Process each cart item safely
                 for (const item of cart) {
-                    // 2. Save full detail to products_sold (Always unique) - Added searchKeywords
+                    // 2. Save full detail to products_sold (Always unique) - Added searchTokens
                     batch.set(doc(collection(db, "products_sold")), { 
                         ...item, 
                         companyId: compId, 
                         date: serverTimestamp(),
-                        searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                        /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
+                        searchTokens: generateSearchTokens(item.name, item.model)
                     }); 
                     
                     /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
@@ -790,24 +817,27 @@
                         
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
-                            const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
-                            // Added searchKeywords update to catch name/model corrections
+                            const existingInvRef = doc(db, "inventory", invSnap.docs.id);
+                            // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
                             batch.update(existingInvRef, { 
                                 qty: increment(item.qty),
                                 price: item.sellingPrice, // Optionally update selling price to newest entry
-                                searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                                /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
+                                searchTokens: generateSearchTokens(item.name, item.model),
+                                searchKeywords: deleteField()
                             });
                         } else {
                             // Completely new product for inventory! Create it
                             const inventoryRef = doc(collection(db, "inventory"));
-                            // Added searchKeywords here too
+                            // Added searchTokens here too
                             batch.set(inventoryRef, {
                                 name: item.name,
                                 model: item.model,
                                 qty: item.qty,
                                 price: item.sellingPrice,
                                 createdAt: serverTimestamp(),
-                                searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE
+                                /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
+                                searchTokens: generateSearchTokens(item.name, item.model)
                             });
                         }
                     }
