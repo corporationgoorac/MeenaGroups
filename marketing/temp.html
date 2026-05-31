@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Migration Tool - Meena Marketing</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-color: #0b111a;
+            --surface-color: #131b26;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .warning-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-left: 4px solid var(--danger-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .warning-banner .material-symbols-outlined {
+            color: var(--danger-color);
+            font-size: 32px;
+        }
+
+        .warning-banner h3 { margin: 0 0 5px 0; color: white; }
+        .warning-banner p { margin: 0; font-size: 0.9em; color: #cbd5e1; line-height: 1.5; }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 { margin-top: 0; color: white; display: flex; align-items: center; gap: 10px; }
+
+        .migration-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background: var(--surface-color);
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.active-run {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            animation: pulse 2s infinite;
+        }
+
+        .terminal {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85em;
+            color: #10b981;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .terminal p { margin: 5px 0; }
+        .terminal .log-warn { color: var(--warning-color); }
+        .terminal .log-err { color: var(--danger-color); }
+        .terminal .log-info { color: #38bdf8; }
+
+        .progress-wrapper {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        progress {
+            width: 100%;
+            height: 12px;
+            border-radius: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        progress::-webkit-progress-bar {
+            background-color: #1e293b;
+            border-radius: 6px;
+        }
+
+        progress::-webkit-progress-value {
+            background-color: var(--accent-color);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="warning-banner">
+            <span class="material-symbols-outlined">warning</span>
+            <div>
+                <h3>Database Migration Protocol</h3>
+                <p>This utility will safely loop through your database in chunks of 450, delete the old `searchKeywords` arrays, and build the new high-performance `searchTokens` boolean map. <strong>Do not close this window or refresh the page while a migration is actively running.</strong></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><span class="material-symbols-outlined">database</span> Migration Modules</h2>
+            
+            <div class="migration-controls">
+                <button class="btn" id="btnInventory" onclick="startMigration('inventory', 'name', 'model', 'btnInventory')">
+                    <span>1. Upgrade Inventory Collection</span>
+                    <span class="material-symbols-outlined">play_arrow</span>
+                </button>
+                
+                <button class="btn" id="btnCompanies" onclick="startMigration('companies', 'name', 'companyId', 'btnCompanies')">
+                    <span>2. Upgrade Companies Collection</span>
+                    <span class="material-symbols-outlined">play_arrow</span>
+                </button>
+
+                <button class="btn" id="btnProductsSold" onclick="startMigration('products_sold', 'name', 'model', 'btnProductsSold')">
+                    <span>3. Upgrade Products Sold Collection</span>
+                    <span class="material-symbols-outlined">play_arrow</span>
+                </button>
+            </div>
+
+            <div class="progress-wrapper" id="progressWrapper">
+                <div class="progress-labels">
+                    <span id="progressStatus">Initializing...</span>
+                    <span id="progressCount">0 / 0</span>
+                </div>
+                <progress id="progressBar" value="0" max="100"></progress>
+            </div>
+        </div>
+
+        <div class="terminal" id="terminal">
+            <p class="log-info">> Goorac Systems Migration Tool Initialized.</p>
+            <p>> Awaiting manual start command...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { collection, getDocs, query, limit, doc, writeBatch, deleteField, getCountFromServer, startAfter, documentId, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const terminal = document.getElementById('terminal');
+        const progressBar = document.getElementById('progressBar');
+        const progressWrapper = document.getElementById('progressWrapper');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressCount = document.getElementById('progressCount');
+
+        let isRunning = false;
+
+        function logToTerminal(msg, type = 'normal') {
+            const p = document.createElement('p');
+            p.innerText = `> ${msg}`;
+            if (type === 'warn') p.className = 'log-warn';
+            if (type === 'err') p.className = 'log-err';
+            if (type === 'info') p.className = 'log-info';
+            terminal.appendChild(p);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function toggleButtons(disable) {
+            document.getElementById('btnInventory').disabled = disable;
+            document.getElementById('btnCompanies').disabled = disable;
+            document.getElementById('btnProductsSold').disabled = disable;
+        }
+
+        // --- THE CORE BOOLEAN MAP GENERATOR ---
+        function generateSearchTokens(text1, text2) {
+            const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const tokenMap = {};
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    tokenMap[prefix] = true;
+                }
+            });
+            return tokenMap;
+        }
+
+        // --- THE BATCH MIGRATION ENGINE ---
+        window.startMigration = async function(collectionName, field1, field2, btnId) {
+            if (isRunning) {
+                logToTerminal("A migration is already in progress. Please wait.", "err");
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+            if (!confirm(`Are you ready to migrate the [ ${collectionName} ] collection?`)) return;
+
+            isRunning = true;
+            toggleButtons(true);
+            btn.classList.add('active-run');
+            btn.querySelector('span:last-child').innerText = 'sync';
+            progressWrapper.style.display = 'block';
+
+            logToTerminal(`--- INITIATING MIGRATION: ${collectionName.toUpperCase()} ---`, "info");
+            logToTerminal(`Calculating total document volume...`);
+
+            try {
+                // 1. Get exact total count for the progress bar
+                const collRef = collection(db, collectionName);
+                const snapshotCount = await getCountFromServer(collRef);
+                const totalDocs = snapshotCount.data().count;
+
+                if (totalDocs === 0) {
+                    logToTerminal(`Collection is empty. Nothing to migrate.`, "warn");
+                    finishMigration(btn);
+                    return;
+                }
+
+                logToTerminal(`Found ${totalDocs} documents to process.`, "info");
+                progressBar.max = totalDocs;
+                progressBar.value = 0;
+
+                let processedDocs = 0;
+                let updatedDocs = 0;
+                let lastVisibleDoc = null;
+                let hasMore = true;
+                const BATCH_SIZE = 450; // Extremely safe limit under 500
+
+                // 2. Loop through the database in safe chunks
+                while (hasMore) {
+                    let q = query(collRef, orderBy(documentId()), limit(BATCH_SIZE));
+                    if (lastVisibleDoc) {
+                        q = query(collRef, orderBy(documentId()), startAfter(lastVisibleDoc), limit(BATCH_SIZE));
+                    }
+
+                    const snap = await getDocs(q);
+
+                    if (snap.empty) {
+                        hasMore = false;
+                        break;
+                    }
+
+                    const batch = writeBatch(db);
+                    let opsInCurrentBatch = 0;
+
+                    // 3. Process documents in current chunk
+                    snap.forEach(documentSnap => {
+                        processedDocs++;
+                        const data = documentSnap.data();
+
+                        // SAFETY CHECK: Only update if it has the old array, or is missing the new map
+                        if (data.searchKeywords || !data.searchTokens) {
+                            const val1 = data[field1] || '';
+                            const val2 = data[field2] || '';
+                            
+                            const newTokens = generateSearchTokens(val1, val2);
+
+                            // Strict update (leaves prices/quantities completely untouched)
+                            batch.update(documentSnap.ref, {
+                                searchTokens: newTokens,
+                                searchKeywords: deleteField()
+                            });
+                            
+                            opsInCurrentBatch++;
+                            updatedDocs++;
+                        }
+                    });
+
+                    // 4. Commit the batch if we made changes
+                    if (opsInCurrentBatch > 0) {
+                        await batch.commit();
+                        logToTerminal(`COMMITTED BATCH: Successfully re-mapped ${opsInCurrentBatch} documents.`);
+                    } else {
+                        logToTerminal(`SKIPPED BATCH: All documents in this chunk are already upgraded.`);
+                    }
+
+                    // 5. Update UI Progress
+                    lastVisibleDoc = snap.docs[snap.docs.length - 1];
+                    progressBar.value = processedDocs;
+                    progressCount.innerText = `${processedDocs} / ${totalDocs}`;
+                    progressStatus.innerText = `Processing...`;
+
+                    // 6. Mandatory Cooldown to protect Firebase Quota & Rate limits
+                    await new Promise(resolve => setTimeout(resolve, 500)); 
+                }
+
+                logToTerminal(`--- MIGRATION COMPLETE ---`, "info");
+                logToTerminal(`Total Scanned: ${processedDocs}`);
+                logToTerminal(`Total Upgraded: ${updatedDocs}`);
+                progressStatus.innerText = `Complete`;
+
+            } catch (error) {
+                console.error("Migration Error:", error);
+                logToTerminal(`CRITICAL ERROR: ${error.message}`, "err");
+                progressStatus.innerText = `Error`;
+            }
+
+            finishMigration(btn);
+        };
+
+        function finishMigration(btn) {
+            isRunning = false;
+            toggleButtons(false);
+            btn.classList.remove('active-run');
+            btn.querySelector('span:last-child').innerText = 'check_circle';
+            btn.style.color = 'var(--success-color)';
+            btn.style.borderColor = 'var(--success-color)';
+        }
+
+    </script>
+</body>
+</html>
