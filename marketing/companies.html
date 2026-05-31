@@ -421,7 +421,7 @@
             }
 
             try {
-                let q;
+                let qSearch;
                 const limitCount = 20;
 
                 /* ORIGINAL: 
@@ -446,35 +446,31 @@
                 */
 
                 // Fix: Protect Firebase from throwing an error if search text is just empty spaces
-                const searchWord = currentSearchTerm ? currentSearchTerm.split(/[\s\-_]+/)[0] : "";
+                const searchWords = currentSearchTerm ? currentSearchTerm.split(/[\s\-_]+/).filter(w => w.trim().length > 0) : [];
                 
-                if (searchWord) {
-                    // SERVER-SIDE SEARCH: Using the array-contains strategy we built
+                if (searchWords.length > 0) {
+                    // SERVER-SIDE SEARCH: Using the boolean map strategy we built
+                    qSearch = collection(db, "companies");
+                    searchWords.forEach(word => {
+                        qSearch = query(qSearch, where(`searchTokens.${word}`, "==", true));
+                    });
+
                     if (isLoadMore && lastVisibleCompany) {
-                        q = query(
-                            collection(db, "companies"), 
-                            where("searchKeywords", "array-contains", searchWord), 
-                            startAfter(lastVisibleCompany), 
-                            limit(limitCount)
-                        );
+                        qSearch = query(qSearch, startAfter(lastVisibleCompany), limit(limitCount));
                     } else {
-                        q = query(
-                            collection(db, "companies"), 
-                            where("searchKeywords", "array-contains", searchWord), 
-                            limit(limitCount)
-                        );
+                        qSearch = query(qSearch, limit(limitCount));
                     }
                 } else {
                     // DEFAULT VIEW: Sorted by name alphabetically
                     if (isLoadMore && lastVisibleCompany) {
-                        q = query(
+                        qSearch = query(
                             collection(db, "companies"), 
                             orderBy("name"), 
                             startAfter(lastVisibleCompany), 
                             limit(limitCount)
                         );
                     } else {
-                        q = query(
+                        qSearch = query(
                             collection(db, "companies"), 
                             orderBy("name"), 
                             limit(limitCount)
@@ -482,7 +478,7 @@
                     }
                 }
 
-                const snap = await getDocs(q);
+                const snap = await getDocs(qSearch);
                 
                 if (!isLoadMore) {
                     grid.innerHTML = '';
