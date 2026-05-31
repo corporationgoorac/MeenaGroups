@@ -293,9 +293,24 @@
         // --- NEW IMPORTS ADDED FOR EDIT & DELETE (Preserving original line above) ---
         import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
         // --- NEW IMPORTS ADDED FOR METADATA UPDATE ---
-        import { getDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        // ORIGINAL: import { getDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { getDoc, writeBatch, increment, startAfter, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW HELPER FOR SEARCH KEYWORDS ---
+        // ORIGINAL: function generateKeywords(text1, text2) {
+        // ORIGINAL:     const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
+        // ORIGINAL:     const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+        // ORIGINAL:     const prefixes = new Set();
+        // ORIGINAL:     wordsArray.forEach(word => {
+        // ORIGINAL:         let prefix = '';
+        // ORIGINAL:         for (let i = 0; i < word.length; i++) {
+        // ORIGINAL:             prefix += word[i];
+        // ORIGINAL:             prefixes.add(prefix);
+        // ORIGINAL:         }
+        // ORIGINAL:     });
+        // ORIGINAL:     return [...prefixes];
+        // ORIGINAL: }
+
         function generateKeywords(text1, text2) {
             const combinedText = `${text1 || ''} ${text2 || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
@@ -308,6 +323,21 @@
                 }
             });
             return [...prefixes];
+        }
+
+        // --- INJECTED: NEW BOOLEAN MAP GENERATOR ---
+        function generateSearchTokens(name, model) {
+            const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
+            const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
+            const tokenMap = {};
+            wordsArray.forEach(word => {
+                let prefix = '';
+                for (let i = 0; i < word.length; i++) {
+                    prefix += word[i];
+                    tokenMap[prefix] = true;
+                }
+            });
+            return tokenMap;
         }
 
         let companiesMap = {};
@@ -338,145 +368,290 @@
             }
         }
 
+        // --- NEW PAGINATION VARIABLES ---
+        let searchLastVisible = null;
+        let searchIsFetching = false;
+        let searchHasMore = true;
+        let globalSearchTerm = "";
+
         // --- Search & Render Products (Multi-Field Search Update) ---
-        async function searchProducts(searchTerm = "") {
+        // ORIGINAL: async function searchProducts(searchTerm = "") {
+        // ORIGINAL:     const resultsBox = document.getElementById('searchResults');
+        // ORIGINAL:     resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Fetching inventory...</div>';
+        // ORIGINAL:     
+        // ORIGINAL:     try {
+        // ORIGINAL:         // --- OLD LOCAL SEARCH LOGIC PRESERVED HERE (Commented out to respect "don't remove a line") ---
+        // ORIGINAL:         /*
+        // ORIGINAL:         // Fetch up to 500 recent items ONCE and cache them. 
+        // ORIGINAL:         // This enables us to search across multiple fields instantly via Javascript.
+        // ORIGINAL:         if (!allProductsCache) {
+        // ORIGINAL:             const qAll = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(500));
+        // ORIGINAL:             const snapAll = await getDocs(qAll);
+        // ORIGINAL:             allProductsCache = [];
+        // ORIGINAL:             snapAll.forEach(doc => {
+        // ORIGINAL:                 allProductsCache.push({ id: doc.id, ...doc.data() });
+        // ORIGINAL:             });
+        // ORIGINAL:         }
+        // ORIGINAL: 
+        // ORIGINAL:         let displayData = allProductsCache;
+        // ORIGINAL:         const term = searchTerm.toLowerCase();
+        // ORIGINAL: 
+        // ORIGINAL:         if (term.length > 0) {
+        // ORIGINAL:             document.querySelector('.results-header h3').innerText = "Search Results";
+        // ORIGINAL:             // Advanced Multi-Field Filter
+        // ORIGINAL:             displayData = allProductsCache.filter(data => {
+        // ORIGINAL:                 const compName = (companiesMap[data.companyId] || 'Unknown Source').toLowerCase();
+        // ORIGINAL:                 const pName = (data.name || '').toLowerCase();
+        // ORIGINAL:                 const pModel = (data.model || '').toLowerCase();
+        // ORIGINAL:                 
+        // ORIGINAL:                 // Check if the term is found in Name, Model, OR Company
+        // ORIGINAL:                 return pName.includes(term) || pModel.includes(term) || compName.includes(term);
+        // ORIGINAL:             });
+        // ORIGINAL:         } else {
+        // ORIGINAL:             document.querySelector('.results-header h3').innerText = "Recent Purchases";
+        // ORIGINAL:             displayData = allProductsCache.slice(0, 20); // Only show 20 by default so page doesn't lag
+        // ORIGINAL:         }
+        // ORIGINAL:         */
+        // ORIGINAL: 
+        // ORIGINAL:         // --- NEW SERVER-SIDE SEARCH LOGIC ---
+        // ORIGINAL:         let displayData = [];
+        // ORIGINAL:         const term = searchTerm.toLowerCase().trim();
+        // ORIGINAL: 
+        // ORIGINAL:         if (term.length > 0) {
+        // ORIGINAL:             document.querySelector('.results-header h3').innerText = "Search Results";
+        // ORIGINAL:             const searchWord = term.split(/[\s\-_]+/);
+        // ORIGINAL: 
+        // ORIGINAL:             const qSearch = query(
+        // ORIGINAL:                 collection(db, "products_sold"), 
+        // ORIGINAL:                 where("searchKeywords", "array-contains", searchWord),
+        // ORIGINAL:                 limit(20)
+        // ORIGINAL:             );
+        // ORIGINAL:             const snapSearch = await getDocs(qSearch);
+        // ORIGINAL:             snapSearch.forEach(doc => {
+        // ORIGINAL:                 displayData.push({ id: doc.id, ...doc.data() });
+        // ORIGINAL:             });
+        // ORIGINAL:         } else {
+        // ORIGINAL:             document.querySelector('.results-header h3').innerText = "Recent Purchases";
+        // ORIGINAL:             const qRecent = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(20));
+        // ORIGINAL:             const snapRecent = await getDocs(qRecent);
+        // ORIGINAL:             snapRecent.forEach(doc => {
+        // ORIGINAL:                 displayData.push({ id: doc.id, ...doc.data() });
+        // ORIGINAL:             });
+        // ORIGINAL:         }
+        // ORIGINAL:         // --- END OF NEW SEARCH LOGIC ---
+        // ORIGINAL: 
+        // ORIGINAL:         if (displayData.length === 0) {
+        // ORIGINAL:             resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No matching products found.</div>';
+        // ORIGINAL:             return;
+        // ORIGINAL:         }
+        // ORIGINAL: 
+        // ORIGINAL:         resultsBox.innerHTML = '';
+        // ORIGINAL:         displayData.forEach(data => {
+        // ORIGINAL:             const compName = companiesMap[data.companyId] || 'Unknown Source';
+        // ORIGINAL:             
+        // ORIGINAL:             // Format Date Safely
+        // ORIGINAL:             let dateStr = "Recently";
+        // ORIGINAL:             if (data.date && data.date.toDate) {
+        // ORIGINAL:                 const d = data.date.toDate();
+        // ORIGINAL:                 dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        // ORIGINAL:             }
+        // ORIGINAL: 
+        // ORIGINAL:             // Prepare complete data payload for the modal
+        // ORIGINAL:             const modalData = encodeURIComponent(JSON.stringify({
+        // ORIGINAL:                 id: data.id,
+        // ORIGINAL:                 name: data.name,
+        // ORIGINAL:                 model: data.model || 'N/A',
+        // ORIGINAL:                 qty: data.qty || 1,
+        // ORIGINAL:                 price: data.price || 0,
+        // ORIGINAL:                 sellingPrice: data.sellingPrice || 0,
+        // ORIGINAL:                 total: data.total || 0,
+        // ORIGINAL:                 compName: compName,
+        // ORIGINAL:                 date: dateStr
+        // ORIGINAL:             }));
+        // ORIGINAL: 
+        // ORIGINAL:             /* --- ORIGINAL RENDER PRESERVED HERE ---
+        // ORIGINAL:             resultsBox.innerHTML += `
+        // ORIGINAL:                 <div class="product-card" onclick="openProductModal('${modalData}')">
+        // ORIGINAL:                     <div class="product-info">
+        // ORIGINAL:                         <div class="p-name">${data.name}</div>
+        // ORIGINAL:                         <div class="p-company">
+        // ORIGINAL:                             <span class="material-symbols-outlined">storefront</span>
+        // ORIGINAL:                             ${compName}
+        // ORIGINAL:                         </div>
+        // ORIGINAL:                     </div>
+        // ORIGINAL:                     <div class="p-price-container">
+        // ORIGINAL:                         <div class="p-tag">Buy Price</div>
+        // ORIGINAL:                         <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
+        // ORIGINAL:                     </div>
+        // ORIGINAL:                 </div>
+        // ORIGINAL:             `;
+        // ORIGINAL:             --------------------------------------- */
+        // ORIGINAL: 
+        // ORIGINAL:             // --- NEW RENDER WITH EDIT & DELETE BUTTONS ---
+        // ORIGINAL:             resultsBox.innerHTML += `
+        // ORIGINAL:                 <div class="product-card" onclick="openProductModal('${modalData}')">
+        // ORIGINAL:                     <div class="product-info">
+        // ORIGINAL:                         <div class="p-name">${data.name}</div>
+        // ORIGINAL:                         <div class="p-company">
+        // ORIGINAL:                             <span class="material-symbols-outlined">storefront</span>
+        // ORIGINAL:                             ${compName}
+        // ORIGINAL:                         </div>
+        // ORIGINAL:                         <div class="card-actions">
+        // ORIGINAL:                             <button class="action-btn edit" onclick="event.stopPropagation(); openEditProductModal('${modalData}')" title="Edit"><span class="material-symbols-outlined">edit</span></button>
+        // ORIGINAL:                             <button class="action-btn delete" onclick="event.stopPropagation(); deleteProductRecord('${data.id}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+        // ORIGINAL:                         </div>
+        // ORIGINAL:                     </div>
+        // ORIGINAL:                     <div class="p-price-container">
+        // ORIGINAL:                         <div class="p-tag">Buy Price</div>
+        // ORIGINAL:                         <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
+        // ORIGINAL:                     </div>
+        // ORIGINAL:                 </div>
+        // ORIGINAL:             `;
+        // ORIGINAL:         });
+        // ORIGINAL:     } catch (err) {
+        // ORIGINAL:         console.error("Search error:", err);
+        // ORIGINAL:         resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding:20px;">Error executing search. Check console.</div>';
+        // ORIGINAL:     }
+        // ORIGINAL: }
+
+        // --- FULLY UPGRADED PAGINATED BOOLEAN SEARCH LOGIC ---
+        async function searchProducts(searchTerm = "", isLoadMore = false) {
             const resultsBox = document.getElementById('searchResults');
-            resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Fetching inventory...</div>';
             
+            if (isLoadMore) {
+                if (searchIsFetching || !searchHasMore) return;
+                searchIsFetching = true;
+                const loader = document.createElement('div');
+                loader.id = 'searchScrollLoader';
+                loader.style.cssText = "text-align:center; color:var(--accent-color); padding:20px; font-weight:bold;";
+                loader.innerText = "Loading more...";
+                resultsBox.appendChild(loader);
+            } else {
+                searchHasMore = true;
+                searchLastVisible = null;
+                searchIsFetching = true;
+                globalSearchTerm = searchTerm;
+                resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">Fetching inventory...</div>';
+            }
+
             try {
-                // --- OLD LOCAL SEARCH LOGIC PRESERVED HERE (Commented out to respect "don't remove a line") ---
-                /*
-                // Fetch up to 500 recent items ONCE and cache them. 
-                // This enables us to search across multiple fields instantly via Javascript.
-                if (!allProductsCache) {
-                    const qAll = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(500));
-                    const snapAll = await getDocs(qAll);
-                    allProductsCache = [];
-                    snapAll.forEach(doc => {
-                        allProductsCache.push({ id: doc.id, ...doc.data() });
-                    });
-                }
-
-                let displayData = allProductsCache;
-                const term = searchTerm.toLowerCase();
-
-                if (term.length > 0) {
-                    document.querySelector('.results-header h3').innerText = "Search Results";
-                    // Advanced Multi-Field Filter
-                    displayData = allProductsCache.filter(data => {
-                        const compName = (companiesMap[data.companyId] || 'Unknown Source').toLowerCase();
-                        const pName = (data.name || '').toLowerCase();
-                        const pModel = (data.model || '').toLowerCase();
-                        
-                        // Check if the term is found in Name, Model, OR Company
-                        return pName.includes(term) || pModel.includes(term) || compName.includes(term);
-                    });
-                } else {
-                    document.querySelector('.results-header h3').innerText = "Recent Purchases";
-                    displayData = allProductsCache.slice(0, 20); // Only show 20 by default so page doesn't lag
-                }
-                */
-
-                // --- NEW SERVER-SIDE SEARCH LOGIC ---
                 let displayData = [];
-                const term = searchTerm.toLowerCase().trim();
+                const term = globalSearchTerm.toLowerCase().trim();
 
+                let qSearch;
                 if (term.length > 0) {
                     document.querySelector('.results-header h3').innerText = "Search Results";
-                    const searchWord = term.split(/[\s\-_]+/)[0];
-
-                    const qSearch = query(
-                        collection(db, "products_sold"), 
-                        where("searchKeywords", "array-contains", searchWord),
-                        limit(20)
-                    );
-                    const snapSearch = await getDocs(qSearch);
-                    snapSearch.forEach(doc => {
-                        displayData.push({ id: doc.id, ...doc.data() });
+                    const searchWords = term.split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    
+                    qSearch = collection(db, "products_sold");
+                    searchWords.forEach(word => {
+                        qSearch = query(qSearch, where(`searchTokens.${word}`, "==", true));
                     });
+
+                    if (isLoadMore && searchLastVisible) {
+                        qSearch = query(qSearch, startAfter(searchLastVisible), limit(20));
+                    } else {
+                        qSearch = query(qSearch, limit(20));
+                    }
                 } else {
                     document.querySelector('.results-header h3').innerText = "Recent Purchases";
-                    const qRecent = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(20));
-                    const snapRecent = await getDocs(qRecent);
-                    snapRecent.forEach(doc => {
-                        displayData.push({ id: doc.id, ...doc.data() });
-                    });
+                    if (isLoadMore && searchLastVisible) {
+                        qSearch = query(collection(db, "products_sold"), orderBy("date", "desc"), startAfter(searchLastVisible), limit(20));
+                    } else {
+                        qSearch = query(collection(db, "products_sold"), orderBy("date", "desc"), limit(20));
+                    }
                 }
-                // --- END OF NEW SEARCH LOGIC ---
 
-                if (displayData.length === 0) {
-                    resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No matching products found.</div>';
+                const snapSearch = await getDocs(qSearch);
+                
+                if (snapSearch.empty) {
+                    searchHasMore = false;
+                    if (isLoadMore && document.getElementById('searchScrollLoader')) {
+                        document.getElementById('searchScrollLoader').innerText = "End of results";
+                        setTimeout(() => { if(document.getElementById('searchScrollLoader')) document.getElementById('searchScrollLoader').style.display = 'none'; }, 1000);
+                    } else if (!isLoadMore) {
+                        resultsBox.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px; background:var(--surface-color); border-radius:8px;">No matching products found.</div>';
+                    }
+                    searchIsFetching = false;
                     return;
                 }
 
-                resultsBox.innerHTML = '';
-                displayData.forEach(data => {
-                    const compName = companiesMap[data.companyId] || 'Unknown Source';
-                    
-                    // Format Date Safely
-                    let dateStr = "Recently";
-                    if (data.date && data.date.toDate) {
-                        const d = data.date.toDate();
-                        dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
-                    }
+                searchLastVisible = snapSearch.docs[snapSearch.docs.length - 1];
 
-                    // Prepare complete data payload for the modal
-                    const modalData = encodeURIComponent(JSON.stringify({
-                        id: data.id,
-                        name: data.name,
-                        model: data.model || 'N/A',
-                        qty: data.qty || 1,
-                        price: data.price || 0,
-                        sellingPrice: data.sellingPrice || 0,
-                        total: data.total || 0,
-                        compName: compName,
-                        date: dateStr
-                    }));
-
-                    /* --- ORIGINAL RENDER PRESERVED HERE ---
-                    resultsBox.innerHTML += `
-                        <div class="product-card" onclick="openProductModal('${modalData}')">
-                            <div class="product-info">
-                                <div class="p-name">${data.name}</div>
-                                <div class="p-company">
-                                    <span class="material-symbols-outlined">storefront</span>
-                                    ${compName}
-                                </div>
-                            </div>
-                            <div class="p-price-container">
-                                <div class="p-tag">Buy Price</div>
-                                <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
-                            </div>
-                        </div>
-                    `;
-                    --------------------------------------- */
-
-                    // --- NEW RENDER WITH EDIT & DELETE BUTTONS ---
-                    resultsBox.innerHTML += `
-                        <div class="product-card" onclick="openProductModal('${modalData}')">
-                            <div class="product-info">
-                                <div class="p-name">${data.name}</div>
-                                <div class="p-company">
-                                    <span class="material-symbols-outlined">storefront</span>
-                                    ${compName}
-                                </div>
-                                <div class="card-actions">
-                                    <button class="action-btn edit" onclick="event.stopPropagation(); openEditProductModal('${modalData}')" title="Edit"><span class="material-symbols-outlined">edit</span></button>
-                                    <button class="action-btn delete" onclick="event.stopPropagation(); deleteProductRecord('${data.id}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
-                                </div>
-                            </div>
-                            <div class="p-price-container">
-                                <div class="p-tag">Buy Price</div>
-                                <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
-                            </div>
-                        </div>
-                    `;
+                snapSearch.forEach(doc => {
+                    displayData.push({ id: doc.id, ...doc.data() });
                 });
+
+                if (isLoadMore) {
+                    if (document.getElementById('searchScrollLoader')) document.getElementById('searchScrollLoader').remove();
+                    renderProductsAppend(displayData);
+                } else {
+                    resultsBox.innerHTML = '';
+                    renderProductsAppend(displayData);
+                }
+
             } catch (err) {
                 console.error("Search error:", err);
-                resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding:20px;">Error executing search. Check console.</div>';
+                if (!isLoadMore) resultsBox.innerHTML = '<div style="color:var(--meena-red); text-align:center; padding:20px;">Error executing search. Check console.</div>';
+            } finally {
+                searchIsFetching = false;
             }
         }
+
+        // --- NEW RENDER APPENDER FOR PAGINATION ---
+        function renderProductsAppend(displayData) {
+            const resultsBox = document.getElementById('searchResults');
+            displayData.forEach(data => {
+                const compName = companiesMap[data.companyId] || 'Unknown Source';
+                
+                // Format Date Safely
+                let dateStr = "Recently";
+                if (data.date && data.date.toDate) {
+                    const d = data.date.toDate();
+                    dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+                }
+
+                // Prepare complete data payload for the modal
+                const modalData = encodeURIComponent(JSON.stringify({
+                    id: data.id,
+                    name: data.name,
+                    model: data.model || 'N/A',
+                    qty: data.qty || 1,
+                    price: data.price || 0,
+                    sellingPrice: data.sellingPrice || 0,
+                    total: data.total || 0,
+                    compName: compName,
+                    date: dateStr
+                }));
+
+                resultsBox.innerHTML += `
+                    <div class="product-card" onclick="openProductModal('${modalData}')">
+                        <div class="product-info">
+                            <div class="p-name">${data.name}</div>
+                            <div class="p-company">
+                                <span class="material-symbols-outlined">storefront</span>
+                                ${compName}
+                            </div>
+                            <div class="card-actions">
+                                <button class="action-btn edit" onclick="event.stopPropagation(); openEditProductModal('${modalData}')" title="Edit"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="action-btn delete" onclick="event.stopPropagation(); deleteProductRecord('${data.id}')" title="Delete"><span class="material-symbols-outlined">delete</span></button>
+                            </div>
+                        </div>
+                        <div class="p-price-container">
+                            <div class="p-tag">Buy Price</div>
+                            <div class="p-price">₹${(data.price || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- NEW INFINITE SCROLL LISTENER ---
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+                searchProducts(globalSearchTerm, true);
+            }
+        });
 
         // --- Populate and Open Detailed Modal ---
         window.openProductModal = function(encodedData) {
@@ -564,9 +739,14 @@
                     const batch = writeBatch(db);
 
                     // 1. Update the record
+                    // ORIGINAL: batch.update(itemRef, {
+                    // ORIGINAL:     name, model, qty, price, sellingPrice, total,
+                    // ORIGINAL:     searchKeywords: generateKeywords(name, model)
+                    // ORIGINAL: });
                     batch.update(itemRef, {
                         name, model, qty, price, sellingPrice, total,
-                        searchKeywords: generateKeywords(name, model)
+                        searchTokens: generateSearchTokens(name, model),
+                        searchKeywords: deleteField()
                     });
 
                     // 2. Update Dashboard Metadata if price changed
@@ -590,9 +770,14 @@
                     await batch.commit();
                 } else {
                     // Fallback
+                    // ORIGINAL: await updateDoc(itemRef, {
+                    // ORIGINAL:     name, model, qty, price, sellingPrice, total,
+                    // ORIGINAL:     searchKeywords: generateKeywords(name, model)
+                    // ORIGINAL: });
                     await updateDoc(itemRef, {
                         name, model, qty, price, sellingPrice, total,
-                        searchKeywords: generateKeywords(name, model)
+                        searchTokens: generateSearchTokens(name, model),
+                        searchKeywords: deleteField()
                     });
                 }
 
