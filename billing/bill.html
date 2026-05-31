@@ -626,7 +626,7 @@
 
         // Initialize Date to Today (CORRECT INDIAN/LOCAL DATE FIX)
         const today = new Date();
-        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const localIso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T');
         document.getElementById('cDate').value = localIso;
 
         // Toast Helper
@@ -719,18 +719,24 @@
             }
 
             try {
-                const searchWord = suggCurrentTerm.split(/[\s\-_]+/)[0];
-                if (!searchWord) {
+                // IMPLEMENTED BOOLEAN MULTI-WORD SEARCH ALGORITHM FOR SUGGESTIONS
+                const searchWords = suggCurrentTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                if (searchWords.length === 0) {
                     suggestionsBox.style.display = 'none';
                     suggIsFetching = false;
                     return;
                 }
 
-                let q;
+                let q = collection(db, "inventory");
+                
+                searchWords.forEach(word => {
+                    q = query(q, where(`searchTokens.${word}`, "==", true));
+                });
+
                 if (isLoadMore && suggLastVisible) {
-                    q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), startAfter(suggLastVisible), limit(15));
+                    q = query(q, startAfter(suggLastVisible), limit(15));
                 } else {
-                    q = query(collection(db, "inventory"), where("searchKeywords", "array-contains", searchWord), limit(15));
+                    q = query(q, limit(15));
                 }
 
                 const snap = await getDocs(q);
@@ -1051,7 +1057,7 @@
                     // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
                     const numMatch = customVal.match(/(\d+)$/);
                     if(numMatch) {
-                        const parsedNum = parseInt(numMatch[1], 10);
+                        const parsedNum = parseInt(numMatch, 10);
                         if(hasGst) smartNextGst = parsedNum + 1;
                         else smartNextNormal = parsedNum + 1;
                     }
