@@ -580,7 +580,8 @@
         // 2. Firebase Imports 
         import { db } from './config.js';
         
-        // --- ADDED deleteField FOR AUTOMATICALLY WIPING OLD ARRAYS ON EDIT ---
+        // --- COMMENTED OUT OLD IMPORT TO ADD PAGINATION (startAfter) AND deleteField ---
+        // import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
         import { collection, getDocs, query, orderBy, limit, where, doc, writeBatch, serverTimestamp, increment, updateDoc, deleteDoc, startAfter, deleteField } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // --- NEW: FETCH JSON PRODUCT TYPES ---
@@ -679,20 +680,18 @@
             loadInventory();
         };
 
-        // --- THE "BOOLEAN MAP" LOGIC FOR 100% SERVER-SIDE SEARCH ---
+        // --- NEW HELPER FOR SERVER-SIDE BOOLEAN MAP SEARCH ---
         function generateSearchTokens(name, model) {
             const combinedText = `${name || ''} ${model || ''}`.toLowerCase();
             const wordsArray = combinedText.split(/[\s\-_]+/).filter(word => word.trim().length > 0);
             const tokenMap = {};
-            
             wordsArray.forEach(word => {
                 let prefix = '';
                 for (let i = 0; i < word.length; i++) {
                     prefix += word[i];
-                    tokenMap[prefix] = true; 
+                    tokenMap[prefix] = true;
                 }
             });
-            
             return tokenMap;
         }
 
@@ -1149,8 +1148,8 @@
                     myRate: newMyRate,
                     price: newPrice,
                     qty: newQty,
-                    searchTokens: generateSearchTokens(newName, newModel), // NEW TOKEN MAP
-                    searchKeywords: deleteField(), // AUTOMATICALLY WIPES OLD ARRAYS
+                    searchTokens: generateSearchTokens(newName, newModel), 
+                    searchKeywords: deleteField(),
                     previousQty: oldQty,
                     previousMrp: oldMrp,
                     previousPrice: oldPrice,
@@ -1263,17 +1262,20 @@
                         q = query(collection(db, "inventory"), where("qty", "<", 3), ...typeFilter, limit(10));
                     }
                 } else if (currentSearchTerm !== '') {
-                    // NEW: 100% SERVER-SIDE MAP-BASED SEARCH 
-                    let searchWords = currentSearchTerm.split(/[\s\-_]+/).filter(w => w.length > 0);
+                    const searchWords = currentSearchTerm.toLowerCase().split(/[\s\-_]+/).filter(w => w.trim().length > 0);
+                    
                     q = collection(db, "inventory");
                     
                     searchWords.forEach(word => {
                         q = query(q, where(`searchTokens.${word}`, "==", true));
                     });
 
-                    if (currentTypeFilter) q = query(q, ...typeFilter);
+                    if (currentTypeFilter) {
+                        q = query(q, ...typeFilter);
+                    }
 
                     if (isLoadMore && lastVisibleItem) {
+                        // NO orderBy here to avoid requiring massive composite indexes
                         q = query(q, startAfter(lastVisibleItem), limit(10));
                     } else {
                         q = query(q, limit(10));
@@ -1678,7 +1680,7 @@
                             myRate: item.myRate,
                             price: item.price,
                             qty: item.qty,
-                            searchTokens: generateSearchTokens(item.name, item.model), // NEW BOOLEAN MAP
+                            searchTokens: generateSearchTokens(item.name, item.model), // <-- ADDED KEYWORD GENERATION
                             createdAt: serverTimestamp()
                         });
                     }
