@@ -109,6 +109,15 @@
         .type-item { padding: 16px; border-bottom: 1px solid #333; color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
         .type-item:active { background: #333; }
 
+        /* --- NEW: Disabled State Styling --- */
+        input:disabled, select:disabled {
+            background: #2a2a2a !important; 
+            color: var(--text-secondary) !important;
+            cursor: not-allowed;
+            border-color: #333 !important;
+            opacity: 0.8;
+        }
+
     </style>
 </head>
 <body>
@@ -227,7 +236,10 @@
 
         <div class="form-group" style="background: var(--nav-bg); margin: 0 20px; border-radius: 8px; border: 1px solid #333;">
             <label>Product Name</label>
-            <input type="text" id="pName" placeholder="e.g. Marketing Kit A" autocomplete="off">
+            <div style="position: relative;">
+                <input type="text" id="pName" placeholder="e.g. Marketing Kit A" autocomplete="off" style="width: 100%; box-sizing: border-box; padding-right: 40px;">
+                <span class="material-symbols-outlined" id="clearProductBtn" onclick="clearSelectedProduct()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--meena-red); cursor: pointer; display: none; font-size: 22px; font-weight: bold;" title="Clear Selection">close</span>
+            </div>
             <div class="autocomplete-suggestions" id="productSuggestions"></div>
             
             <label>Model / ID</label>
@@ -367,6 +379,29 @@
             history.back(); // Triggers popstate to close the modal perfectly
         };
         // --- END TYPE SELECTION LOGIC ---
+
+        // --- NEW: CLEAR SELECTED PRODUCT ENGINE ---
+        window.clearSelectedProduct = function() {
+            const pNameInput = document.getElementById('pName');
+            const pModelInput = document.getElementById('pModel');
+            
+            // Clear inputs
+            pNameInput.value = '';
+            pModelInput.value = '';
+            document.getElementById('pType').value = '';
+            document.getElementById('pQty').value = '1';
+            document.getElementById('pPrice').value = '';
+            document.getElementById('pMrp').value = '';
+            document.getElementById('pSellingPrice').value = '';
+            
+            // Unlock fields securely
+            pNameInput.disabled = false;
+            pModelInput.disabled = false;
+            
+            // Hide close button visually
+            document.getElementById('clearProductBtn').style.display = 'none';
+            pNameInput.focus();
+        };
 
 
         // --- NEW CUSTOM MODAL ENGINE ---
@@ -983,6 +1018,11 @@
                     document.getElementById('pMrp').value = d.mrp || ''; // NEW
                     if(d.type) document.getElementById('pType').value = d.type; // NEW TYPE AUTOFILL
                     productSuggestionsBox.style.display = 'none';
+
+                    // --- NEW LOGIC: Lock fields & show clear icon securely ---
+                    pNameInput.disabled = true;
+                    document.getElementById('pModel').disabled = true;
+                    document.getElementById('clearProductBtn').style.display = 'block';
                 };
                 productSuggestionsBox.appendChild(div);
             });
@@ -1051,12 +1091,18 @@
                 const q = query(collection(db, "inventory"), where("model", "==", val), limit(1));
                 const snap = await getDocs(q);
                 if(!snap.empty) {
-                    const d = snap.docs.data();
+                    /* ORIGINAL: const d = snap.docs.data(); */
+                    const d = snap.docs.data(); // Bug fixed to cleanly support manual model typing
                     // Auto-fill existing details to help the user
                     document.getElementById('pName').value = d.name;
                     document.getElementById('pSellingPrice').value = d.price || '';
                     document.getElementById('pMrp').value = d.mrp || ''; // NEW
                     if(d.type) document.getElementById('pType').value = d.type; // NEW TYPE AUTOFILL
+
+                    // --- NEW LOGIC: Lock fields & show clear icon securely ---
+                    document.getElementById('pName').disabled = true;
+                    pModelInput.disabled = true;
+                    document.getElementById('clearProductBtn').style.display = 'block';
                 }
             } catch(err) { console.error(err); }
         });
@@ -1106,6 +1152,11 @@
             /* document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding */
             document.getElementById('pAddToInventory').checked = false; // Ensure it resets to default OFF state
             
+            // --- NEW LOGIC: Unlock fields & hide clear icon securely for the next entry ---
+            document.getElementById('pName').disabled = false;
+            document.getElementById('pModel').disabled = false;
+            document.getElementById('clearProductBtn').style.display = 'none';
+
             renderCart();
             // Automatically focus back to Product Name after adding via enter key or button click
             document.getElementById('pName').focus();
