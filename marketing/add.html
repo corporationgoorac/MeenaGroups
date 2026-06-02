@@ -22,6 +22,7 @@
             --accent-color: #0056b3;
             --nav-bg: #1a1a1a;
             --input-bg: #2a2a2a;
+            --success-color: #10b981;
         }
 
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; overflow-x: hidden; }
@@ -104,6 +105,10 @@
         .summary-box { background: rgba(255, 51, 51, 0.1); border: 1px solid var(--meena-red); padding: 15px; border-radius: 8px; margin: 20px; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95em; }
         .summary-row.total { font-weight: bold; font-size: 1.1em; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; color: var(--meena-red); }
+
+        /* --- NEW: TYPE SELECTION MODAL CSS --- */
+        .type-item { padding: 16px; border-bottom: 1px solid #333; color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
+        .type-item:active { background: #333; }
 
     </style>
 </head>
@@ -229,6 +234,12 @@
             <label>Model / ID</label>
             <input type="text" id="pModel" placeholder="Optional" autocomplete="off">
 
+            <label>Product Type *</label>
+            <div style="position: relative; margin-bottom: 15px;" onclick="openTypeSelectModal()">
+                <input type="text" id="pType" placeholder="Select type..." readonly style="cursor: pointer; margin-bottom: 0;">
+                <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none;">arrow_drop_down</span>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1;">
                     <label style="margin-bottom: 8px;">Qty *</label>
@@ -287,10 +298,76 @@
         </div>
     </div>
 
+    <div class="modal" id="modalTypeSelect" style="display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; z-index: 2500;">
+        <div class="modal-header" style="position: static; flex-shrink: 0; border-bottom: 1px solid #333;">
+            <button class="close-modal" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2 id="typeModalTitle">Select Type</h2>
+        </div>
+        
+        <div style="padding: 15px 20px; flex-shrink: 0; background: var(--bg-color); z-index: 5; border-bottom: 1px solid #333;">
+            <input type="text" id="typeSearchInput" placeholder="Search categories..." autocomplete="off" style="margin-bottom: 0;">
+        </div>
+        
+        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 20px; padding: 10px 20px;">
+        </div>
+    </div>
+
     <script type="module">
         import { db } from './config.js';
         /* ORIGINAL: import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js"; */
         import { collection, addDoc, getDocs, query, orderBy, limit, where, doc, setDoc, writeBatch, serverTimestamp, increment, deleteField, startAfter } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // --- NEW: FETCH JSON PRODUCT TYPES (IDENTICAL TO INVENTORY PAGE) ---
+        let cachedProductTypes = [];
+        
+        async function fetchProductTypes() {
+            try {
+                const response = await fetch('products.json');
+                if (response.ok) {
+                    cachedProductTypes = await response.json();
+                } else {
+                    cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+                }
+            } catch (error) {
+                cachedProductTypes = ["Mixer Grinder", "Washing Machine", "Refrigerator", "Fan", "Tv", "Mobile", "A/C (Air Conditioner)", "Beero", "Wood Beero", "Steel Beero", "Cot", "Bed", "Table", "Tailoring"];
+            }
+        }
+        fetchProductTypes();
+
+        window.openTypeSelectModal = function() {
+            document.getElementById('typeSearchInput').value = ''; 
+            renderTypeList();
+            openModal('modalTypeSelect');
+            setTimeout(() => { document.getElementById('typeSearchInput').focus(); }, 350);
+        };
+
+        function renderTypeList() {
+            const container = document.getElementById('typeListContainer');
+            const term = document.getElementById('typeSearchInput').value.toLowerCase().trim();
+            
+            let filtered = cachedProductTypes;
+            if (term) {
+                filtered = cachedProductTypes.filter(t => t.toLowerCase().includes(term));
+            }
+            
+            let html = '';
+            filtered.forEach(type => {
+                html += `<div class="type-item" onclick="selectType('${type}')"><span>${type}</span></div>`;
+            });
+            
+            if (filtered.length === 0) {
+                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary);">No categories found.</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        document.getElementById('typeSearchInput').addEventListener('input', renderTypeList);
+
+        window.selectType = function(type) {
+            document.getElementById('pType').value = type;
+            history.back(); // Triggers popstate to close the modal perfectly
+        };
+        // --- END TYPE SELECTION LOGIC ---
 
         // --- NEW CUSTOM MODAL ENGINE ---
         let alertPromiseResolver = null;
@@ -893,6 +970,7 @@
                     document.getElementById('pModel').value = d.model || '';
                     document.getElementById('pSellingPrice').value = d.price || '';
                     document.getElementById('pMrp').value = d.mrp || ''; // NEW
+                    if(d.type) document.getElementById('pType').value = d.type; // NEW TYPE AUTOFILL
                     productSuggestionsBox.style.display = 'none';
                 };
                 productSuggestionsBox.appendChild(div);
@@ -967,13 +1045,14 @@
                     document.getElementById('pName').value = d.name;
                     document.getElementById('pSellingPrice').value = d.price || '';
                     document.getElementById('pMrp').value = d.mrp || ''; // NEW
+                    if(d.type) document.getElementById('pType').value = d.type; // NEW TYPE AUTOFILL
                 }
             } catch(err) { console.error(err); }
         });
 
 
         // --- ADDED KEYBOARD SAVE FEATURE (Press Enter to Add) ---
-        const prodInputs = ['pName', 'pModel', 'pQty', 'pPrice', 'pMrp', 'pSellingPrice'];
+        const prodInputs = ['pName', 'pModel', 'pType', 'pQty', 'pPrice', 'pMrp', 'pSellingPrice']; // Added pType
         prodInputs.forEach(id => {
             document.getElementById(id).addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
@@ -987,6 +1066,7 @@
         /* ORIGINAL: document.getElementById('btnAddToList').addEventListener('click', () => { */
         document.getElementById('btnAddToList').addEventListener('click', async () => {
             const pName = document.getElementById('pName').value.trim();
+            const pType = document.getElementById('pType').value.trim(); // NEW
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
             const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
             const pMrp = parseFloat(document.getElementById('pMrp').value) || 0; // NEW
@@ -997,13 +1077,13 @@
             const pAddToInventory = document.getElementById('pAddToInventory').checked; // NEW INVERTED LOGIC
             
             /* ORIGINAL: if (!pName || pPrice <= 0) { alert("Valid Product Name and Price required."); return; } */
-            if (!pName || pPrice <= 0) { await customAlert("Valid Product Name and Price required."); return; }
+            if (!pName || pPrice <= 0 || !pType) { await customAlert("Valid Product Name, Type, and Price required."); return; }
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
             /* cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, skipInventory: pSkipInventory }); */
-            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
+            cart.push({ name: pName, type: pType, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
             
-            document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = '';
+            document.getElementById('pName').value = ''; document.getElementById('pType').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = '';
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
             /* document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding */
@@ -1026,7 +1106,7 @@
                     /* const skipTag = item.skipInventory ? ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>' : ''; */
                     const skipTag = item.addToInventory ? ' <span style="color:var(--success-color); font-size: 0.8em;">(Added to Stock)</span>' : ' <span style="color:#ff9800; font-size: 0.8em;">(Non-Stock)</span>';
                     
-                    list.innerHTML += `<div class="product-item"><div><strong>${item.name}</strong>${skipTag} <small>x${item.qty}</small></div><div>₹${item.total.toLocaleString()}</div></div>`; 
+                    list.innerHTML += `<div class="product-item"><div><strong>${item.name}</strong> <span style="color:var(--text-secondary);font-size:0.85em;">[${item.type}]</span>${skipTag} <small>x${item.qty}</small></div><div>₹${item.total.toLocaleString()}</div></div>`; 
                 });
                 document.getElementById('btnSaveProducts').disabled = false;
             }
@@ -1052,7 +1132,7 @@
                 
                 // Process each cart item safely
                 for (const item of cart) {
-                    // 2. Save full detail to products_sold (Always unique) - Added searchTokens
+                    // 2. Save full detail to products_sold (Always unique) - Added searchTokens and type
                     batch.set(doc(collection(db, "products_sold")), { 
                         ...item, 
                         companyId: compId, 
@@ -1075,8 +1155,10 @@
                         
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
+                            // --- CRITICAL BUG FIX APPLIED HERE.id ---
                             /* ORIGINAL: const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
                             const existingInvRef = doc(db, "inventory", invSnap.docs.id);
+                            
                             // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
                             /* ORIGINAL:
                             batch.update(existingInvRef, { 
@@ -1092,6 +1174,7 @@
                                 price: item.sellingPrice, // Optionally update selling price to newest entry
                                 myRate: item.price, // Save buying price to myRate
                                 mrp: item.mrp, // NEW: Update existing MRP safely
+                                type: item.type, // NEW: Update Type safely
                                 /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
                                 searchTokens: generateSearchTokens(item.name, item.model),
                                 searchKeywords: deleteField()
@@ -1113,6 +1196,7 @@
                             */
                             batch.set(inventoryRef, {
                                 name: item.name,
+                                type: item.type, // NEW: Save Type safely
                                 model: item.model,
                                 qty: item.qty,
                                 price: item.sellingPrice,
