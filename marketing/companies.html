@@ -431,7 +431,7 @@
                 /* ORIGINAL: 
                 if (currentSearchTerm) {
                     // SERVER-SIDE SEARCH: Using the array-contains strategy we built
-                    const searchWord = currentSearchTerm.split(/[\s\-_]+/)[0];
+                    const searchWord = currentSearchTerm.split(/[\s\-_]+/);
                     if (isLoadMore && lastVisibleCompany) {
                         q = query(
                             collection(db, "companies"), 
@@ -598,11 +598,16 @@
             openModal('modalProfile'); // keeping original line intact
         };
 
-        // --- 3. Pagination Logic: Purchases ---
+        // --- 3. Pagination Logic: Purchases (UPDATED WITH INFINITE SCROLL & LIMIT 10) ---
         let lastVisiblePurchase = null;
         let currentPurchaseDateGroup = "";
+        let isFetchingPurchases = false;
+        let hasMorePurchases = true;
 
         window.loadPurchases = async function(isNextPage) {
+            if (isFetchingPurchases || (!hasMorePurchases && isNextPage)) return;
+            isFetchingPurchases = true;
+
             const listEl = document.getElementById('purchasesList');
             const btnMore = document.getElementById('btnLoadMorePurchases');
             
@@ -610,16 +615,18 @@
                 listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">Loading purchases...</div>';
                 lastVisiblePurchase = null;
                 currentPurchaseDateGroup = "";
+                hasMorePurchases = true;
                 btnMore.style.display = 'none';
             } else {
+                btnMore.style.display = 'block';
                 btnMore.innerText = "Loading...";
                 btnMore.disabled = true;
             }
 
             try {
-                let q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(25));
+                let q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(10));
                 if (isNextPage && lastVisiblePurchase) {
-                    q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePurchase), limit(25));
+                    q = query(collection(db, "products_sold"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePurchase), limit(10));
                 }
 
                 const snap = await getDocs(q);
@@ -628,12 +635,16 @@
                 
                 if (snap.empty && !isNextPage) {
                     listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">No purchases recorded.</div>';
+                    hasMorePurchases = false;
                     btnMore.style.display = 'none';
+                    isFetchingPurchases = false;
                     return;
                 }
 
                 if (snap.empty && isNextPage) {
+                    hasMorePurchases = false;
                     btnMore.style.display = 'none';
+                    isFetchingPurchases = false;
                     return;
                 }
 
@@ -660,12 +671,13 @@
                     `;
                 });
 
-                // Manage Load More Button
-                if (snap.docs.length === 25) {
+                // Manage Load More Button (Keep as fallback loading indicator)
+                if (snap.docs.length === 10) {
                     btnMore.style.display = 'block';
-                    btnMore.innerText = "Load More Purchases";
+                    btnMore.innerText = "Scroll for more...";
                     btnMore.disabled = false;
                 } else {
+                    hasMorePurchases = false;
                     btnMore.style.display = 'none';
                 }
 
@@ -674,13 +686,20 @@
                 if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading purchases.</div>';
                 showErrorToast(err.message || "Error loading purchases.");
             }
+            
+            isFetchingPurchases = false;
         };
 
-        // --- 4. Pagination Logic: Payments ---
+        // --- 4. Pagination Logic: Payments (UPDATED WITH INFINITE SCROLL & LIMIT 10) ---
         let lastVisiblePayment = null;
         let currentPaymentDateGroup = "";
+        let isFetchingPayments = false;
+        let hasMorePayments = true;
 
         window.loadPayments = async function(isNextPage) {
+            if (isFetchingPayments || (!hasMorePayments && isNextPage)) return;
+            isFetchingPayments = true;
+
             const listEl = document.getElementById('paymentsList');
             const btnMore = document.getElementById('btnLoadMorePayments');
             
@@ -688,16 +707,18 @@
                 listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px;">Loading payments...</div>';
                 lastVisiblePayment = null;
                 currentPaymentDateGroup = "";
+                hasMorePayments = true;
                 btnMore.style.display = 'none';
             } else {
+                btnMore.style.display = 'block';
                 btnMore.innerText = "Loading...";
                 btnMore.disabled = true;
             }
 
             try {
-                let q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(25));
+                let q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), limit(10));
                 if (isNextPage && lastVisiblePayment) {
-                    q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePayment), limit(25));
+                    q = query(collection(db, "payments"), where("companyId", "==", currentCompanyId), orderBy("date", "desc"), startAfter(lastVisiblePayment), limit(10));
                 }
 
                 const snap = await getDocs(q);
@@ -706,12 +727,16 @@
                 
                 if (snap.empty && !isNextPage) {
                     listEl.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">No payments recorded.</div>';
+                    hasMorePayments = false;
                     btnMore.style.display = 'none';
+                    isFetchingPayments = false;
                     return;
                 }
 
                 if (snap.empty && isNextPage) {
+                    hasMorePayments = false;
                     btnMore.style.display = 'none';
+                    isFetchingPayments = false;
                     return;
                 }
 
@@ -747,11 +772,12 @@
                     `;
                 });
 
-                if (snap.docs.length === 25) {
+                if (snap.docs.length === 10) {
                     btnMore.style.display = 'block';
-                    btnMore.innerText = "Load More Payments";
+                    btnMore.innerText = "Scroll for more...";
                     btnMore.disabled = false;
                 } else {
+                    hasMorePayments = false;
                     btnMore.style.display = 'none';
                 }
 
@@ -760,7 +786,27 @@
                 if (!isNextPage) listEl.innerHTML = '<div style="color:var(--meena-red); text-align:center;">Error loading payments.</div>';
                 showErrorToast(err.message || "Error loading payments.");
             }
+            
+            isFetchingPayments = false;
         };
+
+        // --- NEW: Infinity Scroll Listener for Modal (Purchases & Payments) ---
+        document.getElementById('modalProfile').addEventListener('scroll', function(e) {
+            const { scrollTop, scrollHeight, clientHeight } = e.target;
+            // Load more when scrolled within 80px of the modal bottom
+            if (scrollTop + clientHeight >= scrollHeight - 80) {
+                
+                // Determine which tab is actively being viewed
+                const isPurchasesActive = document.getElementById('tab-purchases').classList.contains('active');
+                const isPaymentsActive = document.getElementById('tab-payments').classList.contains('active');
+                
+                if (isPurchasesActive && !isFetchingPurchases && hasMorePurchases) {
+                    loadPurchases(true);
+                } else if (isPaymentsActive && !isFetchingPayments && hasMorePayments) {
+                    loadPayments(true);
+                }
+            }
+        });
 
         // Init
         // fetchAllCompanies(); /* OLD INIT */
