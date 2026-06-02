@@ -1076,33 +1076,11 @@
 
         /* ORIGINAL: document.getElementById('btnAddToList').addEventListener('click', async () => {
             const pName = document.getElementById('pName').value.trim();
-            const pType = document.getElementById('pType').value.trim(); // NEW TYPE READ
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
             const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
-            const pMrp = parseFloat(document.getElementById('pMrp').value) || 0;
+            const pMrp = parseFloat(document.getElementById('pMrp').value) || 0; // NEW
             const pSellingPrice = parseFloat(document.getElementById('pSellingPrice').value) || 0;
-            
-            // ORIGINAL PRESERVED LINE (COMMENTED OUT) 
-            // const pSkipInventory = document.getElementById('pSkipInventory').checked; // Read the checkbox
-            const pAddToInventory = document.getElementById('pAddToInventory').checked; // NEW INVERTED LOGIC
-            
-            // ORIGINAL: if (!pName || pPrice <= 0) { await customAlert("Valid Product Name and Price required."); return; }
-            if (!pName || pPrice <= 0 || !pType) { await customAlert("Valid Product Name, Type, and Price required."); return; }
-            
-            // ORIGINAL: cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory }); 
-            cart.push({ name: pName, type: pType, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
-            
-            // ORIGINAL: document.getElementById('pName').value = ''; document.getElementById('pType').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = '';
-            document.getElementById('pName').value = ''; document.getElementById('pType').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = '';
-            
-            // ORIGINAL PRESERVED LINE (COMMENTED OUT) 
-            // document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding
-            document.getElementById('pAddToInventory').checked = false; // Ensure it resets to default OFF state
-            
-            renderCart();
-            // Automatically focus back to Product Name after adding via enter key or button click
-            document.getElementById('pName').focus();
-        }); */
+        */
         document.getElementById('btnAddToList').addEventListener('click', async () => {
             const pName = document.getElementById('pName').value.trim();
             const pType = document.getElementById('pType').value.trim(); // NEW TYPE READ
@@ -1121,7 +1099,7 @@
             /* ORIGINAL: cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory }); */
             cart.push({ name: pName, type: pType, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, mrp: pMrp, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
             
-            /* ORIGINAL: document.getElementById('pName').value = ''; document.getElementById('pType').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = ''; */
+            /* ORIGINAL: document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = ''; */
             document.getElementById('pName').value = ''; document.getElementById('pType').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pMrp').value = ''; document.getElementById('pSellingPrice').value = '';
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
@@ -1195,18 +1173,16 @@
                         
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
-                            /* ORIGINAL (Bugged): const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
-                            const existingInvRef = doc(db, "inventory", invSnap.docs.id); // CRITICAL FIX: Added
+                            /* ORIGINAL: const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
+                            const existingInvRef = doc(db, "inventory", invSnap.docs.id);
                             
                             // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
                             /* ORIGINAL:
                             batch.update(existingInvRef, { 
                                 qty: increment(item.qty),
-                                price: item.sellingPrice, // Optionally update selling price to newest entry
-                                myRate: item.price, // Save buying price to myRate
-                                mrp: item.mrp, // NEW: Update existing MRP safely
-                                type: item.type, // NEW: Save Type
-                                /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE * /
+                                price: item.sellingPrice,
+                                myRate: item.price,
+                                mrp: item.mrp,
                                 searchTokens: generateSearchTokens(item.name, item.model),
                                 searchKeywords: deleteField()
                             });
@@ -1228,14 +1204,12 @@
                             /* ORIGINAL:
                             batch.set(inventoryRef, {
                                 name: item.name,
-                                type: item.type, // NEW: Save Type
                                 model: item.model,
                                 qty: item.qty,
                                 price: item.sellingPrice,
-                                myRate: item.price, // Save buying price to myRate
-                                mrp: item.mrp, // NEW: Save initial MRP safely
+                                myRate: item.price,
+                                mrp: item.mrp,
                                 createdAt: serverTimestamp(),
-                                /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE * /
                                 searchTokens: generateSearchTokens(item.name, item.model)
                             });
                             */
