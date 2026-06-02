@@ -1174,7 +1174,10 @@
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
                             /* ORIGINAL: const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
-                            const existingInvRef = doc(db, "inventory", invSnap.docs.id);
+                            let existingInvRef;
+                            invSnap.forEach((docSnap) => {
+                                existingInvRef = doc(db, "inventory", docSnap.id);
+                            });
                             
                             // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
                             /* ORIGINAL:
