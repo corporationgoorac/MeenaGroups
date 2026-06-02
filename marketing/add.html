@@ -231,8 +231,16 @@
             </div>
             <label>Unit Price (Buying Price) (₹) *</label>
             <input type="number" id="pPrice" placeholder="0">
-            <label>Selling Price (₹) *</label>
-            <input type="number" id="pSellingPrice" placeholder="0">
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>MRP (₹)</label>
+                    <input type="number" id="pMrp" placeholder="0" min="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>Selling Price (₹) *</label>
+                    <input type="number" id="pSellingPrice" placeholder="0">
+                </div>
+            </div>
             
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                 <input type="checkbox" id="pAddToInventory" style="width: auto; margin: 0; box-shadow: none;">
@@ -875,6 +883,7 @@
                     pNameInput.value = d.name; 
                     document.getElementById('pModel').value = d.model || '';
                     document.getElementById('pSellingPrice').value = d.price || '';
+                    document.getElementById('pMrp').value = d.mrp || ''; // ADDED
                     productSuggestionsBox.style.display = 'none';
                 };
                 productSuggestionsBox.appendChild(div);
@@ -944,17 +953,18 @@
                 const q = query(collection(db, "inventory"), where("model", "==", val), limit(1));
                 const snap = await getDocs(q);
                 if(!snap.empty) {
-                    const d = snap.docs[0].data();
+                    const d = snap.docs.data();
                     // Auto-fill existing details to help the user
                     document.getElementById('pName').value = d.name;
                     document.getElementById('pSellingPrice').value = d.price || '';
+                    document.getElementById('pMrp').value = d.mrp || ''; // ADDED
                 }
             } catch(err) { console.error(err); }
         });
 
 
         // --- ADDED KEYBOARD SAVE FEATURE (Press Enter to Add) ---
-        const prodInputs = ['pName', 'pModel', 'pQty', 'pPrice', 'pSellingPrice'];
+        const prodInputs = ['pName', 'pModel', 'pQty', 'pPrice', 'pSellingPrice', 'pMrp'];
         prodInputs.forEach(id => {
             document.getElementById(id).addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
@@ -971,6 +981,7 @@
             const pQty = parseInt(document.getElementById('pQty').value) || 1;
             const pPrice = parseFloat(document.getElementById('pPrice').value) || 0;
             const pSellingPrice = parseFloat(document.getElementById('pSellingPrice').value) || 0;
+            const pMrp = parseFloat(document.getElementById('pMrp').value) || 0; // ADDED
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
             /* const pSkipInventory = document.getElementById('pSkipInventory').checked; // Read the checkbox */
@@ -981,9 +992,9 @@
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
             /* cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, skipInventory: pSkipInventory }); */
-            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, total: pQty * pPrice, addToInventory: pAddToInventory });
+            cart.push({ name: pName, model: document.getElementById('pModel').value.trim(), qty: pQty, price: pPrice, sellingPrice: pSellingPrice, mrp: pMrp, total: pQty * pPrice, addToInventory: pAddToInventory });
             
-            document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pSellingPrice').value = '';
+            document.getElementById('pName').value = ''; document.getElementById('pQty').value = '1'; document.getElementById('pPrice').value = ''; document.getElementById('pModel').value = ''; document.getElementById('pSellingPrice').value = ''; document.getElementById('pMrp').value = ''; // ADDED pMrp reset
             
             /* ORIGINAL PRESERVED LINE (COMMENTED OUT) */
             /* document.getElementById('pSkipInventory').checked = false; // Reset checkbox after adding */
@@ -1033,8 +1044,11 @@
                 // Process each cart item safely
                 for (const item of cart) {
                     // 2. Save full detail to products_sold (Always unique) - Added searchTokens
+                    // We extract mrp to prevent it from saving in products_sold
+                    const { mrp, ...itemForSold } = item; 
+
                     batch.set(doc(collection(db, "products_sold")), { 
-                        ...item, 
+                        ...itemForSold, 
                         companyId: compId, 
                         date: serverTimestamp(),
                         /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
@@ -1056,7 +1070,7 @@
                         if (!invSnap.empty) {
                             // Product exists in inventory! Just increment the quantity safely
                             /* ORIGINAL: const existingInvRef = doc(db, "inventory", invSnap.docs.id); */
-                            const existingInvRef = doc(db, "inventory", invSnap.docs[0].id);
+                            const existingInvRef = doc(db, "inventory", invSnap.docs.id);
                             // Added searchTokens update to catch name/model corrections and deleteField to clean up old array
                             /* ORIGINAL:
                             batch.update(existingInvRef, { 
@@ -1071,6 +1085,7 @@
                                 qty: increment(item.qty),
                                 price: item.sellingPrice, // Optionally update selling price to newest entry
                                 myRate: item.price, // Save buying price to myRate
+                                mrp: item.mrp, // ADDED MRP UPDATE
                                 /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
                                 searchTokens: generateSearchTokens(item.name, item.model),
                                 searchKeywords: deleteField()
@@ -1096,6 +1111,7 @@
                                 qty: item.qty,
                                 price: item.sellingPrice,
                                 myRate: item.price, // Save buying price to myRate
+                                mrp: item.mrp, // ADDED MRP SAVE
                                 createdAt: serverTimestamp(),
                                 /* ORIGINAL: searchKeywords: generateKeywords(item.name, item.model) // <-- INJECTED HERE */
                                 searchTokens: generateSearchTokens(item.name, item.model)
