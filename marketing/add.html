@@ -237,7 +237,7 @@
         <div class="form-group" style="background: var(--nav-bg); margin: 0 20px; border-radius: 8px; border: 1px solid #333;">
             <label>Product Name</label>
             <div style="position: relative;">
-                <input type="text" id="pName" placeholder="e.g. Marketing Kit A" autocomplete="off" style="width: 100%; box-sizing: border-box; padding-right: 40px;">
+                <input type="text" id="pName" placeholder="e.g. Marketing Kit A" autocomplete="off" style="width: 100%; box-sizing: border-box; transition: padding-right 0.2s ease;">
                 <span class="material-symbols-outlined" id="clearProductBtn" onclick="clearSelectedProduct()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--meena-red); cursor: pointer; display: none; font-size: 22px; font-weight: bold;" title="Clear Selection">close</span>
             </div>
             <div class="autocomplete-suggestions" id="productSuggestions"></div>
@@ -398,8 +398,11 @@
             pNameInput.disabled = false;
             pModelInput.disabled = false;
             
-            // Hide close button visually
+            // Hide close button visually and smoothly reset padding
             document.getElementById('clearProductBtn').style.display = 'none';
+            pNameInput.style.paddingRight = ''; // Removes the gap 
+            
+            /* ORIGINAL: pNameInput.focus(); */
             pNameInput.focus();
         };
 
@@ -1022,7 +1025,9 @@
                     // --- NEW LOGIC: Lock fields & show clear icon securely ---
                     pNameInput.disabled = true;
                     document.getElementById('pModel').disabled = true;
+                    /* ORIGINAL: document.getElementById('clearProductBtn').style.display = 'block'; */
                     document.getElementById('clearProductBtn').style.display = 'block';
+                    pNameInput.style.paddingRight = '40px'; // Create the visual gap ONLY when locked
                 };
                 productSuggestionsBox.appendChild(div);
             });
@@ -1102,7 +1107,9 @@
                     // --- NEW LOGIC: Lock fields & show clear icon securely ---
                     document.getElementById('pName').disabled = true;
                     pModelInput.disabled = true;
+                    /* ORIGINAL: document.getElementById('clearProductBtn').style.display = 'block'; */
                     document.getElementById('clearProductBtn').style.display = 'block';
+                    document.getElementById('pName').style.paddingRight = '40px'; // Create the visual gap ONLY when locked
                 }
             } catch(err) { console.error(err); }
         });
@@ -1155,7 +1162,9 @@
             // --- NEW LOGIC: Unlock fields & hide clear icon securely for the next entry ---
             document.getElementById('pName').disabled = false;
             document.getElementById('pModel').disabled = false;
+            /* ORIGINAL: document.getElementById('clearProductBtn').style.display = 'none'; */
             document.getElementById('clearProductBtn').style.display = 'none';
+            document.getElementById('pName').style.paddingRight = ''; // Reset gap to default
 
             renderCart();
             // Automatically focus back to Product Name after adding via enter key or button click
