@@ -77,6 +77,27 @@
     }
     @media (prefers-color-scheme: dark) { header { background-color: rgba(20, 20, 20, 0.85); } }
 
+    .header-titles {
+      display: flex;
+      align-items: center;
+    }
+
+    .header-back-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+      margin-right: 12px;
+    }
+    .header-back-btn:active { background-color: var(--surface-hover); }
+    .header-back-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
     .header-titles h1 {
       margin: 0;
       font-size: 22px;
@@ -200,12 +221,24 @@
     .mini-btn-cancel { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 10px; }
     .mini-btn-danger { background-color: var(--danger-color); color: #fff; }
 
+    /* Mobile Responsive Fixes */
+    @media (max-width: 480px) {
+        .engine-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .user-card { flex-direction: column; align-items: flex-start; }
+        .user-card > div:nth-child(1) { width: 100%; margin-bottom: 12px; }
+        .user-card > div:nth-child(2) { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 12px;}
+        .user-card-actions { justify-content: space-between; gap: 8px;}
+        .u-action-btn { flex: 1; justify-content: center; }
+    }
   </style>
 </head>
 <body>
 
   <header>
     <div class="header-titles">
+      <button onclick="window.history.back()" class="header-back-btn">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
       <h1>Meena Chitfunds</h1>
     </div>
   </header>
@@ -263,7 +296,7 @@
               <div class="e-val danger" id="md-u-pending">₹0</div>
             </div>
             <div class="engine-box">
-              <div class="e-label">Current Mo.</div>
+              <div class="e-label">Expected Mo.</div>
               <div class="e-val" id="md-u-current-mo">--</div>
             </div>
             <div class="engine-box">
@@ -484,9 +517,9 @@
                 
                 if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
                     const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
-                    if(match && match[0]) {
+                    if(match && match) {
                         setTimeout(() => {
-                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
                         }, 500);
                     }
                 }
@@ -593,14 +626,23 @@
     });
 
     // --- CORE ENGINE LOGIC ---
-    function calculateCurrentMonth(startDateStr) {
-        if(!startDateStr) return 1;
-        const start = new Date(startDateStr);
+    function calculateParticipantExpectedMonth(user, groupData) {
+        const start = user.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData.startDate);
         const now = new Date();
-        let months = (now.getFullYear() - start.getFullYear()) * 12;
-        months -= start.getMonth();
-        months += now.getMonth();
-        return months <= 0 ? 1 : months + 1; 
+        
+        let elapsed = (now.getFullYear() - start.getFullYear()) * 12;
+        elapsed -= start.getMonth();
+        elapsed += now.getMonth();
+        if (elapsed < 0) elapsed = 0;
+        
+        let expected = elapsed + 1; 
+        
+        const totalGroupMonths = groupData.totalMonths || 0;
+        if (totalGroupMonths > 0 && expected > totalGroupMonths) {
+            expected = totalGroupMonths;
+        }
+        
+        return expected;
     }
 
     function calculateDueForMonth(targetMonth, startAmount, schedule) {
@@ -644,8 +686,8 @@
             });
             
             if(user.activeGroups.length === 1) {
-                select.value = user.activeGroups[0];
-                analyzeUserLedger(user.activeGroups[0]);
+                select.value = user.activeGroups;
+                analyzeUserLedger(user.activeGroups);
             }
         } else {
             select.innerHTML = '<option value="">Not in any active groups</option>';
@@ -690,8 +732,8 @@
                 if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
                     const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                     const match = idxErr.message.match(urlRegex);
-                    if(match && match[0]) {
-                        const extractedUrl = match[0];
+                    if(match && match) {
+                        const extractedUrl = match;
                         setTimeout(() => {
                             showMessage("Ledger Index Missing", `Please click the link below to build the required Firebase Composite Index.<br><br><a href="${extractedUrl}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
                         }, 500);
@@ -717,10 +759,6 @@
             const historyList = document.getElementById('txn-history-list');
             historyList.innerHTML = '';
             
-            if(txns.length === 0) {
-                historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
-            }
-
             txns.forEach(tData => {
                 totalPaid += tData.amount;
                 if(tData.monthAttributed > maxMonthPaid) maxMonthPaid = tData.monthAttributed;
@@ -729,12 +767,19 @@
                 if(tData.date && typeof tData.date.toDate === 'function') {
                     dDate = tData.date.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                 }
+
+                let monthText = `Month ${tData.monthAttributed}`;
+                if (tData.type === "Advance Payment" || tData.monthAttributed === 0) {
+                    monthText = "Advanced";
+                } else if (tData.type === "Initial Setup / Catch-up") {
+                    monthText = `Initial Catch-up (To Mo. ${tData.monthAttributed})`;
+                }
                 
                 const hc = document.createElement('div');
                 hc.className = 'history-card';
                 hc.innerHTML = `
                     <div>
-                        <div class="h-month">Month ${tData.monthAttributed}</div>
+                        <div class="h-month">${monthText}</div>
                         <div class="h-date">${dDate}</div>
                     </div>
                     <div class="h-amount">₹${Number(tData.amount).toLocaleString('en-IN')}</div>
@@ -742,18 +787,37 @@
                 historyList.appendChild(hc);
             });
 
-            const currentMonth = calculateCurrentMonth(groupData.startDate);
+            // Handle new advanced logic fail-safe (in case they didn't have an explicit transaction stored)
+            if (activeViewedUser.advanceAmount && activeViewedUser.advanceAmount > 0) {
+                const hasAdvTxn = txns.some(t => t.type === "Advance Payment" || t.monthAttributed === 0);
+                if (!hasAdvTxn) {
+                     const hc = document.createElement('div');
+                     hc.className = 'history-card';
+                     hc.innerHTML = `
+                        <div>
+                            <div class="h-month">Advanced</div>
+                            <div class="h-date">At Registration</div>
+                        </div>
+                        <div class="h-amount">₹${Number(activeViewedUser.advanceAmount).toLocaleString('en-IN')}</div>
+                     `;
+                     historyList.appendChild(hc);
+                     totalPaid += activeViewedUser.advanceAmount;
+                }
+            }
+
+            if(historyList.innerHTML === '') {
+                historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
+            }
+
+            const expectedMonth = calculateParticipantExpectedMonth(activeViewedUser, groupData);
             const startAmt = groupData.startAmount || 0;
             const schedule = groupData.installmentSchedule || [];
-            const totalGroupMonths = groupData.totalMonths || 0;
             
             let pendingTotal = 0;
             let pendingMonthsList = [];
             
-            let evalMonth = currentMonth > totalGroupMonths ? totalGroupMonths : currentMonth;
-            
-            if (maxMonthPaid < evalMonth) {
-                for (let m = maxMonthPaid + 1; m <= evalMonth; m++) {
+            if (maxMonthPaid < expectedMonth) {
+                for (let m = maxMonthPaid + 1; m <= expectedMonth; m++) {
                     const dueForM = calculateDueForMonth(m, startAmt, schedule);
                     pendingTotal += dueForM;
                     pendingMonthsList.push({ month: m, amount: dueForM });
@@ -761,17 +825,28 @@
             }
 
             // Arrears Engine Integration
-            const arrears = evalMonth - maxMonthPaid;
+            const arrears = expectedMonth - maxMonthPaid;
             const arrearsWarning = document.getElementById('arrears-warning');
             if (arrears > 0) {
                 arrearsWarning.style.display = 'block';
+                arrearsWarning.className = 'arrears-banner';
+                arrearsWarning.style.background = 'var(--danger-light)';
+                arrearsWarning.style.color = 'var(--danger-color)';
+                arrearsWarning.style.borderColor = 'rgba(220, 53, 69, 0.2)';
                 arrearsWarning.innerText = `⚠️ Participant is ${arrears} month(s) behind schedule.`;
+            } else if (arrears < 0) {
+                arrearsWarning.style.display = 'block';
+                arrearsWarning.className = 'arrears-banner';
+                arrearsWarning.style.background = 'var(--success-light)';
+                arrearsWarning.style.color = 'var(--success-color)';
+                arrearsWarning.style.borderColor = 'rgba(15, 157, 88, 0.2)';
+                arrearsWarning.innerText = `🌟 Participant is ${Math.abs(arrears)} month(s) ahead in advance.`;
             } else {
                 arrearsWarning.style.display = 'none';
             }
 
             document.getElementById('md-u-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
-            document.getElementById('md-u-current-mo').innerText = evalMonth;
+            document.getElementById('md-u-current-mo').innerText = expectedMonth;
             document.getElementById('md-u-months-paid').innerText = maxMonthPaid;
             
             const pendingUI = document.getElementById('md-u-pending');
@@ -792,7 +867,7 @@
                         breakdownText += `- Month ${pm.month}: ₹${pm.amount}\n`;
                     });
 
-                    const msg = `*Meena Chitfunds*\nGroup: ${groupData.groupName.toUpperCase()} (@${groupId})\nTimeline: Month ${evalMonth} of ${totalGroupMonths}\n\nDear ${activeViewedUser.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${pendingTotal}*\n\nKindly clear your dues at the earliest.`;
+                    const msg = `*Meena Chitfunds*\nGroup: ${groupData.groupName.toUpperCase()} (@${groupId})\nTimeline: Month ${expectedMonth} of ${groupData.totalMonths || 0}\n\nDear ${activeViewedUser.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${pendingTotal}*\n\nKindly clear your dues at the earliest.`;
                     
                     const safePhone = activeViewedUser.phone.replace(/\D/g,'');
                     const waLink = `https://wa.me/${safePhone}?text=${encodeURIComponent(msg)}`;
