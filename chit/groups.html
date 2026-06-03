@@ -666,15 +666,10 @@
         document.getElementById('md-g-arrears').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px; border-top-color:var(--danger-color);"></div>';
         document.getElementById('md-g-health').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px;"></div>';
 
-        // Execute Live Aggregation Engine
-        const users = await fetchGroupUsers();
+        // Execute Live Aggregation Engine (0 READS OPTIMIZATION)
+        const users = group.memberSnapshot || [];
         const startAmt = group.startAmount || 0;
         const schedule = group.installmentSchedule || [];
-
-        const snapshotMap = new Map();
-        if(group.memberSnapshot) {
-            group.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
-        }
 
         let totalExpectedAmount = 0;
         let totalPendingAmount = 0;
@@ -682,7 +677,6 @@
         let clearMembers = 0;
 
         users.forEach(u => {
-            const snapData = snapshotMap.get(u.id) || { monthsPaid: 0, advanceAmount: 0 };
             const expectedMonth = calculateParticipantExpectedMonth(u, group);
             
             // Expected sum up to their timeline
@@ -694,16 +688,17 @@
 
             // Actually Paid sum (months paid + independent advance amount)
             let userPaidAmt = 0;
-            for(let m = 1; m <= snapData.monthsPaid; m++) {
+            const monthsPaid = u.monthsPaid || 0;
+            for(let m = 1; m <= monthsPaid; m++) {
                 userPaidAmt += calculateDueForMonth(m, startAmt, schedule);
             }
-            if (snapData.advanceAmount) userPaidAmt += snapData.advanceAmount;
+            if (u.advanceAmount) userPaidAmt += u.advanceAmount;
             totalPaidAmount += userPaidAmt;
 
             // Total Pending Arrears calculation
-            if (snapData.monthsPaid < expectedMonth) {
+            if (monthsPaid < expectedMonth) {
                 let owed = 0;
-                for(let m = snapData.monthsPaid + 1; m <= expectedMonth; m++) {
+                for(let m = monthsPaid + 1; m <= expectedMonth; m++) {
                     owed += calculateDueForMonth(m, startAmt, schedule);
                 }
                 totalPendingAmount += owed;
