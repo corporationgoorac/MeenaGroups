@@ -131,7 +131,7 @@
     .g-stat { display: flex; flex-direction: column; gap: 4px; }
     .g-stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;}
     .g-stat-val { font-size: 15px; font-weight: 800; color: var(--text-main); }
-    .g-stat-val.highlight { color: var(--success-color); }
+    .g-stat-val.highlight { color: var(--brand-accent); }
 
     .load-more-btn { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 16px; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; box-shadow: var(--card-shadow); }
     .load-more-btn:active { background: var(--surface-hover); transform: scale(0.98);}
@@ -162,15 +162,12 @@
     .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; background: var(--success-light); color: var(--success-color);}
     .status-badge.warning { background: var(--warning-light); color: var(--warning-color); }
 
-    .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
     .engine-box { background: var(--bg-color); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); }
     .e-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;}
     .e-val { font-size: 22px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px;}
-    
-    .financial-box { background: var(--brand-accent-light); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid rgba(6, 95, 212, 0.2); margin-bottom: 24px;}
-    .f-label { font-size: 13px; color: var(--brand-accent); font-weight: 800; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;}
-    .f-val { font-size: 36px; font-weight: 800; color: var(--brand-accent); letter-spacing: -1px;}
-    .f-sub { font-size: 13px; color: var(--text-main); font-weight: 700; margin-top: 8px;}
+    .e-val.success { color: var(--success-color); }
+    .e-val.danger { color: var(--danger-color); }
 
     /* Modal Action Buttons */
     .btn-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -270,33 +267,21 @@
         
         <div class="engine-grid">
           <div class="engine-box">
-            <div class="e-label">Start Date</div>
-            <div class="e-val" id="md-g-start">--/--/----</div>
+            <div class="e-label">Total Expected Pot</div>
+            <div class="e-val" id="md-g-expected-pot">--</div>
           </div>
           <div class="engine-box">
-            <div class="e-label">Total Duration</div>
-            <div class="e-val" id="md-g-months">-- Mo</div>
+            <div class="e-label">Actually Collected</div>
+            <div class="e-val success" id="md-g-collected">--</div>
           </div>
           <div class="engine-box">
-            <div class="e-label">Start Amount</div>
-            <div class="e-val">₹<span id="md-g-start-amt">--</span></div>
+            <div class="e-label">Outstanding Arrears</div>
+            <div class="e-val danger" id="md-g-arrears">--</div>
           </div>
           <div class="engine-box">
-            <div class="e-label">Participants</div>
-            <div class="e-val" id="md-g-members">--</div>
+            <div class="e-label">Health (Clear/Total)</div>
+            <div class="e-val" id="md-g-health">--</div>
           </div>
-        </div>
-
-        <div class="financial-box">
-          <div class="f-label">Current Timeline</div>
-          <div class="f-val">Month <span id="md-g-current-month">--</span></div>
-          <div class="f-sub" id="md-g-ongoing-due">Ongoing Installment: Calculating...</div>
-        </div>
-        
-        <div class="financial-box" style="background: var(--surface-color); border: 2px dashed var(--border-color); margin-bottom: 32px;">
-          <div class="f-label" style="color: var(--text-main);">Cumulative Group Value</div>
-          <div class="f-val" style="color: var(--text-main); font-size: 28px;">₹<span id="md-g-cumulative">--</span></div>
-          <div class="f-sub" style="color: var(--text-muted); font-weight: 500;">Sum of all targets up to current month</div>
         </div>
 
         <div class="btn-grid">
@@ -506,17 +491,16 @@
                     allGroupsCache.push(group);
                 }
 
-                const scheduleCount = group.installmentSchedule ? group.installmentSchedule.length : 0;
                 const safePot = group.totalPot ? Number(group.totalPot).toLocaleString('en-IN') : '0';
                 
-                // --- NEW CALCULATION (0 EXTRA READS) ---
+                // --- NEW UI UPGRADE: Better representation of group stats ---
                 const calcMonth = calculateCurrentSystemMonth(group.startDate);
                 const cappedMonth = group.totalMonths ? Math.min(calcMonth, group.totalMonths) : calcMonth;
-                const currentDue = calculateDueForMonth(cappedMonth, group.startAmount || 0, group.installmentSchedule || []);
-                const members = group.participantCount || 0;
-                const auctionAmount = currentDue * members;
-                const safeAuctionAmount = auctionAmount.toLocaleString('en-IN');
-                // ---------------------------------------
+                let displayStartDate = 'N/A';
+                if(group.startDate) {
+                    const dateObj = new Date(group.startDate);
+                    displayStartDate = dateObj.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+                }
                 
                 const card = document.createElement('div');
                 card.className = 'group-card';
@@ -543,18 +527,18 @@
                             <span class="g-stat-val">${group.totalMonths || 0}</span>
                         </div>
                         <div class="g-stat">
-                            <span class="g-stat-label">Tiers</span>
-                            <span class="g-stat-val highlight">${scheduleCount} active</span>
+                            <span class="g-stat-label">Chronological</span>
+                            <span class="g-stat-val highlight">Mo. ${cappedMonth}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 14px; padding: 12px 16px; background: var(--brand-accent-light); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(6, 95, 212, 0.1);">
+                    <div style="margin-top: 14px; padding: 12px 16px; background: var(--surface-color); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--border-color);">
                         <div>
-                            <div style="font-size: 10px; color: var(--brand-accent); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Month ${cappedMonth} Auction Value</div>
-                            <div style="font-size: 18px; font-weight: 800; color: var(--brand-accent); margin-top: 2px;">₹${safeAuctionAmount}</div>
+                            <div style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Group Created</div>
+                            <div style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-top: 2px;">${displayStartDate}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 10px; font-weight: 800; color: var(--brand-accent); opacity: 0.8; text-transform: uppercase;">Current Due</div>
-                            <div style="font-size: 14px; font-weight: 800; color: var(--brand-accent);">₹${currentDue.toLocaleString('en-IN')} <span style="font-size:11px; opacity:0.8;">× ${members}</span></div>
+                            <div style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base Due</div>
+                            <div style="font-size: 14px; font-weight: 800; color: var(--text-main);">₹${(group.startAmount || 0).toLocaleString('en-IN')}</div>
                         </div>
                     </div>
                 `;
@@ -568,7 +552,6 @@
             console.error("Fetch Error:", err);
             if (loader) loader.style.display = 'none';
             
-            // Check for index error and render professional button
             if(err.message && err.message.includes("https://console.firebase.google.com")) {
                 const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                 const match = err.message.match(urlRegex);
@@ -607,22 +590,20 @@
 
     // --- CORE ENGINE LOGIC (Calculations) ---
 
-    // 1. Calculate general group timeline based on Group Start Date
+    // 1. Calculate chronological timeline of the group (For reference only now)
     function calculateCurrentSystemMonth(startDateStr) {
         if(!startDateStr) return 1; 
         const start = new Date(startDateStr);
         const now = new Date();
-        
         let months = (now.getFullYear() - start.getFullYear()) * 12;
         months -= start.getMonth();
         months += now.getMonth();
-        
         return months <= 0 ? 1 : months + 1; 
     }
 
     // 2. NEW LOGIC: Calculate personal timeline dynamically per participant based on their unique Join Date
     function calculateParticipantExpectedMonth(user, groupData) {
-        // Fallback to group date if user joinedAt doesn't exist (older records)
+        // Fallback to group date if user joinedAt doesn't exist
         const start = user.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData.startDate);
         const now = new Date();
         
@@ -661,69 +642,94 @@
         return currentAmount;
     }
 
-    // --- MODAL VIEWS ---
+    // --- MODAL VIEWS & AGGREGATION ENGINE ---
 
     let activeGroupData = null; 
-    let activeLoadedGroupCurrentMonth = 1; 
     let activeLoadedGroupUsers = []; 
 
-    window.openGroupDetail = function(group) {
+    window.openGroupDetail = async function(group) {
       if(!group) return showMessage("Error", "Active group data not found.", "error");
 
       try {
         activeGroupData = group;
-        activeLoadedGroupUsers = []; // Clear user cache for the new group
+        activeLoadedGroupUsers = []; 
         
         // Set Header
         document.getElementById('md-g-name').innerText = group.groupName || 'Unnamed Group';
         document.getElementById('md-g-id').innerText = `@${group.id}`;
         
-        // Quick Stats
+        openModal('group-detail-modal');
+
+        // Set Loading States inside Modal
+        document.getElementById('md-g-expected-pot').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px;"></div>';
+        document.getElementById('md-g-collected').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px; border-top-color:var(--success-color);"></div>';
+        document.getElementById('md-g-arrears').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px; border-top-color:var(--danger-color);"></div>';
+        document.getElementById('md-g-health').innerHTML = '<div class="loader" style="width:16px; height:16px; margin:0; border-width:2px;"></div>';
+
+        // Execute Live Aggregation Engine
+        const users = await fetchGroupUsers();
         const startAmt = group.startAmount || 0;
-        
-        // Handle Date Display safely
-        let displayStartDate = 'N/A';
-        if(group.startDate) {
-            const dateObj = new Date(group.startDate);
-            displayStartDate = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const schedule = group.installmentSchedule || [];
+
+        const snapshotMap = new Map();
+        if(group.memberSnapshot) {
+            group.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
         }
 
-        document.getElementById('md-g-start').innerText = displayStartDate;
-        document.getElementById('md-g-months').innerText = `${group.totalMonths || 0} Mo`;
-        document.getElementById('md-g-start-amt').innerText = Number(startAmt).toLocaleString('en-IN');
-        document.getElementById('md-g-members').innerText = group.participantCount || 0;
+        let totalExpectedAmount = 0;
+        let totalPendingAmount = 0;
+        let totalPaidAmount = 0;
+        let clearMembers = 0;
 
-        // Execute Temporal Engine
-        const schedule = group.installmentSchedule || [];
-        let calcMonth = calculateCurrentSystemMonth(group.startDate);
-        
-        // Cap the month to totalMonths
+        users.forEach(u => {
+            const snapData = snapshotMap.get(u.id) || { monthsPaid: 0, advanceAmount: 0 };
+            const expectedMonth = calculateParticipantExpectedMonth(u, group);
+            
+            // Expected sum up to their timeline
+            let userExpectedAmt = 0;
+            for(let m = 1; m <= expectedMonth; m++) {
+                userExpectedAmt += calculateDueForMonth(m, startAmt, schedule);
+            }
+            totalExpectedAmount += userExpectedAmt;
+
+            // Actually Paid sum (months paid + independent advance amount)
+            let userPaidAmt = 0;
+            for(let m = 1; m <= snapData.monthsPaid; m++) {
+                userPaidAmt += calculateDueForMonth(m, startAmt, schedule);
+            }
+            if (snapData.advanceAmount) userPaidAmt += snapData.advanceAmount;
+            totalPaidAmount += userPaidAmt;
+
+            // Total Pending Arrears calculation
+            if (snapData.monthsPaid < expectedMonth) {
+                let owed = 0;
+                for(let m = snapData.monthsPaid + 1; m <= expectedMonth; m++) {
+                    owed += calculateDueForMonth(m, startAmt, schedule);
+                }
+                totalPendingAmount += owed;
+            } else {
+                clearMembers++;
+            }
+        });
+
+        // Push Aggregated Data to UI
+        document.getElementById('md-g-expected-pot').innerText = `₹${totalExpectedAmount.toLocaleString('en-IN')}`;
+        document.getElementById('md-g-collected').innerText = `₹${totalPaidAmount.toLocaleString('en-IN')}`;
+        document.getElementById('md-g-arrears').innerText = `₹${totalPendingAmount.toLocaleString('en-IN')}`;
+        document.getElementById('md-g-health').innerText = `${clearMembers} / ${users.length} Clear`;
+
+        // Update overall Group status logic
+        const calcMonth = calculateCurrentSystemMonth(group.startDate);
         if(calcMonth > group.totalMonths) {
-            calcMonth = group.totalMonths;
             const badge = document.getElementById('md-g-status');
             badge.innerText = "Chit Complete";
-            badge.className = "status-badge"; // Green
+            badge.className = "status-badge"; 
         } else {
             const badge = document.getElementById('md-g-status');
             badge.innerText = "Active • Ongoing";
-            badge.className = "status-badge warning"; // Orange
+            badge.className = "status-badge warning"; 
         }
-        
-        activeLoadedGroupCurrentMonth = calcMonth;
-        document.getElementById('md-g-current-month').innerText = calcMonth;
 
-        // Calculate Due for THIS specific month
-        const thisMonthDue = calculateDueForMonth(calcMonth, startAmt, schedule);
-        document.getElementById('md-g-ongoing-due').innerText = `Installment Amount: ₹${Number(thisMonthDue).toLocaleString('en-IN')}`;
-
-        // Calculate Cumulative Target Value (Sum of all months up to now)
-        let cumulativeTotal = 0;
-        for(let m = 1; m <= calcMonth; m++) {
-            cumulativeTotal += calculateDueForMonth(m, startAmt, schedule);
-        }
-        document.getElementById('md-g-cumulative').innerText = Number(cumulativeTotal).toLocaleString('en-IN');
-
-        openModal('group-detail-modal');
       } catch (err) {
         console.error("Modal Render Error:", err);
         showMessage("Engine Error", "Could not load this group's data: " + err.message, "error");
@@ -736,10 +742,15 @@
         
         const safeName = (activeGroupData.groupName || 'Group').toUpperCase();
         
+        const expectedStr = document.getElementById('md-g-expected-pot').innerText;
+        const collectedStr = document.getElementById('md-g-collected').innerText;
+        const arrearsStr = document.getElementById('md-g-arrears').innerText;
+        
         const summary = `*${safeName}*\nID: @${activeGroupData.id}\n\n` +
-                        `Current Timeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n` +
                         `Total Participants: ${activeGroupData.participantCount || 0}\n` +
-                        `*This Month's Due: ${document.getElementById('md-g-ongoing-due').innerText.split(': ')}*\n\n` +
+                        `Expected Collection: ${expectedStr}\n` +
+                        `Actually Collected: ${collectedStr}\n` +
+                        `*Total Pending Arrears: ${arrearsStr}*\n\n` +
                         `Powered by Meena Chitfunds`;
 
         if (navigator.share) {
@@ -755,10 +766,9 @@
     };
 
     // --- FETCH FULL PARTICIPANT PROFILES ---
-    // We fetch the full docs to get phone numbers and joinedAt timestamps for proper logic
     async function fetchGroupUsers() {
         if(!activeGroupData) throw new Error("Active group data not found.");
-        if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; // Use cache if already loaded this session
+        if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; 
         
         // Single optimized read using array-contains
         const q = query(collection(db, "users"), where("activeGroups", "array-contains", activeGroupData.id));
@@ -798,7 +808,6 @@
                 return;
             }
 
-            // To show 'monthsPaid', we match the full user object with the group's internal memberSnapshot
             const snapshotMap = new Map();
             if(activeGroupData.memberSnapshot) {
                 activeGroupData.memberSnapshot.forEach(s => snapshotMap.set(s.id, s));
@@ -812,7 +821,6 @@
                 const phoneText = u.phone ? `${phoneIconSVG} ${u.phone}` : 'No Phone';
                 const locText = u.location ? `${locIconSVG} ${u.location}` : 'No Location';
                 
-                // Card UI
                 const card = document.createElement('div');
                 card.className = 'user-card';
                 card.innerHTML = `
@@ -861,16 +869,15 @@
             users.forEach(u => {
                 const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
                 
-                // CORE LOGIC UPGRADE: Individual dynamic expected month logic (Replaces global system month)
+                // CORE LOGIC UPGRADE: Individual dynamic expected month logic
                 const expectedUserMonth = calculateParticipantExpectedMonth(u, activeGroupData);
                 
                 // LOGIC: If they have paid less months than THEIR individual calculated timeline
                 if(snapData.monthsPaid < expectedUserMonth) {
                     hasPending = true;
                     
-                    // Complex Math: Calculate total exactly owed based on missed months
                     let totalOwed = 0;
-                    let pendingMonthsList = []; // Array to hold breakdown
+                    let pendingMonthsList = []; 
                     
                     for(let m = snapData.monthsPaid + 1; m <= expectedUserMonth; m++) {
                         let dueAmount = calculateDueForMonth(m, startAmt, schedule);
@@ -885,7 +892,6 @@
                         ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
                         : ``;
 
-                    // WhatsApp Quick Link with exact mathematical breakdown payload synced to expectedUserMonth
                     let waButtonHTML = ``;
                     if (u.phone) {
                         let breakdownText = "";
@@ -901,7 +907,6 @@
                         waButtonHTML = `<a href="${waLink}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`;
                     }
 
-                    // Mobile Responsive Container layout ensures clear alignment
                     const card = document.createElement('div');
                     card.className = 'user-card defaulter-card';
                     card.style.display = 'block'; 
