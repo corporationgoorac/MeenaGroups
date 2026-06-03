@@ -107,16 +107,21 @@
     .search-input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-main); font-size: 13px; outline: none; width: 150px; transition: border-color 0.2s; }
     .search-input:focus { border-color: var(--brand-accent); }
 
-    /* Group Card */
+    /* Group Card Upgrades */
     .group-card {
       background-color: var(--bg-color); border: 1px solid var(--border-color);
       border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px;
     }
     .group-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .group-name { font-size: 18px; font-weight: 600; margin: 0; }
+    .group-name { font-size: 18px; font-weight: 600; margin: 0; text-transform: uppercase;}
     .group-id-badge { font-size: 11px; background: var(--surface-color); padding: 2px 8px; border-radius: 6px; color: var(--text-muted); font-family: monospace; margin-top: 4px; display: inline-block;}
     .group-meta { font-size: 13px; color: var(--text-muted); display: flex; gap: 12px; margin-top: 8px; }
     
+    .g-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .g-stat { display: flex; flex-direction: column; gap: 4px; }
+    .g-stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;}
+    .g-stat-val { font-size: 15px; font-weight: 800; color: var(--text-main); }
+
     .group-actions { display: flex; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 12px; }
     .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: 8px; }
     .icon-btn.edit:active { background-color: var(--surface-color); }
@@ -439,6 +444,7 @@
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
       if(modalId === 'group-modal' && !document.getElementById('g-start-date').value) {
+          // CRITICAL BUG FIX: Extract only the date string to prevent array assignment error
           const today = new Date().toISOString().split('T');
           document.getElementById('g-start-date').value = today;
       }
@@ -496,6 +502,32 @@
         console.error('Failed to copy', err);
       });
     };
+
+    // --- CORE ENGINE LOGIC (Mathematical Ledger) ---
+    function calculateCurrentSystemMonth(startDateStr) {
+        if(!startDateStr) return 1; 
+        const start = new Date(startDateStr);
+        const now = new Date();
+        let months = (now.getFullYear() - start.getFullYear()) * 12;
+        months -= start.getMonth();
+        months += now.getMonth();
+        return months <= 0 ? 1 : months + 1; 
+    }
+
+    function calculateDueForMonth(targetMonth, startAmount, schedule) {
+        if (targetMonth <= 1) return startAmount;
+        let currentAmount = startAmount;
+        for (let m = 2; m <= targetMonth; m++) {
+            let increment = 0;
+            for (let tier of schedule) {
+                if (m >= tier.start && m <= tier.end) {
+                    increment = tier.amount; break;
+                }
+            }
+            currentAmount += increment;
+        }
+        return currentAmount;
+    }
 
     // --- 1. ADVANCED SERVER-SIDE SEARCH FOR GROUPS ---
     async function loadGroups(isLoadMore = false) {
@@ -609,12 +641,16 @@
             const data = docSnap.data();
             const groupId = docSnap.id;
             
-            let schedulePreview = "Fixed Rate";
-            if (data.installmentSchedule && Array.isArray(data.installmentSchedule)) {
-                schedulePreview = data.installmentSchedule.map(s => `${s.start}-${s.end}M:₹${s.amount}`).join(', ');
-            }
-
             const safePot = data.totalPot ? Number(data.totalPot).toLocaleString('en-IN') : '0';
+            
+            // --- NEW UI UPGRADE: Better representation of group stats applied here! ---
+            const calcMonth = calculateCurrentSystemMonth(data.startDate);
+            const cappedMonth = data.totalMonths ? Math.min(calcMonth, data.totalMonths) : calcMonth;
+            let displayStartDate = 'N/A';
+            if(data.startDate) {
+                const dateObj = new Date(data.startDate);
+                displayStartDate = dateObj.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+            }
             
             const card = document.createElement('div');
             card.className = 'group-card';
@@ -622,18 +658,36 @@
             card.innerHTML = `
                 <div class="group-header">
                     <div>
-                        <h3 class="group-name">${data.groupName || 'Unnamed Group'}</h3>
+                        <h3 class="group-name">${data.groupName || 'Unnamed'}</h3>
                         <span class="group-id-badge">@${groupId}</span>
-                        <div class="group-meta">
-                            <span>₹${safePot}</span>
-                            <span>•</span>
-                            <span>${data.totalMonths || 0} Months</span>
-                            <span>•</span>
-                            <span>${data.participantCount || 0} Members</span>
-                        </div>
-                        <div class="group-meta" style="margin-top:4px; font-size:11px; color:var(--text-muted); display:block;">
-                            Sched: [${schedulePreview}]
-                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: 800; color: var(--success-color);">₹${safePot}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 4px; text-transform: uppercase;">Target Pot</div>
+                    </div>
+                </div>
+                <div class="g-stats-row">
+                    <div class="g-stat">
+                        <span class="g-stat-label">Members</span>
+                        <span class="g-stat-val">${data.participantCount || 0}</span>
+                    </div>
+                    <div class="g-stat">
+                        <span class="g-stat-label">Months</span>
+                        <span class="g-stat-val">${data.totalMonths || 0}</span>
+                    </div>
+                    <div class="g-stat">
+                        <span class="g-stat-label">Chronological</span>
+                        <span class="g-stat-val" style="color: var(--brand-accent);">Mo. ${cappedMonth}</span>
+                    </div>
+                </div>
+                <div style="margin-top: 14px; padding: 12px 16px; background: var(--surface-color); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed var(--border-color); margin-bottom: 12px;">
+                    <div>
+                        <div style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Group Created</div>
+                        <div style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-top: 2px;">${displayStartDate}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base Due</div>
+                        <div style="font-size: 14px; font-weight: 800; color: var(--text-main);">₹${(data.startAmount || 0).toLocaleString('en-IN')}</div>
                     </div>
                 </div>
                 <div class="group-actions">
@@ -674,23 +728,6 @@
             loadGroups(false);
         }, 500);
     });
-
-    // --- CORE ENGINE LOGIC (Mathematical Ledger) ---
-    function calculateDueForMonth(targetMonth, startAmount, schedule) {
-        if (targetMonth <= 1) return startAmount;
-        let currentAmount = startAmount;
-        for (let m = 2; m <= targetMonth; m++) {
-            let increment = 0;
-            for (let tier of schedule) {
-                if (m >= tier.start && m <= tier.end) {
-                    increment = tier.amount; break;
-                }
-            }
-            currentAmount += increment;
-        }
-        return currentAmount;
-    }
-
 
     // --- Schedule Builder Logic (Mobile UI) ---
     window.addScheduleRow = function() {
@@ -764,6 +801,7 @@
         
         const section = document.getElementById('live-calc-section');
 
+        // Failsafe: if the date is empty or invalid, hide the calculator
         if (!groupId || !joinDateStr || !cachedGroupsForModal[groupId]) {
             section.style.display = 'none';
             return;
@@ -772,6 +810,12 @@
         const groupData = cachedGroupsForModal[groupId];
         const joinDate = new Date(joinDateStr);
         const now = new Date();
+
+        // Extra Failsafe
+        if (isNaN(joinDate)) {
+            section.style.display = 'none';
+            return;
+        }
 
         let elapsed = (now.getFullYear() - joinDate.getFullYear()) * 12;
         elapsed -= joinDate.getMonth();
@@ -838,7 +882,7 @@
     window.openParticipantModal = async function() {
       openModal('participant-modal');
       
-      // Auto-set the join date to today whenever opening the modal
+      // CRITICAL BUG FIX: Extract only the date string to prevent array assignment error
       document.getElementById('p-join-date').value = new Date().toISOString().split('T');
       
       const select = document.getElementById('p-group');
