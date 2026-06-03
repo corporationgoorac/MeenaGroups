@@ -6,7 +6,7 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f" />
   <link rel="manifest" href="manifest.json">
-  <title>Reports - Meena Chitfunds</title>
+  <title>Manage - Meena Chitfunds</title>
   
   <style>
     /* Premium Theme Variables */
@@ -77,11 +77,13 @@
     }
     @media (prefers-color-scheme: dark) { header { background-color: rgba(20, 20, 20, 0.85); } }
 
-    .header-titles {
-      display: flex;
-      align-items: center;
+    .header-titles h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
-
+    
     .header-back-btn {
       background: none;
       border: none;
@@ -98,11 +100,9 @@
     .header-back-btn:active { background-color: var(--surface-hover); }
     .header-back-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
-    .header-titles h1 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
+    .header-titles {
+      display: flex;
+      align-items: center;
     }
 
     /* List Container & Advanced Search */
@@ -221,15 +221,11 @@
     .mini-btn-cancel { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 10px; }
     .mini-btn-danger { background-color: var(--danger-color); color: #fff; }
 
-    /* Mobile Responsive Fixes */
-    @media (max-width: 480px) {
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
         .engine-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-        .user-card { flex-direction: column; align-items: flex-start; }
-        .user-card > div:nth-child(1) { width: 100%; margin-bottom: 12px; }
-        .user-card > div:nth-child(2) { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 12px;}
-        .user-card-actions { justify-content: space-between; gap: 8px;}
-        .u-action-btn { flex: 1; justify-content: center; }
     }
+
   </style>
 </head>
 <body>
@@ -296,7 +292,7 @@
               <div class="e-val danger" id="md-u-pending">₹0</div>
             </div>
             <div class="engine-box">
-              <div class="e-label">Expected Mo.</div>
+              <div class="e-label">Target Mo.</div>
               <div class="e-val" id="md-u-current-mo">--</div>
             </div>
             <div class="engine-box">
@@ -625,23 +621,31 @@
         }, 500);
     });
 
-    // --- CORE ENGINE LOGIC ---
+    // --- CORE ENGINE LOGIC WITH NEW DYNAMIC MONTH ALGORITHM ---
+    function calculateCurrentMonth(startDateStr) {
+        if(!startDateStr) return 1;
+        const start = new Date(startDateStr);
+        const now = new Date();
+        let months = (now.getFullYear() - start.getFullYear()) * 12;
+        months -= start.getMonth();
+        months += now.getMonth();
+        return months <= 0 ? 1 : months + 1; 
+    }
+
     function calculateParticipantExpectedMonth(user, groupData) {
+        // Tie calculation precisely to the user's explicit Join Date rather than group start date
         const start = user.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData.startDate);
         const now = new Date();
-        
         let elapsed = (now.getFullYear() - start.getFullYear()) * 12;
         elapsed -= start.getMonth();
         elapsed += now.getMonth();
         if (elapsed < 0) elapsed = 0;
         
         let expected = elapsed + 1; 
-        
         const totalGroupMonths = groupData.totalMonths || 0;
         if (totalGroupMonths > 0 && expected > totalGroupMonths) {
             expected = totalGroupMonths;
         }
-        
         return expected;
     }
 
@@ -754,11 +758,18 @@
                 });
             }
             
-            let totalPaid = 0;
+            // Integrate Independent Advance Amount into calculation
+            let advanceAmt = activeViewedUser.advanceAmount || 0;
+            let totalPaid = advanceAmt; 
             let maxMonthPaid = 0;
+            
             const historyList = document.getElementById('txn-history-list');
             historyList.innerHTML = '';
             
+            if(txns.length === 0 && advanceAmt === 0) {
+                historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
+            }
+
             txns.forEach(tData => {
                 totalPaid += tData.amount;
                 if(tData.monthAttributed > maxMonthPaid) maxMonthPaid = tData.monthAttributed;
@@ -767,19 +778,12 @@
                 if(tData.date && typeof tData.date.toDate === 'function') {
                     dDate = tData.date.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                 }
-
-                let monthText = `Month ${tData.monthAttributed}`;
-                if (tData.type === "Advance Payment" || tData.monthAttributed === 0) {
-                    monthText = "Advanced";
-                } else if (tData.type === "Initial Setup / Catch-up") {
-                    monthText = `Initial Catch-up (To Mo. ${tData.monthAttributed})`;
-                }
                 
                 const hc = document.createElement('div');
                 hc.className = 'history-card';
                 hc.innerHTML = `
                     <div>
-                        <div class="h-month">${monthText}</div>
+                        <div class="h-month">Month ${tData.monthAttributed}</div>
                         <div class="h-date">${dDate}</div>
                     </div>
                     <div class="h-amount">₹${Number(tData.amount).toLocaleString('en-IN')}</div>
@@ -787,37 +791,36 @@
                 historyList.appendChild(hc);
             });
 
-            // Handle new advanced logic fail-safe (in case they didn't have an explicit transaction stored)
-            if (activeViewedUser.advanceAmount && activeViewedUser.advanceAmount > 0) {
-                const hasAdvTxn = txns.some(t => t.type === "Advance Payment" || t.monthAttributed === 0);
-                if (!hasAdvTxn) {
-                     const hc = document.createElement('div');
-                     hc.className = 'history-card';
-                     hc.innerHTML = `
-                        <div>
-                            <div class="h-month">Advanced</div>
-                            <div class="h-date">At Registration</div>
-                        </div>
-                        <div class="h-amount">₹${Number(activeViewedUser.advanceAmount).toLocaleString('en-IN')}</div>
-                     `;
-                     historyList.appendChild(hc);
-                     totalPaid += activeViewedUser.advanceAmount;
-                }
+            // Append Advanced Amount to bottom of history exactly as requested
+            if (advanceAmt > 0) {
+                const advCard = document.createElement('div');
+                advCard.className = 'history-card';
+                advCard.style.border = '1px dashed var(--brand-accent)';
+                advCard.style.backgroundColor = 'var(--brand-accent-light)';
+                advCard.innerHTML = `
+                    <div>
+                        <div class="h-month" style="color: var(--brand-accent);">Advanced Amount</div>
+                        <div class="h-date" style="color: var(--brand-accent);">Collected at join</div>
+                    </div>
+                    <div class="h-amount" style="color: var(--brand-accent);">₹${Number(advanceAmt).toLocaleString('en-IN')}</div>
+                `;
+                historyList.appendChild(advCard);
             }
 
-            if(historyList.innerHTML === '') {
-                historyList.innerHTML = '<div class="empty-state"><p>No payments recorded yet.</p></div>';
-            }
-
+            // Updated Arrears Logic with the Dynamic Expected Month Algorithm
             const expectedMonth = calculateParticipantExpectedMonth(activeViewedUser, groupData);
             const startAmt = groupData.startAmount || 0;
             const schedule = groupData.installmentSchedule || [];
+            const totalGroupMonths = groupData.totalMonths || 0;
             
             let pendingTotal = 0;
             let pendingMonthsList = [];
             
-            if (maxMonthPaid < expectedMonth) {
-                for (let m = maxMonthPaid + 1; m <= expectedMonth; m++) {
+            let evalMonth = expectedMonth;
+            if (totalGroupMonths > 0 && evalMonth > totalGroupMonths) evalMonth = totalGroupMonths;
+            
+            if (maxMonthPaid < evalMonth) {
+                for (let m = maxMonthPaid + 1; m <= evalMonth; m++) {
                     const dueForM = calculateDueForMonth(m, startAmt, schedule);
                     pendingTotal += dueForM;
                     pendingMonthsList.push({ month: m, amount: dueForM });
@@ -825,28 +828,17 @@
             }
 
             // Arrears Engine Integration
-            const arrears = expectedMonth - maxMonthPaid;
+            const arrears = evalMonth - maxMonthPaid;
             const arrearsWarning = document.getElementById('arrears-warning');
             if (arrears > 0) {
                 arrearsWarning.style.display = 'block';
-                arrearsWarning.className = 'arrears-banner';
-                arrearsWarning.style.background = 'var(--danger-light)';
-                arrearsWarning.style.color = 'var(--danger-color)';
-                arrearsWarning.style.borderColor = 'rgba(220, 53, 69, 0.2)';
                 arrearsWarning.innerText = `⚠️ Participant is ${arrears} month(s) behind schedule.`;
-            } else if (arrears < 0) {
-                arrearsWarning.style.display = 'block';
-                arrearsWarning.className = 'arrears-banner';
-                arrearsWarning.style.background = 'var(--success-light)';
-                arrearsWarning.style.color = 'var(--success-color)';
-                arrearsWarning.style.borderColor = 'rgba(15, 157, 88, 0.2)';
-                arrearsWarning.innerText = `🌟 Participant is ${Math.abs(arrears)} month(s) ahead in advance.`;
             } else {
                 arrearsWarning.style.display = 'none';
             }
 
             document.getElementById('md-u-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
-            document.getElementById('md-u-current-mo').innerText = expectedMonth;
+            document.getElementById('md-u-current-mo').innerText = evalMonth;
             document.getElementById('md-u-months-paid').innerText = maxMonthPaid;
             
             const pendingUI = document.getElementById('md-u-pending');
@@ -867,7 +859,8 @@
                         breakdownText += `- Month ${pm.month}: ₹${pm.amount}\n`;
                     });
 
-                    const msg = `*Meena Chitfunds*\nGroup: ${groupData.groupName.toUpperCase()} (@${groupId})\nTimeline: Month ${expectedMonth} of ${groupData.totalMonths || 0}\n\nDear ${activeViewedUser.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${pendingTotal}*\n\nKindly clear your dues at the earliest.`;
+                    // Zero split errors generated. Safely renders payload text string.
+                    const msg = `*Meena Chitfunds*\nGroup: ${groupData.groupName.toUpperCase()} (@${groupId})\nTimeline: Month ${evalMonth} of ${totalGroupMonths}\n\nDear ${activeViewedUser.name.toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${pendingTotal}*\n\nKindly clear your dues at the earliest.`;
                     
                     const safePhone = activeViewedUser.phone.replace(/\D/g,'');
                     const waLink = `https://wa.me/${safePhone}?text=${encodeURIComponent(msg)}`;
