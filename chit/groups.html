@@ -61,7 +61,7 @@
       overflow-x: hidden;
     }
 
-    /* Premium Header */
+    /* Premium Header with Back Arrow */
     header {
       position: sticky;
       top: 0;
@@ -76,6 +76,27 @@
       -webkit-backdrop-filter: blur(12px);
     }
     @media (prefers-color-scheme: dark) { header { background-color: rgba(20, 20, 20, 0.85); } }
+
+    .header-titles {
+      display: flex;
+      align-items: center;
+    }
+
+    .header-back-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+      margin-right: 12px;
+    }
+    .header-back-btn:active { background-color: var(--surface-hover); }
+    .header-back-btn svg { width: 24px; height: 24px; fill: currentColor; }
 
     .header-titles h1 {
       margin: 0;
@@ -103,7 +124,7 @@
     .group-card:active { transform: scale(0.98); background-color: var(--surface-hover); border-color: var(--brand-accent); }
     
     .group-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;}
-    .group-name { font-size: 18px; font-weight: 800; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: -0.5px;}
+    .group-name { font-size: 18px; font-weight: 800; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: -0.5px; word-break: break-word;}
     .group-id-badge { font-size: 11px; background: var(--brand-accent-light); color: var(--brand-accent); padding: 4px 8px; border-radius: 6px; font-weight: 800; font-family: monospace; letter-spacing: 0.5px;}
     
     .g-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -163,7 +184,7 @@
     .u-left { display: flex; align-items: center; gap: 14px; width: 100%;}
     .u-avatar { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, var(--brand-accent), #004ba0); color: white; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 800; flex-shrink: 0;}
     .u-info { flex: 1; }
-    .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; }
+    .u-info h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 800; text-transform: uppercase; word-break: break-word;}
     .u-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;}
     
     /* Defaulter / Pending Specific Styling */
@@ -195,12 +216,21 @@
     .mini-modal-text { font-size: 14px; color: var(--text-muted); margin: 0 0 28px 0; line-height: 1.5; font-weight: 500; word-break: break-word;}
     .mini-btn { padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; border: none; cursor: pointer; width: 100%; background-color: var(--brand-accent); color: #fff;}
 
+    /* Responsive Grid fixes */
+    @media (max-width: 480px) {
+        .engine-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .g-stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px;}
+    }
+
   </style>
 </head>
 <body>
 
   <header>
     <div class="header-titles">
+      <button onclick="window.history.back()" class="header-back-btn">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
       <h1>Meena Chitfunds</h1>
     </div>
   </header>
@@ -480,7 +510,7 @@
                 const safePot = group.totalPot ? Number(group.totalPot).toLocaleString('en-IN') : '0';
                 
                 // --- NEW CALCULATION (0 EXTRA READS) ---
-                const calcMonth = calculateCurrentMonth(group.startDate);
+                const calcMonth = calculateCurrentSystemMonth(group.startDate);
                 const cappedMonth = group.totalMonths ? Math.min(calcMonth, group.totalMonths) : calcMonth;
                 const currentDue = calculateDueForMonth(cappedMonth, group.startAmount || 0, group.installmentSchedule || []);
                 const members = group.participantCount || 0;
@@ -542,14 +572,14 @@
             if(err.message && err.message.includes("https://console.firebase.google.com")) {
                 const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                 const match = err.message.match(urlRegex);
-                if(match && match[0]) {
+                if(match && match) {
                     if (!isLoadMore) {
                         container.innerHTML = `
                             <div style="text-align:center; padding: 30px 20px;">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)" style="margin-bottom:16px;"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
                                 <h3 style="margin:0 0 8px 0; font-size:18px; font-weight:800; color:var(--text-main);">Database Optimization Required</h3>
                                 <p style="margin:0 0 20px 0; font-size:14px; color:var(--text-muted); line-height:1.5;">To enable lightning-fast live search, Firebase needs a quick index build. Please click the button below to generate it.</p>
-                                <a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800; font-size:14px; box-shadow: 0 8px 20px rgba(6, 95, 212, 0.25); transition: 0.2s;">Build Secure Index</a>
+                                <a href="${match}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800; font-size:14px; box-shadow: 0 8px 20px rgba(6, 95, 212, 0.25); transition: 0.2s;">Build Secure Index</a>
                             </div>
                         `;
                     }
@@ -577,8 +607,8 @@
 
     // --- CORE ENGINE LOGIC (Calculations) ---
 
-    // 1. Calculate the Target Month strictly by Date Math
-    function calculateCurrentMonth(startDateStr) {
+    // 1. Calculate general group timeline based on Group Start Date
+    function calculateCurrentSystemMonth(startDateStr) {
         if(!startDateStr) return 1; 
         const start = new Date(startDateStr);
         const now = new Date();
@@ -590,7 +620,30 @@
         return months <= 0 ? 1 : months + 1; 
     }
 
-    // 2. Calculate the exact Due Amount for ANY given target month using Increments
+    // 2. NEW LOGIC: Calculate personal timeline dynamically per participant based on their unique Join Date
+    function calculateParticipantExpectedMonth(user, groupData) {
+        // Fallback to group date if user joinedAt doesn't exist (older records)
+        const start = user.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData.startDate);
+        const now = new Date();
+        
+        let elapsed = (now.getFullYear() - start.getFullYear()) * 12;
+        elapsed -= start.getMonth();
+        elapsed += now.getMonth();
+        if (elapsed < 0) elapsed = 0;
+        
+        // Base expectation (Owe 1 month currently)
+        let expected = elapsed + 1; 
+        
+        // Safety cap so they don't get overcharged if group ends
+        const totalGroupMonths = groupData.totalMonths || 0;
+        if (totalGroupMonths > 0 && expected > totalGroupMonths) {
+            expected = totalGroupMonths;
+        }
+        
+        return expected;
+    }
+
+    // 3. Calculate the exact Due Amount for ANY given target month using Increments
     function calculateDueForMonth(targetMonth, startAmount, schedule) {
         if (targetMonth <= 1) return startAmount;
         
@@ -642,7 +695,7 @@
 
         // Execute Temporal Engine
         const schedule = group.installmentSchedule || [];
-        let calcMonth = calculateCurrentMonth(group.startDate);
+        let calcMonth = calculateCurrentSystemMonth(group.startDate);
         
         // Cap the month to totalMonths
         if(calcMonth > group.totalMonths) {
@@ -686,7 +739,7 @@
         const summary = `*${safeName}*\nID: @${activeGroupData.id}\n\n` +
                         `Current Timeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n` +
                         `Total Participants: ${activeGroupData.participantCount || 0}\n` +
-                        `*This Month's Due: ${document.getElementById('md-g-ongoing-due').innerText.split(': ')[1]}*\n\n` +
+                        `*This Month's Due: ${document.getElementById('md-g-ongoing-due').innerText.split(': ')}*\n\n` +
                         `Powered by Meena Chitfunds`;
 
         if (navigator.share) {
@@ -702,11 +755,12 @@
     };
 
     // --- FETCH FULL PARTICIPANT PROFILES ---
-    // We fetch the full docs to get phone numbers for the dialer button. (1 Read per user)
+    // We fetch the full docs to get phone numbers and joinedAt timestamps for proper logic
     async function fetchGroupUsers() {
         if(!activeGroupData) throw new Error("Active group data not found.");
         if(activeLoadedGroupUsers.length > 0) return activeLoadedGroupUsers; // Use cache if already loaded this session
         
+        // Single optimized read using array-contains
         const q = query(collection(db, "users"), where("activeGroups", "array-contains", activeGroupData.id));
         const snap = await getDocs(q);
         
@@ -752,6 +806,8 @@
 
             users.forEach(u => {
                 const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
+                const expectedUserMonth = calculateParticipantExpectedMonth(u, activeGroupData);
+                
                 const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
                 const phoneText = u.phone ? `${phoneIconSVG} ${u.phone}` : 'No Phone';
                 const locText = u.location ? `${locIconSVG} ${u.location}` : 'No Location';
@@ -769,7 +825,7 @@
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 16px; font-weight: 800; color: var(--text-main);">${snapData.monthsPaid} / ${activeLoadedGroupCurrentMonth}</div>
+                        <div style="font-size: 16px; font-weight: 800; color: var(--text-main);">${snapData.monthsPaid} / ${expectedUserMonth}</div>
                         <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Mo. Paid</div>
                     </div>
                 `;
@@ -805,28 +861,31 @@
             users.forEach(u => {
                 const snapData = snapshotMap.get(u.id) || { monthsPaid: 0 };
                 
-                // LOGIC: If they have paid less months than the engine's current calculated month
-                if(snapData.monthsPaid < activeLoadedGroupCurrentMonth) {
+                // CORE LOGIC UPGRADE: Individual dynamic expected month logic (Replaces global system month)
+                const expectedUserMonth = calculateParticipantExpectedMonth(u, activeGroupData);
+                
+                // LOGIC: If they have paid less months than THEIR individual calculated timeline
+                if(snapData.monthsPaid < expectedUserMonth) {
                     hasPending = true;
                     
                     // Complex Math: Calculate total exactly owed based on missed months
                     let totalOwed = 0;
-                    let pendingMonthsList = []; // NEW: Array to hold breakdown exactly like reports.html
+                    let pendingMonthsList = []; // Array to hold breakdown
                     
-                    for(let m = snapData.monthsPaid + 1; m <= activeLoadedGroupCurrentMonth; m++) {
+                    for(let m = snapData.monthsPaid + 1; m <= expectedUserMonth; m++) {
                         let dueAmount = calculateDueForMonth(m, startAmt, schedule);
                         totalOwed += dueAmount;
                         pendingMonthsList.push({ month: m, amount: dueAmount });
                     }
 
                     const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
-                    const missedCount = activeLoadedGroupCurrentMonth - snapData.monthsPaid;
+                    const missedCount = expectedUserMonth - snapData.monthsPaid;
                     
                     const callButtonHTML = u.phone 
                         ? `<a href="tel:${u.phone}" class="call-btn"><svg viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg></a>`
                         : ``;
 
-                    // NEW FEATURE: WhatsApp Quick Link with exact mathematical breakdown payload
+                    // WhatsApp Quick Link with exact mathematical breakdown payload synced to expectedUserMonth
                     let waButtonHTML = ``;
                     if (u.phone) {
                         let breakdownText = "";
@@ -834,7 +893,7 @@
                             breakdownText += `- Month ${pm.month}: ₹${pm.amount}\n`;
                         });
 
-                        const msg = `*Meena Chitfunds*\nGroup: ${activeGroupData.groupName.toUpperCase()} (@${activeGroupData.id})\nTimeline: Month ${activeLoadedGroupCurrentMonth} of ${activeGroupData.totalMonths || 0}\n\nDear ${(u.name || 'Participant').toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${totalOwed}*\n\nKindly clear your dues at the earliest.`;
+                        const msg = `*Meena Chitfunds*\nGroup: ${activeGroupData.groupName.toUpperCase()} (@${activeGroupData.id})\nTimeline: Month ${expectedUserMonth} of ${activeGroupData.totalMonths || 0}\n\nDear ${(u.name || 'Participant').toUpperCase()},\nYou have pending payments for the following months:\n\n${breakdownText}\n*Total Pending: ₹${totalOwed}*\n\nKindly clear your dues at the earliest.`;
                         
                         const safePhone = u.phone.replace(/\D/g,'');
                         const waLink = `https://wa.me/${safePhone}?text=${encodeURIComponent(msg)}`;
@@ -842,7 +901,7 @@
                         waButtonHTML = `<a href="${waLink}" target="_blank" class="call-btn" style="background:#25D366; margin-right:8px;"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.422C7.145 7.63 6 8.7 6 10.923c0 2.222 1.98 4.372 2.254 4.743.274.371 3.235 4.939 7.838 6.936 1.103.479 1.963.765 2.633.978 1.107.351 2.115.301 2.912.182.894-.134 2.748-1.122 3.134-2.207.386-1.085.386-2.015.271-2.208-.115-.192-.413-.301-.71-.45zM12.002 22.002h-.006c-1.666 0-3.294-.447-4.726-1.293l-.339-.2-3.513.921.936-3.424-.22-.349a9.92 9.92 0 01-1.517-5.328c0-5.513 4.49-9.998 10.013-9.998 2.671 0 5.182 1.042 7.07 2.932 1.889 1.888 2.93 4.398 2.931 7.069 0 5.514-4.49 10.003-10.01 10.003z"/></svg></a>`;
                     }
 
-                    // MOBILE CRASH FIX: Allow vertical stacking of content inside block container so action row stays below text cleanly
+                    // Mobile Responsive Container layout ensures clear alignment
                     const card = document.createElement('div');
                     card.className = 'user-card defaulter-card';
                     card.style.display = 'block'; 
