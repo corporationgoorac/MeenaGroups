@@ -309,6 +309,30 @@
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 500;">How many months of installments they are clearing upfront.</div>
         </div>
 
+        <div id="live-calc-section" style="display:none; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 12px; color: var(--brand-accent); font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Real-Time Summary</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Expected Month</div>
+                    <div id="live-elapsed" style="font-size: 16px; font-weight: 800; color: var(--text-main);">0 Months</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Timeline Status</div>
+                    <div id="live-status" style="font-size: 16px; font-weight: 800; color: var(--success-color);">Up to Date</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="background: rgba(15, 157, 88, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(15, 157, 88, 0.2);">
+                    <div style="font-size: 10px; color: var(--success-color); font-weight: 800; text-transform: uppercase;">Total Paid Now</div>
+                    <div id="live-total-paid" style="font-size: 18px; font-weight: 800; color: var(--success-color);">₹0</div>
+                </div>
+                <div id="live-pending-box" style="background: rgba(220, 53, 69, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(220, 53, 69, 0.2);">
+                    <div style="font-size: 10px; color: inherit; font-weight: 800; text-transform: uppercase;">Pending Dues</div>
+                    <div id="live-pending" style="font-size: 18px; font-weight: 800; color: var(--danger-color);">₹0</div>
+                </div>
+            </div>
+        </div>
+
         <button type="submit" class="submit-btn" id="p-submit-btn" disabled>Save Participant</button>
       </form>
     </div>
@@ -731,6 +755,85 @@
       validateUniqueId('users', 'p-id', 'p-id-icon', 'p-id-loading', 'p-submit-btn');
     });
 
+    // --- LIVE CALCULATION ENGINE FOR MODAL ---
+    function calculateLiveSummary() {
+        const groupId = document.getElementById('p-group').value;
+        const joinDateStr = document.getElementById('p-join-date').value;
+        const monthsPaid = Number(document.getElementById('p-months-paid').value) || 0;
+        const advanceAmt = Number(document.getElementById('p-advance-amount').value) || 0;
+        
+        const section = document.getElementById('live-calc-section');
+
+        if (!groupId || !joinDateStr || !cachedGroupsForModal[groupId]) {
+            section.style.display = 'none';
+            return;
+        }
+
+        const groupData = cachedGroupsForModal[groupId];
+        const joinDate = new Date(joinDateStr);
+        const now = new Date();
+
+        let elapsed = (now.getFullYear() - joinDate.getFullYear()) * 12;
+        elapsed -= joinDate.getMonth();
+        elapsed += now.getMonth();
+        if (elapsed < 0) elapsed = 0;
+        
+        let expectedMonth = elapsed + 1;
+        const totalGroupMonths = groupData.totalMonths || 0;
+        if (totalGroupMonths > 0 && expectedMonth > totalGroupMonths) {
+            expectedMonth = totalGroupMonths;
+        }
+
+        document.getElementById('live-elapsed').innerText = expectedMonth + " Months";
+
+        const startAmt = groupData.startAmount || 0;
+        const schedule = groupData.installmentSchedule || [];
+
+        let totalPaid = advanceAmt;
+        for(let m = 1; m <= monthsPaid; m++) {
+            totalPaid += calculateDueForMonth(m, startAmt, schedule);
+        }
+
+        document.getElementById('live-total-paid').innerText = "₹" + totalPaid.toLocaleString('en-IN');
+
+        let pending = 0;
+        let missedCount = expectedMonth - monthsPaid;
+        
+        const pendingEl = document.getElementById('live-pending');
+        const pendingBox = document.getElementById('live-pending-box');
+        
+        if (missedCount > 0) {
+            for (let m = monthsPaid + 1; m <= expectedMonth; m++) {
+                pending += calculateDueForMonth(m, startAmt, schedule);
+            }
+            document.getElementById('live-status').innerText = missedCount + " Month(s) Behind";
+            document.getElementById('live-status').style.color = "var(--danger-color)";
+            pendingEl.style.color = "var(--danger-color)";
+            pendingBox.style.background = "rgba(220, 53, 69, 0.1)";
+            pendingBox.style.borderColor = "rgba(220, 53, 69, 0.2)";
+        } else if (missedCount < 0) {
+            document.getElementById('live-status').innerText = "Advance by " + Math.abs(missedCount) + " Mo";
+            document.getElementById('live-status').style.color = "var(--brand-accent)";
+            pendingEl.style.color = "var(--success-color)";
+            pendingBox.style.background = "rgba(15, 157, 88, 0.1)";
+            pendingBox.style.borderColor = "rgba(15, 157, 88, 0.2)";
+        } else {
+            document.getElementById('live-status').innerText = "All Clear";
+            document.getElementById('live-status').style.color = "var(--success-color)";
+            pendingEl.style.color = "var(--success-color)";
+            pendingBox.style.background = "rgba(15, 157, 88, 0.1)";
+            pendingBox.style.borderColor = "rgba(15, 157, 88, 0.2)";
+        }
+
+        pendingEl.innerText = "₹" + pending.toLocaleString('en-IN');
+        section.style.display = 'block';
+    }
+
+    document.getElementById('p-group').addEventListener('change', calculateLiveSummary);
+    document.getElementById('p-join-date').addEventListener('input', calculateLiveSummary);
+    document.getElementById('p-months-paid').addEventListener('input', calculateLiveSummary);
+    document.getElementById('p-advance-amount').addEventListener('input', calculateLiveSummary);
+
     // --- Participant Modal Setup (Now Caches Group Engine Data) ---
     window.openParticipantModal = async function() {
       openModal('participant-modal');
@@ -757,6 +860,9 @@
           opt.innerText = `${gData.groupName} (@${doc.id})`;
           select.appendChild(opt);
         });
+        
+        // Trigger live calculation in case values are pre-filled
+        calculateLiveSummary();
 
       } catch(e) { 
         console.error("Dropdown error", e); 
@@ -914,6 +1020,7 @@
         
         e.target.reset();
         document.getElementById('p-id-icon').innerHTML = ''; 
+        document.getElementById('live-calc-section').style.display = 'none';
         
         closeModal();
         
