@@ -633,8 +633,11 @@
     }
 
     function calculateParticipantExpectedMonth(user, groupData) {
+        // Defensive check to prevent "Cannot read properties of undefined"
+        if (!user || !groupData) return 1;
+        
         // Tie calculation precisely to the user's explicit Join Date rather than group start date
-        const start = user.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData.startDate);
+        const start = user?.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData?.startDate || new Date());
         const now = new Date();
         let elapsed = (now.getFullYear() - start.getFullYear()) * 12;
         elapsed -= start.getMonth();
@@ -668,11 +671,14 @@
     let activeViewedUser = null;
 
     window.openUserDetailById = function(id) {
-        const u = allUsersCache.find(x => x.id === id);
+        // Safely extract the user object from the cache
+        const u = allUsersCache.find(x => x && x.id === id);
         if(u) openUserDetail(u);
     };
 
     window.openUserDetail = function(user) {
+        // Ensure user is valid before assigning
+        if (!user) return;
         activeViewedUser = user;
         
         document.getElementById('md-u-name').innerText = user.name || "Unnamed";
@@ -709,6 +715,12 @@
     });
 
     async function analyzeUserLedger(groupId) {
+        // Defensive Fail-Safe: If the participant object is empty/lost, stop immediately.
+        if (!activeViewedUser) {
+            showMessage("Error", "No active participant selected. Please refresh.", "error");
+            return;
+        }
+
         const view = document.getElementById('ledger-view');
         view.style.display = 'block';
         
@@ -758,8 +770,8 @@
                 });
             }
             
-            // Integrate Independent Advance Amount into calculation
-            let advanceAmt = activeViewedUser.advanceAmount || 0;
+            // STRICT DEFENSIVE CHECK: Safely Integrate Independent Advance Amount into calculation
+            let advanceAmt = activeViewedUser?.advanceAmount ? Number(activeViewedUser.advanceAmount) : 0;
             let totalPaid = advanceAmt; 
             let maxMonthPaid = 0;
             
@@ -946,7 +958,8 @@
     document.getElementById('edit-p-id').addEventListener('input', validateEditUniqueId);
 
     window.openEditParticipant = async function(userId) {
-        let userToEdit = allUsersCache.find(u => u.id === userId);
+        // Safe check for undefined user fetch
+        let userToEdit = allUsersCache.find(u => u && u.id === userId);
         
         if (!userToEdit) {
             const docSnap = await getDoc(doc(db, "users", userId));
@@ -979,7 +992,7 @@
             const newName = document.getElementById('edit-p-name').value;
             const newPhone = document.getElementById('edit-p-phone').value;
             
-            let userToEdit = allUsersCache.find(u => u.id === originalId);
+            let userToEdit = allUsersCache.find(u => u && u.id === originalId);
             if(!userToEdit) throw new Error("Participant profile out of sync. Please reload.");
 
             if (originalId !== newId) {
@@ -1007,8 +1020,8 @@
                             const groupData = groupSnap.data();
                             let updatedSnapshot = groupData.memberSnapshot || [];
                             
-                            // Hot-swap the ID inside the group array
-                            let memberIndex = updatedSnapshot.findIndex(m => m.id === originalId);
+                            // Hot-swap the ID inside the group array safely
+                            let memberIndex = updatedSnapshot.findIndex(m => m && m.id === originalId);
                             if (memberIndex > -1) {
                                 updatedSnapshot[memberIndex].id = newId;
                                 updatedSnapshot[memberIndex].name = newName;
@@ -1046,7 +1059,7 @@
                 await batch.commit();
 
                 // Seamless Local Cache Update
-                allUsersCache = allUsersCache.filter(u => u.id !== originalId);
+                allUsersCache = allUsersCache.filter(u => u && u.id !== originalId);
                 allUsersCache.push({ id: newId, ...newUserData });
                 
                 showMessage("Migration Complete", `Participant successfully moved to <b>@${newId}</b> and all ledgers updated.`, "success");
@@ -1060,7 +1073,7 @@
                     phone: newPhone
                 });
                 
-                const userIndex = allUsersCache.findIndex(u => u.id === originalId);
+                const userIndex = allUsersCache.findIndex(u => u && u.id === originalId);
                 if(userIndex > -1) {
                     allUsersCache[userIndex].name = newName;
                     allUsersCache[userIndex].phone = newPhone;
@@ -1075,7 +1088,7 @@
                         if (groupSnap.exists()) {
                             const groupData = groupSnap.data();
                             let updatedSnapshot = groupData.memberSnapshot || [];
-                            let memberIndex = updatedSnapshot.findIndex(m => m.id === originalId);
+                            let memberIndex = updatedSnapshot.findIndex(m => m && m.id === originalId);
                             if (memberIndex > -1) {
                                 updatedSnapshot[memberIndex].name = newName;
                                 batch.update(groupRef, { memberSnapshot: updatedSnapshot });
@@ -1148,7 +1161,7 @@
         btn.innerText = "Deleting & Syncing..."; btn.disabled = true;
 
         try {
-            const userToDelete = allUsersCache.find(u => u.id === targetParticipantIdToDelete);
+            const userToDelete = allUsersCache.find(u => u && u.id === targetParticipantIdToDelete);
             if (!userToDelete) throw new Error("User data not found.");
 
             // 1. Safely destroy all related transactions and auction payouts
@@ -1168,7 +1181,7 @@
                         
                         let updatedSnapshot = [];
                         if (groupData.memberSnapshot) {
-                            updatedSnapshot = groupData.memberSnapshot.filter(member => member.id !== targetParticipantIdToDelete);
+                            updatedSnapshot = groupData.memberSnapshot.filter(member => member && member.id !== targetParticipantIdToDelete);
                         }
 
                         batch.update(groupRef, {
@@ -1185,7 +1198,7 @@
 
             await batch.commit();
 
-            allUsersCache = allUsersCache.filter(u => u.id !== targetParticipantIdToDelete);
+            allUsersCache = allUsersCache.filter(u => u && u.id !== targetParticipantIdToDelete);
             loadUsers(false);
             closeModal();
             showMessage("Deep Wipe Successful", `Participant removed.<br><br>Deleted <b>${txnsDeleted}</b> payments and <b>${auctionsDeleted}</b> payouts.`, "success");
