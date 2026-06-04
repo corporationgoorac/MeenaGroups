@@ -240,63 +240,76 @@
     .logout-btn { width: 100%; background: var(--danger-light); color: var(--danger-color); border: none; padding: 20px; border-radius: 20px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);}
     .logout-btn:active { transform: scale(0.95); }
 
-    /* --- ADDED: PC RESPONSIVENESS (SLEEK DESKTOP UI) --- */
-    @media (min-width: 768px) {
-      body {
-        padding-bottom: 40px; 
-      }
-      header {
-        padding: 16px 40px;
-        z-index: 100;
-      }
-      .dashboard-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 40px;
-      }
-      /* Expand Grids for Desktop */
-      .metrics-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-      .metric-card.full-width { grid-column: span 2; }
-      .metric-card.wallet-card { grid-column: span 2; }
-      .quick-actions {
-        grid-template-columns: repeat(4, 1fr);
+    /* =========================================
+       DESKTOP & RESPONSIVE ENHANCEMENTS
+       ========================================= */
+    .desktop-nav { display: none; }
+    
+    @media (min-width: 1024px) {
+      :root { --nav-height: 84px; }
+      body { padding-bottom: 40px; }
+      
+      header { 
+        padding: 0 40px; 
+        max-width: 1400px; 
+        margin: 0 auto; 
+        height: var(--nav-height);
+        border-radius: 0 0 24px 24px;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        box-shadow: var(--card-shadow);
+        background-color: var(--surface-color);
       }
       
-      /* Transform Bottom Floating Nav into Sleek Top Floating Nav */
-      .bottom-nav {
-        top: 16px;
-        bottom: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        width: auto;
-        min-width: 450px;
-        padding: 0 24px;
-        gap: 32px;
+      /* Inject Desktop Nav Visually */
+      .desktop-nav { 
+        display: flex; 
+        gap: 16px; 
+        align-items: center; 
+        justify-content: center;
+        flex: 1; 
       }
-      .nav-item {
-        flex-direction: row;
-        font-size: 14px;
-        gap: 8px;
+      .desktop-nav a { 
+        text-decoration: none; 
+        color: var(--text-muted); 
+        font-weight: 700; 
+        font-size: 15px; 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+        padding: 10px 20px; 
+        border-radius: 12px;
+        transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
-      .nav-item svg {
-        width: 20px;
-        height: 20px;
-      }
+      .desktop-nav a svg { width: 20px; height: 20px; fill: currentColor; }
+      .desktop-nav a.active { color: var(--brand-accent); background: var(--brand-accent-light); }
+      .desktop-nav a:hover:not(.active) { color: var(--text-main); background: var(--surface-hover); transform: translateY(-2px); }
       
-      /* Modal slides nicely from right as a sidebar on PC */
-      .modal {
-        width: 420px;
-        left: auto;
-        border-left: 1px solid var(--border-color);
-        box-shadow: -10px 0 40px rgba(0,0,0,0.1);
-      }
+      /* Hide Mobile Nav */
+      .bottom-nav { display: none !important; }
       
-      /* Make PWA banner avoid top nav on desktop */
-      .pwa-banner {
-        top: 90px; 
-      }
+      /* Sleek Pro Dashboard Layout */
+      .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 48px 40px; }
+      .greeting { font-size: 44px; }
+      .sub-greeting { font-size: 18px; margin-bottom: 48px; }
+      
+      .metrics-grid { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+      .metric-card.full-width, .metric-card.wallet-card { grid-column: span 1; }
+      .metric-card { padding: 32px; }
+      .m-val { font-size: 38px; }
+      
+      .quick-actions { grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 50%; }
+      .qa-btn { flex-direction: row; font-size: 16px; padding: 24px; justify-content: center; }
+      
+      /* Adjust Modals/Banners */
+      .modal { width: 420px; left: auto; border-left: 1px solid var(--border-color); box-shadow: -10px 0 40px rgba(0,0,0,0.15); }
+      .pwa-banner { transform: translate(-50%, -150%); top: 100px; }
+    }
+    
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .bottom-nav { width: 400px; left: 50%; transform: translateX(-50%); border-radius: 32px 32px 0 0; bottom: 0; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .metric-card.full-width, .metric-card.wallet-card { grid-column: span 1; }
     }
   </style>
 </head>
@@ -307,6 +320,14 @@
       <h1>Meena Chitfunds</h1>
     </div>
     
+    <nav class="desktop-nav">
+      <a href="home.html" class="active"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Home</a>
+      <a href="add.html"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Add</a>
+      <a href="payment.html"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg> Payment</a>
+      <a href="groups.html"><svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6L12 1z"/></svg> Groups</a>
+      <a href="reports.html"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> Reports</a>
+    </nav>
+
     <div class="header-actions">
       <a href="auction.html" class="header-auction-btn" aria-label="Auctions">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
@@ -659,18 +680,17 @@
         console.log('PWA was installed');
     });
 
-    // --- ADDED: Haptic Feedback (Vibration) Engine for Mobile ---
-    function triggerHaptic() {
-        if ('vibrate' in navigator) {
-            navigator.vibrate(50); // Light tap on interaction
+    // --- 7. Global Haptic/Vibration Feedback Engine ---
+    // Safely triggers a micro-vibration on mobile devices to give tactile feedback
+    const triggerHaptic = () => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(15); 
         }
-    }
-    
-    // Attach haptics to all interactive elements once the DOM is ready
-    window.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('button, .nav-item, .qa-btn, .header-auction-btn, .profile-trigger').forEach(el => {
-            el.addEventListener('click', triggerHaptic);
-        });
+    };
+
+    // Attach to all major interactive UI elements dynamically
+    document.querySelectorAll('a, button, .qa-btn, .profile-trigger, .nav-item').forEach(el => {
+        el.addEventListener('click', triggerHaptic);
     });
 
   </script>
