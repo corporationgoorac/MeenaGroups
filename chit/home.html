@@ -240,76 +240,89 @@
     .logout-btn { width: 100%; background: var(--danger-light); color: var(--danger-color); border: none; padding: 20px; border-radius: 20px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);}
     .logout-btn:active { transform: scale(0.95); }
 
-    /* =========================================
-       DESKTOP & RESPONSIVE ENHANCEMENTS
-       ========================================= */
-    .desktop-nav { display: none; }
-    
-    @media (min-width: 1024px) {
-      :root { --nav-height: 84px; }
-      body { padding-bottom: 40px; }
-      
-      header { 
-        padding: 0 40px; 
-        max-width: 1400px; 
-        margin: 0 auto; 
-        height: var(--nav-height);
-        border-radius: 0 0 24px 24px;
-        border: 1px solid var(--border-color);
-        border-top: none;
-        box-shadow: var(--card-shadow);
-        background-color: var(--surface-color);
+    /* =========================================================================
+       PC & TABLET RESPONSIVE ENGINE
+       Seamlessly converts the mobile layout to a professional desktop dashboard
+       ========================================================================= */
+    @media (min-width: 768px) {
+      body {
+        padding-bottom: 40px; /* Removes mobile nav padding */
       }
       
-      /* Inject Desktop Nav Visually */
-      .desktop-nav { 
-        display: flex; 
-        gap: 16px; 
-        align-items: center; 
-        justify-content: center;
-        flex: 1; 
+      header {
+        padding: 16px 40px;
+        /* Inherits transparent blur and border styling automatically */
       }
-      .desktop-nav a { 
-        text-decoration: none; 
-        color: var(--text-muted); 
-        font-weight: 700; 
-        font-size: 15px; 
-        display: flex; 
-        align-items: center; 
-        gap: 8px; 
-        padding: 10px 20px; 
-        border-radius: 12px;
-        transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px;
       }
-      .desktop-nav a svg { width: 20px; height: 20px; fill: currentColor; }
-      .desktop-nav a.active { color: var(--brand-accent); background: var(--brand-accent-light); }
-      .desktop-nav a:hover:not(.active) { color: var(--text-main); background: var(--surface-hover); transform: translateY(-2px); }
       
-      /* Hide Mobile Nav */
-      .bottom-nav { display: none !important; }
+      /* Transforms the bottom nav into a sleek header nav */
+      .bottom-nav {
+        position: static;
+        width: auto;
+        height: auto;
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border: none;
+        box-shadow: none;
+        transform: none;
+        display: flex;
+        gap: 32px;
+        padding: 0;
+      }
       
-      /* Sleek Pro Dashboard Layout */
-      .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 48px 40px; }
-      .greeting { font-size: 44px; }
-      .sub-greeting { font-size: 18px; margin-bottom: 48px; }
+      @media (prefers-color-scheme: dark) {
+        .bottom-nav { background: transparent; border: none; box-shadow: none; }
+      }
       
-      .metrics-grid { grid-template-columns: repeat(4, 1fr); gap: 24px; }
-      .metric-card.full-width, .metric-card.wallet-card { grid-column: span 1; }
-      .metric-card { padding: 32px; }
-      .m-val { font-size: 38px; }
+      .nav-item {
+        flex-direction: row;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        flex: none;
+      }
       
-      .quick-actions { grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 50%; }
-      .qa-btn { flex-direction: row; font-size: 16px; padding: 24px; justify-content: center; }
+      .nav-item svg { width: 20px; height: 20px; }
+      .nav-item.active svg { transform: translateY(0) scale(1.15); filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.4)); }
       
-      /* Adjust Modals/Banners */
-      .modal { width: 420px; left: auto; border-left: 1px solid var(--border-color); box-shadow: -10px 0 40px rgba(0,0,0,0.15); }
-      .pwa-banner { transform: translate(-50%, -150%); top: 100px; }
+      /* Desktop Metrics Grid - 4 Column Layout */
+      .metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+      }
+      
+      /* Scale the prominent cards back down to span 1 column to fit the row */
+      .metric-card.full-width, .metric-card.wallet-card {
+        grid-column: span 1;
+      }
+      
+      .m-val { font-size: 28px; }
+      
+      /* Quick Actions - Row Layout */
+      .quick-actions {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+      }
+      
+      /* Slide-out Drawer Desktop Constraints */
+      .modal {
+        width: 400px;
+        left: auto;
+        border-left: 1px solid var(--border-color);
+        box-shadow: -20px 0 50px rgba(0,0,0,0.15);
+      }
     }
     
+    /* Tablet specific overrides */
     @media (min-width: 768px) and (max-width: 1023px) {
-      .bottom-nav { width: 400px; left: 50%; transform: translateX(-50%); border-radius: 32px 32px 0 0; bottom: 0; }
       .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-      .metric-card.full-width, .metric-card.wallet-card { grid-column: span 1; }
+      .quick-actions { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -320,12 +333,27 @@
       <h1>Meena Chitfunds</h1>
     </div>
     
-    <nav class="desktop-nav">
-      <a href="home.html" class="active"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Home</a>
-      <a href="add.html"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> Add</a>
-      <a href="payment.html"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg> Payment</a>
-      <a href="groups.html"><svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6L12 1z"/></svg> Groups</a>
-      <a href="reports.html"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> Reports</a>
+    <nav class="bottom-nav">
+      <a href="home.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Home
+      </a>
+      <a href="add.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Add
+      </a>
+      <a href="payment.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        Payment
+      </a>
+      <a href="groups.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6L12 1z"/></svg>
+        Groups
+      </a>
+      <a href="reports.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Reports
+      </a>
     </nav>
 
     <div class="header-actions">
@@ -408,29 +436,6 @@
         <button class="pwa-close" onclick="document.getElementById('install-banner').classList.remove('show')">×</button>
     </div>
   </div>
-
-  <nav class="bottom-nav">
-    <a href="home.html" class="nav-item active">
-      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      Home
-    </a>
-    <a href="add.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-      Add
-    </a>
-    <a href="payment.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-      Payment
-    </a>
-    <a href="groups.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6L12 1z"/></svg>
-      Groups
-    </a>
-    <a href="reports.html" class="nav-item">
-      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-      Reports
-    </a>
-  </nav>
 
   <aside id="profile-modal" class="modal">
     <div class="modal-header">
@@ -680,17 +685,12 @@
         console.log('PWA was installed');
     });
 
-    // --- 7. Global Haptic/Vibration Feedback Engine ---
-    // Safely triggers a micro-vibration on mobile devices to give tactile feedback
-    const triggerHaptic = () => {
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(15); 
+    // --- 7. Global Mobile Haptic Engine (Vibrations) ---
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('a, button, .qa-btn, .profile-trigger');
+        if (target && navigator.vibrate) {
+            navigator.vibrate(30); // Gentle tactile haptic tap 
         }
-    };
-
-    // Attach to all major interactive UI elements dynamically
-    document.querySelectorAll('a, button, .qa-btn, .profile-trigger, .nav-item').forEach(el => {
-        el.addEventListener('click', triggerHaptic);
     });
 
   </script>
