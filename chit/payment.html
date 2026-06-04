@@ -429,7 +429,7 @@
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
     // --- FLAWLESS HASH-BASED MODAL NAVIGATION (Fixed Back Button Trap) ---
-    let modalStackCount = 0; // Tracks history depth for safe rewinding
+    let modalStackCount = 0; 
 
     window.openModal = function(modalId) {
       document.getElementById(modalId).classList.add('active');
@@ -513,7 +513,6 @@
         return months <= 0 ? 1 : months + 1; 
     }
 
-    // Individual dynamic timeline based exactly on joinedAt
     function calculateParticipantExpectedMonth(user, groupData) {
         if (!user || !groupData) return 1;
         const start = user?.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData?.startDate || new Date());
@@ -587,7 +586,6 @@
             const termUpper = term.toUpperCase();
             const termName = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
 
-            // Set up queries
             if (term === "") {
                 lastSearchType = "default";
                 if (isLoadMore && lastVisibleUser) {
@@ -603,7 +601,6 @@
                     q = query(collection(db, "users"), where("phone", ">=", term), where("phone", "<=", term + "\uf8ff"), orderBy("phone"), limit(10));
                 }
             } else {
-                // Alphanumeric Search
                 if (isLoadMore && lastVisibleUser) {
                     if (lastSearchType === "id") {
                         q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), startAfter(lastVisibleUser), limit(10));
@@ -613,7 +610,6 @@
                         q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), startAfter(lastVisibleUser), limit(10));
                     }
                 } else {
-                    // Try ID first
                     q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), orderBy(documentId()), limit(10));
                     lastSearchType = "id";
                 }
@@ -623,14 +619,11 @@
             try {
                 querySnapshot = await getDocs(q);
                 
-                // Smart Fallback for Alphanumeric searches if ID yields nothing
                 if (!isLoadMore && term !== "" && !isNumericSearch && querySnapshot.empty) {
-                    // Try Capitalized Name Search
                     q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), orderBy("name"), limit(10));
                     querySnapshot = await getDocs(q);
                     lastSearchType = "name";
                     
-                    // If still empty, try Exact Name Search
                     if(querySnapshot.empty) {
                         q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), orderBy("name"), limit(10));
                         querySnapshot = await getDocs(q);
@@ -642,7 +635,9 @@
                 console.warn("Index missing for search. Attempting safe fallback...", idxErr);
                 
                 if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
-                    const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
+                    const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
+                    const match = idxErr.message.match(urlRegex);
+                    // BUG FIX: Correct array access to prevent 'undefined' string printing
                     if(match && match) {
                         setTimeout(() => {
                             showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
@@ -650,7 +645,6 @@
                     }
                 }
 
-                // Fallback queries without orderBy if index is completely missing
                 let fallbackQ;
                 if (term === "") {
                     fallbackQ = (isLoadMore && lastVisibleUser) ? query(collection(db, "users"), startAfter(lastVisibleUser), limit(10)) : query(collection(db, "users"), limit(10));
@@ -734,9 +728,9 @@
                 opt.innerText = `@${gId}`;
                 select.appendChild(opt);
             });
-            // Auto-select if only 1 active group using strict index access
+            // FIX: Safely select the specific array index instead of the whole array object
             if (userObj.activeGroups.length === 1) {
-                select.value = userObj.activeGroups;
+                select.value = userObj.activeGroups; 
                 select.dispatchEvent(new Event('change'));
             }
         } else {
@@ -757,6 +751,7 @@
         
         if(!groupId) {
             detailsView.style.display = 'none';
+            btn.disabled = true;
             return;
         }
 
@@ -764,27 +759,37 @@
         btn.disabled = true;
         
         try {
-            // 1. Fetch Group Settings (1 Read)
+            // 1. Fetch Group Settings
             const groupSnap = await getDoc(doc(db, "groups", groupId));
             if(!groupSnap.exists()) {
-                showMessage("Error", "Group data missing."); return;
+                throw new Error("Group data missing");
             }
             activeGroupData = groupSnap.data();
+            activeGroupData.id = groupSnap.id;
 
-            // 2. Fetch User's Past Transactions for THIS Group
-            const qTxn = query(collection(db, "transactions"), 
-                where("subscriberId", "==", targetUserId),
-                where("groupId", "==", groupId)
-            );
-            
-            const txnSnap = await getDocs(qTxn);
+            // 2. Fetch User's Past Transactions for THIS Group with Safe Fallbacks
+            let txns = [];
+            try {
+                const qTxn = query(collection(db, "transactions"), 
+                    where("subscriberId", "==", targetUserId),
+                    where("groupId", "==", groupId)
+                );
+                const txnSnap = await getDocs(qTxn);
+                txnSnap.forEach(tDoc => txns.push(tDoc.data()));
+            } catch(idxErr) {
+                console.warn("Index fallback...", idxErr);
+                const fallbackQ = query(collection(db, "transactions"), where("subscriberId", "==", targetUserId));
+                const txnSnap = await getDocs(fallbackQ);
+                txnSnap.forEach(tDoc => {
+                    if(tDoc.data().groupId === groupId) txns.push(tDoc.data());
+                });
+            }
+
             let totalPaid = activeUserObj?.advanceAmount ? Number(activeUserObj.advanceAmount) : 0;
             let maxMonthPaid = 0;
             let lastAmountPaid = 0;
 
-            txnSnap.forEach(tDoc => {
-                let tData = tDoc.data();
-                // Safely prevent duplicate counting of advanced amounts in ledger loop
+            txns.forEach(tData => {
                 if (tData.type !== "Advance Payment") {
                     totalPaid += tData.amount;
                     if(tData.monthAttributed > maxMonthPaid) {
@@ -801,57 +806,58 @@
             let totalMonths = activeGroupData.totalMonths || 0;
 
             if(currentCalcMonth > totalMonths) {
-                showMessage("Chit Complete", "This user has completed all installments for this group!", "success");
-                return;
+                document.getElementById('d-amount-due').value = 0;
+                document.getElementById('d-month-label').innerText = 'CHIT COMPLETED';
+                document.getElementById('d-calc-hint').innerText = 'All Dues Paid';
+                document.getElementById('d-last-paid').innerText = `₹${Number(lastAmountPaid).toLocaleString('en-IN')}`;
+                document.getElementById('d-total-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
+                document.getElementById('d-progress-text').innerText = `${maxMonthPaid} / ${totalMonths} Months`;
+                document.getElementById('d-progress-bar').style.width = `100%`;
+                arrearsBox.style.display = 'none';
+                detailsView.style.display = 'block';
+                return; // Leave button disabled
             }
 
             // 4. BUSINESS LOGIC: Calculate Target Due Amount
             const startAmt = activeGroupData.startAmount || 0;
             let schedule = activeGroupData.installmentSchedule || [];
             
-            // EXACT TEMPORAL CALCULATION 
             let amountDue = calculateDueForMonth(currentCalcMonth, startAmt, schedule);
 
-            // Failsafe fallback
             if(amountDue === 0 && lastAmountPaid > 0) amountDue = lastAmountPaid;
             
-            // UI Calculation Hint Updates
             if (currentCalcMonth === 1) {
                 document.getElementById('d-calc-hint').innerText = "Initial Base Amount";
             } else {
                 document.getElementById('d-calc-hint').innerText = `Calculated via Scheduled Increments`;
             }
 
-            // 5. Arrears Detection Engine using user timeline
+            // 5. Arrears Detection Engine
             const expectedMonth = calculateParticipantExpectedMonth(activeUserObj, activeGroupData);
             const arrears = expectedMonth - maxMonthPaid;
             
-            let totalPendingArrears = 0;
             if (arrears > 1) {
                 arrearsBox.style.display = 'block';
-                
-                // Calculate exact cash amount behind
+                let totalPendingArrears = 0;
                 for(let m = maxMonthPaid + 1; m < expectedMonth; m++) {
                     totalPendingArrears += calculateDueForMonth(m, startAmt, schedule);
                 }
-                
-                arrearsBox.innerText = `⚠️ Participant has ${arrears - 1} pending overdue month(s). Arrears Due: ₹${totalPendingArrears}`;
+                arrearsBox.innerText = `⚠️ Participant has ${arrears - 1} pending overdue month(s). Arrears Due: ₹${totalPendingArrears.toLocaleString('en-IN')}`;
             } else {
                 arrearsBox.style.display = 'none';
             }
 
-            // 6. Update UI Components
+            // 6. Push to UI Components
             document.getElementById('d-last-paid').innerText = `₹${Number(lastAmountPaid).toLocaleString('en-IN')}`;
             document.getElementById('d-total-paid').innerText = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
             
-            // Progress Bar Math
             document.getElementById('d-progress-text').innerText = `${maxMonthPaid} / ${totalMonths} Months`;
             let progressPercent = totalMonths > 0 ? (maxMonthPaid / totalMonths) * 100 : 0;
             document.getElementById('d-progress-bar').style.width = `${progressPercent}%`;
 
             document.getElementById('d-month-label').innerText = `Installment: Month ${currentCalcMonth}`;
             
-            // Populate the newly locked system field
+            // CLEANED: Directly pushes the number to the Neo-Banking readonly input
             document.getElementById('d-amount-due').value = amountDue;
 
             detailsView.style.display = 'block';
@@ -859,7 +865,7 @@
 
         } catch (err) {
             console.error("Calculation Error:", err);
-            showMessage("Calculation Error", "Failed to retrieve ledger math.");
+            showMessage("Calculation Error", `Failed to retrieve ledger math:<br><br>${err.message}`);
         }
     });
 
@@ -890,15 +896,40 @@
                 date: serverTimestamp()
             });
 
-            // 2. Update Group Document Snapshot (For 1-Read Dashboard Loading later)
+            // 2. Update Group Document Snapshot
             const groupRef = doc(db, "groups", groupId);
             
             let snapshotArray = activeGroupData.memberSnapshot || [];
             let userSnapIndex = snapshotArray.findIndex(m => m && m.id === targetUserId);
             
             if(userSnapIndex > -1) {
+                let amountRemaining = amountToPay;
+                let advancedMonths = 0;
+                let checkingMonth = currentCalcMonth;
+                const startAmt = activeGroupData.startAmount || 0;
+                const schedule = activeGroupData.installmentSchedule || [];
+
+                while(amountRemaining > 0) {
+                    let requiredForThisMonth = calculateDueForMonth(checkingMonth, startAmt, schedule);
+                    
+                    // FIX: Failsafe against infinite zero loop
+                    if (requiredForThisMonth <= 0) {
+                        advancedMonths++; break;
+                    }
+                    
+                    if (amountRemaining >= (requiredForThisMonth * 0.95)) {
+                        advancedMonths++;
+                        amountRemaining -= requiredForThisMonth;
+                        checkingMonth++;
+                    } else {
+                        break; 
+                    }
+                }
+                
+                if (advancedMonths === 0) advancedMonths = 1;
+
                 // Safely Increment to prevent NaN overrides
-                snapshotArray[userSnapIndex].monthsPaid = (snapshotArray[userSnapIndex].monthsPaid || 0) + 1;
+                snapshotArray[userSnapIndex].monthsPaid = (snapshotArray[userSnapIndex].monthsPaid || 0) + advancedMonths;
             } else {
                 snapshotArray.push({
                     id: targetUserId, name: targetUserName, monthsPaid: currentCalcMonth, balanceDue: 0, hasAdvance: false
@@ -913,25 +944,22 @@
             await batch.commit();
 
             // --- Trigger Premium GPay Success Flow ---
-            
             if ("vibrate" in navigator) { navigator.vibrate(); }
 
             document.getElementById('gpay-amount-text').innerText = `₹${amountToPay.toLocaleString('en-IN')}`;
             const overlay = document.getElementById('gpay-overlay');
             overlay.classList.add('active');
 
-            // Clean up and close after animation
             setTimeout(() => {
                 overlay.classList.remove('active');
                 
-                // Perfectly rewind the modal history without tracking bugs
                 if (modalStackCount > 0) {
                     history.go(-modalStackCount);
                     modalStackCount = 0;
                 }
                 closeAllModals(); 
                 
-                loadTransactions(); // Refresh list immediately
+                loadTransactions(); 
                 btn.innerText = "Approve Transaction"; btn.disabled = false;
             }, 2500);
 
@@ -985,7 +1013,6 @@
               displayDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
           }
 
-          // Uses the newly added Name, falls back to ID if it's an old transaction
           const displayName = data.subscriberName || `@${data.subscriberId}`;
           const userInitial = displayName.charAt(0).toUpperCase();
 
@@ -1013,7 +1040,7 @@
       } catch (error) { 
         console.error(error); 
         
-        // Correct Index Regex Match extraction fix
+        // BUG FIX: Correct Index Regex Match extraction
         if(error.message && error.message.includes("https://console.firebase.google.com")) {
              const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
              const match = error.message.match(urlRegex);
@@ -1033,7 +1060,7 @@
       }
     }
     
-    loadMoreBtn.addEventListener('click', () => loadTransactions(true));
+    document.getElementById('load-more-btn').addEventListener('click', () => loadTransactions(true));
 
     // Initialize Page
     loadTransactions(false);
