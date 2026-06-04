@@ -445,8 +445,10 @@
       document.getElementById(modalId).classList.add('active');
       if(modalId === 'group-modal' && !document.getElementById('g-start-date').value) {
           // CRITICAL BUG FIX: Extract only the date string to prevent array assignment error
-          const today = new Date().toISOString().split('T');
-          document.getElementById('g-start-date').value = today;
+          // Updated to use local timezone to prevent UTC off-by-one-day errors
+          const now = new Date();
+          const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          document.getElementById('g-start-date').value = localDate;
       }
       if (window.location.hash !== `#${modalId}`) {
           history.pushState({ modalOpen: true, id: modalId }, '', `#${modalId}`);
@@ -605,7 +607,7 @@
             
             if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
                 const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
-                if(match && match) {
+                if(match && match.length > 0) {
                     if (!isLoadMore) {
                         container.innerHTML = `
                             <div style="text-align:center; padding: 20px;">
@@ -883,7 +885,10 @@
       openModal('participant-modal');
       
       // CRITICAL BUG FIX: Extract only the date string to prevent array assignment error
-      document.getElementById('p-join-date').value = new Date().toISOString().split('T');
+      // Updated to use local timezone to prevent UTC off-by-one-day errors
+      const now = new Date();
+      const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      document.getElementById('p-join-date').value = localDate;
       
       const select = document.getElementById('p-group');
       select.innerHTML = '<option value="">-- Fetching Groups... --</option>'; 
