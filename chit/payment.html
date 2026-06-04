@@ -537,6 +537,7 @@
     let activeUserObj = null; 
     let currentCalcMonth = 0;
     let baselineLastAmount = 0;
+    let activeGroupData = null;
 
     // --- ADVANCED LIVE SERVER SEARCH (0-READ WASTE) ---
     let lastVisibleUser = null;
@@ -638,7 +639,7 @@
                     const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
                     const match = idxErr.message.match(urlRegex);
                     // BUG FIX: Correct array access to prevent 'undefined' string printing
-                    if(match && match) {
+                    if(match && match.length > 0) {
                         setTimeout(() => {
                             showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
                         }, 500);
@@ -1044,7 +1045,7 @@
         if(error.message && error.message.includes("https://console.firebase.google.com")) {
              const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
              const match = error.message.match(urlRegex);
-             if(match && match && !isLoadMore) {
+             if(match && match.length > 0 && !isLoadMore) {
                   txnList.innerHTML = `
                     <div style="text-align:center; padding: 20px;">
                         <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--warning-color)" style="margin-bottom:12px;"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
