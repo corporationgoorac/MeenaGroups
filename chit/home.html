@@ -240,89 +240,36 @@
     .logout-btn { width: 100%; background: var(--danger-light); color: var(--danger-color); border: none; padding: 20px; border-radius: 20px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);}
     .logout-btn:active { transform: scale(0.95); }
 
-    /* =========================================================================
-       PC & TABLET RESPONSIVE ENGINE
-       Seamlessly converts the mobile layout to a professional desktop dashboard
-       ========================================================================= */
-    @media (min-width: 768px) {
-      body {
-        padding-bottom: 40px; /* Removes mobile nav padding */
+    /* --- PC / Desktop Responsiveness System --- */
+    .desktop-nav { display: none; }
+    @media (min-width: 1024px) {
+      .desktop-nav { 
+        display: flex; align-items: center; gap: 36px; justify-self: center;
       }
-      
-      header {
-        padding: 16px 40px;
-        /* Inherits transparent blur and border styling automatically */
+      .desktop-nav .nav-item {
+        flex-direction: row; font-size: 15px; gap: 10px; font-weight: 700; opacity: 0.8;
       }
+      .desktop-nav .nav-item:hover { opacity: 1; color: var(--brand-accent); }
+      .desktop-nav .nav-item svg { width: 22px; height: 22px; }
       
-      .dashboard-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 40px;
-      }
+      .bottom-nav { display: none !important; }
       
-      /* Transforms the bottom nav into a sleek header nav */
-      .bottom-nav {
-        position: static;
-        width: auto;
-        height: auto;
-        background: transparent;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        border: none;
-        box-shadow: none;
-        transform: none;
-        display: flex;
-        gap: 32px;
-        padding: 0;
-      }
+      body { padding-bottom: 0; }
+      header { padding: 20px 48px; }
       
-      @media (prefers-color-scheme: dark) {
-        .bottom-nav { background: transparent; border: none; box-shadow: none; }
-      }
+      .dashboard-container { max-width: 1200px; margin: 0 auto; padding: 56px 40px; }
       
-      .nav-item {
-        flex-direction: row;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: 700;
-        flex: none;
-      }
+      .metrics-grid { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+      .metric-card.full-width { grid-column: span 2; }
+      .metric-card.wallet-card { grid-column: span 2; }
       
-      .nav-item svg { width: 20px; height: 20px; }
-      .nav-item.active svg { transform: translateY(0) scale(1.15); filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.4)); }
+      .quick-actions { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+      .qa-btn { padding: 28px 24px; font-size: 16px; }
+      .qa-btn svg { width: 40px; height: 40px; padding: 8px; }
       
-      /* Desktop Metrics Grid - 4 Column Layout */
-      .metrics-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
-      }
+      .modal { width: 450px; left: auto; border-left: 1px solid var(--border-color); box-shadow: -15px 0 40px rgba(0,0,0,0.1); }
       
-      /* Scale the prominent cards back down to span 1 column to fit the row */
-      .metric-card.full-width, .metric-card.wallet-card {
-        grid-column: span 1;
-      }
-      
-      .m-val { font-size: 28px; }
-      
-      /* Quick Actions - Row Layout */
-      .quick-actions {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
-      }
-      
-      /* Slide-out Drawer Desktop Constraints */
-      .modal {
-        width: 400px;
-        left: auto;
-        border-left: 1px solid var(--border-color);
-        box-shadow: -20px 0 50px rgba(0,0,0,0.15);
-      }
-    }
-    
-    /* Tablet specific overrides */
-    @media (min-width: 768px) and (max-width: 1023px) {
-      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-      .quick-actions { grid-template-columns: repeat(2, 1fr); }
+      .pwa-banner { max-width: 500px; }
     }
   </style>
 </head>
@@ -333,7 +280,7 @@
       <h1>Meena Chitfunds</h1>
     </div>
     
-    <nav class="bottom-nav">
+    <nav class="desktop-nav">
       <a href="home.html" class="nav-item active">
         <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         Home
@@ -355,7 +302,7 @@
         Reports
       </a>
     </nav>
-
+    
     <div class="header-actions">
       <a href="auction.html" class="header-auction-btn" aria-label="Auctions">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
@@ -436,6 +383,29 @@
         <button class="pwa-close" onclick="document.getElementById('install-banner').classList.remove('show')">×</button>
     </div>
   </div>
+
+  <nav class="bottom-nav">
+    <a href="home.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Home
+    </a>
+    <a href="add.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      Add
+    </a>
+    <a href="payment.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      Payment
+    </a>
+    <a href="groups.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6L12 1z"/></svg>
+      Groups
+    </a>
+    <a href="reports.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      Reports
+    </a>
+  </nav>
 
   <aside id="profile-modal" class="modal">
     <div class="modal-header">
@@ -685,14 +655,27 @@
         console.log('PWA was installed');
     });
 
-    // --- 7. Global Mobile Haptic Engine (Vibrations) ---
-    document.addEventListener('click', (e) => {
-        const target = e.target.closest('a, button, .qa-btn, .profile-trigger');
-        if (target && navigator.vibrate) {
-            navigator.vibrate(30); // Gentle tactile haptic tap 
+  </script>
+  
+  <script>
+    // --- 7. Haptic Vibration Engine ---
+    // Safely apply short vibrations to standard interactive elements (Mobile)
+    document.addEventListener('DOMContentLoaded', () => {
+      const interactives = document.querySelectorAll('.nav-item, .qa-btn, .header-auction-btn, .header-broadcast-btn, .profile-trigger, button, a');
+      
+      const triggerVibration = () => {
+        if (navigator.vibrate) {
+            // Subtle 40ms vibration mimicking a physical tap
+            navigator.vibrate(40);
         }
-    });
+      };
 
+      interactives.forEach(element => {
+          element.addEventListener('click', triggerVibration);
+          // Also listen to touchstart for instant feedback on mobile devices
+          element.addEventListener('touchstart', triggerVibration, { passive: true });
+      });
+    });
   </script>
 </body>
 </html>
