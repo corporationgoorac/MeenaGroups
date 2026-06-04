@@ -306,7 +306,7 @@
   <script type="module">
     import { auth, db } from './config.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
-    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, updateDoc, writeBatch, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+    import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, updateDoc, writeBatch, serverTimestamp, where, documentId } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
     onAuthStateChanged(auth, (user) => { if (!user) window.location.replace('login.html'); });
 
@@ -399,7 +399,9 @@
 
     document.getElementById('u-search').addEventListener('input', (e) => {
         clearTimeout(searchDebounce);
-        const term = e.target.value.trim().toUpperCase();
+        const term = e.target.value.trim();
+        const termUpper = term.toUpperCase();
+        const termName = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
         const resultsBox = document.getElementById('u-results');
         
         if(term.length < 2) { resultsBox.innerHTML = ''; return; }
@@ -408,9 +410,27 @@
         
         searchDebounce = setTimeout(async () => {
             try {
-                // 1-Read Limit Optimization: Searching strictly by ID Prefix
-                const q = query(collection(db, "users"), where("__name__", ">=", term), where("__name__", "<=", term + "\uf8ff"), limit(5));
-                const snap = await getDocs(q);
+                // 1-Read Limit Optimization: Search by ID Prefix first
+                let q = query(collection(db, "users"), where(documentId(), ">=", termUpper), where(documentId(), "<=", termUpper + "\uf8ff"), limit(5));
+                let snap = await getDocs(q);
+                
+                // Fallback: Search by Name (Title Case)
+                if (snap.empty) {
+                    q = query(collection(db, "users"), where("name", ">=", termName), where("name", "<=", termName + "\uf8ff"), limit(5));
+                    snap = await getDocs(q);
+                }
+                
+                // Fallback: Search by Name (Upper Case)
+                if (snap.empty) {
+                    q = query(collection(db, "users"), where("name", ">=", termUpper), where("name", "<=", termUpper + "\uf8ff"), limit(5));
+                    snap = await getDocs(q);
+                }
+                
+                // Fallback: Search by Exact Typed Name
+                if (snap.empty) {
+                    q = query(collection(db, "users"), where("name", ">=", term), where("name", "<=", term + "\uf8ff"), limit(5));
+                    snap = await getDocs(q);
+                }
                 
                 resultsBox.innerHTML = '';
                 if(snap.empty) {
@@ -461,7 +481,7 @@
                 opt.innerText = `@${gId}`;
                 select.appendChild(opt);
             });
-            // FIX 1: Correctly select the first array element to prevent crash
+            // FIX: Prevent array assignment bug, properly extract single ID string.
             if (userObj.activeGroups.length === 1) {
                 select.value = userObj.activeGroups;
                 select.dispatchEvent(new Event('change'));
@@ -650,7 +670,6 @@
                 // Ensure at least 1 month is advanced if it's a standard exact payment
                 if (advancedMonths === 0) advancedMonths = 1;
 
-                // FIX 3: Safe numerical increment prevents 'NaN' bugs on missing profiles
                 updatedSnapshot[memberIndex].monthsPaid = (updatedSnapshot[memberIndex].monthsPaid || 0) + advancedMonths;
                 batch.update(groupRef, { memberSnapshot: updatedSnapshot });
             }
@@ -726,7 +745,7 @@
               <div class="txn-info">
                 <h3>${displayName}</h3>
                 <div class="txn-meta">
-                  <span style="font-weight: 800; color: var(--text-main); font-family: monospace; background: var(--surface-hover); padding: 2px 6px; border-radius: 6px;">@${data.groupId}</span>
+                  <span style="font-weight: 800; color: var(--text-main); font-family: monospace; background: var(--surface-hover); padding: 2px 6px; border-radius: 6px;">Group: ${data.groupId}</span>
                   <span style="margin-left: 6px;">Mo. ${data.monthAttributed}</span>
                 </div>
               </div>
@@ -745,7 +764,7 @@
       } catch (error) { 
         console.error(error); 
         
-        // FIX 2: Correct Index Regex Match extraction
+        // FIX: Corrected Index Fallback Match parsing
         if(error.message && error.message.includes("https://console.firebase.google.com")) {
              const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
              const match = error.message.match(urlRegex);
