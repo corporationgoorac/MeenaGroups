@@ -461,7 +461,7 @@
                 opt.innerText = `@${gId}`;
                 select.appendChild(opt);
             });
-            // Auto-select if only 1 group
+            // FIX 1: Correctly select the first array element to prevent crash
             if (userObj.activeGroups.length === 1) {
                 select.value = userObj.activeGroups;
                 select.dispatchEvent(new Event('change'));
@@ -650,7 +650,8 @@
                 // Ensure at least 1 month is advanced if it's a standard exact payment
                 if (advancedMonths === 0) advancedMonths = 1;
 
-                updatedSnapshot[memberIndex].monthsPaid += advancedMonths;
+                // FIX 3: Safe numerical increment prevents 'NaN' bugs on missing profiles
+                updatedSnapshot[memberIndex].monthsPaid = (updatedSnapshot[memberIndex].monthsPaid || 0) + advancedMonths;
                 batch.update(groupRef, { memberSnapshot: updatedSnapshot });
             }
 
@@ -744,7 +745,7 @@
       } catch (error) { 
         console.error(error); 
         
-        // Handle Index Error gracefully
+        // FIX 2: Correct Index Regex Match extraction
         if(error.message && error.message.includes("https://console.firebase.google.com")) {
              const urlRegex = /(https:\/\/console\.firebase\.google\.com[^\s]+)/g;
              const match = error.message.match(urlRegex);
