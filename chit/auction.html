@@ -65,6 +65,43 @@
       overflow-x: hidden;
     }
 
+    /* PC & Tablet Responsive View */
+    @media (min-width: 768px) {
+      body {
+        max-width: 500px;
+        margin: 0 auto;
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        min-height: 100vh;
+        position: relative;
+      }
+      header {
+        max-width: 500px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+      }
+      .modal {
+        max-width: 500px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+      }
+      .gpay-overlay {
+        max-width: 500px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+      }
+      .center-modal {
+        max-width: 500px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+      }
+    }
+
     /* Premium Header */
     header {
       position: sticky;
@@ -229,8 +266,13 @@
 <body>
 
   <header>
-    <div class="header-titles">
-      <h1>Meena Chitfunds</h1>
+    <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+      <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='index.html'" style="background:none; border:none; color:var(--text-main); cursor:pointer; padding:4px; display:flex; margin-left: -8px; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <div class="header-titles">
+        <h1>Meena Chitfunds</h1>
+      </div>
     </div>
   </header>
 
@@ -385,21 +427,22 @@
     function closeAllModals() { 
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
       document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
+      modalStackCount = 0;
     }
     
     window.addEventListener('popstate', (e) => {
+       // Close ALL modals visually to prevent stacking/ghost modals
        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
        document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
        
        if(modalStackCount > 0) modalStackCount--;
        
+       // Exclusively activate the specific modal assigned to the hash
        if(window.location.hash) {
            const targetModal = document.querySelector(window.location.hash);
            if(targetModal) {
                targetModal.classList.add('active');
            }
-       } else {
-           closeAllModals();
        }
     });
 
