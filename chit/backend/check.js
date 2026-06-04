@@ -19,24 +19,6 @@ module.exports = function(client) {
 
     console.log("🤖 Goorac Bot Listener Active (Meena Chitfunds Engine)");
 
-    // --- OPTIONAL MODULE LOADER (shed.js) ---
-    const shedPath = path.join(__dirname, 'shed.js');
-    if (fs.existsSync(shedPath)) {
-        console.log('🚀 [SYSTEM] shed.js found! Initializing auxiliary modules...');
-        try {
-            // ADVANCED EDGE CASE FIX: Prevent shed.js from being spawned multiple times
-            if (!global._shedModuleLoaded) {
-                global._shedModuleLoaded = true;
-                // Start shed.js and pass the client & admin instances
-                require('./shed.js')(client, admin);
-            } else {
-                console.log('⚡ [SYSTEM] shed.js is already running. Skipping duplicate spawn.');
-            }
-        } catch (err) {
-            console.error('❌ Failed to start shed.js:', err);
-        }
-    }
-
     // --- ADVANCED MEMORY GUARD: Prevents crashes on low-resource environments ---
     // ADVANCED EDGE CASE FIX: Ensure only one interval runs ever, avoiding CPU leaks
     if (!global._memoryMonitorActive) {
