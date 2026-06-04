@@ -240,114 +240,62 @@
     .logout-btn { width: 100%; background: var(--danger-light); color: var(--danger-color); border: none; padding: 20px; border-radius: 20px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);}
     .logout-btn:active { transform: scale(0.95); }
 
-    /* ========================================= */
-    /* PC & Tablet Responsive Enhancements       */
-    /* ========================================= */
+    /* --- ADDED: PC RESPONSIVENESS (SLEEK DESKTOP UI) --- */
     @media (min-width: 768px) {
       body {
         padding-bottom: 40px; 
       }
       header {
         padding: 16px 40px;
+        z-index: 100;
       }
       .dashboard-container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 40px 40px;
+        padding: 40px;
       }
+      /* Expand Grids for Desktop */
       .metrics-grid {
         grid-template-columns: repeat(4, 1fr);
       }
-      .metric-card.full-width, .metric-card.wallet-card {
-        grid-column: span 2;
-      }
+      .metric-card.full-width { grid-column: span 2; }
+      .metric-card.wallet-card { grid-column: span 2; }
       .quick-actions {
         grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
       }
-      .qa-btn {
+      
+      /* Transform Bottom Floating Nav into Sleek Top Floating Nav */
+      .bottom-nav {
+        top: 16px;
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: auto;
+        min-width: 450px;
+        padding: 0 24px;
+        gap: 32px;
+      }
+      .nav-item {
         flex-direction: row;
-        padding: 20px;
-        justify-content: center;
-        font-size: 15px;
+        font-size: 14px;
+        gap: 8px;
       }
-      .qa-btn svg {
-        width: 24px;
-        height: 24px;
+      .nav-item svg {
+        width: 20px;
+        height: 20px;
       }
+      
+      /* Modal slides nicely from right as a sidebar on PC */
       .modal {
-        width: 400px;
+        width: 420px;
         left: auto;
-        right: 0;
         border-left: 1px solid var(--border-color);
         box-shadow: -10px 0 40px rgba(0,0,0,0.1);
       }
       
-      /* Base PC Nav Styles */
-      .bottom-nav {
-        position: fixed;
-        bottom: auto;
-        height: 60px;
-        flex-direction: row;
-      }
-      .nav-item {
-        flex-direction: row;
-        font-size: 15px;
-        gap: 8px;
-        padding: 8px 20px;
-        border-radius: 12px;
-      }
-      .nav-item:hover {
-        background: var(--surface-hover);
-      }
-      .nav-item.active {
-        background: var(--brand-accent-light);
-        color: var(--brand-accent);
-      }
-      .nav-item.active svg {
-        transform: none;
-        filter: none;
-      }
-      .nav-item svg {
-        width: 20px; height: 20px;
-      }
-    }
-
-    /* Tablet Specific Nav Positioning (Below Header) */
-    @media (min-width: 768px) and (max-width: 1050px) {
-      .bottom-nav {
-        top: 65px; 
-        left: 0;
-        width: 100%;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        justify-content: center;
-        gap: 24px;
-        background: var(--surface-color);
-      }
-      body {
-        padding-top: 60px; 
-      }
-    }
-
-    /* Desktop Specific Nav Positioning (Inside Header Center) */
-    @media (min-width: 1051px) {
-      .bottom-nav {
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: max-content;
-        gap: 16px;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        z-index: 20;
-      }
-      @media (prefers-color-scheme: dark) {
-        .bottom-nav { background: transparent; box-shadow: none; border: none;}
+      /* Make PWA banner avoid top nav on desktop */
+      .pwa-banner {
+        top: 90px; 
       }
     }
   </style>
@@ -711,17 +659,20 @@
         console.log('PWA was installed');
     });
 
-  </script>
-
-  <script>
-    // Premium Mobile Haptic Feedback integration - Fulfilling exactly what you requested!
-    document.querySelectorAll('.qa-btn, .nav-item, .header-auction-btn, .profile-trigger, .logout-btn').forEach(el => {
-      el.addEventListener('click', () => {
-        if (navigator.vibrate) {
-          navigator.vibrate(15); // A sleek, micro-vibration mimicking premium OS haptics
+    // --- ADDED: Haptic Feedback (Vibration) Engine for Mobile ---
+    function triggerHaptic() {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(50); // Light tap on interaction
         }
-      });
+    }
+    
+    // Attach haptics to all interactive elements once the DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('button, .nav-item, .qa-btn, .header-auction-btn, .profile-trigger').forEach(el => {
+            el.addEventListener('click', triggerHaptic);
+        });
     });
+
   </script>
 </body>
 </html>
