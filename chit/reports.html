@@ -783,6 +783,9 @@
             }
 
             txns.forEach(tData => {
+                // FIX: Skip the auto-generated Advance Payment transaction so we don't double-count!
+                if (tData.type === "Advance Payment") return; 
+
                 totalPaid += tData.amount;
                 if(tData.monthAttributed > maxMonthPaid) maxMonthPaid = tData.monthAttributed;
                 
