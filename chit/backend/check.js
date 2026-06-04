@@ -146,6 +146,27 @@ function calculateCurrentMonth(startDateStr) {
     return months <= 0 ? 1 : months + 1; 
 }
 
+// NEW ALGORITHM: Deep dynamic timeline calculating from joinedAt point
+function calculateParticipantExpectedMonth(user, groupData) {
+    if (!user || !groupData) return 1;
+    const start = user?.joinedAt ? (typeof user.joinedAt.toDate === 'function' ? user.joinedAt.toDate() : new Date(user.joinedAt)) : new Date(groupData?.startDate || new Date());
+    
+    if (isNaN(start)) return 1;
+    
+    const now = new Date();
+    let elapsed = (now.getFullYear() - start.getFullYear()) * 12;
+    elapsed -= start.getMonth();
+    elapsed += now.getMonth();
+    if (elapsed < 0) elapsed = 0;
+    
+    let expected = elapsed + 1; 
+    const totalGroupMonths = groupData.totalMonths || 0;
+    if (totalGroupMonths > 0 && expected > totalGroupMonths) {
+        expected = totalGroupMonths;
+    }
+    return expected;
+}
+
 function calculateDueForMonth(targetMonth, startAmount, schedule) {
     if (targetMonth <= 1) return startAmount;
     let currentAmount = startAmount;
@@ -204,9 +225,12 @@ async function generateChitfundImage(client, user, group, transactions) {
         const totalMonths = parseInt(group.totalMonths) || 0;
         const membersCount = parseInt(group.participantCount) || 0;
         
+        // FIX: Remove auto-generated advance payments from standard array to avoid double-counting
+        const validTransactions = transactions.filter(txn => txn.type !== "Advance Payment");
+
         // BUG FIX: Advanced Secondary Sort. First sorts by Month, then falls back to exact Date timestamp
         // This prevents multiple payments in the same month from displaying out of order
-        transactions.sort((a, b) => {
+        validTransactions.sort((a, b) => {
             const monthDiff = (parseFloat(a.monthAttributed) || 0) - (parseFloat(b.monthAttributed) || 0);
             if (monthDiff !== 0) return monthDiff;
             const timeA = a.date && typeof a.date.toMillis === 'function' ? a.date.toMillis() : 0;
@@ -214,10 +238,12 @@ async function generateChitfundImage(client, user, group, transactions) {
             return timeA - timeB;
         });
 
-        let runningPaid = 0;
+        // NEW LOGIC: Initialize calculation safely with the independent Advance Amount
+        let advanceAmt = user?.advanceAmount ? parseFloat(user.advanceAmount) : 0;
+        let runningPaid = advanceAmt;
         let lastMonthPaid = 0;
 
-        const processedLedger = transactions.map(txn => {
+        let processedLedger = validTransactions.map(txn => {
             runningPaid += parseFloat(txn.amount) || 0;
             if(txn.monthAttributed > lastMonthPaid) lastMonthPaid = txn.monthAttributed;
             
@@ -228,8 +254,20 @@ async function generateChitfundImage(client, user, group, transactions) {
             return { ...txn, displayDate: displayDate, cumulativePaid: runningPaid };
         });
 
+        // Visually prepend the Advance Amount so the user clearly sees it
+        if (advanceAmt > 0) {
+            processedLedger.unshift({
+                monthAttributed: 'Adv',
+                displayDate: 'At Join',
+                type: 'Advance',
+                amount: advanceAmt,
+                cumulativePaid: advanceAmt
+            });
+        }
+
         // Exact Calculator Logic for This Month's Due & Auction Value
-        let calcMonth = calculateCurrentMonth(group.startDate);
+        // NEW ALGORITHM: Using Participant's Joined Date dynamic calculator instead of static group start date
+        let calcMonth = calculateParticipantExpectedMonth(user, group);
         if(calcMonth > totalMonths) calcMonth = totalMonths;
         
         const thisMonthDue = calculateDueForMonth(calcMonth, group.startAmount || 0, group.installmentSchedule || []);
@@ -251,6 +289,7 @@ async function generateChitfundImage(client, user, group, transactions) {
 
         const getStatusBadge = (type) => {
             if(type === "Auction Payout") return `<span style="color: ${theme.auctionPurple}; font-weight: 800;">AUCTION</span>`;
+            if(type === "Advance") return `<span style="color: ${theme.success}; font-weight: 800;">ADVANCE</span>`;
             return `<span style="color: ${theme.success}; font-weight: 800;">PAID</span>`;
         };
 
@@ -341,7 +380,7 @@ async function generateChitfundImage(client, user, group, transactions) {
                     <tbody>
                         ${last10.map(p => `
                             <tr>
-                                <td><span class="pill">M${p.monthAttributed}</span></td>
+                                <td><span class="pill">${p.monthAttributed === 'Adv' ? 'Adv' : 'M' + p.monthAttributed}</span></td>
                                 <td style="font-size: 11px;">${p.displayDate}</td>
                                 <td>${getStatusBadge(p.type)}</td>
                                 <td style="color:${theme.success}; font-weight:800;">₹${(parseFloat(p.amount)||0).toLocaleString('en-IN')}</td>
