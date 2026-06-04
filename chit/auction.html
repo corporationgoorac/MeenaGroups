@@ -384,18 +384,22 @@
     
     function closeAllModals() { 
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+      document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
     }
     
     window.addEventListener('popstate', (e) => {
-       closeAllModals();
+       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+       document.querySelectorAll('.center-modal').forEach(m => m.classList.remove('active'));
+       
        if(modalStackCount > 0) modalStackCount--;
        
-       if(e.state && e.state.id) {
-           const targetModal = document.getElementById(e.state.id);
-           if(targetModal) targetModal.classList.add('active');
-       } else if (window.location.hash) {
+       if(window.location.hash) {
            const targetModal = document.querySelector(window.location.hash);
-           if(targetModal) targetModal.classList.add('active');
+           if(targetModal) {
+               targetModal.classList.add('active');
+           }
+       } else {
+           closeAllModals();
        }
     });
 
@@ -462,7 +466,7 @@
                 
                 if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
                     const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
-                    if(match && match[0]) {
+                    if(match && match.length > 0) {
                         setTimeout(() => {
                             showMessage("Database Index Missing", `Please click the link below to build the Firebase Index for Payouts.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
                         }, 500);
@@ -615,6 +619,15 @@
                 }
             } catch (idxErr) {
                 console.warn("Index missing for User Search.", idxErr);
+                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                    const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
+                    if(match && match.length > 0) {
+                        setTimeout(() => {
+                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+                
                 // Safe Fallback
                 let fallbackQ;
                 if (term === "") {
@@ -646,12 +659,26 @@
                 const card = document.createElement('div');
                 card.className = 'data-card';
                 card.onclick = () => window.openLendActionModal(user);
+                
+                const phoneIconSVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 2px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>`;
+                const phoneText = user.phone ? `<span style="display:inline-flex; align-items:center;">${phoneIconSVG} ${user.phone}</span>` : '';
+                
+                let groupsText = '';
+                if (user.activeGroups && user.activeGroups.length > 0) {
+                    groupsText = `<div class="c-meta" style="color:var(--auction-color); font-weight:800; font-family:monospace; background:var(--auction-light); padding:2px 6px; border-radius:4px; display:inline-block; margin-top:4px;">Grp: ${user.activeGroups.join(', ')}</div>`;
+                } else {
+                    groupsText = `<div class="c-meta" style="color:var(--text-muted); font-weight:800; font-family:monospace; background:var(--surface-hover); padding:2px 6px; border-radius:4px; display:inline-block; margin-top:4px;">No Groups</div>`;
+                }
+
                 card.innerHTML = `
                     <div class="c-left">
                         <div class="c-icon">${initial}</div>
                         <div class="c-info">
                             <h3>${user.name || 'Unnamed'}</h3>
-                            <div class="c-meta" style="color:var(--text-muted); background:none; padding:0;">@${user.id}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                                @${user.id} ${phoneText}
+                            </div>
+                            ${groupsText}
                         </div>
                     </div>
                 `;
@@ -710,7 +737,7 @@
             let q;
             const term = currentGrpSearchTerm;
             const termUpper = term.toUpperCase();
-            const termTitle = term.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            const termTitle = term.split(' ').map(w => w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
 
             if (term === "") {
                 lastGrpSearchType = "default";
@@ -759,6 +786,15 @@
                 }
             } catch (idxErr) {
                 console.warn("Index missing for Group Search.", idxErr);
+                if(idxErr.message && idxErr.message.includes("https://console.firebase.google.com")) {
+                    const match = idxErr.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/g);
+                    if(match && match.length > 0) {
+                        setTimeout(() => {
+                            showMessage("Search Index Missing", `Please click the link below to build the required Firebase Index to enable live searching.<br><br><a href="${match[0]}" target="_blank" style="display:inline-block; background:var(--brand-accent); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:10px;">Build Index</a>`, "error");
+                        }, 500);
+                    }
+                }
+
                 // Safe Fallback
                 let fallbackQ;
                 if (term === "") {
