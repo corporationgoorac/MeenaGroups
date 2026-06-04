@@ -456,7 +456,8 @@
     }
     
     window.addEventListener('popstate', (e) => {
-       closeAllModals();
+       document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+       
        if(modalStackCount > 0) modalStackCount--;
        
        if(window.location.hash) {
@@ -464,6 +465,8 @@
            if(targetModal) {
                targetModal.classList.add('active');
            }
+       } else {
+           closeAllModals();
        }
     });
 
@@ -679,9 +682,16 @@
                 card.className = 'u-item';
                 card.onclick = () => selectUserForPayment(user);
                 
-                const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : '';
+                const phoneText = user.phone ? `${phoneIconSVG} ${user.phone}` : 'No Phone';
                 const userInitial = user.name ? user.name.charAt(0).toUpperCase() : '?';
                 
+                let groupsText = '';
+                if (user.activeGroups && user.activeGroups.length > 0) {
+                    groupsText = `<span style="background: var(--brand-accent-light); color: var(--brand-accent); padding: 2px 6px; border-radius: 4px; font-weight: 800; font-family: monospace;">Grp: ${user.activeGroups.join(', ')}</span>`;
+                } else {
+                    groupsText = `<span style="background: var(--surface-hover); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-weight: 800; font-family: monospace;">No Groups</span>`;
+                }
+
                 card.innerHTML = `
                     <div style="display:flex; gap: 16px; align-items: center;">
                         <div class="profile-avatar" style="width: 44px; height: 44px; font-size: 16px; flex-shrink: 0; border-radius: 12px; box-shadow: none;">${userInitial}</div>
@@ -690,8 +700,9 @@
                                 <span class="u-name">${user.name || 'Unnamed'}</span>
                                 <span class="u-id">@${user.id}</span>
                             </div>
-                            <div class="sr-bottom" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">
-                                <span>${phoneText}</span>
+                            <div class="sr-bottom" style="font-size: 11px; color: var(--text-muted); font-weight: 600; align-items: center;">
+                                <span style="display:flex; align-items:center;">${phoneText}</span>
+                                ${groupsText}
                             </div>
                         </div>
                     </div>
@@ -731,7 +742,7 @@
             });
             // FIX: Safely select the specific array index instead of the whole array object
             if (userObj.activeGroups.length === 1) {
-                select.value = userObj.activeGroups; 
+                select.value = userObj.activeGroups[0]; 
                 select.dispatchEvent(new Event('change'));
             }
         } else {
@@ -837,13 +848,13 @@
             const expectedMonth = calculateParticipantExpectedMonth(activeUserObj, activeGroupData);
             const arrears = expectedMonth - maxMonthPaid;
             
-            if (arrears > 1) {
+            if (arrears > 0) {
                 arrearsBox.style.display = 'block';
                 let totalPendingArrears = 0;
-                for(let m = maxMonthPaid + 1; m < expectedMonth; m++) {
+                for(let m = maxMonthPaid + 1; m <= expectedMonth; m++) {
                     totalPendingArrears += calculateDueForMonth(m, startAmt, schedule);
                 }
-                arrearsBox.innerText = `⚠️ Participant has ${arrears - 1} pending overdue month(s). Arrears Due: ₹${totalPendingArrears.toLocaleString('en-IN')}`;
+                arrearsBox.innerText = `⚠️ Participant is ${arrears} month(s) behind schedule. Pending Dues: ₹${totalPendingArrears.toLocaleString('en-IN')}`;
             } else {
                 arrearsBox.style.display = 'none';
             }
