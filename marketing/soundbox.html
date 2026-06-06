@@ -33,6 +33,14 @@
             -ms-user-select: none; /* IE10+/Edge */
             user-select: none; /* Standard */
             -webkit-touch-callout: none; /* iOS Safari */
+            /* Advanced Scrollbar Hiding Globally */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera Globally */
+        *::-webkit-scrollbar {
+            display: none;
         }
 
         /* Allow scrolling but prevent double-tap zoom */
@@ -175,9 +183,9 @@
         .log-title { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--input-border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
         
         #broadcastLog { display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto; padding-right: 5px; padding-bottom: 40px; }
-        #broadcastLog::-webkit-scrollbar { width: 6px; }
-        #broadcastLog::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
-        #broadcastLog::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 10px; }
+        #broadcastLog::-webkit-scrollbar { display: none; }
+        #broadcastLog::-webkit-scrollbar-track { display: none; }
+        #broadcastLog::-webkit-scrollbar-thumb { display: none; }
 
         .log-card {
             background: var(--surface-color);
@@ -246,7 +254,8 @@
         <!-- Standard Meena Marketing Sticky Header -->
         <header class="standard-header">
             <div class="header-left">
-                <a href="inventory.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+                <!-- Back arrow hidden to prevent exit, but line maintained -->
+                <a href="inventory.html" class="back-btn" style="display: none !important;"><span class="material-symbols-outlined">arrow_back</span></a>
                 <div class="brand-container">
                     <img src="icon.png" alt="Icon" class="logo-img">
                     <div class="brand-text">
@@ -294,7 +303,7 @@
         if (auth) {
             onAuthStateChanged(auth, (user) => {
                 if (!user) {
-                    window.location.replace('login.html'); // Redirect to login if unauthenticated[span_0](start_span)[span_0](end_span)
+                    window.location.replace('login.html'); // Redirect to login if unauthenticated
                 }
             });
         } else {
@@ -396,6 +405,7 @@
         let isSpeaking = false;
         let systemActive = false;
         let sessionStartTime = new Date();
+        let globalAudioCtx; // For 24/7 Audio Hack
 
         const activationScreen = document.getElementById('activationScreen');
         const mainDashboard = document.getElementById('mainDashboard');
@@ -404,12 +414,41 @@
         const dashSpeakerIcon = document.getElementById('dashSpeakerIcon');
         const broadcastLog = document.getElementById('broadcastLog');
 
+        // --- 24/7 BACKGROUND AUDIO HACK ---
+        // This generates a silent, continuous signal to prevent browser audio suspension
+        function init247AudioWakeLock() {
+            try {
+                globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = globalAudioCtx.createOscillator();
+                const gainNode = globalAudioCtx.createGain();
+                
+                gainNode.gain.value = 0.0; // Completely silent
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(globalAudioCtx.destination);
+                oscillator.start();
+                
+                // Periodically ensure context hasn't been suspended by aggressive mobile OS limits
+                setInterval(() => {
+                    if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+                        globalAudioCtx.resume().catch(e => console.warn("Audio WakeLock Resume Warning", e));
+                    }
+                }, 15000);
+                
+                console.log("Enterprise 24/7 Audio Wake-Lock Activated.");
+            } catch (err) {
+                console.warn("AudioContext wake-lock not fully supported on this device.", err);
+            }
+        }
+
         // --- BROWSER WAKE-LOCK & TAB SWITCH FIX ---
         // Ensure system stays alert even if user minimizes the window
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'visible' && systemActive) {
                 console.log("System restored to foreground. Audio context maintained.");
-                // Resume logic automatically handles itself because we use standard HTML5 <audio>
+                if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+                    globalAudioCtx.resume();
+                }
             }
         });
 
@@ -418,6 +457,9 @@
             if (systemActive) return;
             systemActive = true;
             sessionStartTime = new Date(); 
+            
+            // Activate the 24/7 background audio preservation hack immediately on user gesture
+            init247AudioWakeLock();
             
             // 1. Hide Activation Screen Smoothly
             activationScreen.style.opacity = '0';
