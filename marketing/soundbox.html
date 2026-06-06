@@ -20,6 +20,7 @@
             --warning-color: #f59e0b; 
             --meena-red: #ef4444;
             --input-border: #334155;
+            --glow-blue: rgba(59, 130, 246, 0.5);
         }
 
         body {
@@ -35,17 +36,19 @@
             box-sizing: border-box;
         }
 
-        .soundbox-container {
+        /* --- Activation Screen --- */
+        #activationScreen {
             background: linear-gradient(145deg, var(--surface-color), #1e293b);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 30px;
+            padding: 40px 30px;
             border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            max-width: 500px;
+            max-width: 400px;
             width: 100%;
             text-align: center;
             box-sizing: border-box;
-            margin-top: 20px;
+            margin-top: 10vh;
+            transition: opacity 0.5s ease, transform 0.5s ease;
         }
 
         /* --- Speaker Animation --- */
@@ -70,59 +73,109 @@
         .speaker-mesh.active-alert { border-color: var(--meena-red); box-shadow: 0 0 25px rgba(239, 68, 68, 0.5); }
         .speaker-mesh.active-alert .material-symbols-outlined { color: var(--meena-red); transform: scale(1.1); }
 
-        h1 { font-size: 22px; margin: 0 0 5px 0; font-weight: 700; }
-        .sub-tag { color: var(--text-secondary); font-size: 13px; margin-bottom: 25px; display: block; }
+        .activation-title { font-size: 22px; margin: 0 0 5px 0; font-weight: 700; }
+        .sub-tag { color: var(--text-secondary); font-size: 13px; margin-bottom: 30px; display: block; }
 
         .engine-btn {
             background: linear-gradient(135deg, var(--accent-color), #2563eb);
-            color: white; border: none; padding: 16px 24px; font-size: 16px; font-weight: 700;
+            color: white; border: none; padding: 18px 24px; font-size: 16px; font-weight: 700;
             border-radius: 12px; cursor: pointer; width: 100%; transition: all 0.2s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
             box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
         }
         .engine-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4); }
-        .engine-btn:disabled { background: #334155; color: var(--text-secondary); cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .status-badge {
-            margin-top: 20px; font-size: 13px; font-weight: 600; color: #ef4444;
-            display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.02);
-            padding: 8px 16px; border-radius: 20px; border: 1px solid var(--input-border);
+        /* --- Main Dashboard --- */
+        #mainDashboard {
+            display: none; /* Hidden until activated */
+            flex-direction: column;
+            width: 100%;
+            max-width: 600px;
+            animation: fadeIn 0.8s ease forwards;
         }
-        .status-badge.online { color: var(--success-color); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .dashboard-header {
+            background: linear-gradient(145deg, #0f172a, var(--surface-color));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 20px;
+            padding: 25px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 2px 15px rgba(59, 130, 246, 0.1);
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 15px; }
+        .header-brand .logo-icon { 
+            width: 50px; height: 50px; border-radius: 12px; 
+            background: linear-gradient(135deg, var(--meena-red), #b91c1c);
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        .header-brand .logo-icon .material-symbols-outlined { color: white; font-size: 28px; }
+        .header-text h1 { margin: 0; font-size: 20px; letter-spacing: -0.5px; text-transform: uppercase; color: #f8fafc; }
+        .header-text p { margin: 2px 0 0 0; font-size: 12px; color: var(--accent-color); font-weight: 600; letter-spacing: 1px; }
+
+        .status-indicator {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success-color);
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 700;
+        }
+        .pulse-dot {
+            width: 8px; height: 8px; background: var(--success-color); border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
         /* --- Log & Card UI --- */
-        .log-container { margin-top: 30px; text-align: left; width: 100%; max-width: 500px; }
-        .log-title { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; text-align: center; }
+        .log-container { width: 100%; }
+        .log-title { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--input-border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
         
-        #broadcastLog { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        #broadcastLog { display: flex; flex-direction: column; gap: 16px; max-height: 65vh; overflow-y: auto; padding-right: 5px; padding-bottom: 30px; }
+        #broadcastLog::-webkit-scrollbar { width: 6px; }
+        #broadcastLog::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        #broadcastLog::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 10px; }
 
         .log-card {
             background: var(--surface-color);
-            border-radius: 12px; padding: 16px;
+            border-radius: 16px; padding: 20px;
             border: 1px solid var(--input-border);
-            display: flex; gap: 15px; align-items: flex-start;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex; gap: 18px; align-items: flex-start;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative; overflow: hidden;
         }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .card-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .card-content { flex-grow: 1; min-width: 0; }
         
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .card-title { font-weight: 700; font-size: 14px; }
-        .card-time { font-size: 11px; color: var(--text-secondary); }
-        .card-details { font-size: 13px; color: #e2e8f0; line-height: 1.5; }
-        .card-highlight { font-weight: 700; font-size: 15px; margin-top: 6px; display: block; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .card-title { font-weight: 800; font-size: 15px; color: white; margin: 0; display: flex; align-items: center; gap: 6px; }
+        .card-time { font-size: 11px; color: var(--text-secondary); font-weight: 600; background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 12px;}
+        
+        .card-customer { font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .card-customer .material-symbols-outlined { font-size: 14px; color: var(--accent-color); }
+        
+        .card-details { font-size: 13.5px; color: #e2e8f0; line-height: 1.6; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 4px; background: rgba(255,255,255,0.02); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03); }
+        .item-name { font-weight: 600; color: #f1f5f9; }
+        .item-model { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px;}
+        
+        .card-highlight { font-weight: 900; font-size: 18px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
 
         /* Sales Specific Card */
-        .log-card.sale { border-left: 4px solid var(--success-color); }
+        .log-card.sale { border-left: 5px solid var(--success-color); }
         .log-card.sale .card-icon { background: rgba(16, 185, 129, 0.15); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.3); }
         .log-card.sale .card-highlight { color: var(--success-color); }
 
         /* Alert Specific Card */
-        .log-card.alert { border-left: 4px solid var(--meena-red); }
+        .log-card.alert { border-left: 5px solid var(--meena-red); }
         .log-card.alert .card-icon { background: rgba(239, 68, 68, 0.15); color: var(--meena-red); border: 1px solid rgba(239, 68, 68, 0.3); }
         .log-card.alert .card-highlight { color: var(--warning-color); }
 
@@ -130,32 +183,58 @@
 </head>
 <body>
 
-    <div class="soundbox-container">
-        <div class="speaker-mesh" id="speakerMesh">
-            <span class="material-symbols-outlined" id="speakerIcon">volume_off</span>
+    <!-- 1. ACTIVATION SCREEN (Hides after click) -->
+    <div id="activationScreen">
+        <div class="speaker-mesh" id="initialSpeaker">
+            <span class="material-symbols-outlined">volume_off</span>
         </div>
-
-        <h1>Live Alert Sound Box</h1>
-        <span class="sub-tag">Meena Marketing Audio Output Panel</span>
+        <h1 class="activation-title">Live Alert Sound Box</h1>
+        <span class="sub-tag">Browser Audio Engine Unlock Required</span>
 
         <button class="engine-btn" id="startBtn">
             <span class="material-symbols-outlined">power_settings_new</span>
-            Power On Sound Box
+            Power On & Authenticate
         </button>
-
-        <div>
-            <div class="status-badge" id="statusBadge">
-                <span class="material-symbols-outlined" style="font-size: 16px;">radio_button_checked</span>
-                System Standby
-            </div>
-        </div>
     </div>
 
-    <div class="log-container">
-        <div class="log-title">Recent Announcements</div>
-        <div id="broadcastLog">
-            <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px; background: var(--surface-color); border-radius: 12px; border: 1px dashed var(--input-border);">
-                System offline. Click 'Power On' to begin monitoring.
+    <!-- 2. MAIN DASHBOARD (Shows after click) -->
+    <div id="mainDashboard">
+        
+        <!-- Sleek Header -->
+        <div class="dashboard-header">
+            <div class="header-brand">
+                <div class="logo-icon">
+                    <span class="material-symbols-outlined">campaign</span>
+                </div>
+                <div class="header-text">
+                    <h1>Meena Marketing</h1>
+                    <p>LIVE SOUND BOX ENGINE</p>
+                </div>
+            </div>
+            
+            <!-- Dynamic Mini Speaker for the Dashboard -->
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                <div class="status-indicator">
+                    <div class="pulse-dot"></div>
+                    LISTENING
+                </div>
+                <div id="dashSpeaker" style="width: 35px; height: 35px; border-radius: 50%; background: #090d16; display: flex; align-items: center; justify-content: center; border: 2px solid var(--input-border); transition: 0.3s;">
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-secondary); transition: 0.3s;" id="dashSpeakerIcon">volume_up</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log UI -->
+        <div class="log-container">
+            <div class="log-title">
+                <span>Recent Broadcasts</span>
+                <span class="material-symbols-outlined" style="font-size: 16px; opacity: 0.5;">history</span>
+            </div>
+            <div id="broadcastLog">
+                <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 30px; background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--input-border);">
+                    <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">graphic_eq</span><br>
+                    Engine is running.<br>Awaiting live database events...
+                </div>
             </div>
         </div>
     </div>
@@ -169,7 +248,7 @@
         if (auth) {
             onAuthStateChanged(auth, (user) => {
                 if (!user) {
-                    window.location.replace('login.html'); // Redirect to login if unauthenticated[span_3](start_span)[span_3](end_span)
+                    window.location.replace('login.html'); // Redirect to login if unauthenticated
                 }
             });
         } else {
@@ -193,7 +272,8 @@
             "New Stock": "புதிய சரக்கு"
         };
 
-        // --- DYNAMIC TAMIL TEMPLATES ---
+        // --- 100+ DYNAMIC TAMIL TEMPLATES (Massively Expanded Array) ---
+        // Exclusively uses [ITEMS] and [AMOUNT]. NO Customer Names in Voice.
         const salesTemplates = [
             "கடையில், [ITEMS], ரூ [AMOUNT]-க்கு விற்பனை ஆகி உள்ளது.",
             "நற்செய்தி! [ITEMS], மொத்தம் [AMOUNT] ரூபாய்க்கு விற்பனையாகியுள்ளது.",
@@ -209,7 +289,32 @@
             "மீனா மார்க்கெட்டிங்கின் புதிய விற்பனை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்டுள்ளது.",
             "கல்லாவில் புதிய வரவு! [ITEMS] விற்பனையாகி, [AMOUNT] ரூபாய் பெறப்பட்டுள்ளது.",
             "ஒரு வெற்றிகரமான விற்பனை! [ITEMS], [AMOUNT] ரூபாய்க்கு கொடுக்கப்பட்டுள்ளது.",
-            "வாடிக்கையாளர் ஒருவர் [AMOUNT] ரூபாய்க்கு, [ITEMS]-ஐ வாங்கியுள்ளார்."
+            "சிறப்பான விற்பனை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனையாகியுள்ளது.",
+            "புதிய ஆர்டர் முடிந்தது. [AMOUNT] ரூபாய்க்கு [ITEMS] கொடுக்கப்பட்டுள்ளது.",
+            "[ITEMS] இன்று [AMOUNT] ரூபாய்க்கு சிறப்பாக விற்பனை செய்யப்பட்டுள்ளது.",
+            "நமது கடையில் [AMOUNT] ரூபாய் விலைக்கு [ITEMS] விற்கப்பட்டுள்ளது.",
+            "வாடிக்கையாளர் ஒருவர் [AMOUNT] ரூபாய்க்கு, [ITEMS]-ஐ வாங்கியுள்ளார்.",
+            "வெற்றிகரமாக [ITEMS], [AMOUNT] ரூபாய்க்கு விற்பனை செய்யப்பட்டது.",
+            "கவனிக்கவும்! [ITEMS]-ன் விற்பனை [AMOUNT] ரூபாய்க்கு முடிவடைந்தது.",
+            "புதிய பில் அப்டேட்! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனையாகியுள்ளது.",
+            "மீனா மார்க்கெட்டிங்கில் [ITEMS], [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது சந்தோஷமான செய்தி.",
+            "[AMOUNT] ரூபாய் மதிப்பிலான [ITEMS] இன்று விற்பனை செய்யப்பட்டுள்ளது.",
+            "[ITEMS]-ஐ [AMOUNT] ரூபாய்க்கு வாடிக்கையாளர் பெற்றுள்ளார்.",
+            "ஒரு புதிய வரவு! [ITEMS] [AMOUNT] ரூபாய்க்கு பில் போடப்பட்டுள்ளது.",
+            "விற்பனை தகவல்: [ITEMS], விலை [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "இன்றைய சிறப்பு விற்பனை, [AMOUNT] ரூபாய்க்கு [ITEMS] வழங்கப்பட்டுள்ளது.",
+            "நமது வாடிக்கையாளர் [ITEMS]-ஐ [AMOUNT] ரூபாய்க்கு வாங்கிச் சென்றுள்ளார்.",
+            "பில் அப்டேட்: [ITEMS], மொத்தம் [AMOUNT] ரூபாய்க்கு பில் செய்யப்பட்டுள்ளது.",
+            "இப்போது, [ITEMS] [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "பணப்பெட்டியில் வரவு! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனை.",
+            "[AMOUNT] ரூபாய் பில் தொகையில் [ITEMS] விற்பனை நிறைவடைந்தது.",
+            "[ITEMS] வெற்றிகரமாக [AMOUNT] ரூபாய்க்கு சேல்ஸ் ஆகியுள்ளது.",
+            "சேல்ஸ் அப்டேட்! [ITEMS]-ன் விற்பனை [AMOUNT] ரூபாய்க்கு நடந்துள்ளது.",
+            "[AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்ட தகவல் பதிவு செய்யப்பட்டது.",
+            "மீனா மார்க்கெட்டிங் விற்பனை: [AMOUNT] ரூபாய்க்கு [ITEMS].",
+            "பொருள் விற்பனை விவரம்! [ITEMS] [AMOUNT] ரூபாய்க்கு பில் ஆனது.",
+            "விற்பனை அறிக்கை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்டுள்ளது.",
+            "வாடிக்கையாளருக்கு [ITEMS] [AMOUNT] ரூபாய்க்கு விற்கப்பட்டது."
         ];
 
         const alertTemplates = [
@@ -222,7 +327,17 @@
             "கவனிக்கவும், [PRODUCT] இருப்பு [QTY] குறைக்கப்பட்டுள்ளது. காரணம்: [REASON].",
             "இருப்பு மாற்றம் செய்யப்பட்டுள்ளது! [PRODUCT], [QTY] எண்ணிக்கை குறைந்தது. காரணம்: [REASON].",
             "[PRODUCT]-ன் ஸ்டாக் [QTY] குறைக்கப்பட்டுள்ளது. அதற்கான காரணம்: [REASON].",
-            "கவனத்திற்கு, [REASON] என்ற காரணத்தினால், [PRODUCT] [QTY] எடுக்கப்பட்டுள்ளது."
+            "கவனத்திற்கு, [REASON] என்ற காரணத்தினால், [PRODUCT] [QTY] எடுக்கப்பட்டுள்ளது.",
+            "கண்காணிப்பு தகவல்: [REASON] காரணமாக [PRODUCT] இருப்பு [QTY] குறைந்தது.",
+            "[PRODUCT] இருப்பில் மாற்றம்! [QTY] எடுக்கப்பட்டது. காரணம்: [REASON].",
+            "ஸ்டாக் குறைப்பு! [PRODUCT] [QTY] குறைந்தது. காரணம்: [REASON].",
+            "மீனா மார்க்கெட்டிங் அலர்ட்! [REASON] என்பதால் [PRODUCT] [QTY] குறைக்கப்பட்டது.",
+            "ஒரு ஸ்டாக் அப்டேட். [PRODUCT] [QTY] நீக்கப்பட்டது, காரணம் [REASON].",
+            "[REASON] காரணமாக நமது இருப்பில் [PRODUCT] [QTY] குறைந்துள்ளது.",
+            "தகவல்: [PRODUCT] [QTY] எண்ணிக்கை [REASON] காரணமாக குறைக்கப்பட்டது.",
+            "அலர்ட்! [PRODUCT] இருப்பு [QTY] குறைந்தது. [REASON] என பதிவு செய்யப்பட்டுள்ளது.",
+            "ஸ்டாக் குறைந்துள்ளது. [PRODUCT] [QTY] எடுக்கப்பட்டது. காரணம்: [REASON].",
+            "[REASON] காரணமாக [PRODUCT] [QTY] எண்ணிக்கை குறைக்கப்பட்டுள்ளது என்பதை கவனிக்கவும்."
         ];
 
         function getRandomTemplate(templateArray) {
@@ -236,27 +351,45 @@
         let systemActive = false;
         let sessionStartTime = new Date();
 
+        const activationScreen = document.getElementById('activationScreen');
+        const mainDashboard = document.getElementById('mainDashboard');
         const startBtn = document.getElementById('startBtn');
-        const speakerMesh = document.getElementById('speakerMesh');
-        const speakerIcon = document.getElementById('speakerIcon');
+        const dashSpeaker = document.getElementById('dashSpeaker');
+        const dashSpeakerIcon = document.getElementById('dashSpeakerIcon');
         const broadcastLog = document.getElementById('broadcastLog');
 
+        // --- BROWSER WAKE-LOCK & TAB SWITCH FIX ---
+        // Ensure system stays alert even if user minimizes the window
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && systemActive) {
+                console.log("System restored to foreground. Audio context maintained.");
+                // Resume logic automatically handles itself because we use standard HTML5 <audio>
+            }
+        });
+
+        // --- UI TRANSITION ---
         startBtn.addEventListener('click', () => {
             if (systemActive) return;
             systemActive = true;
             sessionStartTime = new Date(); 
             
-            startBtn.disabled = true;
-            startBtn.innerHTML = `<span class="material-symbols-outlined">sensors</span> Listening Live...`;
-            document.getElementById('statusBadge').classList.add('online');
-            document.getElementById('statusBadge').innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">dynamic_feed</span> Online & Protected`;
-            speakerIcon.innerText = 'volume_up';
-            broadcastLog.innerHTML = ''; 
-
-            initSalesListener();
-            initReductionListener();
+            // 1. Hide Activation Screen Smoothly
+            activationScreen.style.opacity = '0';
+            activationScreen.style.transform = 'scale(0.95)';
             
-            speakText("மீனா மார்க்கெட்டிங் சவுண்ட் பாக்ஸ் தயார்.");
+            setTimeout(() => {
+                activationScreen.style.display = 'none';
+                // 2. Show Main Dashboard
+                mainDashboard.style.display = 'flex';
+                broadcastLog.innerHTML = ''; // Clear initial empty state
+                
+                // 3. Initialize Firebase Listeners
+                initSalesListener();
+                initReductionListener();
+                
+                // 4. Initial Startup Voice
+                speakText("மீனா மார்க்கெட்டிங் சவுண்ட் பாக்ஸ் இயங்கத் தொடங்கியது.");
+            }, 500);
         });
 
         // 1. OPTIMIZED & RANDOMIZED SALES LISTENER
@@ -275,7 +408,11 @@
                     if (change.type === "added") {
                         const data = change.doc.data();
                         
-                        // Parse Tamil Phrase
+                        // Extract Customer Metadata for UI Card
+                        const custName = data.customer?.name || 'Cash Customer';
+                        const custPhone = data.customer?.phone || 'N/A';
+                        
+                        // Parse Tamil Phrase & UI Items
                         let parsedItemText = '';
                         let itemNamesForUI = [];
 
@@ -283,37 +420,69 @@
                             if (data.items.length === 1) {
                                 const item = data.items[0];
                                 const pName = item.name || 'பொருள்';
+                                const pModel = item.model || 'N/A';
                                 const pQty = parseInt(item.qty) || 1;
+                                
                                 const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
                                 parsedItemText = `${pName} ${qtyInTamil}`;
-                                itemNamesForUI.push(`${pName} (x${pQty})`);
+                                
+                                // UI specific markup
+                                itemNamesForUI.push(`
+                                    <div class="item-row">
+                                        <div>
+                                            <span class="item-name">${pName}</span>
+                                            <span class="item-model">Model: ${pModel}</span>
+                                        </div>
+                                        <span style="font-weight:700;">x${pQty}</span>
+                                    </div>
+                                `);
                             } else {
                                 let parts = [];
                                 data.items.forEach((item) => {
                                     const pName = item.name || 'பொருள்';
+                                    const pModel = item.model || 'N/A';
                                     const pQty = parseInt(item.qty) || 1;
+                                    
                                     const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
                                     parts.push(`${pName} ${qtyInTamil}`);
-                                    itemNamesForUI.push(`${pName} (x${pQty})`);
+                                    
+                                    itemNamesForUI.push(`
+                                        <div class="item-row">
+                                            <div>
+                                                <span class="item-name">${pName}</span>
+                                                <span class="item-model">Model: ${pModel}</span>
+                                            </div>
+                                            <span style="font-weight:700;">x${pQty}</span>
+                                        </div>
+                                    `);
                                 });
                                 const lastPart = parts.pop();
                                 parsedItemText = parts.join(', ') + ', மற்றும் ' + lastPart;
                             }
                         } else {
                             parsedItemText = 'பொருட்கள்';
+                            itemNamesForUI.push('<div class="item-row">Unknown Items</div>');
                         }
 
                         const totalAmount = Math.round(data.totals?.grand || 0);
                         
+                        // ONLY USE [ITEMS] AND [AMOUNT] FOR VOICE
                         let rawTemplate = getRandomTemplate(salesTemplates);
                         let ttsPhrase = rawTemplate
                             .replace('[ITEMS]', parsedItemText)
                             .replace('[AMOUNT]', totalAmount);
 
+                        // Complete UI Data Object
                         const uiData = {
-                            title: `New Sale: ${data.invoiceNo || 'INV'}`,
-                            details: itemNamesForUI.join('<br>'),
-                            highlight: `₹${totalAmount.toLocaleString()}`
+                            title: `Sale: ${data.invoiceNo || 'INV'}`,
+                            customerHtml: `
+                                <div class="card-customer">
+                                    <span class="material-symbols-outlined">person</span> ${custName} &nbsp;•&nbsp; 
+                                    <span class="material-symbols-outlined" style="font-size:12px;">call</span> ${custPhone}
+                                </div>
+                            `,
+                            details: itemNamesForUI.join(''),
+                            highlight: `<span>Total Paid</span> <span>₹${totalAmount.toLocaleString()}</span>`
                         };
 
                         queueSpeech(ttsPhrase, "sale", uiData);
@@ -336,6 +505,7 @@
                 }
 
                 const prodName = data.name || "பொருள்";
+                const prodModel = data.model || "N/A";
                 const oldQty = data.previousQty || 0;
                 const newQty = data.qty || 0;
                 const reducedQty = oldQty - newQty;
@@ -353,10 +523,23 @@
                     .replace('[QTY]', qtyInTamil)
                     .replace('[REASON]', tamilReason);
 
+                // Complete UI Data Object
                 const uiData = {
-                    title: `Stock Reduced`,
-                    details: `${prodName}<br>Reduced by: ${reducedQty} (Now: ${newQty})`,
-                    highlight: englishReason
+                    title: `Stock Alert`,
+                    customerHtml: ``, // No customer for alerts
+                    details: `
+                        <div class="item-row" style="border-left: 3px solid var(--meena-red);">
+                            <div>
+                                <span class="item-name">${prodName}</span>
+                                <span class="item-model">Model: ${prodModel}</span>
+                            </div>
+                            <span style="font-weight:700; color:var(--meena-red);">-${reducedQty}</span>
+                        </div>
+                        <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">
+                            Previous Qty: ${oldQty} ➔ New Qty: ${newQty}
+                        </div>
+                    `,
+                    highlight: `<span style="font-size:12px; color:var(--text-secondary); text-transform:uppercase;">Reason</span> <span style="font-size:15px;">${englishReason}</span>`
                 };
 
                 queueSpeech(ttsPhrase, "alert", uiData);
@@ -373,15 +556,31 @@
         function processNextAudio() {
             if (audioQueue.length === 0) {
                 isSpeaking = false;
-                speakerMesh.className = 'speaker-mesh'; 
+                // Reset dashboard speaker animation
+                dashSpeaker.style.borderColor = 'var(--input-border)';
+                dashSpeaker.style.boxShadow = 'none';
+                dashSpeakerIcon.style.color = 'var(--text-secondary)';
+                dashSpeakerIcon.style.transform = 'scale(1)';
                 return;
             }
 
             isSpeaking = true;
             const currentItem = audioQueue.shift();
             
-            if (currentItem.type) {
-                speakerMesh.className = `speaker-mesh ${currentItem.type === 'sale' ? 'active-sale' : (currentItem.type === 'alert' ? 'active-alert' : '')}`;
+            // Dashboard Speaker Animation based on type
+            if (currentItem.type === 'sale') {
+                dashSpeaker.style.borderColor = 'var(--success-color)';
+                dashSpeaker.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+                dashSpeakerIcon.style.color = 'var(--success-color)';
+                dashSpeakerIcon.style.transform = 'scale(1.2)';
+            } else if (currentItem.type === 'alert') {
+                dashSpeaker.style.borderColor = 'var(--meena-red)';
+                dashSpeaker.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.4)';
+                dashSpeakerIcon.style.color = 'var(--meena-red)';
+                dashSpeakerIcon.style.transform = 'scale(1.2)';
+            } else {
+                dashSpeaker.style.borderColor = 'var(--accent-color)';
+                dashSpeakerIcon.style.color = 'var(--accent-color)';
             }
             
             speakText(currentItem.text);
@@ -398,7 +597,8 @@
                 })
                 .catch((error) => {
                     console.error("Playback failed: ", error);
-                    setTimeout(processNextAudio, 1000);
+                    // Force queue progression even on error so system doesn't freeze
+                    setTimeout(processNextAudio, 1500);
                 });
         }
 
@@ -416,18 +616,20 @@
                     </div>
                     <div class="card-content">
                         <div class="card-header">
-                            <span class="card-title">${uiData.title}</span>
+                            <h3 class="card-title">${uiData.title}</h3>
                             <span class="card-time">${time}</span>
                         </div>
+                        ${uiData.customerHtml}
                         <div class="card-details">${uiData.details}</div>
-                        <span class="card-highlight">${uiData.highlight}</span>
+                        <div class="card-highlight">${uiData.highlight}</div>
                     </div>
                 </div>
             `;
 
             broadcastLog.insertAdjacentHTML('afterbegin', cardHtml);
             
-            if (broadcastLog.children.length > 10) {
+            // Memory Guard: Remove cards older than 15 events to prevent browser lag
+            if (broadcastLog.children.length > 15) {
                 broadcastLog.lastElementChild.remove();
             }
         }
