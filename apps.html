@@ -98,6 +98,7 @@
             /* ADVANCED SCROLL STABILITY - iOS momentum scrolling & overflow control */
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: none;
+            overflow-x: hidden; /* Prevent horizontal scrollbar from side animations */
         }
 
         .container {
@@ -179,11 +180,20 @@
             box-shadow: var(--shadow-sm);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.6s ease-out forwards;
             /* Improvement: Glassmorphism refined */
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Alternating Side-to-Side Loading Animations for Apps */
+        .app-list .app-card:nth-child(odd) {
+            transform: translateX(-40px);
+            animation: fadeSideLeft 0.6s ease-out forwards;
+        }
+        
+        .app-list .app-card:nth-child(even) {
+            transform: translateX(40px);
+            animation: fadeSideRight 0.6s ease-out forwards;
         }
 
         /* Staggered loading animations */
@@ -337,8 +347,18 @@
             box-shadow: var(--shadow-sm);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             opacity: 0;
-            transform: translateY(20px);
-            animation: fadeUp 0.6s ease-out forwards;
+        }
+
+        /* Alternating Side-to-Side Loading Animations for Public URLs */
+        .public-urls-grid .public-url-card:nth-child(odd) {
+            transform: translateX(-40px);
+            animation: fadeSideLeft 0.6s ease-out forwards;
+            animation-delay: 0.7s;
+        }
+
+        .public-urls-grid .public-url-card:nth-child(even) {
+            transform: translateX(40px);
+            animation: fadeSideRight 0.6s ease-out forwards;
             animation-delay: 0.7s;
         }
 
@@ -434,15 +454,26 @@
             80%, 100% { transform: scale(2.5) translateZ(0); opacity: 0; }
         }
 
-        /* Keyframe Animations */
-        @keyframes fadeUp {
+        /* --- NEW: Side-to-Side Keyframe Animations --- */
+        @keyframes fadeSideLeft {
             from {
                 opacity: 0;
-                transform: translateY(30px) translateZ(0);
+                transform: translateX(-50px) translateZ(0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0) translateZ(0);
+                transform: translateX(0) translateZ(0);
+            }
+        }
+
+        @keyframes fadeSideRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px) translateZ(0);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) translateZ(0);
             }
         }
 
@@ -491,17 +522,25 @@
             transform: translate3d(0, 0, 0); 
         }
 
-        /* Classes to override initial load animation for scroll-triggered elements */
+        /* Override initial load animation for scroll-triggered elements (Side-to-Side) */
         .scroll-animate {
             opacity: 0 !important;
-            transform: translateY(40px) translateZ(0) !important;
             animation: none !important; /* Suspend default load animation */
             transition: opacity 0.7s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        }
+        
+        /* Alternating sides for scroll reveal */
+        .scroll-animate:nth-child(odd), .section-title.scroll-animate, .monitor-grid.scroll-animate {
+            transform: translateX(-50px) translateZ(0) !important;
+        }
+        
+        .scroll-animate:nth-child(even) {
+            transform: translateX(50px) translateZ(0) !important;
         }
 
         .scroll-animate.is-revealed {
             opacity: 1 !important;
-            transform: translateY(0) translateZ(0) !important;
+            transform: translateX(0) translateZ(0) !important;
         }
     </style>
 </head>
@@ -569,7 +608,8 @@
             <!-- NEW SOUNDBOX CARD ADDED HERE -->
             <div class="app-card">
                 <div class="app-header">
-                    <img src="icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
+                    <!-- ICON URL UPDATED HERE -->
+                    <img src="https://meena.goorac.biz/marketing/soundbox/icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
                     <h3 class="app-title">Meena Soundbox</h3>
                 </div>
                 <p class="app-desc">Sleek, professional audio notification system providing instant payment alerts and comprehensive merchant soundbox management.</p>
@@ -625,7 +665,7 @@
                     <svg class="public-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="2" y1="12" x2="22" y2="12"></line>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                     </svg>
                 </div>
                 <span class="public-title">Meena ChitFunds</span>
