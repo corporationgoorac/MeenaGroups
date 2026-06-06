@@ -238,26 +238,30 @@
             .brand-title { font-size: 1.05em; }
         }
 
-        /* --- PWA INSTALL POPUP STYLES --- */
+        /* --- FIXED PWA INSTALL POPUP STYLES --- */
         #pwaInstallPopup {
-            display: flex; position: fixed; bottom: -120px; left: 0; width: 100%;
+            display: flex; position: fixed; bottom: 0; left: 0; width: 100%;
             background: rgba(19, 27, 38, 0.95); backdrop-filter: blur(15px);
-            border-top: 1px solid var(--input-border); padding: 18px 20px;
-            padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+            border-top: 1px solid var(--input-border); 
+            padding: 16px 20px; /* Reduced overall padding to make it compact */
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
             box-shadow: 0 -10px 40px rgba(0,0,0,0.8); z-index: 9999;
             flex-direction: row; justify-content: space-between; align-items: center;
-            transition: bottom 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Replaced bottom mapping with strict translateY for complete hiding */
+            transform: translateY(100%); 
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #pwaInstallPopup.show { bottom: 0; }
-        .pwa-left { display: flex; align-items: center; gap: 14px; }
-        .pwa-icon { width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-        .pwa-text-title { font-weight: 700; font-size: 15px; color: white; margin-bottom: 4px; line-height: 1.2;}
-        .pwa-text-sub { font-size: 12px; color: var(--text-secondary); line-height: 1.3; }
-        .pwa-actions { display: flex; gap: 10px; align-items: center; }
-        .pwa-btn-cancel { background: none; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 8px 10px; font-size: 13px; }
-        .pwa-btn-install { background: linear-gradient(135deg, var(--accent-color), #2563eb); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: transform 0.2s; }
+        #pwaInstallPopup.show { transform: translateY(0); } /* Slides perfectly into view */
+        
+        .pwa-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .pwa-icon { width: 42px; height: 42px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); flex-shrink: 0; }
+        .pwa-text-title { font-weight: 700; font-size: 14px; color: white; margin-bottom: 2px; line-height: 1.2;}
+        .pwa-text-sub { font-size: 11px; color: var(--text-secondary); line-height: 1.3; max-width: 180px; }
+        
+        .pwa-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+        .pwa-btn-cancel { background: none; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 8px; font-size: 12px; }
+        .pwa-btn-install { background: linear-gradient(135deg, var(--accent-color), #2563eb); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: transform 0.2s; }
         .pwa-btn-install:hover { transform: translateY(-2px); }
-
     </style>
 </head>
 <body>
@@ -328,7 +332,7 @@
             <img src="icon.png" alt="App Icon" class="pwa-icon" onerror="this.src='https://via.placeholder.com/48/131b26/ffffff?text=App'">
             <div>
                 <div class="pwa-text-title">Install Sound Box</div>
-                <div class="pwa-text-sub">Add to home screen for faster access & background stability.</div>
+                <div class="pwa-text-sub">Add to home screen for faster access & stability.</div>
             </div>
         </div>
         <div class="pwa-actions">
