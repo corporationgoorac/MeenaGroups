@@ -461,6 +461,32 @@
                 width: 100%;
             }
         }
+
+        /* --- NEW ENHANCEMENTS: Smooth Scrolling & Stability --- */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Performance and rendering stability optimizations */
+        .app-card, .public-url-card, .btn {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            will-change: transform, box-shadow;
+        }
+
+        /* Classes to override initial load animation for scroll-triggered elements */
+        .scroll-animate {
+            opacity: 0 !important;
+            transform: translateY(40px) !important;
+            animation: none !important; /* Suspend default load animation */
+            transition: opacity 0.7s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        }
+
+        .scroll-animate.is-revealed {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
     </style>
 </head>
 <body>
@@ -521,6 +547,19 @@
                 <div class="app-actions">
                     <a href="https://meena.goorac.biz/billing/bill" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
                     <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/billing/bill', 'Meena Billing')">Share Link</button>
+                </div>
+            </div>
+
+            <!-- NEW SOUNDBOX CARD ADDED HERE -->
+            <div class="app-card">
+                <div class="app-header">
+                    <img src="https://meena.goorac.biz/marketing/soundbox/icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
+                    <h3 class="app-title">Meena Soundbox</h3>
+                </div>
+                <p class="app-desc">Sleek, professional audio notification system providing instant payment alerts and comprehensive merchant soundbox management.</p>
+                <div class="app-actions">
+                    <a href="https://meena.goorac.biz/marketing/soundbox" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open App</a>
+                    <button class="btn btn-secondary" onclick="shareLink('https://meena.goorac.biz/marketing/soundbox', 'Meena Soundbox')">Share Link</button>
                 </div>
             </div>
         </div>
@@ -661,6 +700,36 @@
                 const currentYear = new Date().getFullYear();
                 footerP.innerHTML = footerP.innerHTML.replace('2026', currentYear);
             }
+        });
+
+        /* --- NEW ENHANCEMENTS: Intersection Observer for Scroll Animations --- */
+        window.addEventListener('DOMContentLoaded', () => {
+            // Select elements we want to animate on scroll
+            const animateElements = document.querySelectorAll('.app-card, .section-title, .public-url-card, .monitor-grid');
+            
+            // Add scroll-animate class to override initial loading animation
+            animateElements.forEach(el => {
+                el.classList.add('scroll-animate');
+            });
+
+            // Set up Intersection Observer for professional reveal effect
+            const scrollObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-revealed');
+                        // Optional: Unobserve after revealing to prevent repeating animation
+                        observer.unobserve(entry.target); 
+                    }
+                });
+            }, {
+                threshold: 0.1, // Trigger when 10% of element is visible
+                rootMargin: "0px 0px -30px 0px" // Trigger slightly before it hits bottom of viewport
+            });
+
+            // Start observing
+            animateElements.forEach(el => {
+                scrollObserver.observe(el);
+            });
         });
     </script>
 </body>
