@@ -16,9 +16,6 @@
             --text-color: #ffffff;
             --text-secondary: #94a3b8;
             --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --input-border: #334155;
-            --input-focus: #3b82f6;
             --error-color: #ef4444;
         }
 
@@ -52,14 +49,6 @@
             align-items: center;
         }
 
-        /* Allow typing in inputs */
-        input {
-            -webkit-user-select: auto;
-            -moz-user-select: auto;
-            -ms-user-select: auto;
-            user-select: auto;
-        }
-
         /* --- LOGIN CARD (Google/X Inspired) --- */
         .login-wrapper {
             width: 100%;
@@ -80,6 +69,7 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
+            align-items: center;
             animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -90,7 +80,7 @@
 
         .brand-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 40px;
         }
 
         .brand-logo {
@@ -114,86 +104,48 @@
             margin: 0;
         }
 
-        /* --- FORM ELEMENTS --- */
-        .form-group {
-            position: relative;
-            margin-bottom: 20px;
+        /* --- GOOGLE BUTTON --- */
+        .btn-google {
             width: 100%;
-        }
-
-        .form-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--input-border);
-            border-radius: 12px;
-            padding: 16px 16px;
-            color: white;
+            background: #ffffff;
+            color: #3c4043;
+            border: 1px solid transparent;
+            border-radius: 30px;
+            padding: 12px 16px;
             font-size: 16px;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
-            outline: none;
-        }
-
-        .form-input:focus {
-            border-color: var(--input-focus);
-            box-shadow: 0 0 0 1px var(--input-focus);
-        }
-
-        .form-input::placeholder {
-            color: transparent; /* For floating label effect */
-        }
-
-        /* Floating Label */
-        .form-label {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-secondary);
-            font-size: 16px;
-            pointer-events: none;
-            transition: 0.2s ease all;
-            background-color: var(--surface-color);
-            padding: 0 4px;
-        }
-
-        .form-input:focus ~ .form-label,
-        .form-input:not(:placeholder-shown) ~ .form-label {
-            top: 0;
-            font-size: 12px;
-            color: var(--accent-color);
-        }
-
-        /* --- BUTTONS --- */
-        .btn-primary {
-            width: 100%;
-            background: var(--text-color);
-            color: #000000;
-            border: none;
-            border-radius: 30px; /* X-style rounded buttons */
-            padding: 14px;
-            font-size: 16px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            margin-top: 10px;
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 12px;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            position: relative;
         }
 
-        .btn-primary:active {
+        .btn-google:active {
             transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
         }
 
-        .btn-primary:hover {
-            background: #e2e8f0;
+        .btn-google:hover {
+            background: #f8f9fa;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .btn-primary:disabled {
-            background: #64748b;
+        .btn-google:disabled {
+            background: #e8eaed;
+            color: #9aa0a6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
+        }
+
+        .google-icon {
+            width: 24px;
+            height: 24px;
         }
 
         /* Error Message */
@@ -201,7 +153,7 @@
             color: var(--error-color);
             font-size: 13px;
             text-align: center;
-            margin-top: 12px;
+            margin-top: 20px;
             min-height: 18px;
             font-weight: 500;
         }
@@ -211,9 +163,9 @@
             display: none;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(0, 0, 0, 0.3);
+            border: 3px solid rgba(0, 0, 0, 0.1);
             border-radius: 50%;
-            border-top-color: #000;
+            border-top-color: #3c4043;
             animation: spin 1s ease-in-out infinite;
         }
 
@@ -246,22 +198,11 @@
                 <p class="brand-subtitle">to continue to Meena Soundbox</p>
             </div>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="email" id="email" class="form-input" placeholder="Email" required autocomplete="username">
-                    <label for="email" class="form-label">Email address</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" id="password" class="form-input" placeholder="Password" required autocomplete="current-password">
-                    <label for="password" class="form-label">Password</label>
-                </div>
-
-                <button type="submit" id="loginBtn" class="btn-primary">
-                    <span id="btnText">Next</span>
-                    <div class="spinner" id="btnSpinner"></div>
-                </button>
-            </form>
+            <button id="googleLoginBtn" class="btn-google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="google-icon" id="btnIcon">
+                <span id="btnText">Continue with Google</span>
+                <div class="spinner" id="btnSpinner"></div>
+            </button>
 
             <div class="error-msg" id="errorMsg"></div>
 
@@ -272,14 +213,15 @@
     <script type="module">
         // Import Firebase configuration from your existing config.js
         import { auth } from './config.js';
-        import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        // Initialize Google Provider
+        const provider = new GoogleAuthProvider();
 
         // DOM Elements
-        const loginForm = document.getElementById('loginForm');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const loginBtn = document.getElementById('loginBtn');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
         const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
         const btnSpinner = document.getElementById('btnSpinner');
         const errorMsg = document.getElementById('errorMsg');
 
@@ -291,53 +233,46 @@
         });
 
         // Form Submit Handler
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-
-            if (!email || !password) return;
-
+        googleLoginBtn.addEventListener('click', async () => {
             // UI Loading State
-            loginBtn.disabled = true;
+            googleLoginBtn.disabled = true;
             btnText.style.display = 'none';
+            btnIcon.style.display = 'none';
             btnSpinner.style.display = 'block';
             errorMsg.textContent = ''; // Clear previous errors
 
             try {
-                // Firebase Sign In
-                await signInWithEmailAndPassword(auth, email, password);
+                // Firebase Google Sign In
+                await signInWithPopup(auth, provider);
                 
                 // On success, redirect to index
                 window.location.replace('index.html');
                 
             } catch (error) {
-                console.error("Login Error:", error.code);
+                console.error("Login Error:", error.code, error.message);
                 
                 // Handle common Firebase Auth errors professionally
                 switch (error.code) {
-                    case 'auth/invalid-credential':
-                    case 'auth/user-not-found':
-                    case 'auth/wrong-password':
-                        errorMsg.textContent = 'Invalid email or password.';
+                    case 'auth/popup-closed-by-user':
+                        errorMsg.textContent = 'Sign-in popup was closed before completion.';
                         break;
-                    case 'auth/invalid-email':
-                        errorMsg.textContent = 'Please enter a valid email format.';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMsg.textContent = 'Too many attempts. Please try again later.';
+                    case 'auth/popup-blocked':
+                        errorMsg.textContent = 'Popup blocked by browser. Please allow popups.';
                         break;
                     case 'auth/network-request-failed':
                         errorMsg.textContent = 'Network error. Check your connection.';
+                        break;
+                    case 'auth/account-exists-with-different-credential':
+                        errorMsg.textContent = 'An account already exists with a different credential.';
                         break;
                     default:
                         errorMsg.textContent = 'Authentication failed. Please try again.';
                 }
 
                 // Reset UI State
-                loginBtn.disabled = false;
+                googleLoginBtn.disabled = false;
                 btnText.style.display = 'block';
+                btnIcon.style.display = 'block';
                 btnSpinner.style.display = 'none';
             }
         });
