@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Meena Ecosystem | Goorac Corporation</title>
     <style>
         /* Light Mode (Meta AI Style - Default) */
@@ -82,6 +82,15 @@
             padding: 0;
         }
 
+        /* --- NEW ENHANCEMENTS: Smooth Scrolling & Stability --- */
+        html {
+            scroll-behavior: smooth;
+            /* FIXED: Force viewport bounds to prevent horizontal side scrolling */
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
@@ -97,8 +106,13 @@
                               radial-gradient(at 100% 0%, rgba(201, 43, 184, 0.05) 0px, transparent 50%);
             /* ADVANCED SCROLL STABILITY - iOS momentum scrolling & overflow control */
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: none;
-            overflow-x: hidden; /* Prevent horizontal scrollbar from side animations */
+            /* FIXED: Changed overscroll-behavior-y to auto to prevent scroll sticking */
+            overscroll-behavior-y: auto; 
+            /* FIXED: Prevent horizontal scrollbar from side animations */
+            overflow-x: hidden; 
+            width: 100%;
+            max-width: 100vw;
+            position: relative;
         }
 
         .container {
@@ -183,6 +197,12 @@
             /* Improvement: Glassmorphism refined */
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            /* ADVANCED GPU ACCELERATION: Force composition & optimize repainting */
+            will-change: transform, box-shadow, opacity;
+            transform: translate3d(0, 0, 0); 
         }
 
         /* Alternating Side-to-Side Loading Animations for Apps */
@@ -271,7 +291,12 @@
             flex: 1;
             position: relative;
             overflow: hidden;
-            transform: translateZ(0); /* Hardware acceleration */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            will-change: transform, box-shadow, opacity;
+            transform: translate3d(0, 0, 0); 
+            touch-action: manipulation; /* Enhance mobile tap responsiveness */
         }
 
         .btn-primary {
@@ -347,6 +372,12 @@
             box-shadow: var(--shadow-sm);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             opacity: 0;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            will-change: transform, box-shadow, opacity;
+            transform: translate3d(0, 0, 0); 
+            touch-action: manipulation;
         }
 
         /* Alternating Side-to-Side Loading Animations for Public URLs */
@@ -493,35 +524,6 @@
             to { opacity: 1; }
         }
 
-        /* Mobile specific tweaks */
-        @media (max-width: 480px) {
-            .app-actions {
-                flex-direction: column;
-            }
-            .monitor-grid {
-                flex-direction: column;
-                align-items: center;
-            }
-            .btn {
-                width: 100%;
-            }
-        }
-
-        /* --- NEW ENHANCEMENTS: Smooth Scrolling & Stability --- */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Performance and rendering stability optimizations */
-        .app-card, .public-url-card, .btn {
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            transform-style: preserve-3d;
-            /* ADVANCED GPU ACCELERATION: Force composition & optimize repainting */
-            will-change: transform, box-shadow, opacity;
-            transform: translate3d(0, 0, 0); 
-        }
-
         /* Override initial load animation for scroll-triggered elements (Side-to-Side) */
         .scroll-animate {
             opacity: 0 !important;
@@ -541,6 +543,34 @@
         .scroll-animate.is-revealed {
             opacity: 1 !important;
             transform: translateX(0) translateZ(0) !important;
+        }
+
+        /* FIXED Mobile specific tweaks & Responsive Adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px 40px 15px; /* Tighter padding for mobile optimization */
+            }
+            h1 {
+                font-size: 28px; /* Proper scaling for small displays */
+            }
+            .section-title {
+                font-size: 18px;
+            }
+            .app-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            .monitor-grid {
+                flex-direction: column;
+                align-items: stretch; /* Fix scaling so elements don't crunch together */
+            }
+            .btn {
+                width: 100%;
+            }
+            .btn-monitor {
+                width: 100%;
+                min-width: unset;
+            }
         }
     </style>
 </head>
@@ -605,10 +635,8 @@
                 </div>
             </div>
 
-            <!-- NEW SOUNDBOX CARD ADDED HERE -->
             <div class="app-card">
                 <div class="app-header">
-                    <!-- ICON URL UPDATED HERE -->
                     <img src="https://meena.goorac.biz/soundbox/icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
                     <h3 class="app-title">Meena Soundbox</h3>
                 </div>
@@ -750,12 +778,13 @@
             }, 3000);
         }
 
-        /* Improvement: Automatic Year Update Logic without removing HTML lines */
+        /* FIXED: Dynamic Year Update using Regex to prevent breaking on new years */
         window.addEventListener('DOMContentLoaded', () => {
             const footerP = document.querySelector('.monitor-footer p');
             if(footerP) {
                 const currentYear = new Date().getFullYear();
-                footerP.innerHTML = footerP.innerHTML.replace('2026', currentYear);
+                // Replace any existing 4-digit number (year) with the current actual year
+                footerP.innerHTML = footerP.innerHTML.replace(/\b\d{4}\b/, currentYear);
             }
         });
 
