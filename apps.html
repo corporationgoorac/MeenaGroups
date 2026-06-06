@@ -95,12 +95,17 @@
             /* Improvement: Dynamic subtle mesh background */
             background-image: radial-gradient(at 0% 0%, rgba(0, 100, 224, 0.03) 0px, transparent 50%),
                               radial-gradient(at 100% 0%, rgba(201, 43, 184, 0.05) 0px, transparent 50%);
+            /* ADVANCED SCROLL STABILITY - iOS momentum scrolling & overflow control */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
         }
 
         .container {
             width: 100%;
             max-width: 900px;
             padding: 0 20px 60px 20px;
+            /* ADVANCED SCROLL STABILITY - Force container into its own composite layer */
+            transform: translateZ(0);
         }
 
         /* Clean Header - NO STICKY, NO BLUR */
@@ -111,6 +116,7 @@
             border-bottom: none;
             margin-bottom: 20px;
             animation: fadeInDown 0.8s ease-out;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         h1 {
@@ -124,6 +130,7 @@
             -webkit-text-fill-color: transparent;
             display: inline-block;
             filter: drop-shadow(0 2px 10px rgba(201, 43, 184, 0.1));
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         .subtitle {
@@ -144,6 +151,7 @@
             gap: 10px;
             color: var(--text-primary);
             animation: fadeIn 1s ease-out;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         /* Grid Layout for PC, Column for Mobile */
@@ -188,7 +196,7 @@
 
         .app-card:hover {
             box-shadow: var(--shadow-md);
-            transform: translateY(-6px);
+            transform: translateY(-6px) translateZ(0); /* Added translateZ for hover stability */
             background-color: var(--surface-hover);
             border-color: var(--text-secondary); /* Refined hover border */
         }
@@ -208,10 +216,11 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 1px solid var(--icon-border);
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         .app-card:hover .app-icon {
-            transform: scale(1.12) rotate(-3deg);
+            transform: scale(1.12) rotate(-3deg) translateZ(0); /* Hardware acceleration */
         }
 
         .app-title {
@@ -252,6 +261,7 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         .btn-primary {
@@ -273,6 +283,7 @@
             transform: rotate(45deg);
             transition: all 0.5s;
             opacity: 0;
+            will-change: transform, opacity; /* Added GPU hint */
         }
 
         .btn-primary:hover::after {
@@ -283,7 +294,7 @@
 
         .btn-primary:hover {
             background: var(--brand-gradient-hover);
-            transform: scale(1.03);
+            transform: scale(1.03) translateZ(0); /* Stability */
             box-shadow: 0 6px 20px var(--shadow-glow);
         }
 
@@ -295,7 +306,7 @@
 
         .btn-secondary:hover {
             background-color: var(--btn-secondary-hover);
-            transform: scale(1.03);
+            transform: scale(1.03) translateZ(0); /* Stability */
         }
 
         /* --- NEW: Public URLs Grid Styles --- */
@@ -332,7 +343,7 @@
         }
 
         .public-url-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-5px) translateZ(0); /* GPU acceleration */
             box-shadow: var(--shadow-md);
             border-color: var(--text-secondary);
             background-color: var(--surface-hover);
@@ -349,10 +360,11 @@
             border: 1px solid var(--icon-border);
             color: var(--text-primary);
             transition: transform 0.3s ease;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         .public-url-card:hover .public-icon-wrapper {
-            transform: scale(1.1) rotate(5deg);
+            transform: scale(1.1) rotate(5deg) translateZ(0); /* Hardware acceleration */
         }
 
         .public-icon {
@@ -372,6 +384,7 @@
             padding-top: 40px;
             border-top: 1px solid var(--border-color);
             text-align: center;
+            transform: translateZ(0); /* Hardware acceleration */
         }
 
         .monitor-grid {
@@ -413,33 +426,34 @@
             background-color: #22c55e;
             border-radius: 50%;
             animation: pulse-ring 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+            will-change: transform, opacity; /* GPU Hinting */
         }
 
         @keyframes pulse-ring {
-            0% { transform: scale(0.7); opacity: 0.8; }
-            80%, 100% { transform: scale(2.5); opacity: 0; }
+            0% { transform: scale(0.7) translateZ(0); opacity: 0.8; }
+            80%, 100% { transform: scale(2.5) translateZ(0); opacity: 0; }
         }
 
         /* Keyframe Animations */
         @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(30px) translateZ(0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) translateZ(0);
             }
         }
 
         @keyframes fadeInDown {
             from {
                 opacity: 0;
-                transform: translateY(-20px);
+                transform: translateY(-20px) translateZ(0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) translateZ(0);
             }
         }
 
@@ -472,20 +486,22 @@
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             transform-style: preserve-3d;
-            will-change: transform, box-shadow;
+            /* ADVANCED GPU ACCELERATION: Force composition & optimize repainting */
+            will-change: transform, box-shadow, opacity;
+            transform: translate3d(0, 0, 0); 
         }
 
         /* Classes to override initial load animation for scroll-triggered elements */
         .scroll-animate {
             opacity: 0 !important;
-            transform: translateY(40px) !important;
+            transform: translateY(40px) translateZ(0) !important;
             animation: none !important; /* Suspend default load animation */
             transition: opacity 0.7s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
         }
 
         .scroll-animate.is-revealed {
             opacity: 1 !important;
-            transform: translateY(0) !important;
+            transform: translateY(0) translateZ(0) !important;
         }
     </style>
 </head>
@@ -553,7 +569,7 @@
             <!-- NEW SOUNDBOX CARD ADDED HERE -->
             <div class="app-card">
                 <div class="app-header">
-                    <img src="https://meena.goorac.biz/marketing/soundbox/icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
+                    <img src="icon.png" alt="Soundbox Icon" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTJhMmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSI0IiB5PSIyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHJ4PSIyIiByeT0iMiI+PC9yZWN0PjxjaXJjbGUgY3g9IjEyIiBjeT0iMTQiIHI9IjQiPjwvY2lyY2xlPjxsaW5lIHgxPSIxMiIgeTE9IjYiIHgyPSIxMiIgeTI9IjYiPjwvbGluZT48L3N2Zz4='">
                     <h3 class="app-title">Meena Soundbox</h3>
                 </div>
                 <p class="app-desc">Sleek, professional audio notification system providing instant payment alerts and comprehensive merchant soundbox management.</p>
@@ -609,7 +625,7 @@
                     <svg class="public-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="2" y1="12" x2="22" y2="12"></line>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                     </svg>
                 </div>
                 <span class="public-title">Meena ChitFunds</span>
@@ -663,7 +679,7 @@
             toast.style.position = 'fixed';
             toast.style.bottom = '30px';
             toast.style.left = '50%';
-            toast.style.transform = 'translateX(-50%) translateY(100px)';
+            toast.style.transform = 'translateX(-50%) translateY(100px) translateZ(0)';
             
             /* Updated Toast to adapt automatically to Light/Dark themes */
             toast.style.background = 'var(--toast-bg)'; /* Dark toast in light, Light toast in dark */
@@ -676,17 +692,18 @@
             toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
             toast.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
             toast.style.zIndex = '1000';
+            toast.style.willChange = 'transform'; /* GPU Hinting */
             
             document.body.appendChild(toast);
             
             // Trigger animation in
             setTimeout(() => {
-                toast.style.transform = 'translateX(-50%) translateY(0)';
+                toast.style.transform = 'translateX(-50%) translateY(0) translateZ(0)';
             }, 10);
             
             // Animate out and remove
             setTimeout(() => {
-                toast.style.transform = 'translateX(-50%) translateY(100px)';
+                toast.style.transform = 'translateX(-50%) translateY(100px) translateZ(0)';
                 setTimeout(() => {
                     document.body.removeChild(toast);
                 }, 400);
