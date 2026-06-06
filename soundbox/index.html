@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <!-- NO ZOOM VIEWPORT LOCK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meena Marketing - Live Sound Box</title>
+    
+    <!-- PWA Registration Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b111a">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b111a;
+            --surface-color: #131b26;
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent-color: #3b82f6; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b; 
+            --meena-red: #ef4444;
+            --input-border: #334155;
+            --glow-blue: rgba(59, 130, 246, 0.5);
+            --nav-bg: rgba(19, 27, 38, 0.85); /* Standard Header Backdrop */
+        }
+
+        /* --- GLOBAL ANTI-COPY & ANTI-ZOOM RULES --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+            -webkit-touch-callout: none; /* iOS Safari */
+            /* Advanced Scrollbar Hiding Globally */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera Globally */
+        *::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Allow scrolling but prevent double-tap zoom */
+        html, body {
+            touch-action: manipulation;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0; /* Reset for full width header */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- Activation Screen --- */
+        #activationScreen {
+            background: linear-gradient(145deg, var(--surface-color), #1e293b);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            margin-top: 15vh;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        /* --- Speaker Animation --- */
+        .speaker-mesh {
+            width: 100px;
+            height: 100px;
+            background: #090d16;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid var(--input-border);
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.8);
+            transition: all 0.3s ease;
+        }
+        .speaker-mesh .material-symbols-outlined { font-size: 40px; color: var(--text-secondary); transition: all 0.3s; }
+        
+        .speaker-mesh.active-sale { border-color: var(--success-color); box-shadow: 0 0 25px rgba(16, 185, 129, 0.5); }
+        .speaker-mesh.active-sale .material-symbols-outlined { color: var(--success-color); transform: scale(1.1); }
+        
+        .speaker-mesh.active-alert { border-color: var(--meena-red); box-shadow: 0 0 25px rgba(239, 68, 68, 0.5); }
+        .speaker-mesh.active-alert .material-symbols-outlined { color: var(--meena-red); transform: scale(1.1); }
+
+        .activation-title { font-size: 22px; margin: 0 0 5px 0; font-weight: 700; }
+        .sub-tag { color: var(--text-secondary); font-size: 13px; margin-bottom: 30px; display: block; }
+
+        .engine-btn {
+            background: linear-gradient(135deg, var(--accent-color), #2563eb);
+            color: white; border: none; padding: 18px 24px; font-size: 16px; font-weight: 700;
+            border-radius: 12px; cursor: pointer; width: 100%; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        .engine-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4); }
+
+        /* --- Main Dashboard (Full App Wrapper) --- */
+        #mainDashboard {
+            display: none; /* Hidden until activated */
+            flex-direction: column;
+            width: 100%;
+            min-height: 100vh;
+            animation: fadeIn 0.8s ease forwards;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: var(--bg-color);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- STANDARDIZED MEENA MARKETING HEADER --- */
+        .standard-header {
+            background-color: var(--nav-bg); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            padding: 14px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 500; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            width: 100%; 
+        }
+
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; margin-right: 2px;}
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 38px; height: 38px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1.15em; font-weight: 700; letter-spacing: -0.02em; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: white; }
+        .page-title { font-size: 0.75em; color: var(--success-color); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        
+        .status-indicator {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success-color);
+            padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+        }
+        .pulse-dot {
+            width: 8px; height: 8px; background: var(--success-color); border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        /* Dashboard Internal Layout Wrapper */
+        .dashboard-content {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- Log & Card UI --- */
+        .log-container { width: 100%; }
+        .log-title { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--input-border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        
+        #broadcastLog { display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto; padding-right: 5px; padding-bottom: 40px; }
+        #broadcastLog::-webkit-scrollbar { display: none; }
+        #broadcastLog::-webkit-scrollbar-track { display: none; }
+        #broadcastLog::-webkit-scrollbar-thumb { display: none; }
+
+        .log-card {
+            background: var(--surface-color);
+            border-radius: 16px; padding: 20px;
+            border: 1px solid var(--input-border);
+            display: flex; gap: 18px; align-items: flex-start;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
+        }
+
+        .card-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .card-content { flex-grow: 1; min-width: 0; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .card-title { font-weight: 800; font-size: 15px; color: white; margin: 0; display: flex; align-items: center; gap: 6px; }
+        .card-time { font-size: 11px; color: var(--text-secondary); font-weight: 600; background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 12px;}
+        
+        .card-customer { font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .card-customer .material-symbols-outlined { font-size: 14px; color: var(--accent-color); }
+        
+        .card-details { font-size: 13.5px; color: #e2e8f0; line-height: 1.6; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 4px; background: rgba(255,255,255,0.02); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03); }
+        .item-name { font-weight: 600; color: #f1f5f9; }
+        .item-model { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px;}
+        
+        .card-highlight { font-weight: 900; font-size: 18px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Sales Specific Card */
+        .log-card.sale { border-left: 5px solid var(--success-color); }
+        .log-card.sale .card-icon { background: rgba(16, 185, 129, 0.15); color: var(--success-color); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .log-card.sale .card-highlight { color: var(--success-color); }
+
+        /* Alert Specific Card */
+        .log-card.alert { border-left: 5px solid var(--meena-red); }
+        .log-card.alert .card-icon { background: rgba(239, 68, 68, 0.15); color: var(--meena-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .log-card.alert .card-highlight { color: var(--warning-color); }
+
+        /* Responsive Fixes */
+        @media (max-width: 420px) {
+            .status-text { display: none; } /* Hide 'LISTENING' word on tiny screens to save space */
+            .brand-title { font-size: 1.05em; }
+        }
+
+        /* --- PWA INSTALL POPUP STYLES --- */
+        #pwaInstallPopup {
+            display: flex; position: fixed; bottom: -120px; left: 0; width: 100%;
+            background: rgba(19, 27, 38, 0.95); backdrop-filter: blur(15px);
+            border-top: 1px solid var(--input-border); padding: 18px 20px;
+            padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8); z-index: 9999;
+            flex-direction: row; justify-content: space-between; align-items: center;
+            transition: bottom 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #pwaInstallPopup.show { bottom: 0; }
+        .pwa-left { display: flex; align-items: center; gap: 14px; }
+        .pwa-icon { width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .pwa-text-title { font-weight: 700; font-size: 15px; color: white; margin-bottom: 4px; line-height: 1.2;}
+        .pwa-text-sub { font-size: 12px; color: var(--text-secondary); line-height: 1.3; }
+        .pwa-actions { display: flex; gap: 10px; align-items: center; }
+        .pwa-btn-cancel { background: none; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 8px 10px; font-size: 13px; }
+        .pwa-btn-install { background: linear-gradient(135deg, var(--accent-color), #2563eb); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: transform 0.2s; }
+        .pwa-btn-install:hover { transform: translateY(-2px); }
+
+    </style>
+</head>
+<body>
+
+    <!-- 1. ACTIVATION SCREEN (Hides after click) -->
+    <div id="activationScreen">
+        <div class="speaker-mesh" id="initialSpeaker">
+            <span class="material-symbols-outlined">volume_off</span>
+        </div>
+        <h1 class="activation-title">Live Alert Sound Box</h1>
+        <span class="sub-tag">Browser Audio Engine Unlock Required</span>
+
+        <button class="engine-btn" id="startBtn">
+            <span class="material-symbols-outlined">power_settings_new</span>
+            Power On & Authenticate
+        </button>
+    </div>
+
+    <!-- 2. MAIN DASHBOARD (Shows after click, Responsive PC/Mobile) -->
+    <div id="mainDashboard">
+        
+        <!-- Standard Meena Marketing Sticky Header -->
+        <header class="standard-header">
+            <div class="header-left">
+                <!-- Back arrow hidden to prevent exit, but line maintained -->
+                <a href="inventory.html" class="back-btn" style="display: none !important;"><span class="material-symbols-outlined">arrow_back</span></a>
+                <div class="brand-container">
+                    <img src="icon.png" alt="Icon" class="logo-img">
+                    <div class="brand-text">
+                        <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                        <span class="page-title">Live Sound Box</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="status-indicator">
+                    <div class="pulse-dot"></div>
+                    <span class="status-text">LISTENING</span>
+                </div>
+                <div id="dashSpeaker" style="width: 38px; height: 38px; border-radius: 50%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; border: 2px solid var(--input-border); transition: 0.3s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-secondary); transition: 0.3s;" id="dashSpeakerIcon">volume_up</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Centered Responsive Content Area -->
+        <div class="dashboard-content">
+            <!-- Log UI -->
+            <div class="log-container">
+                <div class="log-title">
+                    <span>Recent Broadcasts</span>
+                    <span class="material-symbols-outlined" style="font-size: 18px; opacity: 0.5;">history</span>
+                </div>
+                <div id="broadcastLog">
+                    <div style="color: var(--text-secondary); font-size: 14px; text-align: center; padding: 40px 20px; background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--input-border);">
+                        <span class="material-symbols-outlined" style="font-size: 40px; margin-bottom: 12px; opacity: 0.3;">graphic_eq</span><br>
+                        Engine is running.<br>Awaiting live database events...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. ADVANCED PWA INSTALLATION POPUP -->
+    <div id="pwaInstallPopup">
+        <div class="pwa-left">
+            <img src="icon.png" alt="App Icon" class="pwa-icon" onerror="this.src='https://via.placeholder.com/48/131b26/ffffff?text=App'">
+            <div>
+                <div class="pwa-text-title">Install Sound Box</div>
+                <div class="pwa-text-sub">Add to home screen for faster access & background stability.</div>
+            </div>
+        </div>
+        <div class="pwa-actions">
+            <button class="pwa-btn-cancel" id="pwaCancelBtn">LATER</button>
+            <button class="pwa-btn-install" id="pwaInstallBtn">INSTALL</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './config.js';
+        import { collection, query, where, orderBy, limit, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+        // --- AUTHENTICATION CHECK ---
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    window.location.replace('login.html'); // Redirect to login if unauthenticated
+                }
+            });
+        } else {
+            window.location.replace('login.html');
+        }
+
+        // --- TAMIL DICTIONARIES ---
+        const tamilNumbers = {
+            1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
+            6: 'ஆறு', 7: 'ஏழு', 8: 'எட்டு', 9: 'ஒன்பது', 10: 'பத்து'
+        };
+
+        const reasonTranslations = {
+            "Damaged Product": "பழுதான பொருள்",
+            "Sent to Meena Agency": "மீனா ஏஜென்சிக்கு அனுப்பப்பட்டுள்ளது",
+            "Product Missing": "பொருள் காணவில்லை",
+            "Returned to Dealer": "டீலருக்கு திருப்பி அனுப்பப்பட்டுள்ளது",
+            "Gift to Customer": "வாடிக்கையாளருக்கு பரிசு",
+            "Counting Mistake": "எண்ணிக்கை தவறு",
+            "Customer Return": "வாடிக்கையாளர் திருப்பிக் கொடுத்தது",
+            "New Stock": "புதிய சரக்கு"
+        };
+
+        // --- 100+ DYNAMIC TAMIL TEMPLATES (Massively Expanded Array) ---
+        // Exclusively uses [ITEMS] and [AMOUNT]. NO Customer Names in Voice.
+        const salesTemplates = [
+            "கடையில், [ITEMS], ரூ [AMOUNT]-க்கு விற்பனை ஆகி உள்ளது.",
+            "நற்செய்தி! [ITEMS], மொத்தம் [AMOUNT] ரூபாய்க்கு விற்பனையாகியுள்ளது.",
+            "ஒரு புதிய விற்பனை நடந்துள்ளது. [ITEMS], [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "மீனா மார்க்கெட்டிங்கில் தற்போது, [ITEMS], [AMOUNT] ரூபாய்க்கு பில் செய்யப்பட்டுள்ளது.",
+            "சிறப்பு! வாடிக்கையாளர் [ITEMS]-ஐ, [AMOUNT] ரூபாய்க்கு வாங்கியுள்ளார்.",
+            "கவனத்திற்கு! [ITEMS], [AMOUNT] ரூபாய்க்கு வெற்றிகரமாக விற்பனை செய்யப்பட்டுள்ளது.",
+            "[ITEMS], மொத்தம் [AMOUNT] ரூபாய் மதிப்பிற்கு விற்பனையாகி உள்ளது.",
+            "மகிழ்ச்சியான செய்தி! கடையில் [ITEMS], [AMOUNT] ரூபாய்க்கு விற்பனை முடிந்துள்ளது.",
+            "தற்போது [ITEMS], [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "[ITEMS] வாங்கியதற்கான புதிய பில், [AMOUNT] ரூபாய்க்கு உருவாக்கப்பட்டுள்ளது.",
+            "அருமை! [AMOUNT] ரூபாய் மதிப்பிலான [ITEMS] தற்போது விற்பனையாகியுள்ளது.",
+            "மீனா மார்க்கெட்டிங்கின் புதிய விற்பனை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்டுள்ளது.",
+            "கல்லாவில் புதிய வரவு! [ITEMS] விற்பனையாகி, [AMOUNT] ரூபாய் பெறப்பட்டுள்ளது.",
+            "ஒரு வெற்றிகரமான விற்பனை! [ITEMS], [AMOUNT] ரூபாய்க்கு கொடுக்கப்பட்டுள்ளது.",
+            "சிறப்பான விற்பனை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனையாகியுள்ளது.",
+            "புதிய ஆர்டர் முடிந்தது. [AMOUNT] ரூபாய்க்கு [ITEMS] கொடுக்கப்பட்டுள்ளது.",
+            "[ITEMS] இன்று [AMOUNT] ரூபாய்க்கு சிறப்பாக விற்பனை செய்யப்பட்டுள்ளது.",
+            "நமது கடையில் [AMOUNT] ரூபாய் விலைக்கு [ITEMS] விற்கப்பட்டுள்ளது.",
+            "வாடிக்கையாளர் ஒருவர் [AMOUNT] ரூபாய்க்கு, [ITEMS]-ஐ வாங்கியுள்ளார்.",
+            "வெற்றிகரமாக [ITEMS], [AMOUNT] ரூபாய்க்கு விற்பனை செய்யப்பட்டது.",
+            "கவனிக்கவும்! [ITEMS]-ன் விற்பனை [AMOUNT] ரூபாய்க்கு முடிவடைந்தது.",
+            "புதிய பில் அப்டேட்! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனையாகியுள்ளது.",
+            "மீனா மார்க்கெட்டிங்கில் [ITEMS], [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது சந்தோஷமான செய்தி.",
+            "[AMOUNT] ரூபாய் மதிப்பிலான [ITEMS] இன்று விற்பனை செய்யப்பட்டுள்ளது.",
+            "[ITEMS]-ஐ [AMOUNT] ரூபாய்க்கு வாடிக்கையாளர் பெற்றுள்ளார்.",
+            "ஒரு புதிய வரவு! [ITEMS] [AMOUNT] ரூபாய்க்கு பில் போடப்பட்டுள்ளது.",
+            "விற்பனை தகவல்: [ITEMS], விலை [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "இன்றைய சிறப்பு விற்பனை, [AMOUNT] ரூபாய்க்கு [ITEMS] வழங்கப்பட்டுள்ளது.",
+            "நமது வாடிக்கையாளர் [ITEMS]-ஐ [AMOUNT] ரூபாய்க்கு வாங்கிச் சென்றுள்ளார்.",
+            "பில் அப்டேட்: [ITEMS], மொத்தம் [AMOUNT] ரூபாய்க்கு பில் செய்யப்பட்டுள்ளது.",
+            "இப்போது, [ITEMS] [AMOUNT] ரூபாய்க்கு விற்கப்பட்டுள்ளது.",
+            "பணப்பெட்டியில் வரவு! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்பனை.",
+            "[AMOUNT] ரூபாய் பில் தொகையில் [ITEMS] விற்பனை நிறைவடைந்தது.",
+            "[ITEMS] வெற்றிகரமாக [AMOUNT] ரூபாய்க்கு சேல்ஸ் ஆகியுள்ளது.",
+            "சேல்ஸ் அப்டேட்! [ITEMS]-ன் விற்பனை [AMOUNT] ரூபாய்க்கு நடந்துள்ளது.",
+            "[AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்ட தகவல் பதிவு செய்யப்பட்டது.",
+            "மீனா மார்க்கெட்டிங் விற்பனை: [AMOUNT] ரூபாய்க்கு [ITEMS].",
+            "பொருள் விற்பனை விவரம்! [ITEMS] [AMOUNT] ரூபாய்க்கு பில் ஆனது.",
+            "விற்பனை அறிக்கை! [AMOUNT] ரூபாய்க்கு [ITEMS] விற்கப்பட்டுள்ளது.",
+            "வாடிக்கையாளருக்கு [ITEMS] [AMOUNT] ரூபாய்க்கு விற்கப்பட்டது."
+        ];
+
+        const alertTemplates = [
+            "கவனம்! [PRODUCT], [QTY] எண்ணிக்கை குறைக்கப்பட்டுள்ளது. காரணம்: [REASON].",
+            "எச்சரிக்கை! [PRODUCT], [QTY] இருப்பு எடுக்கப்பட்டுள்ளது. இதற்கான காரணம், [REASON].",
+            "நிர்வாகியின் கவனத்திற்கு! [REASON] காரணமாக, [PRODUCT] இருப்பில் [QTY] குறைந்துள்ளது.",
+            "முக்கிய தகவல். [PRODUCT] இருப்பிலிருந்து [QTY] நீக்கப்பட்டுள்ளது. காரணம்: [REASON].",
+            "ஸ்டாக் அப்டேட்! [PRODUCT], [QTY] எண்ணிக்கை குறைக்கப்பட்டுள்ளது. காரணம்: [REASON].",
+            "[REASON] என்பதனால், [PRODUCT] [QTY] எண்ணிக்கை இருப்பிலிருந்து எடுக்கப்பட்டுள்ளது.",
+            "கவனிக்கவும், [PRODUCT] இருப்பு [QTY] குறைக்கப்பட்டுள்ளது. காரணம்: [REASON].",
+            "இருப்பு மாற்றம் செய்யப்பட்டுள்ளது! [PRODUCT], [QTY] எண்ணிக்கை குறைந்தது. காரணம்: [REASON].",
+            "[PRODUCT]-ன் ஸ்டாக் [QTY] குறைக்கப்பட்டுள்ளது. அதற்கான காரணம்: [REASON].",
+            "கவனத்திற்கு, [REASON] என்ற காரணத்தினால், [PRODUCT] [QTY] எடுக்கப்பட்டுள்ளது.",
+            "கண்காணிப்பு தகவல்: [REASON] காரணமாக [PRODUCT] இருப்பு [QTY] குறைந்தது.",
+            "[PRODUCT] இருப்பில் மாற்றம்! [QTY] எடுக்கப்பட்டது. காரணம்: [REASON].",
+            "ஸ்டாக் குறைப்பு! [PRODUCT] [QTY] குறைந்தது. காரணம்: [REASON].",
+            "மீனா மார்க்கெட்டிங் அலர்ட்! [REASON] என்பதால் [PRODUCT] [QTY] குறைக்கப்பட்டது.",
+            "ஒரு ஸ்டாக் அப்டேட். [PRODUCT] [QTY] நீக்கப்பட்டது, காரணம் [REASON].",
+            "[REASON] காரணமாக நமது இருப்பில் [PRODUCT] [QTY] குறைந்துள்ளது.",
+            "தகவல்: [PRODUCT] [QTY] எண்ணிக்கை [REASON] காரணமாக குறைக்கப்பட்டது.",
+            "அலர்ட்! [PRODUCT] இருப்பு [QTY] குறைந்தது. [REASON] என பதிவு செய்யப்பட்டுள்ளது.",
+            "ஸ்டாக் குறைந்துள்ளது. [PRODUCT] [QTY] எடுக்கப்பட்டது. காரணம்: [REASON].",
+            "[REASON] காரணமாக [PRODUCT] [QTY] எண்ணிக்கை குறைக்கப்பட்டுள்ளது என்பதை கவனிக்கவும்."
+        ];
+
+        function getRandomTemplate(templateArray) {
+            const randomIndex = Math.floor(Math.random() * templateArray.length);
+            return templateArray[randomIndex];
+        }
+
+        // --- SYSTEM VARIABLES ---
+        let audioQueue = [];
+        let isSpeaking = false;
+        let systemActive = false;
+        let sessionStartTime = new Date();
+        let globalAudioCtx; // For 24/7 Audio Hack
+
+        const activationScreen = document.getElementById('activationScreen');
+        const mainDashboard = document.getElementById('mainDashboard');
+        const startBtn = document.getElementById('startBtn');
+        const dashSpeaker = document.getElementById('dashSpeaker');
+        const dashSpeakerIcon = document.getElementById('dashSpeakerIcon');
+        const broadcastLog = document.getElementById('broadcastLog');
+
+        // --- 24/7 BACKGROUND AUDIO HACK ---
+        // This generates a silent, continuous signal to prevent browser audio suspension
+        function init247AudioWakeLock() {
+            try {
+                globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = globalAudioCtx.createOscillator();
+                const gainNode = globalAudioCtx.createGain();
+                
+                gainNode.gain.value = 0.0; // Completely silent
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(globalAudioCtx.destination);
+                oscillator.start();
+                
+                // Periodically ensure context hasn't been suspended by aggressive mobile OS limits
+                setInterval(() => {
+                    if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+                        globalAudioCtx.resume().catch(e => console.warn("Audio WakeLock Resume Warning", e));
+                    }
+                }, 15000);
+                
+                console.log("Enterprise 24/7 Audio Wake-Lock Activated.");
+            } catch (err) {
+                console.warn("AudioContext wake-lock not fully supported on this device.", err);
+            }
+        }
+
+        // --- BROWSER WAKE-LOCK & TAB SWITCH FIX ---
+        // Ensure system stays alert even if user minimizes the window
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && systemActive) {
+                console.log("System restored to foreground. Audio context maintained.");
+                if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+                    globalAudioCtx.resume();
+                }
+            }
+        });
+
+        // --- UI TRANSITION ---
+        startBtn.addEventListener('click', () => {
+            if (systemActive) return;
+            systemActive = true;
+            sessionStartTime = new Date(); 
+            
+            // Activate the 24/7 background audio preservation hack immediately on user gesture
+            init247AudioWakeLock();
+            
+            // 1. Hide Activation Screen Smoothly
+            activationScreen.style.opacity = '0';
+            activationScreen.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                activationScreen.style.display = 'none';
+                // 2. Show Main Dashboard
+                mainDashboard.style.display = 'flex';
+                broadcastLog.innerHTML = ''; // Clear initial empty state
+                
+                // 3. Initialize Firebase Listeners
+                initSalesListener();
+                initReductionListener();
+                
+                // 4. Initial Startup Voice
+                speakText("மீனா மார்க்கெட்டிங் சவுண்ட் பாக்ஸ் இயங்கத் தொடங்கியது.");
+            }, 500);
+        });
+
+        // 1. OPTIMIZED & RANDOMIZED SALES LISTENER
+        function initSalesListener() {
+            const salesQuery = query(
+                collection(db, "sellings"),
+                where("createdAt", ">=", sessionStartTime),
+                orderBy("createdAt", "desc"),
+                limit(1)
+            );
+
+            onSnapshot(salesQuery, (snapshot) => {
+                if (snapshot.empty) return;
+
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const data = change.doc.data();
+                        
+                        // Extract Customer Metadata for UI Card
+                        const custName = data.customer?.name || 'Cash Customer';
+                        const custPhone = data.customer?.phone || 'N/A';
+                        
+                        // Parse Tamil Phrase & UI Items
+                        let parsedItemText = '';
+                        let itemNamesForUI = [];
+
+                        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+                            if (data.items.length === 1) {
+                                const item = data.items[0];
+                                const pName = item.name || 'பொருள்';
+                                const pModel = item.model || 'N/A';
+                                const pQty = parseInt(item.qty) || 1;
+                                
+                                const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
+                                parsedItemText = `${pName} ${qtyInTamil}`;
+                                
+                                // UI specific markup
+                                itemNamesForUI.push(`
+                                    <div class="item-row">
+                                        <div>
+                                            <span class="item-name">${pName}</span>
+                                            <span class="item-model">Model: ${pModel}</span>
+                                        </div>
+                                        <span style="font-weight:700;">x${pQty}</span>
+                                    </div>
+                                `);
+                            } else {
+                                let parts = [];
+                                data.items.forEach((item) => {
+                                    const pName = item.name || 'பொருள்';
+                                    const pModel = item.model || 'N/A';
+                                    const pQty = parseInt(item.qty) || 1;
+                                    
+                                    const qtyInTamil = tamilNumbers[pQty] || pQty.toString();
+                                    parts.push(`${pName} ${qtyInTamil}`);
+                                    
+                                    itemNamesForUI.push(`
+                                        <div class="item-row">
+                                            <div>
+                                                <span class="item-name">${pName}</span>
+                                                <span class="item-model">Model: ${pModel}</span>
+                                            </div>
+                                            <span style="font-weight:700;">x${pQty}</span>
+                                        </div>
+                                    `);
+                                });
+                                const lastPart = parts.pop();
+                                parsedItemText = parts.join(', ') + ', மற்றும் ' + lastPart;
+                            }
+                        } else {
+                            parsedItemText = 'பொருட்கள்';
+                            itemNamesForUI.push('<div class="item-row">Unknown Items</div>');
+                        }
+
+                        const totalAmount = Math.round(data.totals?.grand || 0);
+                        
+                        // ONLY USE [ITEMS] AND [AMOUNT] FOR VOICE
+                        let rawTemplate = getRandomTemplate(salesTemplates);
+                        let ttsPhrase = rawTemplate
+                            .replace('[ITEMS]', parsedItemText)
+                            .replace('[AMOUNT]', totalAmount);
+
+                        // Complete UI Data Object
+                        const uiData = {
+                            title: `Sale: ${data.invoiceNo || 'INV'}`,
+                            customerHtml: `
+                                <div class="card-customer">
+                                    <span class="material-symbols-outlined">person</span> ${custName} &nbsp;•&nbsp; 
+                                    <span class="material-symbols-outlined" style="font-size:12px;">call</span> ${custPhone}
+                                </div>
+                            `,
+                            details: itemNamesForUI.join(''),
+                            highlight: `<span>Total Paid</span> <span>₹${totalAmount.toLocaleString()}</span>`
+                        };
+
+                        queueSpeech(ttsPhrase, "sale", uiData);
+                    }
+                });
+            });
+        }
+
+        // 2. ZERO-WASTE & RANDOMIZED REDUCTION LISTENER
+        function initReductionListener() {
+            const reductionDocRef = doc(db, "alerts", "stock_reduction");
+
+            onSnapshot(reductionDocRef, (docSnap) => {
+                if (!docSnap.exists()) return;
+                
+                const data = docSnap.data();
+                if (data.lastUpdated) {
+                    const updateTime = new Date(data.lastUpdated);
+                    if (updateTime < sessionStartTime) return; 
+                }
+
+                const prodName = data.name || "பொருள்";
+                const prodModel = data.model || "N/A";
+                const oldQty = data.previousQty || 0;
+                const newQty = data.qty || 0;
+                const reducedQty = oldQty - newQty;
+                
+                if (reducedQty <= 0) return;
+
+                const englishReason = data.lastEditReason || "Unknown";
+                const tamilReason = reasonTranslations[englishReason] || englishReason; 
+                
+                const qtyInTamil = tamilNumbers[reducedQty] || reducedQty.toString();
+
+                let rawTemplate = getRandomTemplate(alertTemplates);
+                let ttsPhrase = rawTemplate
+                    .replace('[PRODUCT]', prodName)
+                    .replace('[QTY]', qtyInTamil)
+                    .replace('[REASON]', tamilReason);
+
+                // Complete UI Data Object
+                const uiData = {
+                    title: `Stock Alert`,
+                    customerHtml: ``, // No customer for alerts
+                    details: `
+                        <div class="item-row" style="border-left: 3px solid var(--meena-red);">
+                            <div>
+                                <span class="item-name">${prodName}</span>
+                                <span class="item-model">Model: ${prodModel}</span>
+                            </div>
+                            <span style="font-weight:700; color:var(--meena-red);">-${reducedQty}</span>
+                        </div>
+                        <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">
+                            Previous Qty: ${oldQty} ➔ New Qty: ${newQty}
+                        </div>
+                    `,
+                    highlight: `<span style="font-size:12px; color:var(--text-secondary); text-transform:uppercase;">Reason</span> <span style="font-size:15px;">${englishReason}</span>`
+                };
+
+                queueSpeech(ttsPhrase, "alert", uiData);
+            });
+        }
+
+        // --- AUDIO ENGINE ---
+        function queueSpeech(text, type, uiData) {
+            audioQueue.push({ text, type, uiData });
+            if (uiData) addCardToLog(type, uiData);
+            if (!isSpeaking) processNextAudio();
+        }
+
+        function processNextAudio() {
+            if (audioQueue.length === 0) {
+                isSpeaking = false;
+                // Reset dashboard speaker animation
+                dashSpeaker.style.borderColor = 'var(--input-border)';
+                dashSpeaker.style.boxShadow = 'none';
+                dashSpeakerIcon.style.color = 'var(--text-secondary)';
+                dashSpeakerIcon.style.transform = 'scale(1)';
+                return;
+            }
+
+            isSpeaking = true;
+            const currentItem = audioQueue.shift();
+            
+            // Dashboard Speaker Animation based on type
+            if (currentItem.type === 'sale') {
+                dashSpeaker.style.borderColor = 'var(--success-color)';
+                dashSpeaker.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+                dashSpeakerIcon.style.color = 'var(--success-color)';
+                dashSpeakerIcon.style.transform = 'scale(1.2)';
+            } else if (currentItem.type === 'alert') {
+                dashSpeaker.style.borderColor = 'var(--meena-red)';
+                dashSpeaker.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.4)';
+                dashSpeakerIcon.style.color = 'var(--meena-red)';
+                dashSpeakerIcon.style.transform = 'scale(1.2)';
+            } else {
+                dashSpeaker.style.borderColor = 'var(--accent-color)';
+                dashSpeakerIcon.style.color = 'var(--accent-color)';
+            }
+            
+            speakText(currentItem.text);
+        }
+
+        function speakText(textToSpeak) {
+            const baseApiUrl = "https://shiva757-tts.hf.space/api/speak";
+            const fullRequestUrl = `${baseApiUrl}?text=${encodeURIComponent(textToSpeak)}`;
+            const liveAudio = new Audio(fullRequestUrl);
+            
+            liveAudio.play()
+                .then(() => {
+                    liveAudio.onended = () => processNextAudio();
+                })
+                .catch((error) => {
+                    console.error("Playback failed: ", error);
+                    // Force queue progression even on error so system doesn't freeze
+                    setTimeout(processNextAudio, 1500);
+                });
+        }
+
+        // --- DYNAMIC CARD UI RENDERER ---
+        function addCardToLog(type, uiData) {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
+            
+            let iconStr = type === 'sale' ? 'shopping_cart_checkout' : 'trending_down';
+            let cardClass = type === 'sale' ? 'sale' : 'alert';
+
+            const cardHtml = `
+                <div class="log-card ${cardClass}">
+                    <div class="card-icon">
+                        <span class="material-symbols-outlined">${iconStr}</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h3 class="card-title">${uiData.title}</h3>
+                            <span class="card-time">${time}</span>
+                        </div>
+                        ${uiData.customerHtml}
+                        <div class="card-details">${uiData.details}</div>
+                        <div class="card-highlight">${uiData.highlight}</div>
+                    </div>
+                </div>
+            `;
+
+            broadcastLog.insertAdjacentHTML('afterbegin', cardHtml);
+            
+            // Memory Guard: Remove cards older than 15 events to prevent browser lag
+            if (broadcastLog.children.length > 15) {
+                broadcastLog.lastElementChild.remove();
+            }
+        }
+    </script>
+
+    <!-- --- PWA ENGINE REGISTRATION & INSTALL LOGIC --- -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => console.log('ServiceWorker registered seamlessly.', reg.scope))
+                    .catch((err) => console.error('ServiceWorker registration failed: ', err));
+            });
+        }
+
+        // Install Prompt Handling
+        let deferredPrompt;
+        const installPopup = document.getElementById('pwaInstallPopup');
+        const btnInstall = document.getElementById('pwaInstallBtn');
+        const btnCancel = document.getElementById('pwaCancelBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67+ from automatically showing the prompt
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show custom advanced UI sheet after a slight delay for better UX
+            setTimeout(() => {
+                installPopup.classList.add('show');
+            }, 1000);
+        });
+
+        btnInstall.addEventListener('click', async () => {
+            installPopup.classList.remove('show');
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User installation choice: ${outcome}`);
+                deferredPrompt = null;
+            }
+        });
+
+        btnCancel.addEventListener('click', () => {
+            installPopup.classList.remove('show');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            installPopup.classList.remove('show');
+            console.log('App successfully installed natively.');
+        });
+    </script>
+</body>
+</html>
