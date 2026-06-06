@@ -2,7 +2,8 @@
 <html lang="ta">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- NO ZOOM VIEWPORT LOCK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Meena Marketing - Live Sound Box</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
@@ -21,6 +22,24 @@
             --meena-red: #ef4444;
             --input-border: #334155;
             --glow-blue: rgba(59, 130, 246, 0.5);
+            --nav-bg: rgba(19, 27, 38, 0.85); /* Standard Header Backdrop */
+        }
+
+        /* --- GLOBAL ANTI-COPY & ANTI-ZOOM RULES --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+            -webkit-touch-callout: none; /* iOS Safari */
+        }
+
+        /* Allow scrolling but prevent double-tap zoom */
+        html, body {
+            touch-action: manipulation;
+            width: 100%;
+            overflow-x: hidden;
         }
 
         body {
@@ -28,12 +47,11 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 0; /* Reset for full width header */
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            box-sizing: border-box;
         }
 
         /* --- Activation Screen --- */
@@ -44,10 +62,9 @@
             border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             max-width: 400px;
-            width: 100%;
+            width: 90%;
             text-align: center;
-            box-sizing: border-box;
-            margin-top: 10vh;
+            margin-top: 15vh;
             transition: opacity 0.5s ease, transform 0.5s ease;
         }
 
@@ -85,46 +102,55 @@
         }
         .engine-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4); }
 
-        /* --- Main Dashboard --- */
+        /* --- Main Dashboard (Full App Wrapper) --- */
         #mainDashboard {
             display: none; /* Hidden until activated */
             flex-direction: column;
             width: 100%;
-            max-width: 600px;
+            min-height: 100vh;
             animation: fadeIn 0.8s ease forwards;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: var(--bg-color);
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .dashboard-header {
-            background: linear-gradient(145deg, #0f172a, var(--surface-color));
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 20px;
-            padding: 25px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 2px 15px rgba(59, 130, 246, 0.1);
+        /* --- STANDARDIZED MEENA MARKETING HEADER --- */
+        .standard-header {
+            background-color: var(--nav-bg); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            padding: 14px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 500; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            width: 100%; 
         }
 
-        .header-brand { display: flex; align-items: center; gap: 15px; }
-        .header-brand .logo-icon { 
-            width: 50px; height: 50px; border-radius: 12px; 
-            background: linear-gradient(135deg, var(--meena-red), #b91c1c);
-            display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-        }
-        .header-brand .logo-icon .material-symbols-outlined { color: white; font-size: 28px; }
-        .header-text h1 { margin: 0; font-size: 20px; letter-spacing: -0.5px; text-transform: uppercase; color: #f8fafc; }
-        .header-text p { margin: 2px 0 0 0; font-size: 12px; color: var(--accent-color); font-weight: 600; letter-spacing: 1px; }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; margin-right: 2px;}
+        .brand-container { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 38px; height: 38px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1.15em; font-weight: 700; letter-spacing: -0.02em; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: white; }
+        .page-title { font-size: 0.75em; color: var(--success-color); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        
         .status-indicator {
             display: flex; align-items: center; gap: 8px;
             background: rgba(16, 185, 129, 0.1);
             border: 1px solid rgba(16, 185, 129, 0.3);
             color: var(--success-color);
-            padding: 8px 16px; border-radius: 20px;
-            font-size: 13px; font-weight: 700;
+            padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
         }
         .pulse-dot {
             width: 8px; height: 8px; background: var(--success-color); border-radius: 50%;
@@ -133,11 +159,22 @@
         }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
+        /* Dashboard Internal Layout Wrapper */
+        .dashboard-content {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         /* --- Log & Card UI --- */
         .log-container { width: 100%; }
         .log-title { font-size: 12px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--input-border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
         
-        #broadcastLog { display: flex; flex-direction: column; gap: 16px; max-height: 65vh; overflow-y: auto; padding-right: 5px; padding-bottom: 30px; }
+        #broadcastLog { display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto; padding-right: 5px; padding-bottom: 40px; }
         #broadcastLog::-webkit-scrollbar { width: 6px; }
         #broadcastLog::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
         #broadcastLog::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 10px; }
@@ -179,6 +216,12 @@
         .log-card.alert .card-icon { background: rgba(239, 68, 68, 0.15); color: var(--meena-red); border: 1px solid rgba(239, 68, 68, 0.3); }
         .log-card.alert .card-highlight { color: var(--warning-color); }
 
+        /* Responsive Fixes */
+        @media (max-width: 420px) {
+            .status-text { display: none; } /* Hide 'LISTENING' word on tiny screens to save space */
+            .brand-title { font-size: 1.05em; }
+        }
+
     </style>
 </head>
 <body>
@@ -197,43 +240,46 @@
         </button>
     </div>
 
-    <!-- 2. MAIN DASHBOARD (Shows after click) -->
+    <!-- 2. MAIN DASHBOARD (Shows after click, Responsive PC/Mobile) -->
     <div id="mainDashboard">
         
-        <!-- Sleek Header -->
-        <div class="dashboard-header">
-            <div class="header-brand">
-                <div class="logo-icon">
-                    <span class="material-symbols-outlined">campaign</span>
-                </div>
-                <div class="header-text">
-                    <h1>Meena Marketing</h1>
-                    <p>LIVE SOUND BOX ENGINE</p>
+        <!-- Standard Meena Marketing Sticky Header -->
+        <header class="standard-header">
+            <div class="header-left">
+                <a href="inventory.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+                <div class="brand-container">
+                    <img src="icon.png" alt="Icon" class="logo-img">
+                    <div class="brand-text">
+                        <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                        <span class="page-title">Live Sound Box</span>
+                    </div>
                 </div>
             </div>
             
-            <!-- Dynamic Mini Speaker for the Dashboard -->
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+            <div class="header-right">
                 <div class="status-indicator">
                     <div class="pulse-dot"></div>
-                    LISTENING
+                    <span class="status-text">LISTENING</span>
                 </div>
-                <div id="dashSpeaker" style="width: 35px; height: 35px; border-radius: 50%; background: #090d16; display: flex; align-items: center; justify-content: center; border: 2px solid var(--input-border); transition: 0.3s;">
-                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-secondary); transition: 0.3s;" id="dashSpeakerIcon">volume_up</span>
+                <div id="dashSpeaker" style="width: 38px; height: 38px; border-radius: 50%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; border: 2px solid var(--input-border); transition: 0.3s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-secondary); transition: 0.3s;" id="dashSpeakerIcon">volume_up</span>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Log UI -->
-        <div class="log-container">
-            <div class="log-title">
-                <span>Recent Broadcasts</span>
-                <span class="material-symbols-outlined" style="font-size: 16px; opacity: 0.5;">history</span>
-            </div>
-            <div id="broadcastLog">
-                <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 30px; background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--input-border);">
-                    <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">graphic_eq</span><br>
-                    Engine is running.<br>Awaiting live database events...
+        <!-- Centered Responsive Content Area -->
+        <div class="dashboard-content">
+            <!-- Log UI -->
+            <div class="log-container">
+                <div class="log-title">
+                    <span>Recent Broadcasts</span>
+                    <span class="material-symbols-outlined" style="font-size: 18px; opacity: 0.5;">history</span>
+                </div>
+                <div id="broadcastLog">
+                    <div style="color: var(--text-secondary); font-size: 14px; text-align: center; padding: 40px 20px; background: var(--surface-color); border-radius: 16px; border: 1px dashed var(--input-border);">
+                        <span class="material-symbols-outlined" style="font-size: 40px; margin-bottom: 12px; opacity: 0.3;">graphic_eq</span><br>
+                        Engine is running.<br>Awaiting live database events...
+                    </div>
                 </div>
             </div>
         </div>
@@ -248,7 +294,7 @@
         if (auth) {
             onAuthStateChanged(auth, (user) => {
                 if (!user) {
-                    window.location.replace('login.html'); // Redirect to login if unauthenticated
+                    window.location.replace('login.html'); // Redirect to login if unauthenticated[span_0](start_span)[span_0](end_span)
                 }
             });
         } else {
