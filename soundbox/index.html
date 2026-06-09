@@ -455,6 +455,8 @@
         let globalAudioCtx; // For 24/7 Audio Hack
         const liveAudioPlayer = new Audio(); // Global audio player to prevent memory leaks
         let wakeLock = null; // For screen wake lock
+        let salesUnsubscribe = null;
+        let alertUnsubscribe = null;
 
         const activationScreen = document.getElementById('activationScreen');
         const mainDashboard = document.getElementById('mainDashboard');
@@ -532,10 +534,21 @@
             // Request Screen Wake Lock
             requestWakeLock();
             
-            // Automatically refresh the page every 4 hours (14400000 milliseconds)
-            // This clears memory leaks, resets the audio context, and reconnects to Firebase
-            setTimeout(() => {
-                window.location.reload();
+            // 4-Hour Soft Reset (14400000 ms)
+            // Silently reconnects to Firebase without losing Audio Permissions
+            setTimeout(function performSoftReset() {
+                console.log("Performing scheduled background database reset...");
+                
+                // 1. Disconnect old listeners
+                if (salesUnsubscribe) salesUnsubscribe();
+                if (alertUnsubscribe) alertUnsubscribe();
+                
+                // 2. Reconnect fresh listeners
+                initSalesListener();
+                initReductionListener();
+                
+                // 3. Schedule the next reset
+                setTimeout(performSoftReset, 14400000);
             }, 14400000);
             
             // 1. Hide Activation Screen Smoothly
@@ -566,7 +579,7 @@
                 limit(1)
             );
 
-            onSnapshot(salesQuery, (snapshot) => {
+            salesUnsubscribe = onSnapshot(salesQuery, (snapshot) => {
                 if (snapshot.empty) return;
 
                 snapshot.docChanges().forEach((change) => {
@@ -660,7 +673,7 @@
         function initReductionListener() {
             const reductionDocRef = doc(db, "alerts", "stock_reduction");
 
-            onSnapshot(reductionDocRef, (docSnap) => {
+            alertUnsubscribe = onSnapshot(reductionDocRef, (docSnap) => {
                 if (!docSnap.exists()) return;
                 
                 const data = docSnap.data();
