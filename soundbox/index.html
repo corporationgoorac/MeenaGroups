@@ -453,6 +453,8 @@
         let systemActive = false;
         let sessionStartTime = new Date();
         let globalAudioCtx; // For 24/7 Audio Hack
+        const liveAudioPlayer = new Audio(); // Global audio player to prevent memory leaks
+        let wakeLock = null; // For screen wake lock
 
         const activationScreen = document.getElementById('activationScreen');
         const mainDashboard = document.getElementById('mainDashboard');
@@ -460,6 +462,25 @@
         const dashSpeaker = document.getElementById('dashSpeaker');
         const dashSpeakerIcon = document.getElementById('dashSpeakerIcon');
         const broadcastLog = document.getElementById('broadcastLog');
+
+        // --- SCREEN WAKE LOCK API ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock activated');
+                    
+                    // Re-acquire if the page becomes visible again
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible') {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+            }
+        }
 
         // --- 24/7 BACKGROUND AUDIO HACK ---
         // This generates a silent, continuous signal to prevent browser audio suspension
@@ -507,6 +528,15 @@
             
             // Activate the 24/7 background audio preservation hack immediately on user gesture
             init247AudioWakeLock();
+            
+            // Request Screen Wake Lock
+            requestWakeLock();
+            
+            // Automatically refresh the page every 4 hours (14400000 milliseconds)
+            // This clears memory leaks, resets the audio context, and reconnects to Firebase
+            setTimeout(() => {
+                window.location.reload();
+            }, 14400000);
             
             // 1. Hide Activation Screen Smoothly
             activationScreen.style.opacity = '0';
@@ -724,16 +754,25 @@
         function speakText(textToSpeak) {
             const baseApiUrl = "https://shiva757-tts.hf.space/api/speak";
             const fullRequestUrl = `${baseApiUrl}?text=${encodeURIComponent(textToSpeak)}`;
-            const liveAudio = new Audio(fullRequestUrl);
             
-            liveAudio.play()
+            // Reuse the same player, just change the source
+            liveAudioPlayer.src = fullRequestUrl;
+            
+            liveAudioPlayer.play()
                 .then(() => {
-                    liveAudio.onended = () => processNextAudio();
+                    liveAudioPlayer.onended = () => processNextAudio();
                 })
                 .catch((error) => {
-                    console.error("Playback failed: ", error);
-                    // Force queue progression even on error so system doesn't freeze
-                    setTimeout(processNextAudio, 1500);
+                    console.error("HF Playback failed, using native fallback: ", error);
+                    
+                    // Fallback to Native Browser TTS
+                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    utterance.lang = 'ta-IN'; // Tamil
+                    
+                    utterance.onend = () => processNextAudio();
+                    utterance.onerror = () => setTimeout(processNextAudio, 1500);
+                    
+                    window.speechSynthesis.speak(utterance);
                 });
         }
 
