@@ -271,7 +271,7 @@
         <div class="speaker-mesh" id="initialSpeaker">
             <span class="material-symbols-outlined">volume_off</span>
         </div>
-        <h1 class="activation-title">Live Alert Sound Box</h1>
+        h1 class="activation-title">Live Alert Sound Box</h1>
         <span class="sub-tag">Browser Audio Engine Unlock Required</span>
 
         <button class="engine-btn" id="startBtn">
@@ -453,7 +453,6 @@
         let systemActive = false;
         let sessionStartTime = new Date();
         let globalAudioCtx; // For 24/7 Audio Hack
-        const liveAudioPlayer = new Audio(); // Global audio player to prevent memory leaks
         let wakeLock = null; // For screen wake lock
         let salesUnsubscribe = null;
         let alertUnsubscribe = null;
@@ -765,28 +764,18 @@
         }
 
         function speakText(textToSpeak) {
-            const baseApiUrl = "https://shiva757-tts.hf.space/api/speak";
-            const fullRequestUrl = `${baseApiUrl}?text=${encodeURIComponent(textToSpeak)}`;
+            // Native Device Browser Text-To-Speech (Tamil)
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'ta-IN'; 
             
-            // Reuse the same player, just change the source
-            liveAudioPlayer.src = fullRequestUrl;
+            // Setup events to progress queue smoothly
+            utterance.onend = () => processNextAudio();
+            utterance.onerror = (e) => {
+                console.error("Native TTS execution error: ", e);
+                setTimeout(processNextAudio, 1500); // Safety progression skip
+            };
             
-            liveAudioPlayer.play()
-                .then(() => {
-                    liveAudioPlayer.onended = () => processNextAudio();
-                })
-                .catch((error) => {
-                    console.error("HF Playback failed, using native fallback: ", error);
-                    
-                    // Fallback to Native Browser TTS
-                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                    utterance.lang = 'ta-IN'; // Tamil
-                    
-                    utterance.onend = () => processNextAudio();
-                    utterance.onerror = () => setTimeout(processNextAudio, 1500);
-                    
-                    window.speechSynthesis.speak(utterance);
-                });
+            window.speechSynthesis.speak(utterance);
         }
 
         // --- DYNAMIC CARD UI RENDERER ---
