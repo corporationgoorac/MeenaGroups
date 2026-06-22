@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meena-logbook-v1';
+const CACHE_NAME = 'meena-logbook-v23';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
