@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Meena LogBook</title>
+  
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f4f6">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111827">
+  
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* === AUTO DARK / LIGHT THEME === */
+    :root {
+      --bg-color: #f3f4f6;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --card-bg: #ffffff;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --border: #e5e7eb;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --input-bg: #f9fafb;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #111827;
+        --text-main: #f9fafb;
+        --text-muted: #9ca3af;
+        --card-bg: #1f2937;
+        --primary: #3b82f6;
+        --primary-dark: #60a5fa;
+        --success: #059669;
+        --warning: #d97706;
+        --border: #374151;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        --input-bg: #374151;
+      }
+    }
+
+    /* === BASE STYLES === */
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      padding-bottom: 80px; /* Space for FAB */
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    header {
+      background-color: var(--card-bg);
+      padding: 16px 20px;
+      font-size: 20px;
+      font-weight: bold;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--shadow);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* === SUMMARY CARD === */
+    .summary-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .summary-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .summary-item:first-child { border-right: 1px solid var(--border); }
+
+    .summary-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .text-cash { color: var(--success); }
+    .text-online { color: var(--primary); }
+
+    /* === HISTORY LIST === */
+    .section-title {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .history-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .hc-middle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hc-customer { font-weight: bold; font-size: 16px; }
+    .hc-amount { font-weight: bold; font-size: 18px; }
+    
+    .hc-bottom {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .bg-cash { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .bg-online { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
+    .bg-split { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+    /* === FLOATING ACTION BUTTON === */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      background-color: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      z-index: 20;
+      transition: transform 0.2s;
+    }
+    .fab:active { transform: scale(0.95); }
+
+    /* === SLIDE-IN MODAL === */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; right: -100%; bottom: 0;
+      width: 100%;
+      max-width: 450px;
+      background-color: var(--bg-color);
+      z-index: 50;
+      transition: right 0.3s ease-in-out;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal.open { right: 0; }
+
+    .modal-header {
+      padding: 16px 20px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* === FORM ELEMENTS === */
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-main);
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--primary);
+      border-color: transparent;
+    }
+
+    .input-row { display: flex; gap: 10px; }
+
+    .btn-save {
+      width: 100%;
+      padding: 16px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-save:active { background-color: var(--primary-dark); }
+  </style>
+</head>
+<body>
+
+  <header>Meena LogBook</header>
+
+  <div class="container">
+    <div class="summary-card">
+      <div class="summary-item">
+        <div class="summary-label">Total Cash</div>
+        <div class="summary-value text-cash" id="totalCashView">₹0</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Total Online</div>
+        <div class="summary-value text-online" id="totalOnlineView">₹0</div>
+      </div>
+    </div>
+
+    <div class="section-title">Today's Entries</div>
+    <div id="historyList">
+      <p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No entries yet today.</p>
+    </div>
+  </div>
+
+  <div class="fab" id="fabBtn">+</div>
+
+  <div class="modal-overlay" id="modalOverlay"></div>
+
+  <div class="modal" id="entryModal">
+    <div class="modal-header">
+      <span>New Entry</span>
+      <button class="close-btn" id="closeModalBtn">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="entryForm">
+        
+        <div class="form-group">
+          <label>Invoice Number</label>
+          <div class="input-row">
+            <select id="invPrefix" style="width: 35%;">
+              <option value="GST-">GST-</option>
+              <option value="INV-">INV-</option>
+            </select>
+            <input type="number" id="invNumber" style="width: 65%;" placeholder="e.g. 1767" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="customerName" placeholder="Enter name" required>
+        </div>
+
+        <div class="form-group">
+          <label>Reason / Items</label>
+          <input type="text" id="reason" placeholder="e.g. Purchase / Bill Payment" required>
+        </div>
+
+        <div class="form-group">
+          <label>Payment Mode</label>
+          <select id="payMode" onchange="toggleSplitFields()">
+            <option value="Cash">Cash Only</option>
+            <option value="Online">Online Only</option>
+            <option value="Split">Split (Half Cash / Half Online)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="singleAmountContainer">
+          <label>Amount (₹)</label>
+          <input type="number" id="singleAmount" placeholder="0.00">
+        </div>
+
+        <div class="input-row" id="splitAmountContainer" style="display: none;">
+          <div class="form-group" style="flex: 1;">
+            <label>Cash Amount (₹)</label>
+            <input type="number" id="splitCash" placeholder="0.00">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Online Amount (₹)</label>
+            <input type="number" id="splitOnline" placeholder="0.00">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-save" id="saveBtn">Save Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    // === FIREBASE SETUP ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
+      authDomain: "meena-logbook.firebaseapp.com",
+      projectId: "meena-logbook",
+      storageBucket: "meena-logbook.firebasestorage.app",
+      messagingSenderId: "466637891440",
+      appId: "1:466637891440:web:0d74df16182c6c665491b5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // === UTILITY FUNCTIONS ===
+    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amt || 0);
+    
+    // Get Today's Date String (YYYY-MM-DD) natively in IST timezone
+    const getTodayString = () => {
+      const date = new Date();
+      const offset = date.getTimezoneOffset() == 0 ? 0 : date.getTimezoneOffset() * 60000;
+      const istDate = new Date(date.getTime() + (330 * 60000)); // Add 5.5 hours for IST rough fallback if system is UTC
+      // Better way to ensure local browser time YYYY-MM-DD:
+      const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+      return localDate.toISOString().split('T');
+    };
+    
+    const todayDocId = getTodayString();
+    const dayDocRef = doc(db, "daily_logs", todayDocId);
+
+    // === UI ELEMENTS ===
+    const fabBtn = document.getElementById('fabBtn');
+    const entryModal = document.getElementById('entryModal');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const entryForm = document.getElementById('entryForm');
+    const historyList = document.getElementById('historyList');
+
+    // === MODAL LOGIC (With Mobile Back Button Support) ===
+    function openModal() {
+      entryModal.classList.add('open');
+      modalOverlay.classList.add('open');
+      // Push state so back button closes modal instead of exiting app
+      history.pushState({ modalOpen: true }, '', '#new-entry');
+    }
+
+    function closeModal() {
+      entryModal.classList.remove('open');
+      modalOverlay.classList.remove('open');
+      entryForm.reset();
+      toggleSplitFields(); // reset visibility
+    }
+
+    // Listen for mobile back button
+    window.addEventListener('popstate', (e) => {
+      if (entryModal.classList.contains('open')) {
+        closeModal();
+      }
+    });
+
+    fabBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', () => history.back()); // Triggers popstate
+    modalOverlay.addEventListener('click', () => history.back());
+
+    // === SPLIT AMOUNT LOGIC ===
+    window.toggleSplitFields = function() {
+      const mode = document.getElementById('payMode').value;
+      const singleContainer = document.getElementById('singleAmountContainer');
+      const splitContainer = document.getElementById('splitAmountContainer');
+      const singleInput = document.getElementById('singleAmount');
+      const splitCash = document.getElementById('splitCash');
+      const splitOnline = document.getElementById('splitOnline');
+
+      if (mode === 'Split') {
+        singleContainer.style.display = 'none';
+        splitContainer.style.display = 'flex';
+        singleInput.removeAttribute('required');
+        splitCash.setAttribute('required', 'true');
+        splitOnline.setAttribute('required', 'true');
+      } else {
+        singleContainer.style.display = 'block';
+        splitContainer.style.display = 'none';
+        singleInput.setAttribute('required', 'true');
+        splitCash.removeAttribute('required');
+        splitOnline.removeAttribute('required');
+      }
+    }
+
+    // === FETCH & RENDER DATA (1 Read per day + Realtime listener) ===
+    onSnapshot(dayDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        // Update Totals
+        document.getElementById('totalCashView').innerText = formatCurrency(data.totalCash);
+        document.getElementById('totalOnlineView').innerText = formatCurrency(data.totalOnline);
+
+        // Update History (Reverse order to show newest at top)
+        if (data.transactions && data.transactions.length > 0) {
+          const sortedTx = [...data.transactions].reverse();
+          historyList.innerHTML = sortedTx.map(tx => `
+            <div class="history-card">
+              <div class="hc-top">
+                <span>${tx.invoiceNo}</span>
+                <span>${tx.time}</span>
+              </div>
+              <div class="hc-middle">
+                <span class="hc-customer">${tx.customerName}</span>
+                <span class="hc-amount text-${tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase()}">
+                  ${formatCurrency(tx.totalAmount)}
+                </span>
+              </div>
+              <div class="hc-bottom">
+                <span class="badge bg-${tx.mode.toLowerCase()}">${tx.mode}</span>
+                <span style="color: var(--text-muted); align-self: center;">${tx.reason}</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      } else {
+        // Document doesn't exist for today yet
+        document.getElementById('totalCashView').innerText = formatCurrency(0);
+        document.getElementById('totalOnlineView').innerText = formatCurrency(0);
+        historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No entries yet today.</p>`;
+      }
+    });
+
+    // === SAVE ENTRY (Optimized Array Union + Increment) ===
+    entryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.innerText = "Saving...";
+      saveBtn.disabled = true;
+
+      const prefix = document.getElementById('invPrefix').value;
+      const invNum = document.getElementById('invNumber').value;
+      const customer = document.getElementById('customerName').value;
+      const reason = document.getElementById('reason').value;
+      const mode = document.getElementById('payMode').value;
+      
+      let cashAmt = 0;
+      let onlineAmt = 0;
+
+      if (mode === 'Split') {
+        cashAmt = Number(document.getElementById('splitCash').value) || 0;
+        onlineAmt = Number(document.getElementById('splitOnline').value) || 0;
+      } else if (mode === 'Cash') {
+        cashAmt = Number(document.getElementById('singleAmount').value) || 0;
+      } else if (mode === 'Online') {
+        onlineAmt = Number(document.getElementById('singleAmount').value) || 0;
+      }
+
+      const totalAmt = cashAmt + onlineAmt;
+
+      // Time Formatting (e.g. 10:30 AM)
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      const newTx = {
+        id: Date.now().toString(),
+        invoiceNo: prefix + invNum,
+        customerName: customer,
+        reason: reason,
+        mode: mode,
+        cashAmount: cashAmt,
+        onlineAmount: onlineAmt,
+        totalAmount: totalAmt,
+        time: timeStr
+      };
+
+      try {
+        // This single call creates the document if it doesn't exist, updates totals, and appends to the array.
+        await setDoc(dayDocRef, {
+          totalCash: increment(cashAmt),
+          totalOnline: increment(onlineAmt),
+          transactions: arrayUnion(newTx)
+        }, { merge: true });
+
+        // Go back (closes modal)
+        history.back();
+      } catch (err) {
+        console.error(err);
+        alert("Error saving entry. Check console or Firestore permissions.");
+      } finally {
+        saveBtn.innerText = "Save Entry";
+        saveBtn.disabled = false;
+      }
+    });
+
+    // === PWA REGISTRATION ===
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker Registered!', reg))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
