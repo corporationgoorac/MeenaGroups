@@ -5,40 +5,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Meena LogBook</title>
   
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f4f6">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111827">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
   
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* === AUTO DARK / LIGHT THEME === */
+    /* === PREMIUM AUTO DARK / LIGHT THEME === */
     :root {
-      --bg-color: #f3f4f6;
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
+      --bg-color: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
       --card-bg: #ffffff;
-      --primary: #3b82f6;
-      --primary-dark: #2563eb;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --border: #e5e7eb;
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --input-bg: #f9fafb;
+      --primary: #4f46e5;
+      --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      --cash-color: #10b981;
+      --online-color: #3b82f6;
+      --split-color: #f59e0b;
+      --border: #e2e8f0;
+      --input-bg: #f1f5f9;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --card-radius: 16px;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-color: #111827;
-        --text-main: #f9fafb;
-        --text-muted: #9ca3af;
-        --card-bg: #1f2937;
-        --primary: #3b82f6;
-        --primary-dark: #60a5fa;
-        --success: #059669;
-        --warning: #d97706;
-        --border: #374151;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-        --input-bg: #374151;
+        --bg-color: #0f172a;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --card-bg: #1e293b;
+        --primary: #6366f1;
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+        --cash-color: #34d399;
+        --online-color: #60a5fa;
+        --split-color: #fbbf24;
+        --border: #334155;
+        --input-bg: #0f172a;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
       }
     }
 
@@ -46,23 +53,37 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       margin: 0;
       padding: 0;
-      padding-bottom: 80px; /* Space for FAB */
-      transition: background-color 0.3s, color 0.3s;
+      padding-bottom: 90px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
     header {
       background-color: var(--card-bg);
-      padding: 16px 20px;
-      font-size: 20px;
-      font-weight: bold;
+      padding: 20px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 10;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    header::before {
+      content: '';
+      display: block;
+      width: 12px;
+      height: 12px;
+      background: var(--primary-gradient);
+      border-radius: 50%;
     }
 
     .container {
@@ -71,16 +92,25 @@
       padding: 20px;
     }
 
-    /* === SUMMARY CARD === */
+    /* === SUMMARY CARD (Premium Look) === */
     .summary-card {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: var(--card-radius);
+      padding: 24px;
       display: flex;
       justify-content: space-between;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 28px;
       border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: var(--primary-gradient);
     }
 
     .summary-item {
@@ -88,50 +118,61 @@
       flex: 1;
     }
 
-    .summary-item:first-child { border-right: 1px solid var(--border); }
+    .summary-item:first-child { 
+      border-right: 1px solid var(--border); 
+    }
 
     .summary-label {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-muted);
       margin-bottom: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      font-weight: 600;
     }
 
     .summary-value {
-      font-size: 24px;
-      font-weight: bold;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
     }
     
-    .text-cash { color: var(--success); }
-    .text-online { color: var(--primary); }
+    .text-cash { color: var(--cash-color); }
+    .text-online { color: var(--online-color); }
 
     /* === HISTORY LIST === */
     .section-title {
-      font-size: 16px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      font-weight: 600;
+      font-size: 18px;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .history-card {
       background: var(--card-bg);
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: var(--shadow);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
       border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      transition: transform 0.2s;
     }
+    
+    .history-card:active { transform: scale(0.98); }
 
     .hc-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-muted);
+      font-weight: 500;
     }
 
     .hc-middle {
@@ -140,54 +181,63 @@
       align-items: center;
     }
 
-    .hc-customer { font-weight: bold; font-size: 16px; }
-    .hc-amount { font-weight: bold; font-size: 18px; }
+    .hc-customer { font-weight: 700; font-size: 17px; color: var(--text-main); }
+    .hc-amount { font-weight: 800; font-size: 18px; }
     
     .hc-bottom {
       display: flex;
-      gap: 8px;
-      font-size: 12px;
+      gap: 10px;
+      font-size: 13px;
+      align-items: center;
     }
 
     .badge {
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .bg-cash { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-    .bg-online { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
-    .bg-split { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .bg-cash { background: rgba(16, 185, 129, 0.15); color: var(--cash-color); }
+    .bg-online { background: rgba(59, 130, 246, 0.15); color: var(--online-color); }
+    .bg-split { background: rgba(245, 158, 11, 0.15); color: var(--split-color); }
 
     /* === FLOATING ACTION BUTTON === */
     .fab {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 60px;
-      height: 60px;
-      background-color: var(--primary);
+      bottom: 28px;
+      right: 28px;
+      width: 64px;
+      height: 64px;
+      background: var(--primary-gradient);
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      font-size: 36px;
+      font-weight: 300;
+      box-shadow: var(--shadow-lg);
       cursor: pointer;
       z-index: 20;
-      transition: transform 0.2s;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .fab:active { transform: scale(0.95); }
+    .fab:active { 
+      transform: scale(0.92); 
+      box-shadow: var(--shadow-md);
+    }
 
     /* === SLIDE-IN MODAL === */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
       z-index: 40;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s ease;
     }
     .modal-overlay.open {
       opacity: 1;
@@ -201,79 +251,102 @@
       max-width: 450px;
       background-color: var(--bg-color);
       z-index: 50;
-      transition: right 0.3s ease-in-out;
-      box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -10px 0 25px rgba(0,0,0,0.2);
       display: flex;
       flex-direction: column;
     }
     .modal.open { right: 0; }
 
     .modal-header {
-      padding: 16px 20px;
+      padding: 20px 24px;
       background: var(--card-bg);
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 20px;
+      font-weight: 800;
     }
 
     .close-btn {
-      background: none;
+      background: var(--input-bg);
       border: none;
       color: var(--text-main);
-      font-size: 28px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       line-height: 1;
+      transition: background 0.2s;
     }
+    .close-btn:active { background: var(--border); }
 
     .modal-body {
-      padding: 20px;
+      padding: 24px;
       overflow-y: auto;
       flex: 1;
     }
 
     /* === FORM ELEMENTS === */
-    .form-group { margin-bottom: 16px; }
+    .form-group { margin-bottom: 20px; }
     .form-group label {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-size: 14px;
       color: var(--text-muted);
-      font-weight: 500;
+      font-weight: 600;
     }
 
     input, select {
       width: 100%;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      padding: 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
       background: var(--input-bg);
       color: var(--text-main);
       box-sizing: border-box;
       font-size: 16px;
+      font-weight: 500;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
+    input::placeholder { color: var(--text-muted); opacity: 0.6; }
     input:focus, select:focus {
-      outline: 2px solid var(--primary);
-      border-color: transparent;
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+      background: var(--card-bg);
     }
 
-    .input-row { display: flex; gap: 10px; }
+    .input-row { display: flex; gap: 12px; }
 
     .btn-save {
       width: 100%;
-      padding: 16px;
-      background-color: var(--primary);
+      padding: 18px;
+      background: var(--primary-gradient);
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 800;
       cursor: pointer;
       margin-top: 10px;
+      box-shadow: var(--shadow-md);
+      transition: opacity 0.2s, transform 0.2s;
     }
-    .btn-save:active { background-color: var(--primary-dark); }
+    .btn-save:active { 
+      transform: scale(0.98); 
+      opacity: 0.9; 
+    }
+    .btn-save:disabled {
+      background: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+    }
   </style>
 </head>
 <body>
@@ -292,9 +365,13 @@
       </div>
     </div>
 
-    <div class="section-title">Today's Entries</div>
+    <div class="section-title">
+      Today's Entries
+      <span id="dateView" style="font-size: 14px; color: var(--text-muted); font-weight: 500;"></span>
+    </div>
+    
     <div id="historyList">
-      <p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No entries yet today.</p>
+      <p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries yet today. Tap + to start.</p>
     </div>
   </div>
 
@@ -324,12 +401,12 @@
 
         <div class="form-group">
           <label>Customer Name</label>
-          <input type="text" id="customerName" placeholder="Enter name" required>
+          <input type="text" id="customerName" placeholder="Enter full name" required autocomplete="off">
         </div>
 
         <div class="form-group">
           <label>Reason / Items</label>
-          <input type="text" id="reason" placeholder="e.g. Purchase / Bill Payment" required>
+          <input type="text" id="reason" placeholder="e.g. 2x Shirts, Bill Payment" required autocomplete="off">
         </div>
 
         <div class="form-group">
@@ -337,23 +414,23 @@
           <select id="payMode" onchange="toggleSplitFields()">
             <option value="Cash">Cash Only</option>
             <option value="Online">Online Only</option>
-            <option value="Split">Split (Half Cash / Half Online)</option>
+            <option value="Split">Split (Cash + Online)</option>
           </select>
         </div>
 
         <div class="form-group" id="singleAmountContainer">
-          <label>Amount (₹)</label>
-          <input type="number" id="singleAmount" placeholder="0.00">
+          <label>Total Amount (₹)</label>
+          <input type="number" id="singleAmount" placeholder="0.00" step="any">
         </div>
 
         <div class="input-row" id="splitAmountContainer" style="display: none;">
           <div class="form-group" style="flex: 1;">
-            <label>Cash Amount (₹)</label>
-            <input type="number" id="splitCash" placeholder="0.00">
+            <label>Cash (₹)</label>
+            <input type="number" id="splitCash" placeholder="0.00" step="any">
           </div>
           <div class="form-group" style="flex: 1;">
-            <label>Online Amount (₹)</label>
-            <input type="number" id="splitOnline" placeholder="0.00">
+            <label>Online (₹)</label>
+            <input type="number" id="splitOnline" placeholder="0.00" step="any">
           </div>
         </div>
 
@@ -380,16 +457,18 @@
     const db = getFirestore(app);
 
     // === UTILITY FUNCTIONS ===
-    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amt || 0);
+    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amt || 0);
     
-    // Get Today's Date String (YYYY-MM-DD) natively in IST timezone
+    // Set UI Date Header
+    document.getElementById('dateView').innerText = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    // FIXED: Get Today's Date String (YYYY-MM-DD) natively in IST timezone
     const getTodayString = () => {
       const date = new Date();
-      const offset = date.getTimezoneOffset() == 0 ? 0 : date.getTimezoneOffset() * 60000;
-      const istDate = new Date(date.getTime() + (330 * 60000)); // Add 5.5 hours for IST rough fallback if system is UTC
-      // Better way to ensure local browser time YYYY-MM-DD:
+      // Ensure we get the local date string without timezone shifting issues
       const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-      return localDate.toISOString().split('T');
+      // IMPORTANT FIX: Added [0] so it returns a String, not an Array!
+      return localDate.toISOString().split('T')[0]; 
     };
     
     const todayDocId = getTodayString();
@@ -407,8 +486,9 @@
     function openModal() {
       entryModal.classList.add('open');
       modalOverlay.classList.add('open');
-      // Push state so back button closes modal instead of exiting app
       history.pushState({ modalOpen: true }, '', '#new-entry');
+      // Auto focus Invoice number field
+      setTimeout(() => document.getElementById('invNumber').focus(), 350);
     }
 
     function closeModal() {
@@ -418,7 +498,6 @@
       toggleSplitFields(); // reset visibility
     }
 
-    // Listen for mobile back button
     window.addEventListener('popstate', (e) => {
       if (entryModal.classList.contains('open')) {
         closeModal();
@@ -426,7 +505,7 @@
     });
 
     fabBtn.addEventListener('click', openModal);
-    closeModalBtn.addEventListener('click', () => history.back()); // Triggers popstate
+    closeModalBtn.addEventListener('click', () => history.back()); 
     modalOverlay.addEventListener('click', () => history.back());
 
     // === SPLIT AMOUNT LOGIC ===
@@ -453,7 +532,7 @@
       }
     }
 
-    // === FETCH & RENDER DATA (1 Read per day + Realtime listener) ===
+    // === FETCH & RENDER DATA ===
     onSnapshot(dayDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -462,37 +541,41 @@
         document.getElementById('totalCashView').innerText = formatCurrency(data.totalCash);
         document.getElementById('totalOnlineView').innerText = formatCurrency(data.totalOnline);
 
-        // Update History (Reverse order to show newest at top)
+        // Update History (Reverse order)
         if (data.transactions && data.transactions.length > 0) {
           const sortedTx = [...data.transactions].reverse();
-          historyList.innerHTML = sortedTx.map(tx => `
+          historyList.innerHTML = sortedTx.map(tx => {
+            const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
+            return `
             <div class="history-card">
               <div class="hc-top">
-                <span>${tx.invoiceNo}</span>
+                <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
                 <span>${tx.time}</span>
               </div>
               <div class="hc-middle">
                 <span class="hc-customer">${tx.customerName}</span>
-                <span class="hc-amount text-${tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase()}">
+                <span class="hc-amount text-${modeClass}">
                   ${formatCurrency(tx.totalAmount)}
                 </span>
               </div>
               <div class="hc-bottom">
-                <span class="badge bg-${tx.mode.toLowerCase()}">${tx.mode}</span>
-                <span style="color: var(--text-muted); align-self: center;">${tx.reason}</span>
+                <span class="badge bg-${modeClass}">${tx.mode}</span>
+                <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
               </div>
             </div>
-          `).join('');
+          `}).join('');
         }
       } else {
-        // Document doesn't exist for today yet
         document.getElementById('totalCashView').innerText = formatCurrency(0);
         document.getElementById('totalOnlineView').innerText = formatCurrency(0);
-        historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No entries yet today.</p>`;
+        historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries yet today. Tap + to start.</p>`;
       }
+    }, (error) => {
+      console.error("Firebase Read Error:", error);
+      alert("Could not connect to database. Check internet or permissions.");
     });
 
-    // === SAVE ENTRY (Optimized Array Union + Increment) ===
+    // === SAVE ENTRY ===
     entryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -520,7 +603,6 @@
 
       const totalAmt = cashAmt + onlineAmt;
 
-      // Time Formatting (e.g. 10:30 AM)
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -537,18 +619,16 @@
       };
 
       try {
-        // This single call creates the document if it doesn't exist, updates totals, and appends to the array.
         await setDoc(dayDocRef, {
           totalCash: increment(cashAmt),
           totalOnline: increment(onlineAmt),
           transactions: arrayUnion(newTx)
         }, { merge: true });
 
-        // Go back (closes modal)
-        history.back();
+        history.back(); // Closes modal
       } catch (err) {
-        console.error(err);
-        alert("Error saving entry. Check console or Firestore permissions.");
+        console.error("Firebase Write Error:", err);
+        alert("Error saving entry. Please check your Firestore Security Rules.");
       } finally {
         saveBtn.innerText = "Save Entry";
         saveBtn.disabled = false;
