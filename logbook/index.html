@@ -126,7 +126,7 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-main);
-        pointer-events: none; /* Let clicks pass through to the invisible input */
+        cursor: pointer; /* Added pointer */
       }
       .date-picker-nav {
         position: absolute;
@@ -134,7 +134,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        opacity: 0; /* Invisible but clickable */
+        opacity: 0.01; /* Extremely transparent but robust click target */
         cursor: pointer;
         padding: 0;
         margin: 0;
@@ -455,7 +455,7 @@
     </div>
     
     <div class="date-picker-container">
-      <div class="date-icon">
+      <div class="date-icon" onclick="try{document.getElementById('dateFilter').showPicker()}catch(e){}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -584,11 +584,13 @@
     // === UTILITY FUNCTIONS ===
     const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amt || 0);
     
-    // Get Today's Date String (YYYY-MM-DD) natively in IST timezone
+    // ROCK-SOLID FIX: Safely generate local YYYY-MM-DD to avoid all timezone bugs
     const getTodayString = () => {
-      const date = new Date();
-      const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-      return localDate.toISOString().split('T'); 
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`; 
     };
     
     const todayDocId = getTodayString();
