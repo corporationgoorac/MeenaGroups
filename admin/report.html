@@ -586,17 +586,8 @@
     };
 
     window.closeCustomAlert = () => {
-      document.getElementById("customAlertModal").classList.remove("active");
-      alertConfirmCallback = null;
       if (activeStateFlag.alert) {
-        activeStateFlag.alert = false;
-        if (history.state && history.state.customAlert) {
-          history.back();
-        }
-      }
-      // UI Safety Checks for Background Overlay Clearance
-      if (!activeStateFlag.drawer && !activeStateFlag.analytics && !activeStateFlag.edit) {
-        document.getElementById("overlay").classList.remove("active");
+         window.history.back(); // Naturally handled by the robust onpopstate router stack
       }
     };
 
@@ -923,43 +914,34 @@
     };
 
     window.closeAll = () => {
-      if (activeStateFlag.alert) { closeCustomAlert(); return; }
-      if (activeStateFlag.edit) { closeEditModal(); return; }
+      if (activeStateFlag.alert) { window.closeCustomAlert(); return; }
+      if (activeStateFlag.edit) { window.closeEditModal(); return; }
       
-      document.getElementById("overlay").classList.remove("active");
-      document.getElementById("customerDrawer").classList.remove("active");
-      document.getElementById("analyticsPopup").classList.remove("active");
-      
-      if(activeStateFlag.drawer || activeStateFlag.analytics) {
-        activeStateFlag.drawer = false;
-        activeStateFlag.analytics = false;
-        if(history.state && (history.state.drawer || history.state.modal)) history.back();
+      if (activeStateFlag.drawer || activeStateFlag.analytics) {
+         window.history.back(); // Naturally handled by onpopstate logic to clear UI
       }
     };
 
     window.onpopstate = (event) => {
-      const state = event.state || {};
-      
-      if (!state.customAlert && document.getElementById("customAlertModal").classList.contains("active")) {
+      // Direct history state robust logic to pop strictly ONE modal active frame from Top-to-Bottom
+      if (activeStateFlag.alert) {
          document.getElementById("customAlertModal").classList.remove("active");
          activeStateFlag.alert = false;
+         alertConfirmCallback = null;
       }
-      
-      if (!state.editModal && document.getElementById("editProductModal").classList.contains("active")) {
+      else if (activeStateFlag.edit) {
          document.getElementById("editProductModal").classList.remove("active");
          activeStateFlag.edit = false;
       }
-      
-      if (!state.drawer && document.getElementById("customerDrawer").classList.contains("active")) {
-          document.getElementById("customerDrawer").classList.remove("active");
-          activeStateFlag.drawer = false;
+      else if (activeStateFlag.analytics) {
+         document.getElementById("analyticsPopup").classList.remove("active");
+         activeStateFlag.analytics = false;
       }
-      
-      if (!state.modal && document.getElementById("analyticsPopup").classList.contains("active")) {
-          document.getElementById("analyticsPopup").classList.remove("active");
-          activeStateFlag.analytics = false;
+      else if (activeStateFlag.drawer) {
+         document.getElementById("customerDrawer").classList.remove("active");
+         activeStateFlag.drawer = false;
       }
-      
+
       if (!activeStateFlag.alert && !activeStateFlag.edit && !activeStateFlag.drawer && !activeStateFlag.analytics) {
          document.getElementById("overlay").classList.remove("active");
       }
@@ -1004,8 +986,9 @@
           <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#</span>
-              <input type="text" value="${pay.dueNumber || ''}" placeholder="Due" onchange="window.updateTempPaymentDueNumber(${pIdx}, this.value)" style="width: 50px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
-              <input type="number" value="${pay.amount}" onchange="window.updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+              <input type="text" value="${pay.dueNumber || ''}" onchange="window.updateTempPaymentDue(${pIdx}, this.value)" style="width: 50px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;" placeholder="Due">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">₹</span>
+              <input type="number" value="${pay.amount}" onchange="window.updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;" placeholder="Amt">
             </div>
             <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date || '-'} | ${pay.type || 'Cash'}</span>
           </div>
@@ -1023,18 +1006,14 @@
       document.getElementById("editCalcTotal").innerText = `Paid: ₹${totalPaid} | Bal: ₹${totalValue - totalPaid}`;
     };
 
-    window.updateTempPaymentDueNumber = (pIdx, newValue) => {
-        tempPayments[pIdx].dueNumber = newValue;
-    };
-
     window.updateTempPaymentAmount = (pIdx, newValue) => {
         const val = parseFloat(newValue) || 0;
         tempPayments[pIdx].amount = val;
-        
-        let totalValue = parseFloat(document.getElementById('editProdTotal').value) || 0;
-        let totalPaid = 0;
-        tempPayments.forEach(p => { totalPaid += parseFloat(p.amount || 0) || 0; });
-        document.getElementById("editCalcTotal").innerText = `Paid: ₹${totalPaid} | Bal: ₹${totalValue - totalPaid}`;
+        renderEditPayments();
+    };
+
+    window.updateTempPaymentDue = (pIdx, newValue) => {
+        tempPayments[pIdx].dueNumber = newValue;
     };
 
     window.deleteTempPayment = (pIdx) => {
@@ -1086,11 +1065,8 @@
     };
 
     window.closeEditModal = () => {
-      document.getElementById("editProductModal").classList.remove("active");
-      activeStateFlag.edit = false;
-      if(history.state && history.state.editModal) history.back();
-      if(activeStateFlag.drawer) {
-        document.getElementById("overlay").classList.add("active");
+      if (activeStateFlag.edit) {
+         window.history.back(); // Naturally handled by the robust onpopstate router stack
       }
     };
 
