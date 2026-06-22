@@ -9,6 +9,7 @@
 
   <meta name="robots" content="noindex, nofollow">
 
+  <!-- Core Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -415,6 +416,7 @@
 
   <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
+  <!-- Drawer View Component -->
   <div class="drawer" id="customerDrawer">
     <div class="d-head">
       <div class="dh-top">
@@ -468,6 +470,7 @@
     </div>
   </div>
 
+  <!-- Analytics View Component Modal -->
   <div class="modal" id="analyticsPopup">
     <div class="m-head">
       <h3>BUSINESS PULSE</h3>
@@ -490,6 +493,7 @@
     </div>
   </div>
 
+  <!-- Edit Product Sheet Component Modal -->
   <div class="modal" id="editProductModal" style="z-index: 250;">
     <div class="m-head">
       <h3>Edit Product</h3>
@@ -515,6 +519,7 @@
     </div>
   </div>
 
+  <!-- Micro Modal Popup Replacement for Window Alerts/Confirms -->
   <div class="modal" id="customAlertModal" style="z-index: 300;">
     <div class="m-head">
       <h3 id="customAlertTitle">SYSTEM NOTIFICATION</h3>
@@ -586,8 +591,17 @@
     };
 
     window.closeCustomAlert = () => {
+      document.getElementById("customAlertModal").classList.remove("active");
+      alertConfirmCallback = null;
       if (activeStateFlag.alert) {
-         window.history.back(); // Naturally handled by the robust onpopstate router stack
+        activeStateFlag.alert = false;
+        if (history.state && history.state.customAlert) {
+          history.back();
+        }
+      }
+      // UI Safety Checks for Background Overlay Clearance
+      if (!activeStateFlag.drawer && !activeStateFlag.analytics && !activeStateFlag.edit) {
+        document.getElementById("overlay").classList.remove("active");
       }
     };
 
@@ -603,10 +617,10 @@
       if (isNaN(timestamp) && typeof dateStr === 'string') {
         const parts = dateStr.split(/[-/]/);
         if (parts.length === 3) {
-          if (parts.length === 4) {
-            return new Date(parts, parts - 1, parts).getTime();
+          if (parts[0].length === 4) {
+            return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
           } else {
-            return new Date(parts, parts - 1, parts).getTime();
+            return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
           }
         }
       }
@@ -914,35 +928,37 @@
     };
 
     window.closeAll = () => {
-      if (activeStateFlag.alert) { window.closeCustomAlert(); return; }
-      if (activeStateFlag.edit) { window.closeEditModal(); return; }
+      if (activeStateFlag.alert) { closeCustomAlert(); return; }
+      if (activeStateFlag.edit) { closeEditModal(); return; }
       
-      if (activeStateFlag.drawer || activeStateFlag.analytics) {
-         window.history.back(); // Naturally handled by onpopstate logic to clear UI
+      document.getElementById("overlay").classList.remove("active");
+      document.getElementById("customerDrawer").classList.remove("active");
+      document.getElementById("analyticsPopup").classList.remove("active");
+      
+      if(activeStateFlag.drawer || activeStateFlag.analytics) {
+        activeStateFlag.drawer = false;
+        activeStateFlag.analytics = false;
+        if(history.state && (history.state.drawer || history.state.modal)) history.back();
       }
     };
 
     window.onpopstate = (event) => {
-      // Direct history state robust logic to pop strictly ONE modal active frame from Top-to-Bottom
-      if (activeStateFlag.alert) {
+      // Direct history state tracking mechanics integration
+      if (document.getElementById("customAlertModal").classList.contains("active")) {
          document.getElementById("customAlertModal").classList.remove("active");
          activeStateFlag.alert = false;
-         alertConfirmCallback = null;
       }
-      else if (activeStateFlag.edit) {
+      if (document.getElementById("editProductModal").classList.contains("active")) {
          document.getElementById("editProductModal").classList.remove("active");
          activeStateFlag.edit = false;
       }
-      else if (activeStateFlag.analytics) {
-         document.getElementById("analyticsPopup").classList.remove("active");
-         activeStateFlag.analytics = false;
-      }
-      else if (activeStateFlag.drawer) {
-         document.getElementById("customerDrawer").classList.remove("active");
-         activeStateFlag.drawer = false;
-      }
-
-      if (!activeStateFlag.alert && !activeStateFlag.edit && !activeStateFlag.drawer && !activeStateFlag.analytics) {
+      
+      document.getElementById("customerDrawer").classList.remove("active");
+      document.getElementById("analyticsPopup").classList.remove("active");
+      activeStateFlag.drawer = false;
+      activeStateFlag.analytics = false;
+      
+      if (!activeStateFlag.alert && !activeStateFlag.edit) {
          document.getElementById("overlay").classList.remove("active");
       }
     };
@@ -985,10 +1001,8 @@
         row.innerHTML = `
           <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#</span>
-              <input type="text" value="${pay.dueNumber || ''}" onchange="window.updateTempPaymentDue(${pIdx}, this.value)" style="width: 50px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;" placeholder="Due">
-              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">₹</span>
-              <input type="number" value="${pay.amount}" onchange="window.updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;" placeholder="Amt">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">#${pay.dueNumber || '-'}</span>
+              <input type="number" value="${pay.amount}" onchange="window.updateTempPaymentAmount(${pIdx}, this.value)" style="width: 80px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
             </div>
             <span style="font-size: 0.75rem; color: var(--text-sub);">${pay.date || '-'} | ${pay.type || 'Cash'}</span>
           </div>
@@ -1010,10 +1024,6 @@
         const val = parseFloat(newValue) || 0;
         tempPayments[pIdx].amount = val;
         renderEditPayments();
-    };
-
-    window.updateTempPaymentDue = (pIdx, newValue) => {
-        tempPayments[pIdx].dueNumber = newValue;
     };
 
     window.deleteTempPayment = (pIdx) => {
@@ -1065,8 +1075,11 @@
     };
 
     window.closeEditModal = () => {
-      if (activeStateFlag.edit) {
-         window.history.back(); // Naturally handled by the robust onpopstate router stack
+      document.getElementById("editProductModal").classList.remove("active");
+      activeStateFlag.edit = false;
+      if(history.state && history.state.editModal) history.back();
+      if(activeStateFlag.drawer) {
+        document.getElementById("overlay").classList.add("active");
       }
     };
 
@@ -1159,10 +1172,10 @@
           head: [['Due #', 'Payment Date', 'Transaction Mode', 'Amount Paid', 'Remaining Balance']],
           body: rows,
           theme: 'grid',
-          headStyles: { fillColor:, textColor: 255 },
+          headStyles: { fillColor: [39, 39, 42], textColor: 255 },
           styles: { fontSize: 9, cellPadding: 4 },
           columnStyles: { 
-            3: { fontStyle: 'bold', textColor: },
+            3: { fontStyle: 'bold', textColor: [16, 185, 129] },
             4: { fontStyle: 'bold' }
           },
           margin: { left: 14, right: 14 }
@@ -1264,9 +1277,9 @@
                           head: [[`${p.name || 'Item'} (Total Setup: Rs. ${p.total || 0})`, 'Date', 'Mode', 'Collected', 'Balance']],
                           body: rows,
                           theme: 'grid',
-                          headStyles: { fillColor:, textColor:, fontStyle: 'bold' },
+                          headStyles: { fillColor: [244, 244, 245], textColor: [0,0,0], fontStyle: 'bold' },
                           styles: { fontSize: 8, cellPadding: 3 },
-                          columnStyles: { 3: { textColor: }, 4: { fontStyle: 'bold' } },
+                          columnStyles: { 3: { textColor: [16, 185, 129] }, 4: { fontStyle: 'bold' } },
                           margin: { left: 14, right: 14 }
                       });
                       yPos = doc.lastAutoTable.finalY + 8;
