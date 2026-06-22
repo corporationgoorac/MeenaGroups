@@ -83,27 +83,6 @@
       align-items: center;
       gap: 12px;
     }
-    
-    header::before {
-      content: '';
-      display: block;
-      width: 24px;
-      height: 16px;
-      background: var(--primary);
-      border-radius: 4px;
-      position: relative;
-    }
-    
-    header::after {
-      content: '';
-      position: absolute;
-      left: 30px;
-      width: 0;
-      height: 0;
-      border-top: 4px solid transparent;
-      border-bottom: 4px solid transparent;
-      border-left: 6px solid #fff;
-    }
 
     .container {
       max-width: 800px;
@@ -409,7 +388,10 @@
 </head>
 <body>
 
-  <header>Meena LogBook</header>
+  <header>
+    <img src="icon.png" alt="Logo" style="width: 24px; height: 24px; border-radius: 4px;">
+    Meena LogBook
+  </header>
 
   <div class="install-pill" id="installPill">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -489,17 +471,17 @@
 
         <div class="form-group" id="singleAmountContainer">
           <label>Total Amount (₹)</label>
-          <input type="number" id="singleAmount" placeholder="0.00" step="any">
+          <input type="number" id="singleAmount" placeholder="0" step="any">
         </div>
 
         <div class="input-row" id="splitAmountContainer" style="display: none;">
           <div class="form-group" style="flex: 1;">
             <label>Cash (₹)</label>
-            <input type="number" id="splitCash" placeholder="0.00" step="any">
+            <input type="number" id="splitCash" placeholder="0" step="any">
           </div>
           <div class="form-group" style="flex: 1;">
             <label>Online (₹)</label>
-            <input type="number" id="splitOnline" placeholder="0.00" step="any">
+            <input type="number" id="splitOnline" placeholder="0" step="any">
           </div>
         </div>
 
@@ -526,7 +508,8 @@
     const db = getFirestore(app);
 
     // === UTILITY FUNCTIONS ===
-    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amt || 0);
+    // Removed maximumFractionDigits and minimumFractionDigits so it shows no decimals
+    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amt || 0);
     
     // Set UI Date Header
     document.getElementById('dateView').innerText = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
