@@ -11,15 +11,15 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* === PREMIUM AUTO DARK / LIGHT THEME (YOUTUBE VIBE) === */
+    /* === PREMIUM AUTO DARK / LIGHT THEME (EMERALD GREEN VIBE) === */
     :root {
       --bg-color: #ffffff;
       --text-main: #0f0f0f;
       --text-muted: #606060;
       --card-bg: #ffffff;
-      --primary: #ff0000;
-      --primary-dark: #cc0000;
-      --primary-gradient: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --cash-color: #008000;
       --online-color: #065fd4;
       --split-color: #f29900;
@@ -39,9 +39,9 @@
         --text-main: #f1f1f1;
         --text-muted: #aaaaaa;
         --card-bg: #282828;
-        --primary: #ff0000;
-        --primary-dark: #cc0000;
-        --primary-gradient: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+        --primary: #10b981;
+        --primary-dark: #059669;
+        --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
         --cash-color: #2ba640;
         --online-color: #3ea6ff;
         --split-color: #f29900;
@@ -81,7 +81,27 @@
       box-shadow: var(--shadow-sm);
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .date-picker-nav {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      font-family: inherit;
     }
 
     .container {
@@ -90,10 +110,11 @@
       padding: 20px;
     }
 
-    /* === INSTALL PILL === */
+    /* === INSTALL PILL (Moved to Bottom) === */
     .install-pill {
       position: fixed;
-      top: 70px;
+      bottom: 110px;
+      top: auto;
       left: 50%;
       transform: translateX(-50%);
       background-color: var(--text-main);
@@ -108,11 +129,11 @@
       z-index: 30;
       box-shadow: var(--shadow-lg);
       cursor: pointer;
-      animation: dropDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    @keyframes dropDown {
-      0% { top: 20px; opacity: 0; }
-      100% { top: 70px; opacity: 1; }
+    @keyframes slideUp {
+      0% { bottom: 60px; opacity: 0; }
+      100% { bottom: 110px; opacity: 1; }
     }
 
     /* === SKELETON LOADING === */
@@ -354,8 +375,8 @@
     input::placeholder { color: var(--text-muted); opacity: 0.8; }
     input:focus, select:focus {
       outline: none;
-      border-color: var(--text-main);
-      box-shadow: 0 0 0 1px var(--text-main);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
       background: var(--card-bg);
     }
 
@@ -389,8 +410,12 @@
 <body>
 
   <header>
-    <img src="icon.png" alt="Logo" style="width: 24px; height: 24px; border-radius: 4px;">
-    Meena LogBook
+    <div class="header-left">
+      <img src="icon.png" alt="Logo" style="width: 24px; height: 24px; border-radius: 4px;">
+      Meena LogBook
+    </div>
+    <!-- Date Filter in Top Right -->
+    <input type="date" id="dateFilter" class="date-picker-nav">
   </header>
 
   <div class="install-pill" id="installPill">
@@ -415,7 +440,7 @@
     </div>
 
     <div class="section-title">
-      Today's Entries
+      <span id="titleText">Today's Entries</span>
       <span id="dateView" style="font-size: 14px; color: var(--text-muted); font-weight: 500;"></span>
     </div>
     
@@ -493,7 +518,6 @@
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-    // Modified imports to support Individual Document generation and Querying
     import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -509,24 +533,22 @@
     const db = getFirestore(app);
 
     // === UTILITY FUNCTIONS ===
-    // Formatter without decimals
     const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amt || 0);
     
-    // Set UI Date Header
-    document.getElementById('dateView').innerText = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-
-    // FIXED: Get Today's Date String (YYYY-MM-DD) natively in IST timezone
+    // Get Today's Date String (YYYY-MM-DD) natively in IST timezone
     const getTodayString = () => {
       const date = new Date();
-      // Ensure we get the local date string without timezone shifting issues
       const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-      // Added [0] so it returns a String, not an Array
       return localDate.toISOString().split('T')[0]; 
     };
     
     const todayDocId = getTodayString();
-    // Use a top level collection for single documents
     const transactionsRef = collection(db, "daily_transactions");
+
+    // Initialize Date Picker Default
+    const dateFilter = document.getElementById('dateFilter');
+    dateFilter.value = todayDocId;
+    dateFilter.max = todayDocId; // Prevent selecting future dates
 
     // === UI ELEMENTS ===
     const fabBtn = document.getElementById('fabBtn');
@@ -536,12 +558,11 @@
     const entryForm = document.getElementById('entryForm');
     const historyList = document.getElementById('historyList');
 
-    // === MODAL LOGIC (With Mobile Back Button Support) ===
+    // === MODAL LOGIC ===
     function openModal() {
       entryModal.classList.add('open');
       modalOverlay.classList.add('open');
       history.pushState({ modalOpen: true }, '', '#new-entry');
-      // Auto focus Invoice number field
       setTimeout(() => document.getElementById('invNumber').focus(), 350);
     }
 
@@ -549,7 +570,7 @@
       entryModal.classList.remove('open');
       modalOverlay.classList.remove('open');
       entryForm.reset();
-      toggleSplitFields(); // reset visibility
+      toggleSplitFields();
     }
 
     window.addEventListener('popstate', (e) => {
@@ -586,64 +607,90 @@
       }
     }
 
-    // === FETCH & RENDER DATA (Querying today's separate documents) ===
-    const q = query(transactionsRef, where("dateString", "==", todayDocId));
-    
-    onSnapshot(q, (snapshot) => {
-      let totalCash = 0;
-      let totalOnline = 0;
-      const txList = [];
+    // === FETCH & RENDER DATA (OPTIMIZED DATE QUERYING) ===
+    let currentSnapshotUnsubscribe = null;
 
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        txList.push(data);
-        // Tally up the dynamic totals
-        totalCash += data.cashAmount || 0;
-        totalOnline += data.onlineAmount || 0;
-      });
+    function fetchLogsForDate(targetDate) {
+      const isToday = targetDate === todayDocId;
+      const formattedDate = new Date(targetDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      
+      document.getElementById('titleText').innerText = isToday ? "Today's Entries" : "Past Entries";
+      document.getElementById('dateView').innerText = formattedDate;
 
-      // Update UI Totals (replaces skeleton)
-      document.getElementById('totalCashView').innerText = formatCurrency(totalCash);
-      document.getElementById('totalOnlineView').innerText = formatCurrency(totalOnline);
+      // Unsubscribe from previous date listener to save resources
+      if (currentSnapshotUnsubscribe) {
+        currentSnapshotUnsubscribe();
+      }
 
-      if (txList.length > 0) {
-        // Sort descending locally to put newest entries at the top (avoids needing strict Firestore indexes)
-        txList.sort((a, b) => {
-          const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
-          const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
-          return timeB - timeA;
+      // Show skeletons while loading
+      document.getElementById('totalCashView').innerHTML = '<div class="skeleton skeleton-text"></div>';
+      document.getElementById('totalOnlineView').innerHTML = '<div class="skeleton skeleton-text"></div>';
+      historyList.innerHTML = '<div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>';
+
+      const q = query(transactionsRef, where("dateString", "==", targetDate));
+      
+      currentSnapshotUnsubscribe = onSnapshot(q, (snapshot) => {
+        let totalCash = 0;
+        let totalOnline = 0;
+        const txList = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          txList.push(data);
+          totalCash += data.cashAmount || 0;
+          totalOnline += data.onlineAmount || 0;
         });
 
-        historyList.innerHTML = txList.map(tx => {
-          const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
-          return `
-          <div class="history-card">
-            <div class="hc-top">
-              <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
-              <span>${tx.time}</span>
+        document.getElementById('totalCashView').innerText = formatCurrency(totalCash);
+        document.getElementById('totalOnlineView').innerText = formatCurrency(totalOnline);
+
+        if (txList.length > 0) {
+          txList.sort((a, b) => {
+            const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+            const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+            return timeB - timeA;
+          });
+
+          historyList.innerHTML = txList.map(tx => {
+            const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
+            return `
+            <div class="history-card">
+              <div class="hc-top">
+                <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
+                <span>${tx.time}</span>
+              </div>
+              <div class="hc-middle">
+                <span class="hc-customer">${tx.customerName}</span>
+                <span class="hc-amount text-${modeClass}">
+                  ${formatCurrency(tx.totalAmount)}
+                </span>
+              </div>
+              <div class="hc-bottom">
+                <span class="badge bg-${modeClass}">${tx.mode}</span>
+                <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
+              </div>
             </div>
-            <div class="hc-middle">
-              <span class="hc-customer">${tx.customerName}</span>
-              <span class="hc-amount text-${modeClass}">
-                ${formatCurrency(tx.totalAmount)}
-              </span>
-            </div>
-            <div class="hc-bottom">
-              <span class="badge bg-${modeClass}">${tx.mode}</span>
-              <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
-            </div>
-          </div>
-        `}).join('');
-      } else {
-        // No documents match today's date yet, clear skeletons
-        historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries yet today. Tap + to start.</p>`;
+          `}).join('');
+        } else {
+          historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries found for this date.</p>`;
+        }
+      }, (error) => {
+        console.error("Firebase Read Error:", error);
+        alert("Could not connect to database. Check internet or permissions.");
+      });
+    }
+
+    // Load today's data immediately on startup
+    fetchLogsForDate(todayDocId);
+
+    // Listen to changes in the Date Picker
+    dateFilter.addEventListener('change', (e) => {
+      if(e.target.value) {
+        fetchLogsForDate(e.target.value);
       }
-    }, (error) => {
-      console.error("Firebase Read Error:", error);
-      alert("Could not connect to database. Check internet or permissions.");
     });
 
-    // === SAVE ENTRY (Creates a new Document) ===
+    // === SAVE ENTRY ===
     entryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -670,14 +717,13 @@
       }
 
       const totalAmt = cashAmt + onlineAmt;
-
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
       try {
-        // Now using addDoc to generate a totally new document for this exact entry
+        // ALWAYS saves to today's date intentionally
         await addDoc(transactionsRef, {
-          dateString: todayDocId, // Ties it to today for our query
+          dateString: todayDocId, 
           invoiceNo: prefix + invNum,
           customerName: customer,
           reason: reason,
@@ -686,8 +732,14 @@
           onlineAmount: onlineAmt,
           totalAmount: totalAmt,
           time: timeStr,
-          timestamp: serverTimestamp() // For accurate sorting
+          timestamp: serverTimestamp() 
         });
+
+        // UX Protection: If saving while viewing past dates, force view back to Today
+        if (dateFilter.value !== todayDocId) {
+          dateFilter.value = todayDocId;
+          fetchLogsForDate(todayDocId);
+        }
 
         history.back(); // Closes modal
       } catch (err) {
@@ -704,30 +756,23 @@
     const installPill = document.getElementById('installPill');
 
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       deferredPrompt = e;
-      // Update UI to notify the user they can install the PWA
       installPill.style.display = 'flex';
     });
 
     installPill.addEventListener('click', async () => {
       if (deferredPrompt) {
-        // Show the install prompt
         deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
           installPill.style.display = 'none';
         }
-        // We've used the prompt, and can't use it again, throw it away
         deferredPrompt = null;
       }
     });
 
     window.addEventListener('appinstalled', () => {
-      // Hide the app-provided install promotion
       installPill.style.display = 'none';
       deferredPrompt = null;
     });
