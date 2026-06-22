@@ -285,6 +285,7 @@
       flex-direction: column;
       gap: 10px;
       transition: transform 0.2s;
+      cursor: pointer;
     }
     
     .history-card:active { transform: scale(0.98); }
@@ -343,6 +344,7 @@
       justify-content: center;
       border-radius: 6px; 
       transition: background 0.2s, color 0.2s, transform 0.2s;
+      z-index: 2;
     }
     .trash-btn:active { 
       background: rgba(255, 0, 0, 0.1); 
@@ -405,7 +407,7 @@
     }
     .modal.open { right: 0; }
 
-    /* === MINI DELETE MODAL === */
+    /* === MINI DELETE MODAL & DETAIL MODAL === */
     .mini-modal {
       position: fixed;
       top: 50%; left: 50%;
@@ -426,6 +428,27 @@
       opacity: 1;
       pointer-events: auto;
       transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* === DETAIL ROW STYLES === */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      flex-shrink: 0;
+      margin-right: 16px;
+    }
+    .detail-value {
+      color: var(--text-main);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
     }
 
     .modal-header {
@@ -710,6 +733,18 @@
     <input type="password" inputmode="numeric" id="deletePin" placeholder="PIN" style="text-align: center; font-size: 20px; letter-spacing: 4px; padding: 12px;" required autocomplete="off">
   </div>
 
+  <!-- DETAILS MODAL -->
+  <div class="modal-overlay" id="detailModalOverlay"></div>
+  <div class="mini-modal" id="detailModal">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 18px;">Entry Details</h3>
+      <button class="close-btn" style="width: 28px; height: 28px; font-size: 20px;" onclick="history.back()">&times;</button>
+    </div>
+    <div id="detailContent">
+      <!-- Dynamically filled details go here -->
+    </div>
+  </div>
+
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
@@ -726,6 +761,9 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
+    // Dictionary to hold active transactions in memory for quick retrieval
+    window.currentTransactions = {};
 
     // === GLOBAL HAPTICS FOR UI/UX ===
     document.body.addEventListener('click', (e) => {
@@ -769,6 +807,9 @@
     const deletePin = document.getElementById('deletePin');
     let docIdToDelete = null;
 
+    const detailModal = document.getElementById('detailModal');
+    const detailModalOverlay = document.getElementById('detailModalOverlay');
+
     // === MODAL LOGIC ===
     function openModal() {
       entryModal.classList.add('open');
@@ -802,6 +843,57 @@
       docIdToDelete = null;
     }
 
+    // === DETAIL MODAL LOGIC ===
+    window.openDetailModal = function(id) {
+      const tx = window.currentTransactions[id];
+      if (!tx) return;
+
+      let splitHTML = '';
+      if (tx.mode === 'Split') {
+        splitHTML = `
+          <div class="detail-row"><span class="detail-label">Cash Split:</span> <span class="detail-value text-cash">${formatCurrency(tx.cashAmount)}</span></div>
+          <div class="detail-row"><span class="detail-label">Online Split:</span> <span class="detail-value text-online">${formatCurrency(tx.onlineAmount)}</span></div>
+        `;
+      }
+
+      let pendingHTML = '';
+      if (tx.isPending) {
+        pendingHTML = `
+          <div class="detail-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);">
+            <span class="detail-label" style="color: var(--pending-color); font-weight: 700;">Status:</span> 
+            <span class="detail-value" style="color: var(--pending-color);">Pending</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label" style="color: var(--pending-color); font-weight: 700;">Pending Due:</span> 
+            <span class="detail-value" style="color: var(--pending-color); font-size: 16px;">${formatCurrency(tx.pendingAmount)}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('detailContent').innerHTML = `
+        <div class="detail-row"><span class="detail-label">Invoice No:</span> <span class="detail-value">${tx.invoiceNo || 'N/A'}</span></div>
+        <div class="detail-row"><span class="detail-label">Customer:</span> <span class="detail-value">${tx.customerName || 'N/A'}</span></div>
+        <div class="detail-row"><span class="detail-label">Reason:</span> <span class="detail-value">${tx.reason || 'N/A'}</span></div>
+        <div class="detail-row"><span class="detail-label">Time:</span> <span class="detail-value">${tx.time || 'N/A'}</span></div>
+        <div class="detail-row"><span class="detail-label">Mode:</span> <span class="detail-value">${tx.mode || 'N/A'}</span></div>
+        ${splitHTML}
+        <div class="detail-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);">
+          <span class="detail-label" style="font-weight: 700;">Total Amount:</span> 
+          <span class="detail-value" style="font-size: 18px;">${formatCurrency(tx.totalAmount)}</span>
+        </div>
+        ${pendingHTML}
+      `;
+
+      detailModal.classList.add('open');
+      detailModalOverlay.classList.add('open');
+      history.pushState({ detailModalOpen: true }, '', '#entry-details');
+    }
+
+    function closeDetailModal() {
+      detailModal.classList.remove('open');
+      detailModalOverlay.classList.remove('open');
+    }
+
     deletePin.addEventListener('input', async (e) => {
       if(e.target.value === '2502') {
         if(navigator.vibrate) navigator.vibrate([30, 50, 30]); // Success pattern vibration
@@ -827,12 +919,16 @@
       if (deleteModal.classList.contains('open')) {
         closeDeleteModal();
       }
+      if (detailModal.classList.contains('open')) {
+        closeDetailModal();
+      }
     });
 
     fabBtn.addEventListener('click', openModal);
     closeModalBtn.addEventListener('click', () => history.back()); 
     modalOverlay.addEventListener('click', () => history.back());
     deleteModalOverlay.addEventListener('click', () => history.back());
+    detailModalOverlay.addEventListener('click', () => history.back());
 
     // === PENDING AMOUNT LOGIC ===
     window.togglePendingField = function() {
@@ -900,10 +996,13 @@
         let totalCash = 0;
         let totalOnline = 0;
         const txList = [];
+        window.currentTransactions = {};
 
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          txList.push({ id: docSnap.id, ...data });
+          const txObj = { id: docSnap.id, ...data };
+          txList.push(txObj);
+          window.currentTransactions[docSnap.id] = txObj; // Save for modal retrieval
           totalCash += data.cashAmount || 0;
           totalOnline += data.onlineAmount || 0;
         });
@@ -923,12 +1022,12 @@
             const pendingClass = tx.isPending ? 'pending-card' : ''; // Apply yellow border if pending
             
             return `
-            <div class="history-card ${pendingClass}">
+            <div class="history-card ${pendingClass}" onclick="openDetailModal('${tx.id}')">
               <div class="hc-top">
                 <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span>${tx.time}</span>
-                  <button class="trash-btn" onclick="openDeleteModal('${tx.id}')">
+                  <button class="trash-btn" onclick="event.stopPropagation(); openDeleteModal('${tx.id}')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                   </button>
                 </div>
