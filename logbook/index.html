@@ -23,6 +23,7 @@
       --cash-color: #008000;
       --online-color: #065fd4;
       --split-color: #f29900;
+      --pending-color: #f59e0b; /* Yellow for pending borders */
       --border: #e5e5e5;
       --input-bg: #f2f2f2;
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -45,6 +46,7 @@
         --cash-color: #2ba640;
         --online-color: #3ea6ff;
         --split-color: #f29900;
+        --pending-color: #fbbf24;
         --border: #3f3f3f;
         --input-bg: #121212;
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -55,7 +57,16 @@
       }
     }
 
-    /* === BASE STYLES === */
+    /* === HIDE SCROLLBARS GLOBALLY === */
+    *::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+    * {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    /* === BASE STYLES & COPY BLOCK === */
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
@@ -66,6 +77,21 @@
       transition: background-color 0.3s ease, color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
       min-height: 100vh;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+      
+      /* Block text copying app-wide */
+      -webkit-user-select: none; 
+      -moz-user-select: none; 
+      -ms-user-select: none; 
+      user-select: none; 
+    }
+
+    /* Re-enable selection specifically for inputs so typing works normally */
+    input, select, textarea {
+      -webkit-user-select: auto;
+      -moz-user-select: auto;
+      -ms-user-select: auto;
+      user-select: auto;
     }
 
     header {
@@ -126,6 +152,7 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-main);
+        cursor: pointer;
       }
       .date-picker-nav {
         position: absolute;
@@ -133,12 +160,12 @@
         left: 0;
         width: 100%;
         height: 100%;
-        opacity: 0; /* Fully invisible but clickable overlay */
+        opacity: 0.01; /* Extremely transparent but robust click target */
         cursor: pointer;
         padding: 0;
         margin: 0;
         border: none;
-        z-index: 10; /* Ensures it sits above the icon */
+        z-index: 2;
       }
     }
 
@@ -148,7 +175,7 @@
       padding: 20px;
     }
 
-    /* === INSTALL PILL (Moved to Bottom) === */
+    /* === INSTALL PILL === */
     .install-pill {
       position: fixed;
       bottom: 110px;
@@ -262,6 +289,11 @@
     
     .history-card:active { transform: scale(0.98); }
 
+    /* Yellow border for pending items */
+    .pending-card {
+      border: 2px solid var(--pending-color) !important;
+    }
+
     .hc-top {
       display: flex;
       justify-content: space-between;
@@ -309,7 +341,7 @@
       background: var(--primary);
       color: white;
       border-radius: 50%;
-      display: flex;
+      display: none; /* Initially hidden until Firebase loads */
       align-items: center;
       justify-content: center;
       font-size: 36px;
@@ -419,6 +451,59 @@
     }
 
     .input-row { display: flex; gap: 12px; }
+
+    /* === PENDING TOGGLE SWITCH === */
+    .toggle-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      background: var(--input-bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .toggle-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--pending-color);
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
 
     .btn-save {
       width: 100%;
@@ -558,6 +643,14 @@
           </div>
         </div>
 
+        <div class="toggle-container">
+          <span class="toggle-label">Mark as Pending</span>
+          <label class="switch">
+            <input type="checkbox" id="isPending">
+            <span class="slider"></span>
+          </label>
+        </div>
+
         <button type="submit" class="btn-save" id="saveBtn">Save Entry</button>
       </form>
     </div>
@@ -598,8 +691,8 @@
     // Initialize Date Picker Default robustly
     const dateFilter = document.getElementById('dateFilter');
     dateFilter.value = todayDocId;
-    dateFilter.setAttribute('value', todayDocId); // Fallback for strict mobile webviews
-    dateFilter.max = todayDocId; // Prevent selecting future dates
+    dateFilter.setAttribute('value', todayDocId); 
+    dateFilter.max = todayDocId; 
 
     // === UI ELEMENTS ===
     const fabBtn = document.getElementById('fabBtn');
@@ -621,6 +714,7 @@
       entryModal.classList.remove('open');
       modalOverlay.classList.remove('open');
       entryForm.reset();
+      document.getElementById('isPending').checked = false; // Reset toggle specifically
       toggleSplitFields();
     }
 
@@ -658,7 +752,7 @@
       }
     }
 
-    // === FETCH & RENDER DATA (OPTIMIZED DATE QUERYING) ===
+    // === FETCH & RENDER DATA ===
     let currentSnapshotUnsubscribe = null;
 
     function fetchLogsForDate(targetDate) {
@@ -668,12 +762,10 @@
       document.getElementById('titleText').innerText = isToday ? "Today's Entries" : "Past Entries";
       document.getElementById('dateView').innerText = formattedDate;
 
-      // Unsubscribe from previous date listener to save resources
       if (currentSnapshotUnsubscribe) {
         currentSnapshotUnsubscribe();
       }
 
-      // Show skeletons while loading
       document.getElementById('totalCashView').innerHTML = '<div class="skeleton skeleton-text"></div>';
       document.getElementById('totalOnlineView').innerHTML = '<div class="skeleton skeleton-text"></div>';
       historyList.innerHTML = '<div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>';
@@ -681,6 +773,9 @@
       const q = query(transactionsRef, where("dateString", "==", targetDate));
       
       currentSnapshotUnsubscribe = onSnapshot(q, (snapshot) => {
+        // Show FAB only after Firebase confirms connection
+        fabBtn.style.display = 'flex';
+
         let totalCash = 0;
         let totalOnline = 0;
         const txList = [];
@@ -704,8 +799,10 @@
 
           historyList.innerHTML = txList.map(tx => {
             const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
+            const pendingClass = tx.isPending ? 'pending-card' : ''; // Apply yellow border if pending
+            
             return `
-            <div class="history-card">
+            <div class="history-card ${pendingClass}">
               <div class="hc-top">
                 <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
                 <span>${tx.time}</span>
@@ -719,6 +816,7 @@
               <div class="hc-bottom">
                 <span class="badge bg-${modeClass}">${tx.mode}</span>
                 <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
+                ${tx.isPending ? `<span style="color: var(--pending-color); font-weight: 700; font-size: 11px;">PENDING</span>` : ''}
               </div>
             </div>
           `}).join('');
@@ -731,10 +829,8 @@
       });
     }
 
-    // Load today's data immediately on startup
     fetchLogsForDate(todayDocId);
 
-    // Listen to changes in the Date Picker
     dateFilter.addEventListener('change', (e) => {
       if(e.target.value) {
         fetchLogsForDate(e.target.value);
@@ -754,6 +850,7 @@
       const customer = document.getElementById('customerName').value;
       const reason = document.getElementById('reason').value;
       const mode = document.getElementById('payMode').value;
+      const isPending = document.getElementById('isPending').checked; // Read toggle
       
       let cashAmt = 0;
       let onlineAmt = 0;
@@ -772,7 +869,6 @@
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
       try {
-        // ALWAYS saves to today's date intentionally
         await addDoc(transactionsRef, {
           dateString: todayDocId, 
           invoiceNo: prefix + invNum,
@@ -782,11 +878,11 @@
           cashAmount: cashAmt,
           onlineAmount: onlineAmt,
           totalAmount: totalAmt,
+          isPending: isPending, // Save to Firestore
           time: timeStr,
           timestamp: serverTimestamp() 
         });
 
-        // UX Protection: If saving while viewing past dates, force view back to Today
         if (dateFilter.value !== todayDocId) {
           dateFilter.value = todayDocId;
           fetchLogsForDate(todayDocId);
@@ -833,7 +929,6 @@
         navigator.serviceWorker.register('sw.js')
           .then(reg => {
             console.log('Service Worker Registered!', reg);
-            // CACHE BUSTER: Forces the PWA to pull the newest index.html changes instantly
             reg.update(); 
           })
           .catch(err => console.error('Service Worker registration failed:', err));
