@@ -493,7 +493,8 @@
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    // Modified imports to support Individual Document generation and Querying
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
@@ -508,7 +509,7 @@
     const db = getFirestore(app);
 
     // === UTILITY FUNCTIONS ===
-    // Removed maximumFractionDigits and minimumFractionDigits so it shows no decimals
+    // Formatter without decimals
     const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amt || 0);
     
     // Set UI Date Header
@@ -519,12 +520,13 @@
       const date = new Date();
       // Ensure we get the local date string without timezone shifting issues
       const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-      // IMPORTANT FIX: Added so it returns a String, not an Array!
-      return localDate.toISOString().split('T'); 
+      // Added [0] so it returns a String, not an Array
+      return localDate.toISOString().split('T')[0]; 
     };
     
     const todayDocId = getTodayString();
-    const dayDocRef = doc(db, "daily_logs", todayDocId);
+    // Use a top level collection for single documents
+    const transactionsRef = collection(db, "daily_transactions");
 
     // === UI ELEMENTS ===
     const fabBtn = document.getElementById('fabBtn');
@@ -584,45 +586,56 @@
       }
     }
 
-    // === FETCH & RENDER DATA ===
-    onSnapshot(dayDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        // Update Totals (replaces skeleton)
-        document.getElementById('totalCashView').innerText = formatCurrency(data.totalCash);
-        document.getElementById('totalOnlineView').innerText = formatCurrency(data.totalOnline);
+    // === FETCH & RENDER DATA (Querying today's separate documents) ===
+    const q = query(transactionsRef, where("dateString", "==", todayDocId));
+    
+    onSnapshot(q, (snapshot) => {
+      let totalCash = 0;
+      let totalOnline = 0;
+      const txList = [];
 
-        // Update History (Reverse order)
-        if (data.transactions && data.transactions.length > 0) {
-          const sortedTx = [...data.transactions].reverse();
-          historyList.innerHTML = sortedTx.map(tx => {
-            const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
-            return `
-            <div class="history-card">
-              <div class="hc-top">
-                <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
-                <span>${tx.time}</span>
-              </div>
-              <div class="hc-middle">
-                <span class="hc-customer">${tx.customerName}</span>
-                <span class="hc-amount text-${modeClass}">
-                  ${formatCurrency(tx.totalAmount)}
-                </span>
-              </div>
-              <div class="hc-bottom">
-                <span class="badge bg-${modeClass}">${tx.mode}</span>
-                <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
-              </div>
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        txList.push(data);
+        // Tally up the dynamic totals
+        totalCash += data.cashAmount || 0;
+        totalOnline += data.onlineAmount || 0;
+      });
+
+      // Update UI Totals (replaces skeleton)
+      document.getElementById('totalCashView').innerText = formatCurrency(totalCash);
+      document.getElementById('totalOnlineView').innerText = formatCurrency(totalOnline);
+
+      if (txList.length > 0) {
+        // Sort descending locally to put newest entries at the top (avoids needing strict Firestore indexes)
+        txList.sort((a, b) => {
+          const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+          const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+          return timeB - timeA;
+        });
+
+        historyList.innerHTML = txList.map(tx => {
+          const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
+          return `
+          <div class="history-card">
+            <div class="hc-top">
+              <span style="font-weight: 600; color: var(--text-main);">${tx.invoiceNo}</span>
+              <span>${tx.time}</span>
             </div>
-          `}).join('');
-        } else {
-          historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries yet today. Tap + to start.</p>`;
-        }
+            <div class="hc-middle">
+              <span class="hc-customer">${tx.customerName}</span>
+              <span class="hc-amount text-${modeClass}">
+                ${formatCurrency(tx.totalAmount)}
+              </span>
+            </div>
+            <div class="hc-bottom">
+              <span class="badge bg-${modeClass}">${tx.mode}</span>
+              <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tx.reason}</span>
+            </div>
+          </div>
+        `}).join('');
       } else {
-        // Document doesn't exist yet, clear skeletons
-        document.getElementById('totalCashView').innerText = formatCurrency(0);
-        document.getElementById('totalOnlineView').innerText = formatCurrency(0);
+        // No documents match today's date yet, clear skeletons
         historyList.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 40px; font-weight: 500;">No entries yet today. Tap + to start.</p>`;
       }
     }, (error) => {
@@ -630,7 +643,7 @@
       alert("Could not connect to database. Check internet or permissions.");
     });
 
-    // === SAVE ENTRY ===
+    // === SAVE ENTRY (Creates a new Document) ===
     entryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -661,24 +674,20 @@
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const newTx = {
-        id: Date.now().toString(),
-        invoiceNo: prefix + invNum,
-        customerName: customer,
-        reason: reason,
-        mode: mode,
-        cashAmount: cashAmt,
-        onlineAmount: onlineAmt,
-        totalAmount: totalAmt,
-        time: timeStr
-      };
-
       try {
-        await setDoc(dayDocRef, {
-          totalCash: increment(cashAmt),
-          totalOnline: increment(onlineAmt),
-          transactions: arrayUnion(newTx)
-        }, { merge: true });
+        // Now using addDoc to generate a totally new document for this exact entry
+        await addDoc(transactionsRef, {
+          dateString: todayDocId, // Ties it to today for our query
+          invoiceNo: prefix + invNum,
+          customerName: customer,
+          reason: reason,
+          mode: mode,
+          cashAmount: cashAmt,
+          onlineAmount: onlineAmt,
+          totalAmount: totalAmt,
+          time: timeStr,
+          timestamp: serverTimestamp() // For accurate sorting
+        });
 
         history.back(); // Closes modal
       } catch (err) {
