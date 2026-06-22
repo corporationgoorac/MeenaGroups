@@ -126,7 +126,6 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         color: var(--text-main);
-        cursor: pointer; /* Added pointer */
       }
       .date-picker-nav {
         position: absolute;
@@ -134,12 +133,12 @@
         left: 0;
         width: 100%;
         height: 100%;
-        opacity: 0.01; /* Extremely transparent but robust click target */
+        opacity: 0; /* Fully invisible but clickable overlay */
         cursor: pointer;
         padding: 0;
         margin: 0;
         border: none;
-        z-index: 2;
+        z-index: 10; /* Ensures it sits above the icon */
       }
     }
 
@@ -596,9 +595,10 @@
     const todayDocId = getTodayString();
     const transactionsRef = collection(db, "daily_transactions");
 
-    // Initialize Date Picker Default
+    // Initialize Date Picker Default robustly
     const dateFilter = document.getElementById('dateFilter');
     dateFilter.value = todayDocId;
+    dateFilter.setAttribute('value', todayDocId); // Fallback for strict mobile webviews
     dateFilter.max = todayDocId; // Prevent selecting future dates
 
     // === UI ELEMENTS ===
@@ -831,7 +831,11 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker Registered!', reg))
+          .then(reg => {
+            console.log('Service Worker Registered!', reg);
+            // CACHE BUSTER: Forces the PWA to pull the newest index.html changes instantly
+            reg.update(); 
+          })
           .catch(err => console.error('Service Worker registration failed:', err));
       });
     }
