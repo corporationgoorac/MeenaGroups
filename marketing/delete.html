@@ -252,11 +252,25 @@
                     return;
                 }
 
+                // Process docs into array so we can sort purely by real-time timestamp just like today.html
+                let fetchedDocs = [];
+                snap.forEach(doc => {
+                    let data = doc.data();
+                    data._docId = doc.id; // Store ID for deletion
+                    fetchedDocs.push(data);
+                });
+
+                // Sort by real creation time, newest first, resolving accurate 12hr time display
+                fetchedDocs.sort((a, b) => {
+                    let timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.date && a.date.toDate ? a.date.toDate().getTime() : 0);
+                    let timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.date && b.date.toDate ? b.date.toDate().getTime() : 0);
+                    return timeB - timeA;
+                });
+
                 let htmlOutput = '';
 
-                snap.forEach(documentSnapshot => {
-                    const data = documentSnapshot.data();
-                    const docId = documentSnapshot.id;
+                fetchedDocs.forEach(data => {
+                    const docId = data._docId;
                     const grandTotal = data.totals?.grand || 0;
                     const invoiceNo = data.invoiceNo || 'INV-UNKNOWN';
                     const paymentMode = data.paymentMethod || data.paymentMode || 'Cash';
