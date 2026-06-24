@@ -57,12 +57,27 @@
         .invoice-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; overflow: hidden; transition: all 0.3s ease; display: flex; flex-direction: column;}
         
         .inv-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
-        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px;}
+        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;}
+        .inv-meta span { font-size: 0.75em; color: var(--text-secondary); font-weight: normal; background: #333; padding: 2px 6px; border-radius: 4px;}
+        .inv-meta span.pay-tag { background: var(--accent-color); color: white; font-weight: bold; letter-spacing: 0.5px; border: 1px solid #004494;}
+
         .inv-time { font-size: 0.85em; color: var(--text-secondary); }
 
         .inv-body { padding: 15px 20px; flex-grow: 1;}
+        .customer-info { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #444; }
         .customer-info p { margin: 3px 0; font-size: 0.9em; color: var(--text-secondary); }
         .customer-info strong { color: white; font-size: 1.05em; }
+
+        /* Detail Items Styles (Brought back from the original layout) */
+        .item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;}
+        .item-row { display: flex; justify-content: space-between; font-size: 0.9em; align-items: flex-start;}
+        .item-desc { flex: 1; padding-right: 15px; }
+        .item-name { font-weight: bold; color: white; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;}
+        .item-sub { color: var(--text-secondary); font-size: 0.85em; margin-top: 2px;}
+        .item-price { text-align: right; font-weight: bold; white-space: nowrap; }
+        
+        .tag-ns { background: rgba(255, 152, 0, 0.2); color: var(--warning-color); padding: 1px 6px; border-radius: 4px; font-size: 0.7em; border: 1px solid var(--warning-color); text-transform: uppercase;}
+        .tag-gst { color: var(--accent-color); font-size: 0.8em; font-weight: bold; margin-left: 5px;}
 
         .inv-footer { background: rgba(255, 51, 51, 0.05); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; }
         .inv-total-val { font-size: 1.3em; font-weight: bold; color: var(--success-color); }
@@ -244,26 +259,88 @@
                     const docId = documentSnapshot.id;
                     const grandTotal = data.totals?.grand || 0;
                     const invoiceNo = data.invoiceNo || 'INV-UNKNOWN';
+                    const paymentMode = data.paymentMethod || data.paymentMode || 'Cash';
+
+                    // Real Timestamp extraction (Copied exact logic from detailed master layout)
+                    let timeString = "Unknown Time";
+                    let d = null;
+                    
+                    if (data.createdAt && data.createdAt.toDate) {
+                        d = data.createdAt.toDate();
+                    } else if (data.date && data.date.toDate) {
+                        d = data.date.toDate();
+                    }
+
+                    if (d) {
+                        let hours = d.getHours();
+                        let minutes = d.getMinutes();
+                        let isPM = hours >= 12;
+                        hours = hours % 12;
+                        hours = hours ? hours : 12; 
+                        minutes = minutes < 10 ? '0' + minutes : minutes;
+                        
+                        let rawTime = `${hours}:${minutes}`;
+                        if (isPM) {
+                            timeString = `<span style="background: #2a2a2a; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; border: 1px solid #444; display: inline-block;">${rawTime} PM</span>`;
+                        } else {
+                            timeString = `<span style="background: #ff9800; color: #121212; padding: 3px 8px; border-radius: 6px; font-size: 1em; font-weight: bold; display: inline-block;">${rawTime} AM</span>`;
+                        }
+                    }
+
+                    // Build Items List HTML (Copied exact logic from detailed master layout)
+                    let itemsHtml = '';
+                    if (data.items && Array.isArray(data.items)) {
+                        data.items.forEach(item => {
+                            const nsTag = item.isNonStock ? '<span class="tag-ns">Non-Stock</span>' : '';
+                            const gstTag = item.gstPercent > 0 ? `<span class="tag-gst">+${item.gstPercent}% GST</span>` : '';
+                            const modelText = item.model ? `Model: ${item.model} • ` : '';
+                            
+                            itemsHtml += `
+                                <li class="item-row">
+                                    <div class="item-desc">
+                                        <div class="item-name">${item.name} <span style="font-weight:normal;">x${item.qty}</span> ${nsTag}</div>
+                                        <div class="item-sub">${modelText}₹${(item.price || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}/ea ${gstTag}</div>
+                                    </div>
+                                    <div class="item-price">₹${(item.finalTotal || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                </li>
+                            `;
+                        });
+                    }
+
+                    // CUSTOMER BORDER LOGIC (Platinum, Gold, Silver, Bronze, Cyan, Green)
+                    let cardStyle = "";
+                    if (grandTotal >= 50000) { cardStyle = "border-color: #e5e4e2; border-style: double; border-width: 4px; box-shadow: 0 0 15px rgba(229, 228, 226, 0.8);"; }
+                    else if (grandTotal >= 30000) { cardStyle = "border-color: #ffd700; border-style: dashed; border-width: 2px; box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);"; }
+                    else if (grandTotal >= 20000) { cardStyle = "border-color: #c0c0c0; border-style: dotted; border-width: 3px; box-shadow: 0 0 12px rgba(192, 192, 192, 0.6);"; }
+                    else if (grandTotal >= 15000) { cardStyle = "border-color: #cd7f32; border-style: inset; border-width: 2px; box-shadow: 0 0 10px rgba(205, 127, 50, 0.5);"; }
+                    else if (grandTotal >= 10000) { cardStyle = "border-color: #00bcd4; border-style: solid; border-width: 2px; box-shadow: 0 0 8px rgba(0, 188, 212, 0.4);"; }
+                    else if (grandTotal >= 5000) { cardStyle = "border-color: #4caf50; border-style: solid; border-width: 1px; box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);"; }
 
                     htmlOutput += `
-                        <div class="invoice-card" id="card-${docId}">
+                        <div class="invoice-card" id="card-${docId}" style="${cardStyle}">
                             <div class="inv-header">
                                 <div class="inv-meta">
-                                    <h3>${invoiceNo}</h3>
+                                    <h3>${invoiceNo} <span>BILLED</span> <span class="pay-tag">${paymentMode}</span></h3>
                                 </div>
-                                <div class="inv-time">₹${grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                <div class="inv-time" style="display: flex; align-items: center; white-space: nowrap; font-size: 0.95em; color: var(--marketing-white); font-weight: bold;">
+                                    ${timeString}
+                                </div>
                             </div>
                             
                             <div class="inv-body">
                                 <div class="customer-info">
                                     <strong>${data.customer?.name || 'Unknown Customer'}</strong>
-                                    <p>${data.customer?.phone || 'No Phone'}</p>
+                                    <p>${data.customer?.phone || 'No Phone'} • ${data.customer?.address || 'No Address'}</p>
                                 </div>
+                                
+                                <ul class="item-list">
+                                    ${itemsHtml}
+                                </ul>
                             </div>
 
                             <div class="inv-footer">
                                 <span class="inv-total-val" style="font-size: 1.1em; font-weight: normal; color: var(--text-secondary);">
-                                    Total: <strong style="color: white;">₹${grandTotal.toLocaleString('en-IN')}</strong>
+                                    Total: <strong style="color: white;">₹${grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>
                                 </span>
                                 <button class="btn-delete-card" onclick="openModal('${docId}', '${invoiceNo}')">
                                     <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> Remove
