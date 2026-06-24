@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manage Sales - Meena Marketing</title>
+    
+    <meta name="theme-color" content="#121212">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700;900&display=swap" rel="stylesheet" />
+    
+    <style>
+        * { scrollbar-width: none; } *::-webkit-scrollbar { display: none; }
+        
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --warning-color: #ff9800;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', 'Noto Sans Tamil', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
+
+        /* Standard Header */
+        header { background-color: var(--surface-color); padding: 12px 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; }
+        .header-left { display: flex; align-items: center; gap: 5px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
+        .brand-container { display: flex; align-items: center; gap: 6px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .page-title { font-size: 0.55em; color: var(--warning-color); text-transform: uppercase; letter-spacing: 1px;}
+
+        /* Main Container */
+        .container { padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+        /* Top Controls */
+        .top-controls { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 15px;}
+        .date-filter { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 12px 15px; border-radius: 8px; border: 1px solid #444; flex-grow: 1;}
+        .date-filter input { background: transparent; border: none; color: white; font-size: 1.1em; outline: none; width: 100%; }
+        .date-filter input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+        /* Invoice Cards */
+        .sales-list { display: flex; flex-direction: column; gap: 15px; }
+        .invoice-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; overflow: hidden; transition: all 0.3s ease; display: flex; flex-direction: column;}
+        
+        .inv-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; align-items: center;}
+        .inv-meta h3 { margin: 0; color: var(--marketing-white); font-size: 1.1em; display: flex; align-items: center; gap: 8px;}
+        .inv-time { font-size: 0.85em; color: var(--text-secondary); }
+
+        .inv-body { padding: 15px 20px; flex-grow: 1;}
+        .customer-info p { margin: 3px 0; font-size: 0.9em; color: var(--text-secondary); }
+        .customer-info strong { color: white; font-size: 1.05em; }
+
+        .inv-footer { background: rgba(255, 51, 51, 0.05); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; }
+        .inv-total-val { font-size: 1.3em; font-weight: bold; color: var(--success-color); }
+        
+        /* Delete Button */
+        .btn-delete-card { background: transparent; color: var(--meena-red); border: 1px solid var(--meena-red); padding: 6px 12px; border-radius: 6px; font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: pointer; transition: 0.2s; font-size: 0.9em;}
+        .btn-delete-card:hover { background: rgba(255, 51, 51, 0.1); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); background: var(--surface-color); border-radius: 12px; border: 1px solid #333;}
+        .empty-state .material-symbols-outlined { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+
+        /* Skeleton Loader */
+        .loader { display: none; }
+        .skeleton { background: #2a2a2a; background-image: linear-gradient(90deg, #2a2a2a 0px, #3a3a3a 40px, #2a2a2a 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skel-card { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; margin-bottom: 15px; }
+        .skel-header { background: #1a1a1a; padding: 15px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; }
+        .skel-title { width: 35%; height: 22px; }
+        .skel-body { padding: 15px 20px; }
+        .skel-cust-name { width: 45%; height: 18px; margin-bottom: 8px; }
+
+        /* Toasts */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s;}
+        .toast-msg.error { background: var(--meena-red); }
+        .toast-msg.success { background: var(--success-color); }
+        .toast-msg.show { display: flex; opacity: 1; }
+
+        /* Professional Modal overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--surface-color); border: 1px solid #444; border-radius: 12px; width: 100%; max-width: 350px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); transform: translateY(20px); transition: transform 0.3s ease; }
+        .modal-overlay.active .modal-box { transform: translateY(0); }
+        .modal-icon { font-size: 50px; color: var(--warning-color); margin-bottom: 10px; }
+        .modal-box h3 { margin: 0 0 10px 0; color: white; font-size: 1.3em; }
+        .modal-box p { color: var(--text-secondary); font-size: 0.95em; margin-bottom: 25px; line-height: 1.4; }
+        .modal-box p strong { color: white; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; transition: 0.2s; }
+        .btn-cancel { background: var(--input-bg); color: white; border: 1px solid #555 !important; }
+        .btn-cancel:hover { background: #333; }
+        .btn-confirm { background: var(--meena-red); color: white; }
+        .btn-confirm:hover { background: #d32f2f; }
+        
+        .loading-spinner { animation: spin 1s linear infinite; display: none; font-size: 20px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
+
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <span class="material-symbols-outlined modal-icon">warning</span>
+            <h3>Delete Invoice?</h3>
+            <p>Are you sure you want to permanently delete invoice <strong id="deleteInvNoText"></strong>? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModalManual()">Cancel</button>
+                <button class="btn-confirm" id="confirmDeleteBtn" onclick="executeDelete()">
+                    <span class="material-symbols-outlined loading-spinner" id="deleteSpinner">progress_activity</span>
+                    <span id="deleteBtnText">Delete</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <a href="javascript:void(0)" onclick="window.history.back();" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+            <div class="brand-container">
+                <div class="brand-text">
+                    <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                    <span class="page-title">Manage & Delete Bills</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <div class="top-controls">
+            <div class="date-filter">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <input type="date" id="dateFilter">
+            </div>
+        </div>
+
+        <div class="loader" id="loader" style="display: block;">
+            <div class="sales-list">
+                <div class="skel-card">
+                    <div class="skel-header"><div class="skeleton skel-title"></div></div>
+                    <div class="skel-body"><div class="skeleton skel-cust-name"></div></div>
+                </div>
+                <div class="skel-card">
+                    <div class="skel-header"><div class="skeleton skel-title" style="width: 45%;"></div></div>
+                    <div class="skel-body"><div class="skeleton skel-cust-name" style="width: 55%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sales-list" id="salesList"></div>
+
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { collection, getDocs, query, where, orderBy, limit, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Global state for deletion
+        let currentTargetDocId = null;
+
+        // Toast Helper
+        window.showToast = function(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 4000);
+        };
+
+        const dateFilterInput = document.getElementById('dateFilter');
+        const salesListEl = document.getElementById('salesList');
+        const loaderEl = document.getElementById('loader');
+        
+        // Initialize date safely in local time
+        const todayStr = new Date().toLocaleDateString('en-CA'); 
+        dateFilterInput.value = todayStr;
+
+        dateFilterInput.addEventListener('change', () => {
+            loadDailySales(dateFilterInput.value);
+        });
+
+        async function loadDailySales(dateString) {
+            if (!dateString) return;
+
+            salesListEl.innerHTML = '';
+            loaderEl.style.display = 'block';
+
+            const [year, month, day] = dateString.split('-');
+            const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+            const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+            try {
+                // Highly optimized low-read query
+                const q = query(
+                    collection(db, "sellings"),
+                    where("date", ">=", startOfDay),
+                    where("date", "<=", endOfDay),
+                    orderBy("date", "desc"),
+                    limit(150)
+                );
+
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    loaderEl.style.display = 'none';
+                    salesListEl.innerHTML = `
+                        <div class="empty-state">
+                            <span class="material-symbols-outlined">receipt_long</span>
+                            <h3>No Sales Found</h3>
+                            <p>There are no recorded bills for this date.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let htmlOutput = '';
+
+                snap.forEach(documentSnapshot => {
+                    const data = documentSnapshot.data();
+                    const docId = documentSnapshot.id;
+                    const grandTotal = data.totals?.grand || 0;
+                    const invoiceNo = data.invoiceNo || 'INV-UNKNOWN';
+
+                    htmlOutput += `
+                        <div class="invoice-card" id="card-${docId}">
+                            <div class="inv-header">
+                                <div class="inv-meta">
+                                    <h3>${invoiceNo}</h3>
+                                </div>
+                                <div class="inv-time">₹${grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                            </div>
+                            
+                            <div class="inv-body">
+                                <div class="customer-info">
+                                    <strong>${data.customer?.name || 'Unknown Customer'}</strong>
+                                    <p>${data.customer?.phone || 'No Phone'}</p>
+                                </div>
+                            </div>
+
+                            <div class="inv-footer">
+                                <span class="inv-total-val" style="font-size: 1.1em; font-weight: normal; color: var(--text-secondary);">
+                                    Total: <strong style="color: white;">₹${grandTotal.toLocaleString('en-IN')}</strong>
+                                </span>
+                                <button class="btn-delete-card" onclick="openModal('${docId}', '${invoiceNo}')">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> Remove
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                loaderEl.style.display = 'none';
+                salesListEl.innerHTML = htmlOutput;
+
+            } catch (err) {
+                console.error("Error fetching daily sales:", err);
+                showToast("Firebase Error: " + err.message); 
+                loaderEl.style.display = 'none';
+                salesListEl.innerHTML = '<div class="empty-state" style="color:var(--meena-red);">Error loading data.</div>';
+            }
+        }
+
+        // Trigger initial load
+        loadDailySales(dateFilterInput.value);
+
+        // --- Modal & History Logic ---
+
+        window.openModal = function(docId, invoiceNo) {
+            currentTargetDocId = docId;
+            document.getElementById('deleteInvNoText').innerText = invoiceNo;
+            document.getElementById('deleteModal').classList.add('active');
+            
+            // Push state for mobile back button to close modal instead of leaving page
+            history.pushState({ deleteModalOpen: true }, "");
+        };
+
+        window.closeModalManual = function() {
+            // Triggering history.back() will inherently close it via popstate
+            history.back(); 
+        };
+
+        window.executeDelete = async function() {
+            if (!currentTargetDocId) return;
+
+            const btn = document.getElementById('confirmDeleteBtn');
+            const spinner = document.getElementById('deleteSpinner');
+            const btnText = document.getElementById('deleteBtnText');
+
+            // UI Loading state
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.innerText = 'Deleting...';
+
+            try {
+                // Execute deletion in Firestore
+                await deleteDoc(doc(db, "sellings", currentTargetDocId));
+                
+                showToast("Invoice deleted successfully!", "success");
+
+                // LOW READ OPTIMIZATION: Remove from DOM instead of re-fetching the entire day
+                const cardEl = document.getElementById(`card-${currentTargetDocId}`);
+                if (cardEl) {
+                    cardEl.style.opacity = '0';
+                    setTimeout(() => cardEl.remove(), 300);
+                }
+
+                // Check if list is completely empty now
+                if(document.querySelectorAll('.invoice-card').length <= 1) {
+                     setTimeout(() => {
+                        if(salesListEl.innerHTML.trim() === '') {
+                             salesListEl.innerHTML = `
+                                <div class="empty-state">
+                                    <span class="material-symbols-outlined">receipt_long</span>
+                                    <h3>No Sales Found</h3>
+                                    <p>There are no recorded bills for this date.</p>
+                                </div>`;
+                        }
+                     }, 350);
+                }
+
+                // Close Modal manually to manage history stack cleanly
+                history.back();
+
+            } catch (err) {
+                console.error("Error deleting doc:", err);
+                showToast("Failed to delete. Check permissions.");
+            } finally {
+                // Reset Button UI
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = 'Delete';
+            }
+        };
+
+        // Listen for Mobile Back Button
+        window.addEventListener('popstate', (e) => {
+            const modal = document.getElementById('deleteModal');
+            if (modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                currentTargetDocId = null;
+            }
+        });
+
+    </script>
+</body>
+</html>
