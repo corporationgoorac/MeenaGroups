@@ -809,7 +809,6 @@
       openModal('custom-prompt-modal');
     };
 
-
     // App State
     let currentUser = null;
     let bagsData = [];
@@ -841,9 +840,10 @@
             if(e.code === 'unavailable') {
                 return 0; 
             }
-            const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-            if(match) {
-                const url = match;
+            // FIXED: Using match[0] to actually get the URL string instead of the array object
+            const match = e.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/);
+            if(match && match[0]) {
+                const url = match[0];
                 document.getElementById('index-error-banner').classList.add('active');
                 document.getElementById('index-fix-btn').onclick = () => { window.open(url, '_blank'); };
             }
@@ -1200,11 +1200,11 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
-            // FIX: Array index added to properly grab year, month, and day
+            // FIXED: Added proper array index fetching so date doesn't evaluate to 2026/2026/2026
             const parts = dateVal.split('-');
-            const year = parseInt(parts, 10);
-            const month = parseInt(parts, 10);
-            const day = parseInt(parts, 10);
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
             
             const targetDateStr = `${month}/${day}/${year}`; 
             
@@ -1270,11 +1270,11 @@
             lastVisibleTx = snap.docs[snap.docs.length - 1]; 
         } catch (e) {
             console.error("Tx Load Error:", e);
-            const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-            if(match) {
+            // FIXED: Using match[0] to get the exact link instead of the array format
+            const match = e.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/);
+            if(match && match[0]) {
                 document.getElementById('index-error-banner').classList.add('active');
-                document.getElementById('index-fix-btn').onclick = () => { window.open(match, '_blank'); };
-                showCustomAlert("Database Index Required! Please click the red banner at the bottom of the screen to enable history loading.");
+                document.getElementById('index-fix-btn').onclick = () => { window.open(match[0], '_blank'); };
             }
         }
         isFetchingTx = false;
@@ -1287,7 +1287,6 @@
             }
         }
     };
-
 
     // --- CHART GENERATORS ---
     function renderBarChart(canvasId, labels, incomeData, expenseData) {
