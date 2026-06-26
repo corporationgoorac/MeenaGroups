@@ -1169,9 +1169,12 @@
 
     // --- ADVANCED TRANSACTION HISTORY LIST LOGIC ---
     window.openTransactionHistory = function() {
-        // SENIOR FIX: Do not auto-fill today's date if you want to show the full ledger by default.
-        // We set the date filter to blank so ALL past transactions render immediately.
-        document.getElementById('tx-date-filter').value = ''; 
+        // Automatically default to today's date in proper YYYY-MM-DD format
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('tx-date-filter').value = `${yyyy}-${mm}-${dd}`;
         
         openModal('tx-history-modal');
         window.loadTransactions(true); 
@@ -1197,22 +1200,15 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
-            // SENIOR FIX: String matching on 'dateStr' breaks because of timezones and leading zeros.
-            // Furthermore, combining where('dateStr') + orderBy('timestamp') requires a NEW composite index.
-            // By querying the 'timestamp' directly with start/end bounds, we perfectly re-use your existing index!
+            // FIX: Array index added to properly grab year, month, and day
             const parts = dateVal.split('-');
             const year = parseInt(parts, 10);
-            const month = parseInt(parts, 10) - 1; // JavaScript months are 0-indexed (0-11)
+            const month = parseInt(parts, 10);
             const day = parseInt(parts, 10);
             
-            const startOfDay = new Date(year, month, day, 0, 0, 0);
-            const endOfDay = new Date(year, month, day, 23, 59, 59, 999);
+            const targetDateStr = `${month}/${day}/${year}`; 
             
-            txQuery = query(txQuery, 
-                where('timestamp', '>=', startOfDay), 
-                where('timestamp', '<=', endOfDay), 
-                orderBy('timestamp', 'desc')
-            );
+            txQuery = query(txQuery, where('dateStr', '==', targetDateStr), orderBy('timestamp', 'desc'));
         } else {
             txQuery = query(txQuery, orderBy('timestamp', 'desc'));
         }
