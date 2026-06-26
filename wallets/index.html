@@ -646,6 +646,17 @@
     </div>
   </div>
 
+  <div id="index-popup-modal" class="modal-sheet" style="z-index: 3000;">
+    <div class="modal-header">
+      <div class="modal-title" style="color: var(--danger);">Index Required</div>
+      <button class="close-modal" onclick="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <p style="margin-bottom: 24px; line-height: 1.5;">A Firebase database index is missing. To view or fetch this data correctly, please click the button below to open Firebase and create the index.</p>
+    <button class="btn-primary" id="index-popup-btn" style="background-color: var(--primary);">Open Firebase to Create Index</button>
+  </div>
+
   <div id="create-bag-modal" class="modal-slide-side">
     <div class="modal-header">
       <div class="modal-title">Create New Bag</div>
@@ -809,6 +820,15 @@
       openModal('custom-prompt-modal');
     };
 
+    // ADDED: Global function to show the Index Popup
+    window.showIndexPopup = function(url) {
+      const btn = document.getElementById('index-popup-btn');
+      btn.onclick = () => {
+        window.open(url, '_blank');
+        closeModal();
+      };
+      openModal('index-popup-modal');
+    };
 
     // App State
     let currentUser = null;
@@ -843,9 +863,11 @@
             }
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
-                const url = match;
+                const url = match[0]; // fixed to select string out of array
                 document.getElementById('index-error-banner').classList.add('active');
                 document.getElementById('index-fix-btn').onclick = () => { window.open(url, '_blank'); };
+                // ADDED: Trigger popup
+                window.showIndexPopup(url);
             }
             return 0;
         }
@@ -1277,8 +1299,10 @@
             const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
             if(match) {
                 document.getElementById('index-error-banner').classList.add('active');
-                document.getElementById('index-fix-btn').onclick = () => { window.open(match, '_blank'); };
+                document.getElementById('index-fix-btn').onclick = () => { window.open(match[0], '_blank'); }; // fixed to grab match[0]
                 showCustomAlert("Database Index Required! Please click the red banner at the bottom of the screen to enable history loading.");
+                // ADDED: Trigger popup
+                window.showIndexPopup(match[0]);
             }
         }
         isFetchingTx = false;
