@@ -1167,9 +1167,15 @@
       renderCompareChart('bagDetailsCompareChart', thisWeekBagInc, thisWeekBagExp, lastWeekBagInc, lastWeekBagExp);
     };
 
-    // --- NEW: ADVANCED TRANSACTION HISTORY LIST LOGIC ---
+    // --- ADVANCED TRANSACTION HISTORY LIST LOGIC ---
     window.openTransactionHistory = function() {
-        document.getElementById('tx-date-filter').value = ''; 
+        // Automatically default to today's date in proper YYYY-MM-DD format
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('tx-date-filter').value = `${yyyy}-${mm}-${dd}`;
+        
         openModal('tx-history-modal');
         window.loadTransactions(true); 
     };
@@ -1194,10 +1200,12 @@
         let txQuery = query(coll, where('bagId', '==', currentHistoryBagId));
 
         if (dateVal) {
+            // FIX: Array index added to properly grab year, month, and day
             const parts = dateVal.split('-');
             const year = parseInt(parts, 10);
             const month = parseInt(parts, 10);
             const day = parseInt(parts, 10);
+            
             const targetDateStr = `${month}/${day}/${year}`; 
             
             txQuery = query(txQuery, where('dateStr', '==', targetDateStr), orderBy('timestamp', 'desc'));
@@ -1228,13 +1236,11 @@
                 const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                 const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-                // NEW: Handle the running balance display
                 const balanceAfter = data.balanceAfter !== undefined ? data.balanceAfter : null;
                 const balHtml = balanceAfter !== null
                     ? `<div class="tx-card-bal">Balance: ₹${balanceAfter.toLocaleString('en-IN')}</div>`
                     : `<div class="tx-card-bal">Balance: Unrecorded</div>`;
                 
-                // SVG Icons for clean, investment-ledger style UI
                 const iconHtml = isInc 
                   ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
                   : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
@@ -1402,7 +1408,7 @@
           timestamp: serverTimestamp(),
           dateStr: new Date().toLocaleDateString('en-US'),
           dateISO: new Date().toISOString(),
-          balanceAfter: initialBalance // NEW FIELD
+          balanceAfter: initialBalance 
         });
       }
 
@@ -1485,7 +1491,6 @@
       btn.style.opacity = '0.7';
       btn.innerHTML = '<div class="spinner"></div>';
 
-      // NEW: Calculate running balance before writing to DB
       const activeBag = bagsData.find(b => b.id === selectedBagIdForPay);
       const currentBalance = activeBag ? activeBag.currentBalance : 0;
       const mathValue = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
@@ -1503,7 +1508,7 @@
         timestamp: serverTimestamp(),
         dateStr: new Date().toLocaleDateString('en-US'), 
         dateISO: new Date().toISOString(),
-        balanceAfter: balanceAfter // NEW FIELD ADDED
+        balanceAfter: balanceAfter
       });
 
       batch.update(bagRef, {
