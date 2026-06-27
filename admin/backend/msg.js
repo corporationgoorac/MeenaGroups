@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js'); // FIXED: Changed uppercase 'Const' to 'const' to prevent startup crash
+const { Client, LocalAuth } = require('whatsapp-web.js'); 
 const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
 const cron = require('node-cron');
@@ -26,6 +26,14 @@ const messageQueue = {};
 
 // --- ADDED: Sleep Utility to allow WhatsApp LID to sync ---
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- ANTI-CRASH FIX: Global processed docs set and interval cleaner ---
+// Moved this out of the listener to prevent memory bloating from thousands of active timeouts
+const processedDocs = new Set(); 
+setInterval(() => {
+    processedDocs.clear();
+    console.log("🧹 Cleared processedDocs cache to free memory.");
+}, 12 * 60 * 60 * 1000); // Safely clears memory every 12 hours
 
 // --- FIX: UNIVERSAL SAFE SENDING HELPER ---
 // This prevents the "New chat not found" / "TypeError (t)" crashes 
@@ -156,16 +164,27 @@ console.log("⏳ Initializing WhatsApp Engine...");
 const client = new Client({
     // --- STANDARD LOCAL STORAGE ---
     authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
+    
+    // --- NEW: Force the bot to wait infinitely instead of crashing ---
+    authTimeoutMs: 0, 
+    
     puppeteer: {
-        executablePath: '/usr/bin/chromium', // <--- This points to the Docker-installed browser
-        // EXTRA FLAGS ADDED FOR PRODUCTION STABILITY (Prevents Out-of-Memory crashes)
+        executablePath: '/usr/bin/chromium', 
+        // --- NEW: 0 means infinite timeout for the browser launch ---
+        timeout: 0, 
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote',
-            '--single-process'
+            '--no-first-run',
+            // --- NEW: Network Forgiveness Flags (Bypasses Hugging Face Throttling) ---
+            '--ignore-certificate-errors',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            // --- NEW: Disguise the bot as a normal Windows Google Chrome browser ---
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            // NOTE: '--single-process' was removed on purpose to prevent Linux network lockups!
         ]
     }
 });
@@ -366,7 +385,6 @@ function setupScheduledJobs() {
 // ---------------------------------------------------------
 function setupFirestoreListener() {
     let isInitialLoad = true;
-    const processedDocs = new Set(); 
 
     db.collection('temp_entries')
       .where('status', '==', 'pending')
@@ -388,8 +406,6 @@ function setupFirestoreListener() {
                   
                   if (processedDocs.has(docId)) return;
                   processedDocs.add(docId);
-                  
-                  setTimeout(() => processedDocs.delete(docId), 86400000); 
                   
                   if (!uid || data.submittedBySystem) return;
                   

@@ -61,7 +61,15 @@ cron.schedule('0 0 * * *', async () => {
     });
 
     if (count > 0) batches.push(currentBatch);
-    await Promise.all(batches.map(b => b.commit()));
+    
+    // --- OLD CODE (Commented out to prevent memory spike) ---
+    // await Promise.all(batches.map(b => b.commit()));
+    
+    // --- NEW FIXED CODE: Sequential Commits ---
+    for (const batch of batches) {
+      await batch.commit();
+      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms buffer prevents network/CPU crash
+    }
 
     console.log(`✅ Successfully force-submitted ${totalUpdated} drafts to pending.`);
   } catch (error) {
@@ -231,3 +239,14 @@ try {
 } catch (error) {
   console.error("❌ Failed to load msg.js:", error.message);
 }
+
+// ==========================================
+// 5. ANTI-CRASH: DAILY SAFE RESTART
+// ==========================================
+cron.schedule('0 3 * * *', () => {
+  console.log("🧹 Performing daily safe restart at 3:00 AM to clear RAM...");
+  process.exit(0); // Exits cleanly, Hugging Face/Docker will restart it fresh immediately
+}, {
+  scheduled: true,
+  timezone: "Asia/Kolkata"
+});
