@@ -88,22 +88,90 @@ app.get('/', (req, res) => {
   res.send('Meena Groups Admin Backend is running.');
 });
 
-// --- NEW: WEBPAGE TO VIEW QR CODE ---
+// --- NEW: WEBPAGE TO VIEW QR CODE (DARK THEME MOBILE UI) ---
 app.get('/qr', (req, res) => {
   const qrPath = path.join(__dirname, 'whatsapp-qr.png');
-  // Check if the image exists inside the container
+  let contentHtml = '';
+  
   if (fs.existsSync(qrPath)) {
-    res.sendFile(qrPath); // Send the image directly to the browser
-  } else {
-    // If it's already scanned or still downloading, show a helpful message
-    res.status(404).send(`
-      <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-        <h2>QR Code Status</h2>
-        <p>The QR Code is either already successfully scanned, or the system is currently generating a new one.</p>
-        <p>Please wait 10 seconds and <button onclick="window.location.reload()" style="padding: 5px 10px; cursor: pointer;">Refresh Page</button></p>
+    // Read the image as base64 so we can embed it directly inside the HTML page
+    const imgData = fs.readFileSync(qrPath, 'base64');
+    const imgSrc = `data:image/png;base64,${imgData}`;
+    
+    contentHtml = `
+      <p>Scan this QR code using the WhatsApp app on your primary phone to link the system.</p>
+      <div class="qr-container">
+        <img src="${imgSrc}" alt="WhatsApp QR Code">
       </div>
-    `);
+      <button class="btn" onclick="window.location.reload()">🔄 Refresh Code</button>
+    `;
+  } else {
+    contentHtml = `
+      <div class="loader"></div>
+      <p>The system is currently connecting, or the QR code has already been successfully scanned.<br><br>Please wait 10 seconds and try again.</p>
+      <button class="btn" onclick="window.location.reload()">🔄 Check Status</button>
+    `;
   }
+
+  // Inject the dynamic content into the Dark Theme Mobile HTML template
+  const htmlTemplate = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <title>WhatsApp Device Link</title>
+      <style>
+          body {
+              margin: 0; padding: 0;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              background-color: #111b21; /* WhatsApp dark mode background */
+              color: #e9edef; /* WhatsApp light text */
+              display: flex; flex-direction: column; align-items: center; justify-content: center;
+              min-height: 100vh;
+          }
+          .container {
+              background-color: #202c33; padding: 40px 25px;
+              border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+              text-align: center; max-width: 360px; width: 85%;
+          }
+          h2 { 
+              color: #00a884; /* WhatsApp brand green */
+              margin-top: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;
+          }
+          p { color: #8696a0; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+          .qr-container {
+              background: white; padding: 15px; border-radius: 12px;
+              display: inline-block; margin-bottom: 30px;
+          }
+          .qr-container img { width: 260px; height: 260px; display: block; }
+          .btn {
+              background-color: #00a884; color: #111b21;
+              border: none; padding: 14px 24px; border-radius: 24px;
+              font-weight: 700; font-size: 15px; cursor: pointer;
+              transition: background 0.2s; width: 100%;
+          }
+          .btn:active { background-color: #008f6f; }
+          .loader {
+              border: 4px solid #2a3942; border-top: 4px solid #00a884;
+              border-radius: 50%; width: 45px; height: 45px;
+              animation: spin 1s linear infinite; margin: 0 auto 25px;
+          }
+          .footer { margin-top: 25px; font-size: 12px; color: #54656f; font-weight: 500;}
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <h2>Device Link</h2>
+          ${contentHtml}
+      </div>
+      <div class="footer">Securely managed by Goorac Systems</div>
+  </body>
+  </html>
+  `;
+
+  res.send(htmlTemplate);
 });
 
 // GET: Fetch all Auth Users (Now includes phoneNumber)

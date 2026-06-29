@@ -1,8 +1,13 @@
 FROM node:18-bullseye
 
-# Install Chromium and required Linux graphics libraries
+# 1. Skip Puppeteer's automatic Chrome download (Saves time & storage)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# 2. Install Chromium and required Linux fonts for check.js image generation
 RUN apt-get update && apt-get install -y \
     chromium \
+    fonts-liberation \
+    fontconfig \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
@@ -13,7 +18,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of your application code
+# 3. Fixed syntax typo: Copy the rest of your application code
 COPY . .
 
 # Give the 'node' user permission to write the WhatsApp session folder

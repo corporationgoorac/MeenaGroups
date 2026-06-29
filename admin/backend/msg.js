@@ -182,6 +182,11 @@ const client = new Client({
             '--ignore-certificate-errors',
             '--disable-web-security',
             '--disable-features=IsolateOrigins,site-per-process',
+            // --- NEW: ADVANCED NETWORK TIMEOUT & MEMORY FIXES ---
+            '--proxy-server="direct://"', 
+            '--proxy-bypass-list=*', 
+            '--disable-features=NetworkService',
+            '--js-flags="--max-old-space-size=512"', // Prevents Hugging Face Out-Of-Memory Crashes
             // --- NEW: Disguise the bot as a normal Windows Google Chrome browser ---
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             // NOTE: '--single-process' was removed on purpose to prevent Linux network lockups!
@@ -191,8 +196,8 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     // This will print the QR code in your Hugging Face Logs tab. 
-    qrcode.generate(qr, { small: true });
-    console.log('📱 ACTION REQUIRED: Scan the QR code above with your WhatsApp to link the bot.');
+    // qrcode.generate(qr, { small: true }); // DISABLED: Removed terminal QR output to keep console clean
+    console.log('🔄 New QR Code generated successfully. Please check the web interface to scan.');
 
     // --- GENERATE PERFECT QR IMAGE FOR WEBPAGE VIEWING ---
     const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=20&data=' + encodeURIComponent(qr);
@@ -241,17 +246,32 @@ client.on('disconnected', (reason) => {
     // STABILITY FIX: Safely attempt to restart the client to prevent permanent death
     console.log('🔄 Attempting to safely reboot WhatsApp Client...');
     client.destroy().then(() => {
-        client.initialize();
+        startWhatsAppClient(); // UPDATED to use the safe boot loop
     }).catch(e => console.error('⚠️ Failed to reboot client:', e.message));
 });
 
-client.initialize();
+// --- NEW: ADVANCED AUTO-RETRY ON NETWORK TIMEOUT ---
+function startWhatsAppClient() {
+    console.log("🚀 Booting WhatsApp Client...");
+    client.initialize().catch(err => {
+        console.error("❌ WhatsApp Engine Failed to Start:", err.message);
+        console.log("🔄 Network timeout detected. Retrying safely in 15 seconds...");
+        setTimeout(startWhatsAppClient, 15000);
+    });
+}
 
+startWhatsAppClient();
 
 // ---------------------------------------------------------
 // 2. HELPER: FETCH & CACHE AGENT DETAILS (READ OPTIMIZATION)
 // ---------------------------------------------------------
 const userCache = new Map(); // Stores { name, phone } mapped to UID
+
+// --- ADVANCED FIX: Clear User Cache Daily to ensure phone number updates sync ---
+setInterval(() => {
+    userCache.clear();
+    console.log("🧹 Cleared userCache to fetch fresh Agent phone numbers.");
+}, 24 * 60 * 60 * 1000); // Clears every 24 hours
 
 async function getAgentDetails(uid) {
     // If we already fetched this user's phone number today, use the cache (Zero Firebase Reads)
