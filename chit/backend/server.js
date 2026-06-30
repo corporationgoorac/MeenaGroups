@@ -1,9 +1,39 @@
 const express = require('express'); // FIXED: Lowercase 'const'
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
+
+// 🛠️ FIX: Gracefully handle dotenv for Hugging Face compatibility
+try {
+    require('dotenv').config();
+} catch (e) {
+    console.log("ℹ️ 'dotenv' module not found. Relying on native environment variables (Hugging Face Secrets).");
+}
+
+// FORCE ENTIRE SERVER NATIVELY INTO INDIAN STANDARD TIME (IST)
+process.env.TZ = "Asia/Kolkata";
+
+// =========================================================
+// 📱 CONFIGURE YOUR WHATSAPP NUMBER HERE 
+// Securely pulling from environment variables / Hugging Face Secrets.
+// =========================================================
+const LINKING_PHONE_NUMBER = process.env.PHONE;
+
+if (!LINKING_PHONE_NUMBER) {
+    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! Pairing code will fail to generate. Please add the PHONE secret in your environment settings.");
+}
+
+// ---------------------------------------------------------
+// PRODUCTION FIX: GLOBAL ERROR HANDLERS
+// ---------------------------------------------------------
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ [CRITICAL] Background Promise Rejection caught:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('⚠️ [CRITICAL] Background Exception caught:', error);
+});
 
 // --- 1. EXPRESS SERVER INIT ---
 const app = express();
@@ -31,9 +61,228 @@ try {
     console.error("❌ Firebase Admin init failed:", error);
 }
 
+// --- NEW API ENDPOINT: Force WA Client Restart for Fresh Code ---
+let isGeneratingNewCode = false; 
+
+app.post('/api/refresh-code', async (req, res) => {
+    try {
+        isGeneratingNewCode = true; 
+        console.log("🔄 Manual client restart requested for a fresh pairing code...");
+        try {
+            await client.destroy();
+        } catch(e) {
+            // Ignore if already dead
+        }
+        
+        if (fs.existsSync('pairing-code.txt')) {
+            fs.unlinkSync('pairing-code.txt');
+        }
+        
+        // Wait 2 seconds for clean destruction before booting up again
+        setTimeout(startWhatsAppClient, 2000);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Failed to refresh code:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// --- NEW API ENDPOINT: Smart status checking ---
+app.get('/api/pairing-status', (req, res) => {
+    const codePath = path.join(__dirname, 'pairing-code.txt');
+    const sessionPath = path.join(__dirname, 'wa_session');
+  
+    if (fs.existsSync(codePath)) {
+        isGeneratingNewCode = false; 
+        res.json({ ready: true, code: fs.readFileSync(codePath, 'utf8'), linked: false });
+    } else {
+        if (isGeneratingNewCode) {
+            res.json({ ready: false, linked: false });
+        } 
+        else if (fs.existsSync(sessionPath)) {
+            res.json({ ready: false, linked: true });
+        } 
+        else {
+            res.json({ ready: false, linked: false });
+        }
+    }
+});
+
+// Serve the Professional UI directly from the root URL
+app.get('/', (req, res) => {
+    const displayPhone = LINKING_PHONE_NUMBER || '918925730217';
+    const htmlTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>WhatsApp Device Link - Meena Chitfunds</title>
+        <style>
+            body {
+                margin: 0; padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                background-color: #0b111a;
+                color: #e9edef;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                min-height: 100vh;
+            }
+            .container {
+                background-color: #131b26; padding: 40px 25px;
+                border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                border: 1px solid #1e293b;
+                text-align: center; max-width: 400px; width: 85%;
+                box-sizing: border-box;
+            }
+            h2 { 
+                color: #065fd4;
+                margin-top: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
+            }
+            p { color: #94a3b8; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+            .code-container {
+                background: #0b111a; padding: 20px; border-radius: 12px;
+                display: inline-block; margin-bottom: 25px; border: 1px solid #1e293b;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .code-container h1 {
+                color: #065fd4; font-size: 40px; letter-spacing: 8px; 
+                margin: 0; user-select: all; cursor: pointer;
+                word-break: break-all;
+            }
+            .btn {
+                background-color: #065fd4; color: #ffffff;
+                border: none; padding: 14px 24px; border-radius: 24px;
+                font-weight: 700; font-size: 15px; cursor: pointer;
+                transition: background 0.2s; width: 100%; margin-bottom: 12px;
+                box-sizing: border-box;
+            }
+            .btn:active { background-color: #044ba6; }
+            .btn-secondary {
+                background-color: transparent; color: #065fd4;
+                border: 1px solid #065fd4; padding: 14px 24px; border-radius: 24px;
+                font-weight: 700; font-size: 15px; cursor: pointer;
+                transition: all 0.2s; width: 100%; margin-bottom: 12px; box-sizing: border-box;
+            }
+            .btn-secondary:active { background-color: rgba(6, 95, 212, 0.1); }
+            .btn:disabled, .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+            .loader {
+                border: 4px solid #1e293b; border-top: 4px solid #065fd4;
+                border-radius: 50%; width: 45px; height: 45px;
+                animation: spin 1s linear infinite; margin: 0 auto 25px;
+            }
+            .footer { margin-top: 25px; font-size: 12px; color: #64748b; font-weight: 500;}
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            
+            /* Success Animation */
+            .success-icon {
+                font-size: 60px; margin-bottom: 15px; display: inline-block;
+                animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+            .pulse { display: inline-block; width: 18px; height: 18px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; vertical-align: middle; margin-right: 8px; }
+            @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+            @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Meena Chitfunds Server</h2>
+            <div id="dynamic-content">
+                <div class="loader"></div>
+                <p>Checking system status...</p>
+            </div>
+        </div>
+        <div class="footer">Securely managed by Goorac Systems</div>
+
+        <script>
+            let currentState = "INIT";
+            let currentCode = "";
+            
+            function renderCode(code) {
+                document.getElementById('dynamic-content').innerHTML = \`
+                    <p>Open WhatsApp on your primary phone <b>(+${displayPhone})</b>. Tap the notification and enter the code below to link the system.</p>
+                    <div class="code-container">
+                      <h1 id="wa-code">\` + code + \`</h1>
+                    </div>
+                    <button class="btn" onclick="navigator.clipboard.writeText('\` + code + \`').then(() => { this.innerText='✅ Copied!'; setTimeout(() => this.innerText='📋 Copy Code', 2000); })">📋 Copy Code</button>
+                    <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Get Another Code</button>
+                \`;
+            }
+
+            function forceNewCode() {
+                const btn = document.getElementById('refresh-btn');
+                if (btn) { btn.innerText = '⏳ Generating...'; btn.disabled = true; }
+                
+                // Tell backend to restart client
+                fetch('/api/refresh-code', { method: 'POST' }).catch(err => console.error(err));
+                
+                // Immediately switch to waiting state visually
+                currentState = 'WAITING';
+                currentCode = '';
+                document.getElementById('dynamic-content').innerHTML = \`
+                    <div class="loader"></div>
+                    <p>Requesting fresh code from WhatsApp...<br><br>Please wait a few seconds.</p>
+                \`
+            }
+            
+            function checkStatus() {
+                fetch('/api/pairing-status')
+                    .then(res => res.json())
+                    .then(data => {
+                        const container = document.getElementById('dynamic-content');
+                        if (!container) return;
+
+                        if (data.ready && data.code) {
+                            // Detected a pairing code
+                            if (currentState !== 'CODE' || currentCode !== data.code) {
+                                currentState = 'CODE';
+                                currentCode = data.code;
+                                renderCode(data.code);
+                            }
+                        } else if (data.linked) {
+                            // Session connected
+                            if (currentState !== 'LINKED') {
+                                currentState = 'LINKED';
+                                container.innerHTML = \`
+                                    <div class="success-icon">✅</div>
+                                    <p style="color: #10b981; font-weight: bold; font-size: 22px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;"><span class="pulse"></span> Online</p>
+                                    <p>Meena Chitfunds WhatsApp Server is securely connected and actively monitoring schedules.</p>
+                                    <button class="btn-secondary" style="margin-top: 15px;" onclick="forceNewCode()">🔄 Re-Link Device</button>
+                                \`;
+                            }
+                        } else {
+                            // Booting up
+                            if (currentState !== 'WAITING') {
+                                currentState = 'WAITING';
+                                container.innerHTML = \`
+                                    <div class="loader"></div>
+                                    <p>The system is generating the code.<br><br>Waiting for WhatsApp Engine...</p>
+                                \`;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Polling Error:', err))
+                    .finally(() => {
+                        setTimeout(checkStatus, 2500); 
+                    });
+            }
+            checkStatus();
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(htmlTemplate);
+});
+
+// ADVANCED NETWORK BINDING FIX: Bind to 0.0.0.0 explicitly for Hugging Face Docker stability
+app.listen(port, '0.0.0.0', () => {
+    console.log(`🌐 Server running securely on port ${port}`);
+}).on('error', (err) => {
+    console.error('⚠️ [CRITICAL] Express Server Error:', err);
+});
+
 // --- 3. WHATSAPP WEB INIT (RAM OPTIMIZED) ---
 let waStatus = 'INITIALIZING'; // INITIALIZING, QR_READY, CONNECTED
-let currentQRDataURL = '';
 let isInitializing = false; // Flag to prevent multiple initializations simultaneously
 
 // ADVANCED EDGE CASE FIX: Flags to prevent duplicate scheduler clones and memory leaks
@@ -42,11 +291,10 @@ let isClientDestroying = false;
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './wa_session' }), // Saves session to prevent re-scanning
-    authTimeoutMs: 120000, // INCREASED to 2 minutes to prevent HuggingFace timeout crashes
+    authTimeoutMs: 0, // Infinite timeout to prevent HuggingFace timeout crashes
     puppeteer: {
         headless: true,
-        // ADVANCED TIMEOUT GUARD: Prevents net::ERR_TIMED_OUT on slow server wakeups
-        timeout: 60000,
+        timeout: 0,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
         args: [
             '--no-sandbox',
@@ -54,34 +302,46 @@ const client = new Client({
             '--disable-dev-shm-usage', // Critical for Docker/Hugging Face
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
-            /* '--no-zygote', */ // COMMENTED OUT: Causes instability on HF containers
-            /* '--single-process', */ // COMMENTED OUT: Triggers HF RAM Quota kills during spikes
             '--disable-gpu',
             '--js-flags="--max-old-space-size=450"', // UPDATED: Limit JS Heap strictly to 450MB
             // EXTRA RAM SAVERS:
             '--disable-extensions',
-            '--memory-pressure-off'
+            '--memory-pressure-off',
+            // NETWORK FORGIVENESS FLAGS:
+            '--ignore-certificate-errors',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--proxy-server="direct://"', 
+            '--proxy-bypass-list=*', 
+            '--disable-features=NetworkService',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         ]
     }
 });
 
-// Event: Generate & Save QR Code
+// Event: Generate Pairing Code
 client.on('qr', async (qr) => {
-    console.log('🔄 New QR Code Generated');
+    console.log('🔄 Authentication required. Requesting pairing code...');
     waStatus = 'QR_READY';
-    isInitializing = false; // THE DEADLOCK FIX: Unlock here so it can reboot if the QR times out!
+    isInitializing = false; // THE DEADLOCK FIX: Unlock here so it can reboot if needed
     
     try {
-        // Convert to Base64 for the frontend API
-        currentQRDataURL = await qrcode.toDataURL(qr);
+        const sanitizedPhoneNumber = LINKING_PHONE_NUMBER ? LINKING_PHONE_NUMBER.replace(/\D/g, '') : '';
         
-        // Write directly to file (overwrites the old one to save storage)
-        const base64Data = currentQRDataURL.replace(/^data:image\/png;base64,/, "");
-        const qrPath = path.join(__dirname, 'qr.png');
-        fs.writeFileSync(qrPath, base64Data, 'base64');
-        console.log(`🖼️ QR saved to ${qrPath}`);
+        if (!sanitizedPhoneNumber) {
+            throw new Error("Phone number is undefined or empty after sanitization.");
+        }
+
+        const pairingCode = await client.requestPairingCode(sanitizedPhoneNumber);
+        
+        console.log('====================================================');
+        console.log(`🔢 SUCCESS: Pairing code generated: ${pairingCode}`);
+        console.log('====================================================');
+        
+        fs.writeFileSync('pairing-code.txt', pairingCode);
+        
     } catch (err) {
-        console.error("Failed to generate QR file:", err);
+        console.error('❌ Failed to request pairing code:', err.message);
     }
 });
 
@@ -89,12 +349,12 @@ client.on('qr', async (qr) => {
 client.on('ready', () => {
     console.log('✅ WhatsApp Client is READY and ONLINE!');
     waStatus = 'CONNECTED';
-    currentQRDataURL = ''; // Clear memory
     isInitializing = false; // Reset lock once safely connected
     
-    // Delete the qr.png file since it's no longer needed
-    const qrPath = path.join(__dirname, 'qr.png');
-    if (fs.existsSync(qrPath)) fs.unlinkSync(qrPath);
+    // Clean up pairing code text file
+    if (fs.existsSync('pairing-code.txt')) {
+        fs.unlinkSync('pairing-code.txt');
+    }
 
     // --- EXECUTE CHECK.JS IF AVAILABLE ---
     // ADVANCED EDGE CASE FIX: Prevent check.js from being cloned every time WA reconnects
@@ -153,10 +413,7 @@ client.on('disconnected', async (reason) => {
         // THE FILE LOCK GUARD: Wait 5 seconds to let the OS release session files before restarting
         console.log("⏳ Waiting 5 seconds to release OS file locks...");
         setTimeout(() => {
-            client.initialize().catch(err => {
-                console.error("❌ Reboot Initialization Error:", err);
-                isInitializing = false;
-            }); // Reboot client
+            startWhatsAppClient(); // Safely reboot client
         }, 5000);
     }
 });
@@ -183,147 +440,31 @@ setInterval(async () => {
     }
 }, 15 * 60 * 1000);
 
-// Initialize the engine
-if (!isInitializing) {
+// --- ADVANCED AUTO-RETRY ON NETWORK TIMEOUT ---
+async function startWhatsAppClient() {
+    if (isInitializing) return; // Prevent double boot
     isInitializing = true;
-    client.initialize().catch(err => {
-        // PREVENTS UNHANDLED PROMISE REJECTION CRASH
-        console.error("❌ Fatal WhatsApp Initialization Error Caught:", err);
-        isInitializing = false; 
-    });
+    console.log("🚀 Booting WhatsApp Client...");
+    try {
+        await client.initialize();
+    } catch (err) {
+        console.error("❌ WhatsApp Engine Failed to Start:", err.message);
+        console.log("🧹 Cleaning up locked browser instance...");
+        
+        try {
+            await client.destroy(); 
+        } catch (destroyErr) {
+            // Ignore if the browser is already completely dead
+        }
+        
+        isInitializing = false;
+        console.log("🔄 Network timeout detected. Retrying safely in 15 seconds...");
+        setTimeout(startWhatsAppClient, 15000);
+    }
 }
 
-// --- 5. API ROUTES & INLINE FRONTEND ---
-
-app.get('/api/status', (req, res) => {
-    res.json({
-        status: waStatus,
-        qrUrl: currentQRDataURL
-    });
-});
-
-// Serve the Professional UI directly from the root URL
-app.get('/', (req, res) => {
-    const htmlUI = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>System Status - Meena Chitfunds</title>
-      <style>
-        :root {
-          --bg-color: #f4f7f6;
-          --surface-color: #ffffff;
-          --text-main: #111111;
-          --text-muted: #6b7280;
-          --brand-accent: #065fd4;
-          --success-color: #10b981;
-        }
-        @media (prefers-color-scheme: dark) {
-          :root {
-            --bg-color: #0a0a0a;
-            --surface-color: #141414;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-          }
-        }
-        body {
-          background-color: var(--bg-color);
-          color: var(--text-main);
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          display: flex; justify-content: center; align-items: center;
-          height: 100vh; margin: 0; padding: 20px; text-align: center;
-        }
-        .card {
-          background: var(--surface-color); padding: 40px; border-radius: 24px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px;
-          transition: 0.3s; border: 1px solid rgba(128,128,128,0.1);
-        }
-        .logo { font-size: 24px; font-weight: 800; color: var(--brand-accent); margin-bottom: 8px; letter-spacing: -0.5px;}
-        .status-text { font-size: 15px; color: var(--text-muted); font-weight: 600; margin-bottom: 24px;}
-        
-        .qr-container { position: relative; min-height: 250px; display: flex; justify-content: center; align-items: center; }
-        .qr-image { width: 250px; height: 250px; border-radius: 12px; display: none; border: 4px solid var(--brand-accent-light); }
-        
-        .loader { border: 4px solid rgba(128,128,128,0.2); border-top: 4px solid var(--brand-accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .success-icon { width: 80px; height: 80px; background: rgba(16, 185, 129, 0.15); color: var(--success-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; margin: 0 auto 20px; }
-        .success-ui { display: none; }
-      </style>
-    </head>
-    <body>
-
-      <div class="card" id="main-card">
-        <div id="auth-ui">
-            <div class="logo">Meena Chitfunds</div>
-            <div class="status-text" id="status-label">Initializing Server Engine...</div>
-            
-            <div class="qr-container">
-                <div class="loader" id="loader"></div>
-                <img src="" alt="WhatsApp QR" class="qr-image" id="qr-img">
-            </div>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:20px;">Open WhatsApp on your phone and link device.</p>
-        </div>
-
-        <div id="success-ui" class="success-ui">
-            <div class="success-icon">
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-            </div>
-            <div class="logo" style="color: var(--success-color);">ChitFunds Online</div>
-            <div class="status-text">Automation server is securely connected and actively monitoring schedules.</div>
-        </div>
-      </div>
-
-      <script>
-        async function checkStatus() {
-            try {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                
-                const loader = document.getElementById('loader');
-                const qrImg = document.getElementById('qr-img');
-                const statusLabel = document.getElementById('status-label');
-
-                if (data.status === 'QR_READY' && data.qrUrl) {
-                    loader.style.display = 'none';
-                    qrImg.style.display = 'block';
-                    qrImg.src = data.qrUrl; // Updates QR without reloading the page
-                    statusLabel.innerText = "Scan QR to Authenticate Server";
-                } 
-                else if (data.status === 'CONNECTED') {
-                    document.getElementById('auth-ui').style.display = 'none';
-                    document.getElementById('success-ui').style.display = 'block';
-                    return; // Stop polling once connected
-                }
-                else {
-                    loader.style.display = 'block';
-                    qrImg.style.display = 'none';
-                    statusLabel.innerText = "Initializing WhatsApp Engine...";
-                }
-            } catch (e) {
-                document.getElementById('status-label').innerText = "Reconnecting to server...";
-            }
-            
-            // Poll every 3 seconds
-            setTimeout(checkStatus, 3000);
-        }
-
-        // Start polling immediately
-        checkStatus();
-      </script>
-    </body>
-    </html>
-    `;
-    
-    res.send(htmlUI);
-});
-
-// ADVANCED NETWORK BINDING FIX: Bind to 0.0.0.0 explicitly for Hugging Face Docker stability
-app.listen(port, '0.0.0.0', () => {
-    console.log(`🌐 Server running securely on port ${port}`);
-});
+// Initialize the engine
+startWhatsAppClient();
 
 // Export for other files to use
 module.exports = { client, admin };
