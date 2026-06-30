@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const cron = require('node-cron');
-const fs = require('fs'); // NEW: Needed to read the QR image
-const path = require('path'); // NEW: Needed to find the image path
+const fs = require('fs'); 
+const path = require('path'); 
 require('dotenv').config();
 
 const app = express();
@@ -62,9 +62,6 @@ cron.schedule('0 0 * * *', async () => {
 
     if (count > 0) batches.push(currentBatch);
     
-    // --- OLD CODE (Commented out to prevent memory spike) ---
-    // await Promise.all(batches.map(b => b.commit()));
-    
     // --- NEW FIXED CODE: Sequential Commits ---
     for (const batch of batches) {
       await batch.commit();
@@ -81,39 +78,31 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 // ==========================================
+// EXTERNAL BOT REFERENCE INITIALIZATION
+// ==========================================
+let waBot = null; // Defined here so Express routes can use it for manual restarts
+let isGeneratingNewCode = false; // Tracks if a manual code refresh was just triggered
+
+// ==========================================
 // 2. EXPRESS API ENDPOINTS
 // ==========================================
 
-app.get('/', (req, res) => {
-  res.send('Meena Groups Admin Backend is running.');
+// --- NEW API ENDPOINT: Force WA Client Restart for Fresh Code ---
+app.post('/api/refresh-code', async (req, res) => {
+    try {
+        isGeneratingNewCode = true; // Tell the poller we are actively destroying the session to get a code
+        if (waBot && waBot.restartClient) {
+            await waBot.restartClient();
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Failed to refresh code:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
-// --- NEW: WEBPAGE TO VIEW QR CODE (DARK THEME MOBILE UI) ---
-app.get('/qr', (req, res) => {
-  const qrPath = path.join(__dirname, 'whatsapp-qr.png');
-  let contentHtml = '';
-  
-  if (fs.existsSync(qrPath)) {
-    // Read the image as base64 so we can embed it directly inside the HTML page
-    const imgData = fs.readFileSync(qrPath, 'base64');
-    const imgSrc = `data:image/png;base64,${imgData}`;
-    
-    contentHtml = `
-      <p>Scan this QR code using the WhatsApp app on your primary phone to link the system.</p>
-      <div class="qr-container">
-        <img src="${imgSrc}" alt="WhatsApp QR Code">
-      </div>
-      <button class="btn" onclick="window.location.reload()">🔄 Refresh Code</button>
-    `;
-  } else {
-    contentHtml = `
-      <div class="loader"></div>
-      <p>The system is currently connecting, or the QR code has already been successfully scanned.<br><br>Please wait 10 seconds and try again.</p>
-      <button class="btn" onclick="window.location.reload()">🔄 Check Status</button>
-    `;
-  }
-
-  // Inject the dynamic content into the Dark Theme Mobile HTML template
+// --- ROOT WEBPAGE TO VIEW PAIRING CODE (DARK THEME REAL-TIME UI) ---
+app.get('/', (req, res) => {
   const htmlTemplate = `
   <!DOCTYPE html>
   <html lang="en">
@@ -125,33 +114,49 @@ app.get('/qr', (req, res) => {
           body {
               margin: 0; padding: 0;
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              background-color: #111b21; /* WhatsApp dark mode background */
-              color: #e9edef; /* WhatsApp light text */
+              background-color: #111b21;
+              color: #e9edef;
               display: flex; flex-direction: column; align-items: center; justify-content: center;
               min-height: 100vh;
           }
           .container {
               background-color: #202c33; padding: 40px 25px;
               border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-              text-align: center; max-width: 360px; width: 85%;
+              text-align: center; max-width: 400px; width: 85%;
+              box-sizing: border-box;
           }
           h2 { 
-              color: #00a884; /* WhatsApp brand green */
+              color: #00a884;
               margin-top: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;
           }
           p { color: #8696a0; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
-          .qr-container {
-              background: white; padding: 15px; border-radius: 12px;
-              display: inline-block; margin-bottom: 30px;
+          .code-container {
+              background: #111b21; padding: 20px; border-radius: 12px;
+              display: inline-block; margin-bottom: 25px; border: 1px solid #2a3942;
+              width: 100%;
+              box-sizing: border-box;
           }
-          .qr-container img { width: 260px; height: 260px; display: block; }
+          .code-container h1 {
+              color: #00a884; font-size: 40px; letter-spacing: 8px; 
+              margin: 0; user-select: all; cursor: pointer;
+              word-break: break-all;
+          }
           .btn {
               background-color: #00a884; color: #111b21;
               border: none; padding: 14px 24px; border-radius: 24px;
               font-weight: 700; font-size: 15px; cursor: pointer;
-              transition: background 0.2s; width: 100%;
+              transition: background 0.2s; width: 100%; margin-bottom: 12px;
+              box-sizing: border-box;
           }
           .btn:active { background-color: #008f6f; }
+          .btn-secondary {
+              background-color: transparent; color: #00a884;
+              border: 1px solid #00a884; padding: 14px 24px; border-radius: 24px;
+              font-weight: 700; font-size: 15px; cursor: pointer;
+              transition: all 0.2s; width: 100%; margin-bottom: 12px; box-sizing: border-box;
+          }
+          .btn-secondary:active { background-color: rgba(0, 168, 132, 0.1); }
+          .btn:disabled, .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
           .loader {
               border: 4px solid #2a3942; border-top: 4px solid #00a884;
               border-radius: 50%; width: 45px; height: 45px;
@@ -159,22 +164,134 @@ app.get('/qr', (req, res) => {
           }
           .footer { margin-top: 25px; font-size: 12px; color: #54656f; font-weight: 500;}
           @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          
+          /* Success Animation */
+          .success-icon {
+              font-size: 60px; margin-bottom: 15px; display: inline-block;
+              animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          }
+          @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
       </style>
   </head>
   <body>
       <div class="container">
-          <h2>Device Link</h2>
-          ${contentHtml}
+          <h2>Pairing Code</h2>
+          <div id="dynamic-content">
+              <div class="loader"></div>
+              <p>Checking system status...</p>
+          </div>
       </div>
       <div class="footer">Securely managed by Goorac Systems</div>
+
+      <script>
+          let currentState = "INIT";
+          let currentCode = "";
+          
+          function renderCode(code) {
+              document.getElementById('dynamic-content').innerHTML = \`
+                  <p>Open WhatsApp on your primary phone <b>(+91 89257 30217)</b>. Tap the notification and enter the code below to link the system.</p>
+                  <div class="code-container">
+                    <h1 id="wa-code">\` + code + \`</h1>
+                  </div>
+                  <button class="btn" onclick="navigator.clipboard.writeText('\` + code + \`').then(() => { this.innerText='✅ Copied!'; setTimeout(() => this.innerText='📋 Copy Code', 2000); })">📋 Copy Code</button>
+                  <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Get Another Code</button>
+              \`;
+          }
+
+          function forceNewCode() {
+              const btn = document.getElementById('refresh-btn');
+              if (btn) { btn.innerText = '⏳ Generating...'; btn.disabled = true; }
+              
+              // Tell backend to restart client
+              fetch('/api/refresh-code', { method: 'POST' }).catch(err => console.error(err));
+              
+              // Immediately switch to waiting state visually
+              currentState = 'WAITING';
+              currentCode = '';
+              document.getElementById('dynamic-content').innerHTML = \`
+                  <div class="loader"></div>
+                  <p>Requesting fresh code from WhatsApp...<br><br>Please wait a few seconds.</p>
+              \`
+          }
+          
+          function checkStatus() {
+              fetch('/api/pairing-status')
+                  .then(res => res.json())
+                  .then(data => {
+                      const container = document.getElementById('dynamic-content');
+                      if (!container) return;
+
+                      if (data.ready && data.code) {
+                          // Detected a pairing code
+                          if (currentState !== 'CODE' || currentCode !== data.code) {
+                              currentState = 'CODE';
+                              currentCode = data.code;
+                              renderCode(data.code);
+                          }
+                      } else if (data.linked) {
+                          // No pairing code exists, but the session folder exists (Server is Connected)
+                          if (currentState !== 'LINKED') {
+                              currentState = 'LINKED';
+                              container.innerHTML = \`
+                                  <div class="success-icon">✅</div>
+                                  <p style="color: #00a884; font-weight: bold; font-size: 20px; margin-bottom: 10px;">Linked Successfully!</p>
+                                  <p>WhatsApp is now connected to the server. You can safely close this page.</p>
+                                  <button class="btn-secondary" style="margin-top: 15px;" onclick="forceNewCode()">🔄 Re-Link Device</button>
+                              \`;
+                          }
+                      } else {
+                          // No code, no session -> Booting up or generating new code
+                          if (currentState !== 'WAITING') {
+                              currentState = 'WAITING';
+                              container.innerHTML = \`
+                                  <div class="loader"></div>
+                                  <p>The system is generating the code.<br><br>Waiting for WhatsApp Engine...</p>
+                              \`;
+                          }
+                      }
+                  })
+                  .catch(err => console.error('Polling Error:', err))
+                  .finally(() => {
+                      // Keep polling continuously in the background so it auto-recovers if disconnected
+                      setTimeout(checkStatus, 2500); 
+                  });
+          }
+          
+          // Start the background polling loop immediately
+          checkStatus();
+      </script>
   </body>
   </html>
   `;
-
   res.send(htmlTemplate);
 });
 
-// GET: Fetch all Auth Users (Now includes phoneNumber)
+// --- NEW API ENDPOINT: Smart status checking (Solves the endless loader bug) ---
+app.get('/api/pairing-status', (req, res) => {
+  const codePath = path.join(__dirname, 'pairing-code.txt');
+  const sessionPath = path.join(__dirname, 'whatsapp-session');
+
+  if (fs.existsSync(codePath)) {
+    // If we have a code file, we definitely need the user to scan it. Reset generation flag.
+    isGeneratingNewCode = false; 
+    res.json({ ready: true, code: fs.readFileSync(codePath, 'utf8'), linked: false });
+  } else {
+    // If we deliberately asked for a new code, ignore the old session until the code arrives
+    if (isGeneratingNewCode) {
+        res.json({ ready: false, linked: false });
+    } 
+    // If the session folder exists and no new code was asked for, it means we are connected
+    else if (fs.existsSync(sessionPath)) {
+        res.json({ ready: false, linked: true });
+    } 
+    // Absolute fresh start (no session, no code)
+    else {
+        res.json({ ready: false, linked: false });
+    }
+  }
+});
+
+// GET: Fetch all Auth Users
 app.get('/api/users', async (req, res) => {
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
@@ -182,7 +299,7 @@ app.get('/api/users', async (req, res) => {
     const users = listUsersResult.users.map(user => ({
       uid: user.uid,
       email: user.email,
-      phoneNumber: user.phoneNumber || 'No Phone', // Added phone number retrieval
+      phoneNumber: user.phoneNumber || 'No Phone', 
       displayName: user.displayName || 'No Name Set',
       lastSignInTime: user.metadata.lastSignInTime || 'Never',
       creationTime: user.metadata.creationTime
@@ -302,7 +419,7 @@ app.listen(PORT, '0.0.0.0', () => {
 // 4. EXTERNAL SERVER INITIALIZATION
 // ==========================================
 try {
-  require('./msg.js');
+  waBot = require('./msg.js');
   console.log("📨 msg.js external server initialized successfully.");
 } catch (error) {
   console.error("❌ Failed to load msg.js:", error.message);

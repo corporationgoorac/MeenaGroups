@@ -1,3 +1,16 @@
+require('dotenv').config(); // 🛠️ BUG FIX: Changed 'Require' to 'require' (Node.js is case-sensitive and would fatally crash here)
+
+// =========================================================
+// 📱 CONFIGURE YOUR WHATSAPP NUMBER HERE 
+// Now securely pulling from Hugging Face Secrets.
+// Make sure to add a Secret named 'PHONE' with your number (e.g., 918925730217)
+// =========================================================
+const LINKING_PHONE_NUMBER = process.env.PHONE;
+
+if (!LINKING_PHONE_NUMBER) {
+    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! Pairing code will fail to generate. Please add the PHONE secret in your environment settings.");
+}
+
 const { Client, LocalAuth } = require('whatsapp-web.js'); 
 const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
@@ -16,6 +29,11 @@ process.on('uncaughtException', (err) => {
 
 // We do NOT need to initialize admin here because server.js already did it.
 // We just grab the existing database instance.
+// 🛠️ BUG FIX: Added a quick safety check just in case this script executes slightly before server.js finishes initializing.
+if (!admin.apps.length) {
+    console.warn("⚠️ [SAFETY CATCH] Firebase Admin was not initialized prior. Initializing default app to prevent crash...");
+    admin.initializeApp(); 
+}
 const db = admin.firestore();
 
 // --- NEW: ADVANCED STATE MANAGEMENT ---
@@ -170,6 +188,7 @@ const client = new Client({
     
     puppeteer: {
         executablePath: '/usr/bin/chromium', 
+        headless: true, // 🛠️ BUG FIX: Forces cloud environments to run without a GUI, preventing pairing code timeouts.
         // --- NEW: 0 means infinite timeout for the browser launch ---
         timeout: 0, 
         args: [
@@ -194,28 +213,34 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
-    // This will print the QR code in your Hugging Face Logs tab. 
-    // qrcode.generate(qr, { small: true }); // DISABLED: Removed terminal QR output to keep console clean
-    console.log('🔄 New QR Code generated successfully. Please check the web interface to scan.');
+client.on('qr', async (qr) => {
+    console.log('🔄 Authentication required. Requesting pairing code...');
+    
+    try {
+        // 🛠️ BUG FIX: Strictly strip all spaces, hyphens, and '+' signs from the number. WhatsApp Web crashes otherwise!
+        const sanitizedPhoneNumber = LINKING_PHONE_NUMBER ? LINKING_PHONE_NUMBER.replace(/\D/g, '') : '';
+        
+        if (!sanitizedPhoneNumber) {
+            throw new Error("Phone number is undefined or empty after sanitization.");
+        }
 
-    // --- GENERATE PERFECT QR IMAGE FOR WEBPAGE VIEWING ---
-    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=20&data=' + encodeURIComponent(qr);
-    https.get(qrUrl, (response) => {
-        const file = fs.createWriteStream('whatsapp-qr.png');
-        response.pipe(file);
-        file.on('finish', () => {
-            file.close();
-            console.log('====================================================');
-            console.log('🖼️ SUCCESS: A perfect QR Code image has been generated!');
-            console.log('👉 Go to your Hugging Face "Files and versions" tab.');
-            console.log('👉 Click on "whatsapp-qr.png" to view it perfectly as an image on the webpage and scan it.');
-            console.log('👉 OR visit directly: https://corporationgoorac-meenagroups.hf.space/qr'); // DIRECT URL LOG
-            console.log('====================================================');
-        });
-    }).on('error', (err) => {
-        console.error('Failed to save QR image:', err.message);
-    });
+        // Request the 8-digit code using the mobile number defined from secrets
+        const pairingCode = await client.requestPairingCode(sanitizedPhoneNumber);
+        
+        console.log('====================================================');
+        console.log(`🔢 SUCCESS: Pairing code generated: ${pairingCode}`);
+        console.log('====================================================');
+        
+        // Save the code to a text file so server.js can display it on the webpage
+        fs.writeFileSync('pairing-code.txt', pairingCode);
+        
+        // Clean up the old QR image if it still exists
+        if (fs.existsSync('whatsapp-qr.png')) {
+            fs.unlinkSync('whatsapp-qr.png');
+        }
+    } catch (err) {
+        console.error('❌ Failed to request pairing code:', err.message);
+    }
 });
 
 client.on('ready', () => {
@@ -229,7 +254,13 @@ client.on('ready', () => {
         console.log('⚙️ System listeners and cron jobs engaged successfully.');
     }
     
-    // --- CLEAN UP IMAGE AFTER SUCCESSFUL SCAN ---
+    // --- CLEAN UP PAIRING CODE AFTER SUCCESSFUL CONNECTION ---
+    if (fs.existsSync('pairing-code.txt')) {
+        fs.unlinkSync('pairing-code.txt');
+        console.log('🗑️ Cleaned up pairing-code.txt since connection was successful.');
+    }
+    
+    // --- CLEAN UP IMAGE AFTER SUCCESSFUL SCAN (Legacy Check) ---
     if (fs.existsSync('whatsapp-qr.png')) {
         fs.unlinkSync('whatsapp-qr.png');
         console.log('🗑️ Cleaned up whatsapp-qr.png since connection was successful.');
@@ -250,14 +281,25 @@ client.on('disconnected', (reason) => {
     }).catch(e => console.error('⚠️ Failed to reboot client:', e.message));
 });
 
-// --- NEW: ADVANCED AUTO-RETRY ON NETWORK TIMEOUT ---
-function startWhatsAppClient() {
+// --- NEW: ADVANCED AUTO-RETRY ON NETWORK TIMEOUT (BUG & EDGE CASE FIXED) ---
+async function startWhatsAppClient() {
     console.log("🚀 Booting WhatsApp Client...");
-    client.initialize().catch(err => {
+    try {
+        await client.initialize();
+    } catch (err) {
         console.error("❌ WhatsApp Engine Failed to Start:", err.message);
+        console.log("🧹 Cleaning up locked browser instance...");
+        
+        // Forcefully kill the stuck browser so it releases the folder lock
+        try {
+            await client.destroy(); 
+        } catch (destroyErr) {
+            // Ignore if the browser is already completely dead
+        }
+
         console.log("🔄 Network timeout detected. Retrying safely in 15 seconds...");
         setTimeout(startWhatsAppClient, 15000);
-    });
+    }
 }
 
 startWhatsAppClient();
@@ -485,3 +527,24 @@ if (fs.existsSync('./check.js')) {
         console.error("❌ Failed to execute check.js:", error.message);
     }
 }
+
+// ==========================================
+// 🚀 NEW: EXPORT RESTART FUNCTION FOR SERVER.JS
+// ==========================================
+module.exports = {
+    restartClient: async () => {
+        console.log("🔄 Manual client restart requested for a fresh pairing code...");
+        try {
+            await client.destroy();
+        } catch(e) {
+            // Ignore if already dead
+        }
+        
+        if (fs.existsSync('pairing-code.txt')) {
+            fs.unlinkSync('pairing-code.txt');
+        }
+        
+        // Wait 2 seconds for clean destruction before booting up again
+        setTimeout(startWhatsAppClient, 2000);
+    }
+};
