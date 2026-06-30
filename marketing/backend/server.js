@@ -1,11 +1,22 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const admin = require('firebase-admin');
 const express = require('express');
-const qrcode = require('qrcode');
 const fs = require('fs');
+const path = require('path');
+require('dotenv').config(); // Ensure dotenv is loaded for process.env.PHONE
 
 // FORCE ENTIRE SERVER NATIVELY INTO INDIAN STANDARD TIME (IST)
 process.env.TZ = "Asia/Kolkata";
+
+// =========================================================
+// 📱 CONFIGURE YOUR WHATSAPP NUMBER HERE 
+// Securely pulling from environment variables / Hugging Face Secrets.
+// =========================================================
+const LINKING_PHONE_NUMBER = process.env.PHONE;
+
+if (!LINKING_PHONE_NUMBER) {
+    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! Pairing code will fail to generate. Please add the PHONE secret in your environment settings.");
+}
 
 // ---------------------------------------------------------
 // PRODUCTION FIX: GLOBAL ERROR HANDLERS
@@ -54,100 +65,217 @@ const db = admin.firestore();
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-let qrDataURL = '';
-let isConnected = false;
+let isGeneratingNewCode = false; // Tracks if a manual code refresh was just triggered
 
-// The Web Dashboard
-app.get('/', (req, res) => {
-    if (isConnected) {
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <title>Server Status - Meena Marketing</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-                <style>
-                    body { background: #0b111a; color: #10b981; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
-                    .card { background: #131b26; padding: 40px 30px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; }
-                    h1 { font-size: 2.5rem; margin: 0 0 15px 0; display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 700; letter-spacing: -0.5px;}
-                    p { color: #94a3b8; font-size: 1.05rem; margin: 0; line-height: 1.5; font-weight: 400;}
-                    .pulse { display: inline-block; width: 18px; height: 18px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
-                    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1><span class="pulse"></span> Online</h1>
-                    <p>Meena Marketing WhatsApp Server is securely connected and actively listening.</p>
-                </div>
-            </body>
-            </html>
-        `);
-    } else if (qrDataURL) {
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <meta http-equiv="refresh" content="25">
-                <title>WhatsApp Login - Meena Marketing</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-                <style>
-                    body { background: #0b111a; color: #ffffff; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
-                    .card { background: #131b26; padding: 30px 20px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; display: flex; flex-direction: column; align-items: center; }
-                    h2 { color: #3b82f6; font-size: 1.5rem; margin: 0 0 5px 0; font-weight: 700; letter-spacing: -0.5px;}
-                    .subtitle { color: #94a3b8; font-size: 0.95rem; margin: 0 0 25px 0; font-weight: 400;}
-                    .qr-container { background: #ffffff; padding: 15px; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); display: inline-block; width: 100%; max-width: 280px; box-sizing: border-box;}
-                    .qr-container img { width: 100%; height: auto; display: block; border-radius: 8px; }
-                    .footer { color: #64748b; margin-top: 25px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; font-weight: 500;}
-                    .loader { width: 12px; height: 12px; border: 2px solid #64748b; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
-                    @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h2>Scan to Login</h2>
-                    <p class="subtitle">Meena Marketing Server</p>
-                    <div class="qr-container">
-                        <img src="${qrDataURL}" alt="WhatsApp QR Code"/>
-                    </div>
-                    <div class="footer"><span class="loader"></span> Auto-refreshing in 25s</div>
-                </div>
-            </body>
-            </html>
-        `);
-    } else {
-        res.send(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <meta http-equiv="refresh" content="5">
-                <title>Starting Server - Meena Marketing</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-                <style>
-                    body { background: #0b111a; color: #a1a1aa; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
-                    .card { background: #131b26; padding: 40px 30px; border-radius: 20px; border: 1px solid #1e293b; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 400px; width: 100%; display: flex; flex-direction: column; align-items: center; }
-                    .spinner { width: 42px; height: 42px; border: 4px solid rgba(59, 130, 246, 0.15); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; margin: 0 auto 20px auto; }
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                    h2 { font-size: 1.3rem; margin: 0; color: #e2e8f0; font-weight: 600; letter-spacing: -0.5px;}
-                    p { margin: 10px 0 0 0; font-size: 0.95rem; color: #94a3b8; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <div class="spinner"></div>
-                    <h2>Generating Secure QR</h2>
-                    <p>Initializing WhatsApp Engine...</p>
-                </div>
-            </body>
-            </html>
-        `);
+// --- NEW API ENDPOINT: Force WA Client Restart for Fresh Code ---
+app.post('/api/refresh-code', async (req, res) => {
+    try {
+        isGeneratingNewCode = true; 
+        console.log("🔄 Manual client restart requested for a fresh pairing code...");
+        try {
+            await client.destroy();
+        } catch(e) {
+            // Ignore if already dead
+        }
+        
+        if (fs.existsSync('pairing-code.txt')) {
+            fs.unlinkSync('pairing-code.txt');
+        }
+        
+        // Wait 2 seconds for clean destruction before booting up again
+        setTimeout(startWhatsAppClient, 2000);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Failed to refresh code:", error);
+        res.status(500).json({ success: false, error: error.message });
     }
+});
+
+// --- NEW API ENDPOINT: Smart status checking ---
+app.get('/api/pairing-status', (req, res) => {
+    const codePath = path.join(__dirname, 'pairing-code.txt');
+    const sessionPath = path.join(__dirname, 'whatsapp-session');
+  
+    if (fs.existsSync(codePath)) {
+        isGeneratingNewCode = false; 
+        res.json({ ready: true, code: fs.readFileSync(codePath, 'utf8'), linked: false });
+    } else {
+        if (isGeneratingNewCode) {
+            res.json({ ready: false, linked: false });
+        } 
+        else if (fs.existsSync(sessionPath)) {
+            res.json({ ready: false, linked: true });
+        } 
+        else {
+            res.json({ ready: false, linked: false });
+        }
+    }
+});
+
+// --- ROOT WEBPAGE TO VIEW PAIRING CODE (DARK THEME REAL-TIME UI) ---
+app.get('/', (req, res) => {
+    const displayPhone = LINKING_PHONE_NUMBER || '918925730217';
+    const htmlTemplate = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>WhatsApp Device Link - Meena Marketing</title>
+        <style>
+            body {
+                margin: 0; padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                background-color: #0b111a;
+                color: #e9edef;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                min-height: 100vh;
+            }
+            .container {
+                background-color: #131b26; padding: 40px 25px;
+                border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                border: 1px solid #1e293b;
+                text-align: center; max-width: 400px; width: 85%;
+                box-sizing: border-box;
+            }
+            h2 { 
+                color: #10b981;
+                margin-top: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
+            }
+            p { color: #94a3b8; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+            .code-container {
+                background: #0b111a; padding: 20px; border-radius: 12px;
+                display: inline-block; margin-bottom: 25px; border: 1px solid #1e293b;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .code-container h1 {
+                color: #10b981; font-size: 40px; letter-spacing: 8px; 
+                margin: 0; user-select: all; cursor: pointer;
+                word-break: break-all;
+            }
+            .btn {
+                background-color: #10b981; color: #0b111a;
+                border: none; padding: 14px 24px; border-radius: 24px;
+                font-weight: 700; font-size: 15px; cursor: pointer;
+                transition: background 0.2s; width: 100%; margin-bottom: 12px;
+                box-sizing: border-box;
+            }
+            .btn:active { background-color: #059669; }
+            .btn-secondary {
+                background-color: transparent; color: #10b981;
+                border: 1px solid #10b981; padding: 14px 24px; border-radius: 24px;
+                font-weight: 700; font-size: 15px; cursor: pointer;
+                transition: all 0.2s; width: 100%; margin-bottom: 12px; box-sizing: border-box;
+            }
+            .btn-secondary:active { background-color: rgba(16, 185, 129, 0.1); }
+            .btn:disabled, .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+            .loader {
+                border: 4px solid #1e293b; border-top: 4px solid #10b981;
+                border-radius: 50%; width: 45px; height: 45px;
+                animation: spin 1s linear infinite; margin: 0 auto 25px;
+            }
+            .footer { margin-top: 25px; font-size: 12px; color: #64748b; font-weight: 500;}
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            
+            /* Success Animation */
+            .success-icon {
+                font-size: 60px; margin-bottom: 15px; display: inline-block;
+                animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+            .pulse { display: inline-block; width: 18px; height: 18px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; vertical-align: middle; margin-right: 8px; }
+            @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+            @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Meena Marketing Server</h2>
+            <div id="dynamic-content">
+                <div class="loader"></div>
+                <p>Checking system status...</p>
+            </div>
+        </div>
+        <div class="footer">Securely managed by Goorac Systems</div>
+
+        <script>
+            let currentState = "INIT";
+            let currentCode = "";
+            
+            function renderCode(code) {
+                document.getElementById('dynamic-content').innerHTML = \`
+                    <p>Open WhatsApp on your primary phone <b>(+${displayPhone})</b>. Tap the notification and enter the code below to link the system.</p>
+                    <div class="code-container">
+                      <h1 id="wa-code">\` + code + \`</h1>
+                    </div>
+                    <button class="btn" onclick="navigator.clipboard.writeText('\` + code + \`').then(() => { this.innerText='✅ Copied!'; setTimeout(() => this.innerText='📋 Copy Code', 2000); })">📋 Copy Code</button>
+                    <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Get Another Code</button>
+                \`;
+            }
+
+            function forceNewCode() {
+                const btn = document.getElementById('refresh-btn');
+                if (btn) { btn.innerText = '⏳ Generating...'; btn.disabled = true; }
+                
+                // Tell backend to restart client
+                fetch('/api/refresh-code', { method: 'POST' }).catch(err => console.error(err));
+                
+                // Immediately switch to waiting state visually
+                currentState = 'WAITING';
+                currentCode = '';
+                document.getElementById('dynamic-content').innerHTML = \`
+                    <div class="loader"></div>
+                    <p>Requesting fresh code from WhatsApp...<br><br>Please wait a few seconds.</p>
+                \`
+            }
+            
+            function checkStatus() {
+                fetch('/api/pairing-status')
+                    .then(res => res.json())
+                    .then(data => {
+                        const container = document.getElementById('dynamic-content');
+                        if (!container) return;
+
+                        if (data.ready && data.code) {
+                            // Detected a pairing code
+                            if (currentState !== 'CODE' || currentCode !== data.code) {
+                                currentState = 'CODE';
+                                currentCode = data.code;
+                                renderCode(data.code);
+                            }
+                        } else if (data.linked) {
+                            // Session connected
+                            if (currentState !== 'LINKED') {
+                                currentState = 'LINKED';
+                                container.innerHTML = \`
+                                    <div class="success-icon">✅</div>
+                                    <p style="color: #10b981; font-weight: bold; font-size: 22px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;"><span class="pulse"></span> Online</p>
+                                    <p>Meena Marketing WhatsApp Server is securely connected and actively listening.</p>
+                                    <button class="btn-secondary" style="margin-top: 15px;" onclick="forceNewCode()">🔄 Re-Link Device</button>
+                                \`;
+                            }
+                        } else {
+                            // Booting up
+                            if (currentState !== 'WAITING') {
+                                currentState = 'WAITING';
+                                container.innerHTML = \`
+                                    <div class="loader"></div>
+                                    <p>The system is generating the code.<br><br>Waiting for WhatsApp Engine...</p>
+                                \`;
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Polling Error:', err))
+                    .finally(() => {
+                        setTimeout(checkStatus, 2500); 
+                    });
+            }
+            checkStatus();
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(htmlTemplate);
 });
 
 // PRODUCTION FIX: Catch Express binding errors
@@ -161,21 +289,56 @@ app.listen(PORT, () => {
 // 2. WHATSAPP CLIENT & MEMORY GUARD
 // ---------------------------------------------------------
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
+    authTimeoutMs: 0, 
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        timeout: 0,
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run',
+            '--ignore-certificate-errors',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--proxy-server="direct://"', 
+            '--proxy-bypass-list=*', 
+            '--disable-features=NetworkService',
+            '--js-flags="--max-old-space-size=512"',
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
     }
 });
 
 client.on('qr', async (qr) => {
-    console.log('🔄 New QR Code Generated. Check Web Dashboard.');
-    qrDataURL = await qrcode.toDataURL(qr);
+    console.log('🔄 Authentication required. Requesting pairing code...');
+    
+    try {
+        const sanitizedPhoneNumber = LINKING_PHONE_NUMBER ? LINKING_PHONE_NUMBER.replace(/\D/g, '') : '';
+        
+        if (!sanitizedPhoneNumber) {
+            throw new Error("Phone number is undefined or empty after sanitization.");
+        }
+
+        const pairingCode = await client.requestPairingCode(sanitizedPhoneNumber);
+        
+        console.log('====================================================');
+        console.log(`🔢 SUCCESS: Pairing code generated: ${pairingCode}`);
+        console.log('====================================================');
+        
+        fs.writeFileSync('pairing-code.txt', pairingCode);
+        
+    } catch (err) {
+        console.error('❌ Failed to request pairing code:', err.message);
+    }
 });
 
 client.on('ready', () => {
     console.log('✅ WhatsApp is ready!');
-    isConnected = true;
-    qrDataURL = ''; // Clear memory
+    if (fs.existsSync('pairing-code.txt')) {
+        fs.unlinkSync('pairing-code.txt');
+    }
 });
 
 // Memory Guard: Prevents Hugging Face OOM Crashes
@@ -983,8 +1146,24 @@ client.on('ready', () => {
     }
 });
 
-// Initialize WhatsApp
-// PRODUCTION FIX: Catch terminal initialization errors gracefully
-client.initialize().catch(err => {
-    console.error("⚠️ [CRITICAL] WhatsApp Initialization failed:", err);
-});
+// --- ADVANCED AUTO-RETRY ON NETWORK TIMEOUT (BUG & EDGE CASE FIXED) ---
+async function startWhatsAppClient() {
+    console.log("🚀 Booting WhatsApp Client...");
+    try {
+        await client.initialize();
+    } catch (err) {
+        console.error("❌ WhatsApp Engine Failed to Start:", err.message);
+        console.log("🧹 Cleaning up locked browser instance...");
+        
+        try {
+            await client.destroy(); 
+        } catch (destroyErr) {
+            // Ignore if the browser is already completely dead
+        }
+
+        console.log("🔄 Network timeout detected. Retrying safely in 15 seconds...");
+        setTimeout(startWhatsAppClient, 15000);
+    }
+}
+
+startWhatsAppClient();
