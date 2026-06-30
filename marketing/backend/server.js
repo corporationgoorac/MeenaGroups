@@ -1,9 +1,15 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js'); // 🛠️ FIX 1: Changed 'Const' to 'const'
 const admin = require('firebase-admin');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config(); // Ensure dotenv is loaded for process.env.PHONE
+
+// 🛠️ FIX 2: Gracefully handle dotenv for Hugging Face compatibility
+try {
+    require('dotenv').config(); // Ensure dotenv is loaded for process.env.PHONE locally
+} catch (e) {
+    console.log("ℹ️ 'dotenv' module not found. Relying on native environment variables (Hugging Face Secrets).");
+}
 
 // FORCE ENTIRE SERVER NATIVELY INTO INDIAN STANDARD TIME (IST)
 process.env.TZ = "Asia/Kolkata";
