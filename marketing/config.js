@@ -1,11 +1,12 @@
 // config.js
 
-// 1. Import ONLY the essential Firebase modules to reduce network overhead
+// Import the core Firebase App and Firestore database modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+// Import Firebase Auth module
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// 2. Your Meena Marketing Firebase configuration
+// Your Meena Marketing Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCqkxHdOnfAKv7ia6nI0j1L8spRBFM-g5I",
   authDomain: "meena-marketing.firebaseapp.com",
@@ -16,14 +17,14 @@ const firebaseConfig = {
   measurementId: "G-2M3E0H9X3P"
 };
 
-// 3. Initialize Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// 4. Initialize Firestore (Database)
+// Initialize Firestore to handle your company and balance data
 const db = getFirestore(app);
 
-// 5. Initialize Firebase Authentication
+// Initialize Firebase Authentication
 const auth = getAuth(app);
 
-// 6. Export the instances
+// Export the instances so they can be imported into your other HTML/JS files
 export { app, db, auth };
