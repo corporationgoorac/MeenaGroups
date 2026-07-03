@@ -1,13 +1,11 @@
 // config.js
 
-// Import the core Firebase App and Firestore database modules
+// 1. Import ONLY the essential Firebase modules to reduce network overhead
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
-// Import Firebase Auth module
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// Your Meena Marketing Firebase configuration
+// 2. Your Meena Marketing Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCqkxHdOnfAKv7ia6nI0j1L8spRBFM-g5I",
   authDomain: "meena-marketing.firebaseapp.com",
@@ -18,20 +16,14 @@ const firebaseConfig = {
   measurementId: "G-2M3E0H9X3P"
 };
 
-// Initialize Firebase
+// 3. Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize App Check with your reCAPTCHA Enterprise key
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaEnterpriseProvider('6LcLh58sAAAAAGhYIzY25G8uk7EhrfcDaDoSqrvQ'),
-  isTokenAutoRefreshEnabled: true
-});
-
-// Initialize Firestore to handle your company and balance data
+// 4. Initialize Firestore (Database)
 const db = getFirestore(app);
 
-// Initialize Firebase Authentication
+// 5. Initialize Firebase Authentication
 const auth = getAuth(app);
 
-// Export the instances so they can be imported into your other HTML/JS files
+// 6. Export the instances
 export { app, db, auth };
