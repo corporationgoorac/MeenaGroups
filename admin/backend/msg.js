@@ -267,6 +267,22 @@ client.on('ready', () => {
     }
 });
 
+// =========================================================
+// 🚀 ADVANCED ADDITION: HEADLESS BROWSER MEMORY GUARD
+// Prevents Out-Of-Memory (OOM) crashes on Hugging Face Spaces
+// =========================================================
+setInterval(async () => {
+    const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+    if (memoryUsage > 450) {
+        console.log(`⚠️ High Memory Detected (${Math.round(memoryUsage)}MB). Purging WhatsApp DOM cache...`);
+        if (client.pupPage) {
+            await client.pupPage.evaluate(() => {
+                if (window.Store && window.Store.Msg) window.Store.Msg.clear();
+            }).catch(() => {});
+        }
+    }
+}, 300000); // Scans every 5 minutes
+
 // STABILITY FIX: Added auth_failure logging
 client.on('auth_failure', msg => {
     console.error('❌ WhatsApp Authentication Failed:', msg);

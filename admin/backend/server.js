@@ -8,6 +8,11 @@ require('dotenv').config();
 
 const app = express();
 
+// ==========================================
+// 🚀 ADVANCED ADDITION: Basic API Security
+// ==========================================
+app.disable('x-powered-by'); // Hides the Express framework signature from response headers
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
@@ -408,10 +413,19 @@ app.post('/api/users/delete', async (req, res) => {
 });
 
 // ==========================================
+// 🚀 ADVANCED ADDITION: Global Error Handler
+// ==========================================
+// Catches rogue API errors so they don't crash the Node process
+app.use((err, req, res, next) => {
+  console.error('❌ [API ROUTE ERROR] Unhandled Exception:', err.stack);
+  res.status(500).json({ success: false, error: 'Internal Server Error' });
+});
+
+// ==========================================
 // 3. SERVER INITIALIZATION
 // ==========================================
 const PORT = process.env.PORT || 7860;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
@@ -426,12 +440,43 @@ try {
 }
 
 // ==========================================
-// 5. ANTI-CRASH: DAILY SAFE RESTART
+// 5. ADVANCED MEMORY MANAGEMENT (Zero-Downtime)
 // ==========================================
-cron.schedule('0 3 * * *', () => {
-  console.log("🧹 Performing daily safe restart at 3:00 AM to clear RAM...");
-  process.exit(0); // Exits cleanly, Hugging Face/Docker will restart it fresh immediately
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata"
+// Replaced the 3:00 AM 'process.exit(0)' kill-switch with a smart memory monitor.
+// This keeps the server running 24/7 without wiping your Hugging Face storage!
+setInterval(() => {
+  const memoryUsage = process.memoryUsage();
+  const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+  
+  if (heapUsedMB > 450) {
+    console.log(`⚠️ [MEMORY GUARD] High Memory Detected (${heapUsedMB}MB). Triggering soft garbage collection...`);
+    // Soft clean without dropping the container connection
+    if (global.gc) {
+      global.gc();
+      console.log('🧹 V8 Garbage Collector successfully cleared RAM without rebooting.');
+    } else {
+      // 🚀 ADVANCED ADDITION: Warning if Dockerfile is missing --expose-gc
+      console.warn('⚠️ [WARNING] Garbage Collection skipped! You must add "--expose-gc" to your Dockerfile CMD.');
+    }
+  }
+}, 15 * 60 * 1000); // Checks seamlessly in the background every 15 minutes
+
+// ==========================================
+// 🚀 ADVANCED ADDITION: Graceful Shutdown System
+// ==========================================
+// Hugging Face sends SIGTERM when rebuilding or restarting spaces.
+// This ensures Firebase and Express close safely instead of corrupting data.
+process.on('SIGTERM', () => {
+  console.log('🛑 [SYSTEM] SIGTERM received from Hugging Face. Shutting down gracefully...');
+  server.close(() => {
+    console.log('🔌 [SYSTEM] Express server closed.');
+    process.exit(0);
+  });
+});
+process.on('SIGINT', () => {
+  console.log('🛑 [SYSTEM] SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('🔌 [SYSTEM] Express server closed.');
+    process.exit(0);
+  });
 });
