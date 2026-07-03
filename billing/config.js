@@ -3,7 +3,6 @@
 // Import the core Firebase App and Firestore database modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app-check.js";
 // Import Firebase Auth module
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
@@ -20,12 +19,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize App Check with your reCAPTCHA Enterprise key
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaEnterpriseProvider('6LcLh58sAAAAAGhYIzY25G8uk7EhrfcDaDoSqrvQ'),
-  isTokenAutoRefreshEnabled: true
-});
 
 // Initialize Firestore to handle your company and balance data
 const db = getFirestore(app);
