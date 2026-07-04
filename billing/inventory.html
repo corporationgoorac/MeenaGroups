@@ -42,16 +42,6 @@
             -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
 
-        /* STRICT FIX: Prevent copy, highlight, and Google assistant popups completely on Action Modal */
-        #modalCardActions, #modalCardActions * {
-            -webkit-user-select: none !important;
-            -moz-user-select: none !important;
-            -ms-user-select: none !important;
-            user-select: none !important;
-            -webkit-touch-callout: none !important;
-            -webkit-tap-highlight-color: transparent !important;
-        }
-
         .material-symbols-outlined { display: inline-flex; align-items: center; justify-content: center; }
         .material-symbols-outlined svg { width: 1em; height: 1em; fill: currentColor; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
@@ -264,6 +254,7 @@
                             const res = await fetch(`https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/${iconName}/default/24px.svg`);
                             if (res.ok) {
                                 let svgText = await res.text();
+                                svgText = svgText.replace(/<title>.*?<\/title>/gi, '');
                                 cache[iconName] = svgText;
                                 cacheUpdated = true;
                                 el.innerHTML = svgText;
@@ -323,7 +314,7 @@
                     <span class="material-symbols-outlined">search</span>
                     <input type="text" id="searchInventory" placeholder="Search inventory..." autocomplete="off">
                 </div>
-                <div class="filter-btn-wrap" onclick="vibrateApp(20); openTypeSelectModal('filter')" title="Filter by Type">
+                <div class="filter-btn-wrap" onclick="vibrateApp(20); openTypeSelectModal('filter')">
                     <span class="material-symbols-outlined" style="color: var(--accent-color);">tune</span>
                     <span id="filterActiveBadge" class="filter-active-badge"></span>
                 </div>
@@ -335,16 +326,16 @@
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item" onclick="vibrateApp(50); window.location.href='../billing/bill.html'" title="Create Bill">
+        <div class="nav-item" onclick="vibrateApp(50); window.location.href='../billing/bill.html'">
             <span class="material-symbols-outlined">receipt_long</span>
         </div>
-        <div class="nav-item" onclick="vibrateApp(40); filterLowStock()" id="btnLowStock" title="Low Stock">
+        <div class="nav-item" onclick="vibrateApp(40); filterLowStock()" id="btnLowStock">
             <span class="material-symbols-outlined">warning</span>
         </div>
-        <div class="nav-item" onclick="vibrateApp(40); window.location.href='today.html'" title="Today's View">
+        <div class="nav-item" onclick="vibrateApp(40); window.location.href='today.html'">
             <span class="material-symbols-outlined">calendar_today</span>
         </div>
-        <div class="nav-item" onclick="vibrateApp(40); openModal('modalAddInventory')" title="Add Product">
+        <div class="nav-item" onclick="vibrateApp(40); openModal('modalAddInventory')">
             <span class="material-symbols-outlined">add_circle</span>
         </div>
     </div>
@@ -585,7 +576,7 @@
         </div>
     </div>
     
-    <div class="modal" id="modalCardActions" oncontextmenu="return false;">
+    <div class="modal" id="modalCardActions">
         <div class="modal-content-wrap">
             <div style="display:flex; justify-content:flex-end; margin-bottom:-10px;">
                 <button class="close-modal" onclick="vibrateApp(20); history.back()"><span class="material-symbols-outlined">close</span></button>
@@ -1626,8 +1617,8 @@
                     <div class="${cardClass}" onclick="openCardActionModal('${item.id}')" style="animation-delay: ${animDelay}s;">
                         ${oosBadge}
                         <div class="inv-info">
-                            <span class="inv-name" title="${item.name}">${item.name}</span>
-                            <span class="inv-model" title="${item.model || 'No Model ID'}">${typeLabel}${item.model || 'No Model ID'}</span>
+                            <span class="inv-name">${item.name}</span>
+                            <span class="inv-model">${typeLabel}${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                         </div>
                         <div class="inv-qty ${qtyClass}">
@@ -1667,8 +1658,8 @@
                     <div class="${cardClass}" onclick="openCardActionModal('${item.id}')" style="animation-delay: ${animDelay}s;">
                         ${oosBadge}
                         <div class="inv-info">
-                            <span class="inv-name" title="${item.name}">${item.name}</span>
-                            <span class="inv-model" title="${item.model || 'No Model ID'}">${typeLabel}${item.model || 'No Model ID'}</span>
+                            <span class="inv-name">${item.name}</span>
+                            <span class="inv-model">${typeLabel}${item.model || 'No Model ID'}</span>
                             <span class="inv-price"><span class="inv-mrp">₹${(item.mrp || 0).toLocaleString()}</span>₹${(item.price || 0).toLocaleString()}</span>
                         </div>
                         <div class="inv-qty ${qtyClass}">
@@ -1839,74 +1830,90 @@
                     <div class="pending-item">
                         <div>
                             <div style="font-weight:600; color:var(--marketing-white); font-size: 1.05em;">${item.name} <span style="font-weight:700; color:var(--accent-color); font-size: 0.9em; margin-left: 5px;">+${item.qty}</span> ${actionBadge}</div>
-                            <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">${item.type} • ${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> <span style="color:var(--success-color);">₹${item.price.toLocaleString()}</span></div>
+                            <div style="font-size:0.85em; color:var(--text-secondary); margin-top: 5px; font-weight: 500;">${item.type} • ${item.model || 'No ID'} • <strike>₹${(item.mrp || 0).toLocaleString()}</strike> <span style="color:var(--success-color);">₹${(item.price || 0).toLocaleString()}</span></div>
                         </div>
-                        <button class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></button>
-                    </div>
-                `;
+                        <div class="p-del" onclick="removePendingItem(${index})"><span class="material-symbols-outlined">delete</span></div>
+                    </div>`;
             });
-            
+
             btnSave.disabled = false;
-            btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save ${pendingCart.length} Items to Database`;
+            btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All ${pendingCart.length} Items`;
             if(window.updateIcons) window.updateIcons();
         }
 
         document.getElementById('btnSaveInventory').addEventListener('click', async () => {
-            vibrateApp();
+            vibrateApp(40);
             if (pendingCart.length === 0) return;
-            
+
             const btnSave = document.getElementById('btnSaveInventory');
             btnSave.disabled = true;
-            btnSave.innerHTML = "Saving to Server...";
+            btnSave.innerHTML = "Saving...";
 
             try {
-                const batch = writeBatch(db);
+                let batch = writeBatch(db);
+                let operations = 0;
+                
+                const realEditorName = await getFreshUserName();
 
-                pendingCart.forEach(item => {
+                for (const item of pendingCart) {
                     if (item.isUpdate && item.existingId) {
-                        const existingRef = doc(db, "inventory", item.existingId);
-                        batch.update(existingRef, {
-                            qty: increment(item.qty),
+                        const itemRef = doc(db, "inventory", item.existingId);
+                        const newQty = item.existingQty + item.qty;
+                        batch.update(itemRef, {
+                            qty: newQty,
                             previousQty: item.existingQty,
-                            lastUpdated: new Date().toISOString(),
-                            createdAt: serverTimestamp() 
+                            lastEditReason: "New Stock Added via Cart",
+                            lastEditBy: realEditorName,
+                            lastUpdated: new Date().toISOString()
                         });
                     } else {
-                        const newRef = doc(collection(db, "inventory"));
-                        batch.set(newRef, {
+                        const newDocRef = doc(collection(db, "inventory"));
+                        batch.set(newDocRef, {
                             name: item.name,
                             model: item.model,
                             type: item.type, 
                             mrp: item.mrp,
                             price: item.price,
                             qty: item.qty,
-                            searchTokens: generateSearchTokens(item.name, item.model), 
+                            searchTokens: generateSearchTokens(item.name, item.model),
                             createdAt: serverTimestamp()
                         });
                     }
-                });
-
-                await batch.commit();
-
-                showToast("Inventory successfully updated!", "success");
+                    operations++;
+                    
+                    if (operations === 500) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        operations = 0;
+                    }
+                }
                 
+                if (operations > 0) {
+                    await batch.commit();
+                }
+
+                showToast("All items saved successfully!", "success");
                 pendingCart = [];
                 renderPendingList();
                 history.back(); 
-                
-                currentSearchTerm = ''; 
-                document.getElementById('searchInventory').value = '';
-                loadInventory();
-
+                loadInventory(); 
             } catch (err) {
-                console.error("Batch save failed", err);
-                showToast(err.message || "Error saving data. Check console.", "error");
-                btnSave.disabled = false;
-                renderPendingList(); 
+                console.error("Error saving inventory:", err);
+                showToast(err.message || "Failed to save items.", "error");
+            } finally {
+                if (pendingCart.length > 0) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = `<span class="material-symbols-outlined">save</span> Save All ${pendingCart.length} Items`;
+                }
+                if(window.updateIcons) window.updateIcons();
             }
         });
 
-        loadInventory();
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        window.addEventListener('load', () => {
+            loadInventory();
+        });
     </script>
 </body>
 </html>
