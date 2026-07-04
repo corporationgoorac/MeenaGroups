@@ -37,7 +37,8 @@
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
-        header, .brand-container, .brand-text, .logo-img, .material-symbols-outlined, .fab-container, .fab, .action-btn, .header-actions, .bottom-nav {
+        /* UPGRADED: Added all modal and action elements to prevent accidental copy/highlighting */
+        header, .brand-container, .brand-text, .logo-img, .material-symbols-outlined, .fab-container, .fab, .action-btn, .header-actions, .bottom-nav, #modalCardActions, .modal-content-wrap, .big-action-btn {
             -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
 
@@ -71,7 +72,6 @@
         .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 110px; width: 100%; box-sizing: border-box;}
         .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
-        /* UPGRADED: Advanced Search Bar - Persistent Pill Shape */
         .search-bar-container { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 50px; padding: 0 10px 0 20px; margin-bottom: 24px; transition: all 0.3s ease; width: 100%; box-sizing: border-box; box-shadow: var(--shadow-sm); overflow: hidden; }
         .search-bar-container:focus-within { border-color: var(--accent-color); box-shadow: var(--shadow-glow); background: var(--surface-hover); }
         .search-bar-container .material-symbols-outlined { color: var(--text-secondary); font-size: 24px; transition: color 0.3s; }
@@ -89,7 +89,6 @@
         .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-        /* UPGRADED: Staggered Fade Up Animation */
         @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -98,7 +97,6 @@
         .inv-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
         @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
         
-        /* UPGRADED: Card styling for tap interaction */
         .inv-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); display: flex; justify-content: space-between; align-items: flex-start; transition: all 0.25s ease; position: relative; overflow: hidden; box-sizing: border-box; width: 100%; flex-shrink: 0; box-shadow: var(--shadow-sm); cursor: pointer; animation: fadeSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; -webkit-tap-highlight-color: transparent;}
         .inv-card:hover, .inv-card:active { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: var(--shadow-lg); background: var(--surface-hover); }
         .inv-card.out-of-stock { opacity: 0.7; border-color: rgba(239, 68, 68, 0.4); }
@@ -115,18 +113,18 @@
 
         .oos-badge { position: absolute; top: 0; right: 0; background: linear-gradient(135deg, var(--meena-red), #b91c1c); color: white; font-size: 0.65em; padding: 4px 12px; border-bottom-left-radius: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; box-shadow: -2px 2px 8px rgba(0,0,0,0.2);}
 
-        /* UPGRADED: Bottom Navigation Bar Architecture */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(19,27,38,0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-around; align-items: center; padding: 5px 15px calc(15px + env(safe-area-inset-bottom)); z-index: 1000; box-shadow: 0 -10px 20px rgba(0,0,0,0.2); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); gap: 4px; padding: 10px; cursor: pointer; transition: all 0.2s ease; border-radius: 12px;}
+        /* UPGRADED: Sleek Floating Pill Navigation Bar */
+        .bottom-nav { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: rgba(19,27,38,0.92); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-around; align-items: center; padding: 8px 25px; z-index: 1000; box-shadow: 0 15px 35px rgba(0,0,0,0.5); border-radius: 50px; width: 90%; max-width: 380px; gap: 15px;}
+        .nav-item { display: flex; justify-content: center; align-items: center; color: var(--text-secondary); padding: 12px; cursor: pointer; transition: all 0.2s ease; border-radius: 50%;}
         .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-item:active { transform: scale(0.95); }
-        .nav-item .material-symbols-outlined { font-size: 26px; }
-        .nav-item span.nav-label { font-size: 0.7em; font-weight: 600; letter-spacing: 0.5px; }
+        .nav-item:active { transform: scale(0.90); }
+        .nav-item .material-symbols-outlined { font-size: 28px; }
         .nav-item.active { color: var(--warning-color); }
         
-        .nav-fab-center { transform: translateY(-25px); background: linear-gradient(135deg, var(--success-color), #059669); width: 68px; height: 68px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); border: 6px solid var(--bg-color); color: white; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .nav-fab-center:hover { transform: translateY(-30px) scale(1.05); box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5); }
-        .nav-fab-center:active { transform: translateY(-20px) scale(0.95); }
+        /* Adjusted center button to flow perfectly with the pill shape */
+        .nav-fab-center { transform: translateY(-15px); background: linear-gradient(135deg, var(--success-color), #059669); width: 62px; height: 62px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); border: 5px solid var(--bg-color); color: white; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0;}
+        .nav-fab-center:hover { transform: translateY(-20px) scale(1.05); box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5); }
+        .nav-fab-center:active { transform: translateY(-10px) scale(0.95); }
         .nav-fab-center .material-symbols-outlined { font-size: 30px; }
 
         .modal { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 2000; transition: right 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); overflow-y: auto; padding-bottom: 80px; box-sizing: border-box; }
@@ -183,11 +181,13 @@
         .btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); }
         #confirmInput { display: none; width: 100%; margin-top: 20px; font-size: 1.1em; text-align: center; }
 
-        /* UPGRADED: Center Pop Card Action Modal */
-        #modalCardActions { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 2500; position: fixed; }
+        /* UPGRADED: Action Modal with Expanding "Grow" Animation */
+        #modalCardActions { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.35s ease-in-out; padding: 20px; z-index: 2500; position: fixed; }
         #modalCardActions.active { opacity: 1; pointer-events: auto; }
-        #modalCardActions .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 350px; border-radius: 24px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95) translateY(10px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; display: flex; flex-direction: column; padding: 25px; text-align: center;}
-        #modalCardActions.active .modal-content-wrap { transform: scale(1) translateY(0); }
+        /* Notice the aggressive scale and bouncy cubic bezier to simulate the card expanding */
+        #modalCardActions .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 350px; border-radius: 40px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.6) translateY(20px); opacity: 0; transition: all 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); overflow: hidden; display: flex; flex-direction: column; padding: 25px; text-align: center;}
+        #modalCardActions.active .modal-content-wrap { transform: scale(1) translateY(0); opacity: 1; border-radius: 24px;}
+        
         .action-modal-title { font-size: 1.25em; font-weight: 700; color: white; margin-bottom: 5px; line-height: 1.3;}
         .action-modal-model { font-size: 0.85em; color: var(--accent-color); font-weight: 600; background: rgba(13,148,136,0.1); padding: 4px 10px; border-radius: 6px; display: inline-block; margin-bottom: 20px;}
         
@@ -330,24 +330,17 @@
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item" onclick="vibrateApp(40); filterLowStock()" id="btnLowStock">
+        <div class="nav-item" onclick="vibrateApp(40); filterLowStock()" id="btnLowStock" title="Low Stock">
             <span class="material-symbols-outlined">warning</span>
-            <span class="nav-label">Low Stock</span>
         </div>
-        <div class="nav-item" onclick="vibrateApp(40); window.location.href='today.html'">
+        <div class="nav-item" onclick="vibrateApp(40); window.location.href='today.html'" title="Today's View">
             <span class="material-symbols-outlined">calendar_today</span>
-            <span class="nav-label">Today</span>
         </div>
-        <div class="nav-fab-center" onclick="vibrateApp(50); window.location.href='../billing/bill.html'">
+        <div class="nav-fab-center" onclick="vibrateApp(50); window.location.href='../billing/bill.html'" title="Create Bill">
             <span class="material-symbols-outlined">receipt_long</span>
         </div>
-        <div class="nav-item" onclick="vibrateApp(40); openModal('modalAddInventory')">
+        <div class="nav-item" onclick="vibrateApp(40); openModal('modalAddInventory')" title="Add Product">
             <span class="material-symbols-outlined">add_circle</span>
-            <span class="nav-label">Add Product</span>
-        </div>
-        <div class="nav-item" onclick="vibrateApp(40); window.location.href='settings.html'" style="opacity: 0.5;">
-            <span class="material-symbols-outlined">settings</span>
-            <span class="nav-label">Settings</span>
         </div>
     </div>
 
@@ -831,7 +824,6 @@
             }
         });
 
-        // UPGRADED: Centralized action modal logic
         window.openCardActionModal = function(id) {
             vibrateApp(25);
             const item = inventoryCache.find(i => i.id === id);
@@ -852,9 +844,9 @@
         };
 
         function triggerActionSafely(callback) {
-            history.back(); // Dismisses the action modal safely through popstate
+            history.back(); 
             setTimeout(() => {
-                callback(); // Fires the next modal
+                callback(); 
             }, 200);
         }
 
@@ -1599,7 +1591,6 @@
             }
         });
 
-        // UPGRADED: renderInventory removes inline actions and connects complete card click
         function renderInventory(dataArray) {
             const grid = document.getElementById('inventoryGrid');
             if (dataArray.length === 0) {
@@ -1624,7 +1615,6 @@
                 }
                 
                 const typeLabel = item.type ? `<span style="display: none;">${item.type}</span>` : '';
-                // Dynamic animation delay for staggered entrance
                 const animDelay = index * 0.05;
 
                 htmlBuffer += `
@@ -1646,7 +1636,6 @@
             if(window.updateIcons) window.updateIcons();
         }
 
-        // UPGRADED: renderInventoryAppend similarly stripped of inline actions
         function renderInventoryAppend(dataArray) {
             const grid = document.getElementById('inventoryGrid');
             if (dataArray.length === 0) return;
