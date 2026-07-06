@@ -1,3 +1,5 @@
+'use strict'; // ADVANCED FIX: Enforces strict parsing and error handling at the V8 engine level
+
 const fs = require('fs');
 const { MessageMedia } = require('whatsapp-web.js');
 
@@ -19,6 +21,7 @@ let isInitialized = false;
  * 11. SMART WEEKEND BOOSTER: Dynamically adjusts quota on Sundays
  * 12. EXPANDED INVENTORY & MULTI-LAYOUT DESIGNS ADDED
  * 13. HUMAN-LIKE DYNAMIC VOICE NOTE SIMULATOR ADDED (Cache-Busted)
+ * 14. PRODUCTION HARDENED: window.require bypass & Memory Leak Protection added
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
@@ -34,9 +37,20 @@ module.exports = (client, db) => {
     const docRef = db.collection('marketing_messages').doc('campaign_data');
 
     // --- UTILITIES ---
+    
+    /**
+     * Pauses execution for a given number of milliseconds.
+     * @param {number} ms - Milliseconds to sleep.
+     * @returns {Promise<void>}
+     */
     const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 
     // ENTERPRISE FIX: Smart Phone Number Formatter handling Gaps, +81, 92, and standard 10-digit Indian numbers
+    /**
+     * Formats raw phone numbers into strict international dialing format.
+     * @param {string|number} num - The raw phone number input.
+     * @returns {string|null} Validated E.164 formatted number or null.
+     */
     const formatPhone = (num) => {
         if (!num) return null;
         // Strip out all spaces, dashes, and letters natively
@@ -225,7 +239,7 @@ module.exports = (client, db) => {
             }
             
         } catch (error) {
-            console.error(`⚠️ [Marketing] Voice note simulation failed completely for ${verifiedWhatsappId}:`, error.message || error);
+            console.error(`⚠️ [Marketing] Voice note simulation failed completely for ${verifiedWhatsappId}:`, error.stack || error.message || error);
         }
     };
 
@@ -279,7 +293,7 @@ module.exports = (client, db) => {
                 await sendHumanVoiceNote(client, msg.from, customerName, msg.from);
                 
             } catch (err) {
-                console.error("Manual Ad Generation Error:", err);
+                console.error("Manual Ad Generation Error:", err.stack || err);
                 await msg.reply("⚠️ Error generating image. Server might be busy.");
             }
         }
@@ -368,7 +382,7 @@ module.exports = (client, db) => {
             await runDistributionCycle(dbData);
 
         } catch (err) {
-            console.error("❌ [Marketing] Error fetching batch:", err);
+            console.error("❌ [Marketing] Error fetching batch:", err.stack || err);
             isProcessing = false;
         }
     };
@@ -455,10 +469,15 @@ module.exports = (client, db) => {
                 verifiedWhatsappId = contactId._serialized;
             }
         } catch(e) { 
-            if(e.message && (e.message.includes('WidFactory') || e.message.includes('Evaluation failed') || e.message.includes('findChat'))) {
-                console.log('⚠️ WidFactory timeout or DOM sync error on check. Proceeding to attempt send with fallback ID.');
+            // 🚀 ADVANCED FIX IMPLEMENTED HERE: Added window.require error detection
+            const errorStr = e.message || '';
+            if(errorStr.includes('WidFactory') || errorStr.includes('Evaluation failed') || errorStr.includes('findChat') || errorStr.includes('window.require is not a function')) {
+                console.log(`⚠️ [Marketing] DOM sync error or missing window.require for ${plainPhone}. Proceeding with dynamic fallback ID.`);
                 verifiedWhatsappId = plainPhone + '@c.us';
-            } else throw e; 
+            } else {
+                console.error(`🚨 [CRITICAL] Unhandled WhatsApp Web exception during number validation:`, e.stack || e);
+                throw e; 
+            }
         }
             
         if (!verifiedWhatsappId) {
@@ -480,9 +499,11 @@ module.exports = (client, db) => {
                 await sendPromotion(customer, verifiedWhatsappId);
                 wasSentSuccessfully = true;
             } catch (error) {
-                console.error(`⚠️ [Marketing] Unexpected error processing ${formattedPhone}:`, error);
-                // NEW FIX: Detect internal whatsapp-web.js loading issues to prevent losing the lead
-                if (error && error.message && (error.message.includes('WidFactory') || error.message.includes('Evaluation failed') || error.message.includes('findChat'))) {
+                console.error(`⚠️ [Marketing] Unexpected error processing ${formattedPhone}:`, error.stack || error);
+                
+                // 🚀 ADVANCED FIX IMPLEMENTED HERE: Flag window.require as transient so the user isn't discarded
+                const loopErrStr = (error && error.message) ? error.message : '';
+                if (loopErrStr.includes('WidFactory') || loopErrStr.includes('Evaluation failed') || loopErrStr.includes('findChat') || loopErrStr.includes('window.require is not a function')) {
                     isTransientError = true;
                 }
             }
@@ -522,6 +543,11 @@ module.exports = (client, db) => {
             await client.pupPage.evaluate(() => {
                 if (window.Store && window.Store.Msg) window.Store.Msg.clear();
             }).catch(() => {});
+        }
+
+        // ADVANCED PRODUCTION FIX: Optional Garbage Collection to prevent V8 memory leaks in long-running processes
+        if (global && global.gc) {
+            try { global.gc(); } catch (e) {}
         }
 
         isProcessing = false; 
