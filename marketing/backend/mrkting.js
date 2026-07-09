@@ -22,6 +22,7 @@ let isInitialized = false;
  * 12. EXPANDED INVENTORY & MULTI-LAYOUT DESIGNS ADDED
  * 13. HUMAN-LIKE DYNAMIC VOICE NOTE SIMULATOR ADDED (Cache-Busted)
  * 14. PRODUCTION HARDENED: window.require bypass & Memory Leak Protection added
+ * 15. DYNAMIC VIDEO DELIVERY ADDED (Cache-Busted & Anti-Ban Paced)
  */
 module.exports = (client, db) => {
     // FIX: If the bot is already running, block duplicate setups completely
@@ -112,6 +113,80 @@ module.exports = (client, db) => {
         return `${hours}.${minutes} ${ampm}`;
     };
 
+    // --- NEW: HUMAN SIMULATED VIDEO SENDER ---
+    const sendHumanVideo = async (client, verifiedWhatsappId, customerName, actualPhone) => {
+        try {
+            console.log(`🎬 [Marketing] Preparing human-like video sequence for ${customerName} (${verifiedWhatsappId})...`);
+            
+            let targetId = verifiedWhatsappId;
+            
+            // 🚨 BULLETPROOF FIX: Completely discard the LID hash and build a fresh @c.us ID using the real phone number
+            if (targetId && targetId.includes('@lid') && actualPhone && !actualPhone.includes('@lid')) {
+                const cleanPhone = String(actualPhone || '').replace(/\D/g, ''); 
+                targetId = `${cleanPhone}@c.us`; 
+                console.log(`♻️ [Marketing] Intercepted @lid ID. Rerouting video to standard ID: ${targetId}`);
+            }
+
+            // 1. Simulate human delay: gap between sending the image and sending the video
+            await sleep(4000); 
+
+            // 2. AGGRESSIVE CACHE BUSTING: Download the video freshly every time it runs
+            let videoMedia = null;
+            let dlRetries = 3;
+            
+            while (dlRetries > 0 && !videoMedia) {
+                try {
+                    // ?t=${Date.now()} ensures Hugging Face always serves the newest version
+                    const videoUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/video.mp4?t=${Date.now()}`;
+                    videoMedia = await MessageMedia.fromUrl(videoUrl, { unsafeMime: true });
+
+                    if (!videoMedia.data || videoMedia.data.startsWith('PCFET') || videoMedia.data.startsWith('PGh0b')) {
+                        console.error("❌ [Marketing] Hugging Face returned an HTML error page. Aborting video.");
+                        return;
+                    }
+                } catch (e) {
+                    dlRetries--;
+                    if (dlRetries === 0) throw new Error("Video URL Timeout/Fetch Error: " + (e.message || 't'));
+                    await sleep(2000); // Wait 2s before retrying download
+                }
+            }
+
+            // 3. Fire the Video
+            let sendRetries = 3;
+            let sent = false;
+            
+            while (sendRetries > 0 && !sent) {
+                try {
+                    // Try to send native Video
+                    await client.sendMessage(targetId, videoMedia);
+                    sent = true;
+                    console.log(`✅ [Marketing] Professional dynamic video successfully delivered to ${customerName}.`);
+                } catch (sendErr) {
+                    const errMsg = sendErr.message || '';
+
+                    // Handle findChat / @lid / No LID errors locally
+                    if (errMsg.includes('findChat') || errMsg.includes('@lid') || errMsg.includes('not found') || errMsg.includes('No LID')) {
+                        console.log(`⚠️ Applying initialization workaround for video chat: ${targetId}`);
+                        await client.sendMessage(targetId, `✨ Check out our latest preview!`);
+                        await sleep(2000);
+                        
+                        await client.sendMessage(targetId, videoMedia);
+                        sent = true;
+                        console.log(`✅ [Marketing] Video delivered via workaround to ${customerName}.`);
+                    } else {
+                        sendRetries--;
+                        console.error(`⚠️ [Marketing] Video send loop failure. Retries left: ${sendRetries}. Error: ${errMsg}`);
+                        if (sendRetries === 0) throw sendErr;
+                        await sleep(6000);
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error(`⚠️ [Marketing] Video simulation failed completely for ${verifiedWhatsappId}:`, error.stack || error.message || error);
+        }
+    };
+
     // --- NEW: HUMAN SIMULATED VOICE NOTE SENDER ---
     // ADDED actualPhone parameter to ensure we have the raw fallback number
     const sendHumanVoiceNote = async (client, verifiedWhatsappId, customerName, actualPhone) => {
@@ -158,7 +233,7 @@ module.exports = (client, db) => {
                 try {
                     // 4. AGGRESSIVE CACHE BUSTING & .OPUS FORMAT FIX
                     // Requesting the .opus file specifically for strict WhatsApp native compliance
-                    const audioUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.opus`;
+                    const audioUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.opus?t=${Date.now()}`;
                     voiceMedia = await MessageMedia.fromUrl(audioUrl, { unsafeMime: true });
 
                     if (!voiceMedia.data || voiceMedia.data.startsWith('PCFET') || voiceMedia.data.startsWith('PGh0b')) {
@@ -206,7 +281,7 @@ module.exports = (client, db) => {
                         console.log(`⚠️ [Marketing] WhatsApp rejected native Opus Voice Note ('${errMsg}'). Falling back to MP3 Audio...`);
                         try {
                             // Download fallback MP3
-                            const mp3Url = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.mp3`;
+                            const mp3Url = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/audio.mp3?t=${Date.now()}`;
                             const mp3Media = await MessageMedia.fromUrl(mp3Url, { unsafeMime: true });
                             
                             // Send as standard audio (NO sendAudioAsVoice flag)
@@ -288,6 +363,9 @@ module.exports = (client, db) => {
                 await sleep(2000);
                 await client.sendMessage(msg.from, media, { caption: caption });
                 
+                // NEW FEATURE: Append the dynamic video to manual triggers
+                await sendHumanVideo(client, msg.from, customerName, msg.from);
+
                 // NEW FEATURE: Append the dynamic voice note to manual triggers as well
                 // UPDATED: Passed msg.from as the 4th parameter for the fallback routing
                 await sendHumanVoiceNote(client, msg.from, customerName, msg.from);
@@ -608,8 +686,10 @@ module.exports = (client, db) => {
             if (success) {
                 console.log(`📩 Sent Ad to ${customerName} (${customerPhone})`);
                 
-                // NEW FEATURE: Seamlessly trigger the human voice note sequence right after the message succeeds
-                // UPDATED: Passed customerPhone as the 4th parameter for the fallback routing
+                // NEW FEATURE: Seamlessly trigger the human video sequence right after the message succeeds
+                await sendHumanVideo(client, verifiedWhatsappId, customerName, customerPhone);
+
+                // NEW FEATURE: Seamlessly trigger the human voice note sequence right after the video succeeds
                 await sendHumanVoiceNote(client, verifiedWhatsappId, customerName, customerPhone);
             }
             

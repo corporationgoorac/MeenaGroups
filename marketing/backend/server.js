@@ -736,15 +736,35 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                         
                         // 1. Generate Receipt Image
                         const imageBuffer = await generateReceiptImage(client, billData);
-                        const media = new MessageMedia('image/png', imageBuffer.toString('base64'), `Receipt_${invNo}.png`);
+                        const receiptMedia = new MessageMedia('image/png', imageBuffer.toString('base64'), `Receipt_${invNo}.png`);
                         
-                        // 2. Bilingual Caption
-                        const caption = `🎉 *Thank you for shopping at Meena Marketing!*\n📄 Bill No: *${invNo}*\n💰 Total Amount: *₹${grandTotal.toLocaleString()}*\n📅 Date: ${dateStr}\n\n🎉 *மீனா மார்க்கெட்டிங்கில் பொருட்கள் வாங்கியமைக்கு நன்றி!*\n📄 பில் எண்: *${invNo}*\n💰 மொத்த தொகை: *₹${grandTotal.toLocaleString()}*\n📅 தேதி: ${dateStr}\n\n_System Generated Receipt_`;
+                        // 2. Bilingual Caption with Powered By Branding
+                        const receiptCaption = `🎉 *Thank you for shopping at Meena Marketing!*\n📄 Bill No: *${invNo}*\n💰 Total Amount: *₹${grandTotal.toLocaleString()}*\n📅 Date: ${dateStr}\n\n🎉 *மீனா மார்க்கெட்டிங்கில் பொருட்கள் வாங்கியமைக்கு நன்றி!*\n📄 பில் எண்: *${invNo}*\n💰 மொத்த தொகை: *₹${grandTotal.toLocaleString()}*\n📅 தேதி: ${dateStr}\n\n_System Generated Receipt_\n⚡ *Powered by Goorac*`;
                         
+                        // 3. Dynamic Thank You Image Generation (Cache Busting Enforced)
+                        const thankYouUrl = `https://huggingface.co/datasets/corporationgoorac/marketingVoice/resolve/main/image.png?t=${Date.now()}`;
+                        let thankYouMedia;
+                        try {
+                            thankYouMedia = await MessageMedia.fromUrl(thankYouUrl, { unsafeMime: true });
+                        } catch (imgErr) {
+                            console.error("⚠️ Failed to fetch dynamic thank you image:", imgErr.message);
+                        }
+                        
+                        // 4. Bilingual Thank You Caption with Powered By Branding
+                        const thankYouCaption = `🎉 *Thank you for choosing Meena Marketing!*\n🎉 *மீனா மார்க்கெட்டிங்கைத் தேர்ந்தெடுத்ததற்கு நன்றி!*\n\n⚡ _Powered by Goorac_`;
+
                         try {
                             // Attempt 1: Try sending media directly (Works normally for existing chats)
-                            await client.sendMessage(verifiedWhatsappId, media, { caption: caption });
+                            await client.sendMessage(verifiedWhatsappId, receiptMedia, { caption: receiptCaption });
                             console.log(`✅ Sent receipt to customer for ${invNo}`);
+                            
+                            // Human-like pause before sending the Thank You Flyer
+                            if (thankYouMedia) {
+                                await sleep(2000); 
+                                await client.sendMessage(verifiedWhatsappId, thankYouMedia, { caption: thankYouCaption });
+                                console.log(`✅ Sent Thank You image to customer for ${invNo}`);
+                            }
+
                         } catch (sendErr) {
                             // Attempt 2: Fallback for 'findChat' / '@lid' multi-device bug
                             if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
@@ -756,9 +776,17 @@ db.collection('sellings').where('createdAt', '>=', serverStartTime).onSnapshot(a
                                 // Brief delay to ensure cache is updated locally
                                 await sleep(1500);
                                 
-                                // Retry sending the media image
-                                await client.sendMessage(verifiedWhatsappId, media, { caption: caption });
+                                // Retry sending the Receipt Image
+                                await client.sendMessage(verifiedWhatsappId, receiptMedia, { caption: receiptCaption });
                                 console.log(`✅ Sent receipt to customer for ${invNo} (after initialization)`);
+                                
+                                // Retry sending the Thank You Flyer with a human-like pause
+                                if (thankYouMedia) {
+                                    await sleep(2000); 
+                                    await client.sendMessage(verifiedWhatsappId, thankYouMedia, { caption: thankYouCaption });
+                                    console.log(`✅ Sent Thank You image to customer for ${invNo} (after initialization)`);
+                                }
+                                
                             } else {
                                 throw sendErr; // Re-throw if it's a different unknown error
                             }
@@ -1026,59 +1054,101 @@ async function generateReceiptImage(client, data) {
     const page = await client.pupBrowser.newPage(); 
     await page.setViewport({ width: 600, height: 800 }); // Compact Receipt Size
 
+    // Randomize Template
+    const isLightMode = Math.random() < 0.5;
+
+    // Theme Variables
+    const themeVars = isLightMode ? `
+        --bg-body: #f3f4f6;
+        --bg-card: #ffffff;
+        --border-color: #e5e7eb;
+        --border-dashed: #d1d5db;
+        --text-main: #111827;
+        --text-muted: #6b7280;
+        --brand-color: #dc2626;
+        --shadow: 0 10px 40px rgba(0,0,0,0.08);
+        --meta-bg: #f8fafc;
+        --tag-bg: #2563eb;
+        --tag-text: #ffffff;
+        --total-color: #059669;
+    ` : `
+        --bg-body: #000000;
+        --bg-card: #0f0f11;
+        --border-color: #27272a;
+        --border-dashed: #3f3f46;
+        --text-main: #ffffff;
+        --text-muted: #a1a1aa;
+        --brand-color: #ef4444;
+        --shadow: 0 10px 40px rgba(0,0,0,0.8);
+        --meta-bg: #18181b;
+        --tag-bg: #3b82f6;
+        --tag-text: #ffffff;
+        --total-color: #10b981;
+    `;
+
     // FIX: Replaced '₹' with 'Rs.' so standard English font letters are used. This 100% prevents the overlapping issue on Linux Headless servers.
-    const itemsHtml = (data.items || []).map(item => `
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; margin-bottom:12px; border-bottom:1px solid #27272a; padding-bottom:10px;">
-            <div style="flex: 1; word-break: break-word; overflow-wrap: break-word;">
-                <div style="font-weight:700; font-size:16px; line-height:1.4;">${item.name}</div>
-                <div style="color:#a1a1aa; font-size:13px; margin-top:4px;">${item.qty} x Rs. ${(item.price || 0).toLocaleString()}</div>
+    const itemsHtml = (data.items || []).map(item => {
+        const modelHtml = item.model ? `<div style="color:var(--text-muted); font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width: 100%;">Model: ${item.model}</div>` : '';
+        return `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+            <div style="flex: 1; min-width: 0; word-break: break-word; overflow-wrap: break-word;">
+                <div style="font-weight:700; font-size:16px; line-height:1.4; color: var(--text-main);">${item.name}</div>
+                ${modelHtml}
+                <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">${item.qty} x Rs. ${(item.price || 0).toLocaleString()}</div>
             </div>
-            <div style="font-weight:700; font-size:16px; white-space:nowrap; text-align:right; min-width:80px;">Rs. ${(item.finalTotal || 0).toLocaleString()}</div>
+            <div style="font-weight:700; font-size:16px; white-space:nowrap; text-align:right; min-width:80px; color: var(--text-main);">Rs. ${(item.finalTotal || 0).toLocaleString()}</div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     const htmlContent = `
     <html>
     <head>
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+Tamil:wght@400;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+Tamil:wght@400;700&display=swap');
             
+            :root {
+                ${themeVars}
+            }
+
             body { 
-                background: #000000; color: #ffffff; 
+                background: var(--bg-body); color: var(--text-main); 
                 font-family: 'Inter', 'Noto Sans Tamil', sans-serif; 
                 padding: 30px; margin: 0; box-sizing: border-box;
             }
             .receipt-card {
-                background: #0f0f11;
-                border: 1px solid #27272a;
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
                 border-radius: 16px;
                 padding: 30px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+                box-shadow: var(--shadow);
             }
-            .header { text-align: center; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #27272a; }
-            .brand { font-size: 28px; font-weight: 900; color: #ef4444; letter-spacing: -0.5px; }
-            .sub { color: #a1a1aa; font-size: 14px; margin-top: 5px; }
+            .header { text-align: center; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+            .brand { font-size: 28px; font-weight: 900; color: var(--brand-color); letter-spacing: -0.5px; margin-bottom: 4px;}
+            .sub { color: var(--text-muted); font-size: 14px; font-weight: 500;}
+            .loc { color: var(--text-muted); font-size: 12px; margin-top: 2px;}
             
-            .meta { display: flex; justify-content: space-between; align-items: center; background: #18181b; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
+            .meta { display: flex; justify-content: space-between; align-items: center; background: var(--meta-bg); padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid var(--border-color); }
             .meta-left { display: flex; flex-direction: column; gap: 4px; }
-            .meta-name { font-weight: 700; font-size: 16px; color: #f4f4f5; }
-            .meta-inv { color: #a1a1aa; font-size: 13px; }
-            .pay-tag { background: #2563eb; padding: 6px 14px; border-radius: 8px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+            .meta-name { font-weight: 700; font-size: 16px; color: var(--text-main); }
+            .meta-inv { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+            .pay-tag { background: var(--tag-bg); padding: 6px 14px; border-radius: 8px; font-weight: 700; color: var(--tag-text); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
             
-            .totals { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #3f3f46; }
-            .t-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; }
+            .totals { margin-top: 25px; padding-top: 20px; border-top: 2px dashed var(--border-dashed); }
+            .t-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; color: var(--text-main); }
             .t-row span:last-child { white-space: nowrap; text-align: right; font-weight: 600; }
             
-            .t-grand { font-size: 22px; font-weight: 900; color: #10b981; margin-top: 20px; padding-top: 15px; border-top: 1px solid #27272a; }
+            .t-grand { font-size: 22px; font-weight: 900; color: var(--total-color); margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); }
             
-            .footer { text-align: center; color: #71717a; font-size: 12px; margin-top: 35px; line-height: 1.6; }
+            .footer { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 35px; line-height: 1.6; font-weight: 500;}
         </style>
     </head>
     <body>
         <div class="receipt-card">
             <div class="header">
                 <div class="brand">MEENA MARKETING</div>
-                <div class="sub">Premium Quality Products</div>
+                <div class="sub">Electronics & Furnitures</div>
+                <div class="loc">Alwarthirunagiri</div>
             </div>
             
             <div class="meta">
@@ -1097,11 +1167,11 @@ async function generateReceiptImage(client, data) {
 
             <div class="totals">
                 <div class="t-row">
-                    <span style="color:#a1a1aa">Subtotal</span>
+                    <span style="color:var(--text-muted)">Subtotal</span>
                     <span>Rs. ${(data.totals?.sub || 0).toLocaleString()}</span>
                 </div>
                 <div class="t-row">
-                    <span style="color:#a1a1aa">Tax (GST)</span>
+                    <span style="color:var(--text-muted)">Tax (GST)</span>
                     <span>Rs. ${(data.totals?.gst || 0).toLocaleString()}</span>
                 </div>
                 <div class="t-row t-grand">
