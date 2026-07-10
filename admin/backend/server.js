@@ -106,7 +106,7 @@ app.post('/api/refresh-code', async (req, res) => {
     }
 });
 
-// --- ROOT WEBPAGE TO VIEW PAIRING CODE (DARK THEME REAL-TIME UI) ---
+// --- ROOT WEBPAGE TO VIEW QR CODE (DARK THEME REAL-TIME UI) ---
 app.get('/', (req, res) => {
   const htmlTemplate = `
   <!DOCTYPE html>
@@ -136,15 +136,13 @@ app.get('/', (req, res) => {
           }
           p { color: #8696a0; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
           .code-container {
-              background: #111b21; padding: 20px; border-radius: 12px;
+              background: #ffffff; padding: 10px; border-radius: 12px;
               display: inline-block; margin-bottom: 25px; border: 1px solid #2a3942;
-              width: 100%;
+              width: 100%; max-width: 280px;
               box-sizing: border-box;
           }
-          .code-container h1 {
-              color: #00a884; font-size: 40px; letter-spacing: 8px; 
-              margin: 0; user-select: all; cursor: pointer;
-              word-break: break-all;
+          .code-container img {
+              width: 100%; height: auto; border-radius: 8px; display: block;
           }
           .btn {
               background-color: #00a884; color: #111b21;
@@ -175,12 +173,14 @@ app.get('/', (req, res) => {
               font-size: 60px; margin-bottom: 15px; display: inline-block;
               animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
           }
+          .pulse { display: inline-block; width: 18px; height: 18px; background-color: #00a884; border-radius: 50%; box-shadow: 0 0 0 rgba(0, 168, 132, 0.4); animation: pulse 2s infinite; vertical-align: middle; margin-right: 8px; }
+          @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(0, 168, 132, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0); } }
           @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
       </style>
   </head>
   <body>
       <div class="container">
-          <h2>Pairing Code</h2>
+          <h2>System Pairing</h2>
           <div id="dynamic-content">
               <div class="loader"></div>
               <p>Checking system status...</p>
@@ -192,14 +192,13 @@ app.get('/', (req, res) => {
           let currentState = "INIT";
           let currentCode = "";
           
-          function renderCode(code) {
+          function renderCode(qrSrc) {
               document.getElementById('dynamic-content').innerHTML = \`
-                  <p>Open WhatsApp on your primary phone <b>(+91 89257 30217)</b>. Tap the notification and enter the code below to link the system.</p>
+                  <p>Open WhatsApp on your primary phone, navigate to <b>Linked Devices</b>, and scan the QR code below.</p>
                   <div class="code-container">
-                    <h1 id="wa-code">\` + code + \`</h1>
+                    <img src="\` + qrSrc + \`" alt="WhatsApp QR Code">
                   </div>
-                  <button class="btn" onclick="navigator.clipboard.writeText('\` + code + \`').then(() => { this.innerText='✅ Copied!'; setTimeout(() => this.innerText='📋 Copy Code', 2000); })">📋 Copy Code</button>
-                  <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Get Another Code</button>
+                  <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Generate New QR</button>
               \`;
           }
 
@@ -215,7 +214,7 @@ app.get('/', (req, res) => {
               currentCode = '';
               document.getElementById('dynamic-content').innerHTML = \`
                   <div class="loader"></div>
-                  <p>Requesting fresh code from WhatsApp...<br><br>Please wait a few seconds.</p>
+                  <p>Requesting fresh QR code from WhatsApp...<br><br>Please wait a few seconds.</p>
               \`
           }
           
@@ -226,43 +225,40 @@ app.get('/', (req, res) => {
                       const container = document.getElementById('dynamic-content');
                       if (!container) return;
 
-                      if (data.ready && data.code) {
-                          // Detected a pairing code
-                          if (currentState !== 'CODE' || currentCode !== data.code) {
+                      if (data.ready && data.qr) {
+                          // Detected a pairing QR
+                          if (currentState !== 'CODE' || currentCode !== data.qr) {
                               currentState = 'CODE';
-                              currentCode = data.code;
-                              renderCode(data.code);
+                              currentCode = data.qr;
+                              renderCode(data.qr);
                           }
                       } else if (data.linked) {
-                          // No pairing code exists, but the session folder exists (Server is Connected)
+                          // Session connected
                           if (currentState !== 'LINKED') {
                               currentState = 'LINKED';
                               container.innerHTML = \`
                                   <div class="success-icon">✅</div>
-                                  <p style="color: #00a884; font-weight: bold; font-size: 20px; margin-bottom: 10px;">Linked Successfully!</p>
-                                  <p>WhatsApp is now connected to the server. You can safely close this page.</p>
+                                  <p style="color: #00a884; font-weight: bold; font-size: 22px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;"><span class="pulse"></span> Connected</p>
+                                  <p>WhatsApp is now actively linked to the server. You can safely close this page.</p>
                                   <button class="btn-secondary" style="margin-top: 15px;" onclick="forceNewCode()">🔄 Re-Link Device</button>
                               \`;
                           }
                       } else {
-                          // No code, no session -> Booting up or generating new code
+                          // Booting up
                           if (currentState !== 'WAITING') {
                               currentState = 'WAITING';
                               container.innerHTML = \`
                                   <div class="loader"></div>
-                                  <p>The system is generating the code.<br><br>Waiting for WhatsApp Engine...</p>
+                                  <p>The system is generating the QR Code.<br><br>Waiting for WhatsApp Engine...</p>
                               \`;
                           }
                       }
                   })
                   .catch(err => console.error('Polling Error:', err))
                   .finally(() => {
-                      // Keep polling continuously in the background so it auto-recovers if disconnected
                       setTimeout(checkStatus, 2500); 
                   });
           }
-          
-          // Start the background polling loop immediately
           checkStatus();
       </script>
   </body>
@@ -271,15 +267,21 @@ app.get('/', (req, res) => {
   res.send(htmlTemplate);
 });
 
-// --- NEW API ENDPOINT: Smart status checking (Solves the endless loader bug) ---
+// --- UPGRADED API ENDPOINT: Smart QR image checking ---
 app.get('/api/pairing-status', (req, res) => {
-  const codePath = path.join(__dirname, 'pairing-code.txt');
+  const codePath = path.join(__dirname, 'qr-code.png');
   const sessionPath = path.join(__dirname, 'whatsapp-session');
 
   if (fs.existsSync(codePath)) {
     // If we have a code file, we definitely need the user to scan it. Reset generation flag.
     isGeneratingNewCode = false; 
-    res.json({ ready: true, code: fs.readFileSync(codePath, 'utf8'), linked: false });
+    try {
+        const qrBase64 = fs.readFileSync(codePath, 'base64');
+        res.json({ ready: true, qr: `data:image/png;base64,${qrBase64}`, linked: false });
+    } catch (fsReadErr) {
+        console.error("⚠️ File read collision on QR code:", fsReadErr.message);
+        res.json({ ready: false, linked: false }); 
+    }
   } else {
     // If we deliberately asked for a new code, ignore the old session until the code arrives
     if (isGeneratingNewCode) {

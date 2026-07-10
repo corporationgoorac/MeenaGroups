@@ -2,17 +2,16 @@ require('dotenv').config(); // 🛠️ BUG FIX: Changed 'Require' to 'require' (
 
 // =========================================================
 // 📱 CONFIGURE YOUR WHATSAPP NUMBER HERE 
-// Now securely pulling from Hugging Face Secrets.
-// Make sure to add a Secret named 'PHONE' with your number (e.g., 918925730217)
+// Securely pulling from Hugging Face Secrets.
 // =========================================================
 const LINKING_PHONE_NUMBER = process.env.PHONE;
 
 if (!LINKING_PHONE_NUMBER) {
-    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! Pairing code will fail to generate. Please add the PHONE secret in your environment settings.");
+    console.error("⚠️ [WARNING] 'PHONE' secret is missing! (Kept for backward compatibility if needed).");
 }
 
 const { Client, LocalAuth } = require('whatsapp-web.js'); 
-const qrcode = require('qrcode-terminal');
+const qrcode = require('qrcode'); // 🚀 ADVANCED ADDITION: Switched from qrcode-terminal to pure PNG generator
 const admin = require('firebase-admin');
 const cron = require('node-cron');
 const https = require('https'); 
@@ -183,14 +182,13 @@ const client = new Client({
     // --- STANDARD LOCAL STORAGE ---
     authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
     
-    // --- NEW: Force the bot to wait infinitely instead of crashing ---
-    authTimeoutMs: 0, 
+    // --- 🚀 ADVANCED ADDITION: Network Timeout Guard ---
+    authTimeoutMs: 60000, 
     
     puppeteer: {
         executablePath: '/usr/bin/chromium', 
-        headless: true, // 🛠️ BUG FIX: Forces cloud environments to run without a GUI, preventing pairing code timeouts.
-        // --- NEW: 0 means infinite timeout for the browser launch ---
-        timeout: 0, 
+        headless: true, // Forces cloud environments to run without a GUI, preventing pairing code timeouts.
+        timeout: 60000, // 🚀 ADVANCED ADDITION: Allows Hugging Face filesystem enough time to allocate browser resources
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
@@ -201,45 +199,36 @@ const client = new Client({
             '--ignore-certificate-errors',
             '--disable-web-security',
             '--disable-features=IsolateOrigins,site-per-process',
-            // --- NEW: ADVANCED NETWORK TIMEOUT & MEMORY FIXES ---
-            '--proxy-server="direct://"', 
-            '--proxy-bypass-list=*', 
-            '--disable-features=NetworkService',
+            // --- 🚀 ADVANCED CLOUD FIXES (Solves net::ERR_TIMED_OUT) ---
+            '--no-zygote', 
+            '--disable-accelerated-2d-canvas', 
+            '--disable-software-rasterizer', 
             '--js-flags="--max-old-space-size=512"', // Prevents Hugging Face Out-Of-Memory Crashes
             // --- NEW: Disguise the bot as a normal Windows Google Chrome browser ---
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            // NOTE: '--single-process' was removed on purpose to prevent Linux network lockups!
         ]
     }
 });
 
+// 🚀 ADVANCED ADDITION: Dynamic QR Image Generator
 client.on('qr', async (qr) => {
-    console.log('🔄 Authentication required. Requesting pairing code...');
+    console.log('🔄 Authentication required. Generating QR code...');
     
     try {
-        // 🛠️ BUG FIX: Strictly strip all spaces, hyphens, and '+' signs from the number. WhatsApp Web crashes otherwise!
-        const sanitizedPhoneNumber = LINKING_PHONE_NUMBER ? LINKING_PHONE_NUMBER.replace(/\D/g, '') : '';
-        
-        if (!sanitizedPhoneNumber) {
-            throw new Error("Phone number is undefined or empty after sanitization.");
-        }
-
-        // Request the 8-digit code using the mobile number defined from secrets
-        const pairingCode = await client.requestPairingCode(sanitizedPhoneNumber);
+        // Generate QR code as PNG and save to disk safely
+        await qrcode.toFile('qr-code.png', qr, {
+            color: {
+                dark: '#000000',  // Optimal scanning contrast
+                light: '#ffffff'
+            }
+        });
         
         console.log('====================================================');
-        console.log(`🔢 SUCCESS: Pairing code generated: ${pairingCode}`);
+        console.log(`🔢 SUCCESS: QR code generated and saved to UI.`);
         console.log('====================================================');
         
-        // Save the code to a text file so server.js can display it on the webpage
-        fs.writeFileSync('pairing-code.txt', pairingCode);
-        
-        // Clean up the old QR image if it still exists
-        if (fs.existsSync('whatsapp-qr.png')) {
-            fs.unlinkSync('whatsapp-qr.png');
-        }
     } catch (err) {
-        console.error('❌ Failed to request pairing code:', err.message);
+        console.error('❌ Failed to generate QR code:', err.message);
     }
 });
 
@@ -254,16 +243,18 @@ client.on('ready', () => {
         console.log('⚙️ System listeners and cron jobs engaged successfully.');
     }
     
-    // --- CLEAN UP PAIRING CODE AFTER SUCCESSFUL CONNECTION ---
-    if (fs.existsSync('pairing-code.txt')) {
-        fs.unlinkSync('pairing-code.txt');
-        console.log('🗑️ Cleaned up pairing-code.txt since connection was successful.');
-    }
-    
-    // --- CLEAN UP IMAGE AFTER SUCCESSFUL SCAN (Legacy Check) ---
-    if (fs.existsSync('whatsapp-qr.png')) {
-        fs.unlinkSync('whatsapp-qr.png');
-        console.log('🗑️ Cleaned up whatsapp-qr.png since connection was successful.');
+    // --- CLEAN UP QR CODE AFTER SUCCESSFUL CONNECTION ---
+    try {
+        if (fs.existsSync('qr-code.png')) {
+            fs.unlinkSync('qr-code.png');
+            console.log('🗑️ Cleaned up qr-code.png since connection was successful.');
+        }
+        
+        // Safety cleanup for old legacy artifacts
+        if (fs.existsSync('pairing-code.txt')) fs.unlinkSync('pairing-code.txt');
+        if (fs.existsSync('whatsapp-qr.png')) fs.unlinkSync('whatsapp-qr.png');
+    } catch (fsErr) {
+        console.error("⚠️ Minor warning: Could not delete old QR artifacts:", fsErr.message);
     }
 });
 
@@ -272,14 +263,18 @@ client.on('ready', () => {
 // Prevents Out-Of-Memory (OOM) crashes on Hugging Face Spaces
 // =========================================================
 setInterval(async () => {
-    const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
-    if (memoryUsage > 450) {
-        console.log(`⚠️ High Memory Detected (${Math.round(memoryUsage)}MB). Purging WhatsApp DOM cache...`);
-        if (client.pupPage) {
-            await client.pupPage.evaluate(() => {
-                if (window.Store && window.Store.Msg) window.Store.Msg.clear();
-            }).catch(() => {});
+    try {
+        const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+        if (memoryUsage > 450) {
+            console.log(`⚠️ High Memory Detected (${Math.round(memoryUsage)}MB). Purging WhatsApp DOM cache...`);
+            if (client && client.pupPage && !client.pupPage.isClosed()) {
+                await client.pupPage.evaluate(() => {
+                    if (window.Store && window.Store.Msg) window.Store.Msg.clear();
+                }).catch(() => {});
+            }
         }
+    } catch (memErr) {
+        // Silent catch to prevent interval from crashing the main loop
     }
 }, 300000); // Scans every 5 minutes
 
@@ -293,15 +288,26 @@ client.on('disconnected', (reason) => {
     // STABILITY FIX: Safely attempt to restart the client to prevent permanent death
     console.log('🔄 Attempting to safely reboot WhatsApp Client...');
     client.destroy().then(() => {
-        startWhatsAppClient(); // UPDATED to use the safe boot loop
+        connectionRetries = 0; // Reset backoff counter
+        startWhatsAppClient(); 
     }).catch(e => console.error('⚠️ Failed to reboot client:', e.message));
 });
 
-// --- NEW: ADVANCED AUTO-RETRY ON NETWORK TIMEOUT (BUG & EDGE CASE FIXED) ---
+// --- 🚀 ADVANCED ADDITION: AUTO-RETRY ON NETWORK TIMEOUT WITH EXPONENTIAL BACKOFF ---
+let connectionRetries = 0;
+const MAX_RETRIES = 10;
+
 async function startWhatsAppClient() {
-    console.log("🚀 Booting WhatsApp Client...");
+    console.log(`🚀 Booting WhatsApp Client (Attempt ${connectionRetries + 1}/${MAX_RETRIES})...`);
+    
+    if (connectionRetries >= MAX_RETRIES) {
+        console.error("❌ CRITICAL: Maximum connection retries exceeded. The process is being terminated to prevent cloud IP bans. Please restart the container manually.");
+        process.exit(1);
+    }
+
     try {
         await client.initialize();
+        connectionRetries = 0; // Reset counter on successful connection
     } catch (err) {
         console.error("❌ WhatsApp Engine Failed to Start:", err.message);
         console.log("🧹 Cleaning up locked browser instance...");
@@ -313,8 +319,13 @@ async function startWhatsAppClient() {
             // Ignore if the browser is already completely dead
         }
 
-        console.log("🔄 Network timeout detected. Retrying safely in 15 seconds...");
-        setTimeout(startWhatsAppClient, 15000);
+        connectionRetries++;
+        
+        // Exponential backoff for network timeout recovery
+        const retryDelay = Math.min(15000 * connectionRetries, 60000); // Caps at 60 seconds
+        console.log(`🔄 Network timeout detected. Applying exponential backoff. Retrying safely in ${retryDelay / 1000} seconds...`);
+        
+        setTimeout(startWhatsAppClient, retryDelay);
     }
 }
 
@@ -549,15 +560,19 @@ if (fs.existsSync('./check.js')) {
 // ==========================================
 module.exports = {
     restartClient: async () => {
-        console.log("🔄 Manual client restart requested for a fresh pairing code...");
+        console.log("🔄 Manual client restart requested for a fresh QR code...");
         try {
             await client.destroy();
         } catch(e) {
             // Ignore if already dead
         }
         
-        if (fs.existsSync('pairing-code.txt')) {
-            fs.unlinkSync('pairing-code.txt');
+        try {
+            if (fs.existsSync('qr-code.png')) {
+                fs.unlinkSync('qr-code.png');
+            }
+        } catch (fsErr) {
+            console.error("⚠️ Could not delete old QR file during refresh:", fsErr.message);
         }
         
         // Wait 2 seconds for clean destruction before booting up again
