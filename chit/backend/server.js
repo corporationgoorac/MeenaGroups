@@ -3,6 +3,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
+const qrcode = require('qrcode'); // 🚀 ADVANCED ADDITION: Added qrcode library for image generation
 
 // 🛠️ FIX: Gracefully handle dotenv for Hugging Face compatibility
 try {
@@ -21,7 +22,7 @@ process.env.TZ = "Asia/Kolkata";
 const LINKING_PHONE_NUMBER = process.env.PHONE;
 
 if (!LINKING_PHONE_NUMBER) {
-    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! Pairing code will fail to generate. Please add the PHONE secret in your environment settings.");
+    console.error("⚠️ [CRITICAL WARNING] 'PHONE' secret is missing! (Warning kept for backward compatibility).");
 }
 
 // ---------------------------------------------------------
@@ -67,15 +68,23 @@ let isGeneratingNewCode = false;
 app.post('/api/refresh-code', async (req, res) => {
     try {
         isGeneratingNewCode = true; 
-        console.log("🔄 Manual client restart requested for a fresh pairing code...");
+        console.log("🔄 Manual client restart requested for a fresh QR code...");
         try {
             await client.destroy();
         } catch(e) {
             // Ignore if already dead
         }
         
-        if (fs.existsSync('pairing-code.txt')) {
-            fs.unlinkSync('pairing-code.txt');
+        try {
+            if (fs.existsSync('qr-code.png')) {
+                fs.unlinkSync('qr-code.png');
+            }
+            // Fallback cleanup for legacy pairing file
+            if (fs.existsSync('pairing-code.txt')) {
+                fs.unlinkSync('pairing-code.txt');
+            }
+        } catch (fsErr) {
+            console.error("⚠️ Could not delete old artifacts during refresh:", fsErr.message);
         }
         
         // Wait 2 seconds for clean destruction before booting up again
@@ -89,12 +98,19 @@ app.post('/api/refresh-code', async (req, res) => {
 
 // --- NEW API ENDPOINT: Smart status checking ---
 app.get('/api/pairing-status', (req, res) => {
-    const codePath = path.join(__dirname, 'pairing-code.txt');
+    const codePath = path.join(__dirname, 'qr-code.png');
     const sessionPath = path.join(__dirname, 'wa_session');
   
     if (fs.existsSync(codePath)) {
         isGeneratingNewCode = false; 
-        res.json({ ready: true, code: fs.readFileSync(codePath, 'utf8'), linked: false });
+        try {
+            // Read the PNG and send it as a base64 Data URL to the frontend
+            const qrBase64 = fs.readFileSync(codePath, 'base64');
+            res.json({ ready: true, qr: `data:image/png;base64,${qrBase64}`, linked: false });
+        } catch (fsReadErr) {
+            console.error("⚠️ File read collision on QR code:", fsReadErr.message);
+            res.json({ ready: false, linked: false }); 
+        }
     } else {
         if (isGeneratingNewCode) {
             res.json({ ready: false, linked: false });
@@ -110,7 +126,6 @@ app.get('/api/pairing-status', (req, res) => {
 
 // Serve the Professional UI directly from the root URL
 app.get('/', (req, res) => {
-    const displayPhone = LINKING_PHONE_NUMBER || '918925730217';
     const htmlTemplate = `
     <!DOCTYPE html>
     <html lang="en">
@@ -140,15 +155,13 @@ app.get('/', (req, res) => {
             }
             p { color: #94a3b8; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
             .code-container {
-                background: #0b111a; padding: 20px; border-radius: 12px;
+                background: #ffffff; padding: 10px; border-radius: 12px;
                 display: inline-block; margin-bottom: 25px; border: 1px solid #1e293b;
-                width: 100%;
+                width: 100%; max-width: 280px;
                 box-sizing: border-box;
             }
-            .code-container h1 {
-                color: #065fd4; font-size: 40px; letter-spacing: 8px; 
-                margin: 0; user-select: all; cursor: pointer;
-                word-break: break-all;
+            .code-container img {
+                width: 100%; height: auto; border-radius: 8px; display: block;
             }
             .btn {
                 background-color: #065fd4; color: #ffffff;
@@ -198,14 +211,13 @@ app.get('/', (req, res) => {
             let currentState = "INIT";
             let currentCode = "";
             
-            function renderCode(code) {
+            function renderCode(qrSrc) {
                 document.getElementById('dynamic-content').innerHTML = \`
-                    <p>Open WhatsApp on your primary phone <b>(+${displayPhone})</b>. Tap the notification and enter the code below to link the system.</p>
+                    <p>Open WhatsApp on your primary phone, navigate to <b>Linked Devices</b>, and scan the QR code below.</p>
                     <div class="code-container">
-                      <h1 id="wa-code">\` + code + \`</h1>
+                      <img src="\` + qrSrc + \`" alt="WhatsApp QR Code">
                     </div>
-                    <button class="btn" onclick="navigator.clipboard.writeText('\` + code + \`').then(() => { this.innerText='✅ Copied!'; setTimeout(() => this.innerText='📋 Copy Code', 2000); })">📋 Copy Code</button>
-                    <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Get Another Code</button>
+                    <button class="btn-secondary" id="refresh-btn" onclick="forceNewCode()">🔄 Generate New QR</button>
                 \`;
             }
 
@@ -221,7 +233,7 @@ app.get('/', (req, res) => {
                 currentCode = '';
                 document.getElementById('dynamic-content').innerHTML = \`
                     <div class="loader"></div>
-                    <p>Requesting fresh code from WhatsApp...<br><br>Please wait a few seconds.</p>
+                    <p>Requesting fresh QR code from WhatsApp...<br><br>Please wait a few seconds.</p>
                 \`
             }
             
@@ -232,12 +244,12 @@ app.get('/', (req, res) => {
                         const container = document.getElementById('dynamic-content');
                         if (!container) return;
 
-                        if (data.ready && data.code) {
-                            // Detected a pairing code
-                            if (currentState !== 'CODE' || currentCode !== data.code) {
+                        if (data.ready && data.qr) {
+                            // Detected a pairing QR
+                            if (currentState !== 'CODE' || currentCode !== data.qr) {
                                 currentState = 'CODE';
-                                currentCode = data.code;
-                                renderCode(data.code);
+                                currentCode = data.qr;
+                                renderCode(data.qr);
                             }
                         } else if (data.linked) {
                             // Session connected
@@ -256,7 +268,7 @@ app.get('/', (req, res) => {
                                 currentState = 'WAITING';
                                 container.innerHTML = \`
                                     <div class="loader"></div>
-                                    <p>The system is generating the code.<br><br>Waiting for WhatsApp Engine...</p>
+                                    <p>The system is generating the QR Code.<br><br>Waiting for WhatsApp Engine...</p>
                                 \`;
                             }
                         }
@@ -319,29 +331,27 @@ const client = new Client({
     }
 });
 
-// Event: Generate Pairing Code
+// 🚀 ADVANCED ADDITION: Dynamic QR Image Generator
 client.on('qr', async (qr) => {
-    console.log('🔄 Authentication required. Requesting pairing code...');
+    console.log('🔄 Authentication required. Generating QR code...');
     waStatus = 'QR_READY';
     isInitializing = false; // THE DEADLOCK FIX: Unlock here so it can reboot if needed
     
     try {
-        const sanitizedPhoneNumber = LINKING_PHONE_NUMBER ? LINKING_PHONE_NUMBER.replace(/\D/g, '') : '';
-        
-        if (!sanitizedPhoneNumber) {
-            throw new Error("Phone number is undefined or empty after sanitization.");
-        }
-
-        const pairingCode = await client.requestPairingCode(sanitizedPhoneNumber);
+        // Generate QR code as PNG and save to disk safely
+        await qrcode.toFile('qr-code.png', qr, {
+            color: {
+                dark: '#000000',  // Optimal scanning contrast
+                light: '#ffffff'
+            }
+        });
         
         console.log('====================================================');
-        console.log(`🔢 SUCCESS: Pairing code generated: ${pairingCode}`);
+        console.log(`🔢 SUCCESS: QR code generated and saved to UI.`);
         console.log('====================================================');
-        
-        fs.writeFileSync('pairing-code.txt', pairingCode);
         
     } catch (err) {
-        console.error('❌ Failed to request pairing code:', err.message);
+        console.error('❌ Failed to generate QR code:', err.message);
     }
 });
 
@@ -351,9 +361,18 @@ client.on('ready', () => {
     waStatus = 'CONNECTED';
     isInitializing = false; // Reset lock once safely connected
     
-    // Clean up pairing code text file
-    if (fs.existsSync('pairing-code.txt')) {
-        fs.unlinkSync('pairing-code.txt');
+    // --- CLEAN UP QR CODE AFTER SUCCESSFUL CONNECTION ---
+    try {
+        if (fs.existsSync('qr-code.png')) {
+            fs.unlinkSync('qr-code.png');
+        }
+        
+        // Safety cleanup for old legacy artifacts
+        if (fs.existsSync('pairing-code.txt')) {
+            fs.unlinkSync('pairing-code.txt');
+        }
+    } catch (fsErr) {
+        console.error("⚠️ Minor warning: Could not delete old artifacts:", fsErr.message);
     }
 
     // --- EXECUTE CHECK.JS IF AVAILABLE ---
