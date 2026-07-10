@@ -985,7 +985,7 @@ module.exports = (client, db) => {
     };
 
     const getBilingualCaption = (name, adData) => {
-        return `🎉 *MEENA MARKETING EXCLUSIVE DEALS* 🎉\n\n${adData.timeGreeting.en} *${name}*, ${adData.enPitch}\n\n🔥 *Top Deal:* ${adData.brand} ${adData.mainProduct}\n🎁 *Offer:* ${adData.offer.text}\n🏷️ *Your Promo Code:* ${adData.promoCode}\n\nWe also have huge discounts on:\n✅ ${adData.subProduct1}\n✅ ${adData.subProduct2}\n✅ ${adData.subProduct3}\n✅ ${adData.subProduct4}\n\n➖➖➖➖➖➖➖➖\n\n${adData.timeGreeting.ta} *${name}*, ${adData.taPitch}\n\n🔥 *சிறப்பு சலுகை:* ${adData.brand} ${adData.mainProduct}\n🎁 *ஆஃபர்:* ${adData.offer.taText}\n\n✅ *Bajaj Finance Easy EMI Available!*\n📱 Contact: 9444589733\n📍 31B,C, East, Sannathi, Alwarthirunagari\n\n_Reply STOP to opt-out of offers. Powered by Goorac_`;
+        return `🎉 *MEENA MARKETING EXCLUSIVE DEALS* 🎉\n\n${adData.timeGreeting.en} *${name}*, ${adData.enPitch}\n\n🔥 *Top Deal:* ${adData.brand} ${adData.mainProduct}\n🎁 *Offer:* ${adData.offer.text}\n🏷️ *Your Promo Code:* ${adData.promoCode}\n\nWe also have huge discounts on:\n✅ ${adData.subProduct1}\n✅ ${adData.subProduct2}\n✅ ${adData.subProduct3}\n✅ ${adData.subProduct4}\n\n➖➖➖➖➖➖\n\n${adData.timeGreeting.ta} *${name}*, ${adData.taPitch}\n\n🔥 *சிறப்பு சலுகை:* ${adData.brand} ${adData.mainProduct}\n🎁 *ஆஃபர்:* ${adData.offer.taText}\n\n✅ *Easy EMI Available!*\n📱 Contact: 9444589733\n📍 31B,C, East, Sannathi, Alwarthirunagari\n\n_Reply STOP to opt-out of offers. Powered by Goorac_`;
     };
 
     // --- INITIALIZATION ---
