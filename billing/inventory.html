@@ -34,6 +34,12 @@
             --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
         }
 
+        /* Enhanced Overall Scrollbar for Professional Look */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
@@ -224,9 +230,20 @@
         .info-panel-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); margin-bottom: 16px; box-shadow: var(--shadow-sm); }
         .info-panel-header { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
 
-        .type-list-container { padding: 10px 20px; }
-        .type-item { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: white; font-size: 1.05em; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; border-radius: 8px;}
-        .type-item:active { background: rgba(255,255,255,0.05); }
+        /* UPGRADED: Product Type Select Modal Grid Layout UI */
+        .type-list-container { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+        .type-item { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 16px; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; box-shadow: var(--shadow-sm); overflow: hidden; }
+        .type-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), transparent); opacity: 0; transition: opacity 0.3s ease; }
+        .type-item:hover { border-color: rgba(13, 148, 136, 0.5); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        .type-item:hover::before { opacity: 1; }
+        .type-item:active { transform: scale(0.95); }
+        .type-item.selected { border-color: var(--accent-color); background: var(--surface-hover); box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2); }
+        .type-item.selected::before { opacity: 1; background: linear-gradient(135deg, rgba(13, 148, 136, 0.15), rgba(13, 148, 136, 0.05)); }
+        .type-item-icon { font-size: 36px; color: var(--text-secondary); transition: all 0.3s ease; z-index: 1; }
+        .type-item.selected .type-item-icon { color: var(--accent-color); transform: scale(1.1); }
+        .type-item-text { font-size: 0.95em; font-weight: 600; color: white; line-height: 1.3; z-index: 1; }
+        .type-item.selected .type-item-text { color: var(--accent-color); font-weight: 700; }
+        .type-check-icon { position: absolute; top: 12px; right: 12px; color: var(--accent-color); font-size: 20px; z-index: 1; animation: fadeSlideUp 0.3s ease forwards; }
 
     </style>
 </head>
@@ -465,13 +482,16 @@
             <button id="btnClearFilter" style="display:none; margin-left:auto; background:rgba(239,68,68,0.1); color:var(--meena-red); border:1px solid rgba(239,68,68,0.3); padding:8px 16px; border-radius:10px; font-size:0.85em; font-weight:700; cursor:pointer;" onclick="clearTypeFilter()">Clear</button>
         </div>
         
-        <div style="padding: 15px 20px; flex-shrink: 0; background: var(--bg-color); z-index: 5; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div class="input-wrapper" style="margin-bottom: 0;">
-                <input type="text" id="typeSearchInput" placeholder="Search categories..." autocomplete="off">
+        <div style="padding: 15px 20px 5px; flex-shrink: 0; background: var(--bg-color); z-index: 5; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div class="search-bar-container" style="margin-bottom: 10px;">
+                <div class="search-input-wrapper">
+                    <span class="material-symbols-outlined">search</span>
+                    <input type="text" id="typeSearchInput" placeholder="Search categories..." autocomplete="off" style="padding: 14px 12px;">
+                </div>
             </div>
         </div>
         
-        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 20px;">
+        <div class="type-list-container" id="typeListContainer" style="flex-grow: 1; overflow-y: auto; padding-bottom: 40px;">
             </div>
     </div>
 
@@ -671,6 +691,22 @@
             setTimeout(() => { searchInput.focus(); }, 350);
         };
 
+        function getCategoryIcon(cat) {
+            const l = cat.toLowerCase();
+            if(l.includes('mix')) return 'blender';
+            if(l.includes('wash')) return 'local_laundry_service';
+            if(l.includes('refri') || l.includes('fridge')) return 'kitchen';
+            if(l.includes('fan')) return 'mode_fan';
+            if(l.includes('tv') || l.includes('telev')) return 'tv';
+            if(l.includes('mobil') || l.includes('phone')) return 'smartphone';
+            if(l.includes('a/c') || l.includes('air')) return 'ac_unit';
+            if(l.includes('beer') || l.includes('wood') || l.includes('steel') || l.includes('wardrobe')) return 'door_sliding';
+            if(l.includes('cot') || l.includes('bed')) return 'bed';
+            if(l.includes('tabl') || l.includes('desk')) return 'table_restaurant';
+            if(l.includes('tailor') || l.includes('machin')) return 'styler';
+            return 'category';
+        }
+
         function renderTypeList() {
             const container = document.getElementById('typeListContainer');
             const term = document.getElementById('typeSearchInput').value.toLowerCase().trim();
@@ -684,15 +720,18 @@
             
             filtered.forEach(type => {
                 const isSelected = (currentTypeSelectMode === 'filter' && currentTypeFilter === type);
+                const iconName = getCategoryIcon(type);
+                
                 html += `
-                    <div class="type-item" onclick="selectType('${type}')">
-                        <span style="${isSelected ? 'color: var(--accent-color); font-weight: 700;' : ''}">${type}</span>
-                        ${isSelected ? '<span class="material-symbols-outlined" style="color: var(--accent-color);">check</span>' : ''}
+                    <div class="type-item ${isSelected ? 'selected' : ''}" onclick="selectType('${type}')">
+                        <span class="material-symbols-outlined type-item-icon">${iconName}</span>
+                        <span class="type-item-text">${type}</span>
+                        ${isSelected ? '<span class="material-symbols-outlined type-check-icon">check_circle</span>' : ''}
                     </div>`;
             });
             
             if (filtered.length === 0) {
-                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary);">No categories matching your search.</div>`;
+                html = `<div style="text-align:center; padding: 20px; color: var(--text-secondary); grid-column: 1 / -1;">No categories matching your search.</div>`;
             }
             
             container.innerHTML = html;
