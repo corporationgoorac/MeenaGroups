@@ -182,12 +182,12 @@
             
             .pv-header-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; opacity: 0; mix-blend-mode: normal; z-index: -1; }
 
-            /* Decorative Festival SVG Vectors */
-            .pv-festival-gfx { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; opacity: 0.35; }
+            /* Decorative Festival SVG Vectors - Z-INDEX FIXED SO IT PRINTS ON TOP */
+            .pv-festival-gfx { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; opacity: 0.35; }
             #printArea.show-fest-fx .pv-festival-gfx { display: block; }
             
-            /* Custom Festival Watermark */
-            .pv-watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: var(--pv-accent, #d32f2f) !important; opacity: 0.15; text-transform: uppercase; white-space: nowrap; z-index: -1; pointer-events: none; letter-spacing: 5px; font-family: 'Playfair Display', serif; }
+            /* Custom Festival Watermark - Z-INDEX FIXED SO IT PRINTS ON TOP */
+            .pv-watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: var(--pv-accent, #d32f2f) !important; opacity: 0.15; text-transform: uppercase; white-space: nowrap; z-index: 5; pointer-events: none; letter-spacing: 5px; font-family: 'Playfair Display', serif; }
 
             /* Font Theme Classes */
             #printArea.pv-font-modern .print-brand h2, #printArea.pv-font-modern .invoice-title-text { font-family: 'Montserrat', sans-serif !important; font-weight: 900 !important; font-style: normal !important;}
@@ -233,7 +233,10 @@
             .print-table-container { padding: 0 40px; display: block; width: 100%; box-sizing: border-box; z-index: 2; position: relative;}
             .print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
             .print-table th { background-color: var(--pv-th-bg, #cccccc) !important; padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: var(--pv-th-text, #000) !important; font-weight: bold; border-top: var(--pv-border-style, 1px solid #000) !important; border-bottom: var(--pv-border-style, 1px solid #000) !important; }
-            .print-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
+            
+            /* FIX: Item borders kept strictly clean and slim (1px solid #ddd) exactly like Custombill preview */
+            .print-table td { border-bottom: 1px solid #ddd !important; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
+            
             .print-table th.text-right, .print-table td.text-right { text-align: right; padding-right: 15px; } /* Perfect Right Alignment */
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
 
@@ -1287,7 +1290,6 @@
         });
 
         // --- UPDATED JS FOR 5-COLUMN PRINT LAYOUT WITH FIXED PAGINATION ---
-        // (COMPLETELY UNTOUCHED LOGIC - ONLY ADDED CSS VARIABLE SUPPORT IN MARKUP)
         function buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPaymentMode) {
             // Fill Customer & Meta
             document.getElementById('prName').innerText = cName;
@@ -1325,14 +1327,14 @@
             printItems.forEach((item, index) => {
                 if (item.isEmptyRow) {
                     // Inject invisible spacing row to maintain physical space for pagination structure
-                    // FIXED: Strictly enforced 25mm height exactly matching CSS
+                    // FIXED: Reverted to light 1px border so it looks clean and matches Custombill preview
                     tbody.innerHTML += `
                         <tr style="height: 25mm; max-height: 25mm;">
-                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
-                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
-                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
-                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
-                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: 1px solid #ddd;"></td>
                         </tr>
                     `;
                     return;
@@ -1340,7 +1342,6 @@
                 
                 const num = (index + 1).toString().padStart(2, '0');
                 
-                // Moved GST info into description so the table strictly has 5 columns like the image
                 const gstText = item.gstPercent > 0 ? ` • GST: ${item.gstPercent}%` : '';
                 const discText = (item.discount || 0) > 0 ? ` • Discount: -₹${item.discount}` : ''; 
                 
@@ -1349,14 +1350,14 @@
                     <span style="font-size:11px; color:var(--pv-header-sub, #555);">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
-                // FIXED: Enforced strict 25mm height for populated rows to eliminate layout shifting 
+                // FIXED: Reverted to light 1px border so items look clean exactly like Custombill preview
                 tbody.innerHTML += `
                     <tr style="height: 25mm; max-height: 25mm;">
-                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${num}.</td>
-                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${desc}</td>
-                        <td class="text-right" style="border-bottom: var(--pv-border-style, 1px solid #ddd);">₹${item.originalUnitPriceBase.toFixed(2)}</td>
-                        <td class="text-center" style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${item.qty.toString().padStart(2, '0')}</td>
-                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: var(--pv-border-style, 1px solid #ddd);">₹${item.finalTotal.toFixed(2)}</td>
+                        <td style="border-bottom: 1px solid #ddd;">${num}.</td>
+                        <td style="border-bottom: 1px solid #ddd;">${desc}</td>
+                        <td class="text-right" style="border-bottom: 1px solid #ddd;">₹${item.originalUnitPriceBase.toFixed(2)}</td>
+                        <td class="text-center" style="border-bottom: 1px solid #ddd;">${item.qty.toString().padStart(2, '0')}</td>
+                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: 1px solid #ddd;">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
                 `;
             });
