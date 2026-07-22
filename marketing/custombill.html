@@ -43,12 +43,13 @@
         .meena { color: var(--meena-red); }
         .marketing { color: var(--marketing-white); }
         .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+        .header-right { display: flex; align-items: center; gap: 15px; }
 
         /* Layout Grid for Split Screen */
         .dashboard-layout { display: flex; flex-wrap: wrap; flex-grow: 1; height: calc(100vh - 60px); }
         .controls-pane { flex: 1 1 450px; overflow-y: auto; padding: 20px; background: var(--bg-color); }
         
-        /* Mobile Scroll/Pan Fix: Changed from flex to block to prevent flex-center clipping bugs */
+        /* Mobile Scroll/Pan Fix */
         .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: block; padding: 20px; overflow: auto; border-left: 1px solid #333; position: relative; }
 
         /* Inputs & Sections */
@@ -83,6 +84,11 @@
         .toast-msg.success { background: var(--success-color); }
         .toast-msg.show { display: flex; opacity: 1; }
 
+        /* Signature Modal */
+        #signModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: left; border: 1px solid #444; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); }
+        .modal-content h3 { margin: 0 0 15px 0; color: white; border-bottom: 1px solid #444; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
         /* ---------------------------------------------------- */
         /* --- LIVE PREVIEW (A4 STRICT DIMENSIONS) --- */
         /* ---------------------------------------------------- */
@@ -99,7 +105,7 @@
             overflow: hidden;
         }
 
-        .pv-body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; width: 100%; height: 100%; position: relative; transition: background 0.3s; }
+        .pv-body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; width: 100%; height: 100%; position: relative; transition: background-color 0.3s; }
         
         .pv-top-band { background-color: var(--pv-header-bg, #cccccc); padding: 35px 40px 25px 40px; display: flex; justify-content: space-between; border-bottom: var(--pv-border-style, 1px solid #999); position: relative; overflow: hidden; z-index: 2; transition: background-color 0.3s;}
         
@@ -132,9 +138,10 @@
         .pv-date-box div span { font-size: 9px; font-weight: bold; text-transform: uppercase; color: var(--pv-header-sub, #333); transition: color 0.3s;}
         .pv-date-box div strong { font-size: 13px; font-weight: bold; color: var(--pv-header-text, #000); transition: color 0.3s;}
 
-        /* Decorative Festival SVG Vectors - FIXED Z-INDEX & OPACITY */
+        /* Decorative Festival SVG Vectors */
         .pv-festival-gfx { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; opacity: 0.35; }
         .show-fest-fx .pv-festival-gfx { display: block; }
+        .pv-festival-gfx > div { display: none; } /* Hide all by default */
         
         /* Dummy Table */
         .pv-table-container { padding: 0 40px; position: relative; margin-top: 25px; z-index: 2; }
@@ -142,11 +149,11 @@
         .pv-table th { background-color: var(--pv-th-bg, #cccccc); padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: var(--pv-th-text, #000); font-weight: bold; border-top: var(--pv-border-style, 1px solid #000); border-bottom: var(--pv-border-style, 1px solid #000); transition: 0.3s; }
         .pv-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000; height: 25mm; max-height: 25mm;}
 
-        /* Custom Festival Watermark - FIXED POSITION & OPACITY */
+        /* Custom Festival Watermark */
         .pv-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: var(--pv-accent, #d32f2f); opacity: 0.15; text-transform: uppercase; white-space: nowrap; z-index: 5; pointer-events: none; letter-spacing: 5px; font-family: 'Playfair Display', serif; transition: color 0.3s;}
 
-        /* Middle Section Fixed Dummy */
-        .pv-middle-section { display: flex; justify-content: space-between; padding: 15px 40px; position: absolute; bottom: 80px; left: 0; right: 0; width: 100%; box-sizing: border-box; z-index: 2;}
+        /* Middle Section Fixed Dummy - Pushed up to accommodate Signature */
+        .pv-middle-section { display: flex; justify-content: space-between; padding: 15px 40px; position: absolute; bottom: 120px; left: 0; right: 0; width: 100%; box-sizing: border-box; z-index: 2;}
         .pv-left-footer-info { width: 45%; }
         
         /* Strict CSS to protect pagination from massive text */
@@ -160,27 +167,43 @@
         .pv-grand-row { background-color: var(--pv-th-bg, #cccccc); border-top: var(--pv-border-style, 2px solid #000); transition: 0.3s;}
         .pv-grand-row td { font-size: 16px; font-weight: 900; color: var(--pv-invoice-title, #d32f2f); padding: 12px 15px 12px 10px; transition: color 0.3s;} 
 
+        /* Signature Area */
+        .pv-signature-area { display: flex; justify-content: flex-end; padding: 0 40px; position: absolute; bottom: 40px; left: 0; right: 0; width: 100%; box-sizing: border-box; z-index: 2; }
+        .sign-box { text-align: center; width: 220px; }
+        .sign-placeholder { border-bottom: 1px solid var(--pv-th-text, #000); height: 35px; margin-bottom: 8px; width: 100%; transition: border-color 0.3s;}
+        .sign-box h4 { margin: 0; font-size: 18px; font-family: 'Brush Script MT', cursive; font-weight: normal; color: var(--pv-th-text, #000); transition: color 0.3s;}
+        .sign-box p { margin: 0; font-size: 11px; font-weight: bold; color: var(--pv-th-text, #000); transition: color 0.3s;}
+
         /* Absolute Footer */
         .pv-absolute-footer { background-color: var(--pv-header-bg, #cccccc); padding: 10px 40px; display: flex; justify-content: center; align-items: center; position: absolute; bottom: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; border-bottom: 6px solid var(--pv-accent, transparent); transition: 0.3s;}
         .pv-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: var(--pv-header-sub, #333); text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s;}
         
         /* Font Theme Classes */
         .pv-font-helvetica { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-        
         .pv-font-modern .pv-brand h2, .pv-font-modern .pv-invoice-title { font-family: 'Montserrat', sans-serif; font-weight: 900; font-style: normal;}
         .pv-font-modern .pv-body, .pv-font-modern { font-family: 'Roboto', sans-serif; }
-        
         .pv-font-elegant .pv-brand h2, .pv-font-elegant .pv-invoice-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic;}
         .pv-font-elegant .pv-body, .pv-font-elegant { font-family: 'Open Sans', sans-serif; }
         
-        /* Paper Texture Options - FIXED SVG URI ENCODING */
+        /* Reliable CSS Paper Texture Options */
         .texture-vintage {
-            background-color: #fdf6e3 !important;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+            background-color: #fcf8ec !important;
+            background-image: radial-gradient(#e4d5b7 1px, transparent 1px);
+            background-size: 10px 10px;
         }
         .texture-canvas {
-            background-color: #fafafa !important;
-            background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h2v2H0V0zm2 2h2v2H2V2z' fill='%23cccccc' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background-color: #fdfdfd !important;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 8px 8px;
+        }
+        .texture-dots {
+            background-color: #ffffff !important;
+            background-image: radial-gradient(var(--pv-accent, #cccccc) 1px, transparent 1px);
+            background-size: 15px 15px;
+        }
+        .texture-lines {
+            background-color: #ffffff !important;
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 10px);
         }
 
     </style>
@@ -196,6 +219,23 @@
         <span id="successToastText">Action Successful!</span>
     </div>
 
+    <!-- SIGNATURE MODAL -->
+    <div id="signModal">
+        <div class="modal-content">
+            <h3><span class="material-symbols-outlined">draw</span> Edit Signature Name</h3>
+            <div class="form-group" style="margin-top: 20px;">
+                <div>
+                    <label>Signatory Name</label>
+                    <input type="text" id="signNameInput" placeholder="e.g. Authorized Signatory" value="Authorized Signatory">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button id="closeSignModalBtn" style="flex: 1; padding: 12px; background: transparent; border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Close</button>
+                <button id="applySignBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply</button>
+            </div>
+        </div>
+    </div>
+
     <header>
         <div class="header-left">
             <a href="inventory.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
@@ -206,6 +246,10 @@
                     <span class="page-title">Theme Engine</span>
                 </div>
             </div>
+        </div>
+        <div class="header-right">
+            <!-- New Edit Signature Icon Button -->
+            <span class="material-symbols-outlined" id="openSignModalBtn" style="cursor: pointer; font-size: 28px; color: var(--marketing-white);" title="Edit Signature Name">draw</span>
         </div>
     </header>
 
@@ -302,14 +346,29 @@
                             </div>
                         </div>
                         
-                        <!-- NEW TEXTURE AND PATTERN SELECTORS -->
+                        <!-- NEW TEXTURE AND PATTERN SELECTORS (15+ PATTERNS) -->
                         <div class="input-row">
                             <div>
                                 <label>Festival Pattern</label>
                                 <select id="festPattern">
+                                    <option value="none">None</option>
                                     <option value="mandala">Flower Mandala</option>
                                     <option value="crackers">Firecrackers</option>
-                                    <option value="none">None</option>
+                                    <option value="lotus">Lotus Flower</option>
+                                    <option value="rose">Rose Vector</option>
+                                    <option value="vines">Plant Vines</option>
+                                    <option value="leaves">Falling Leaves</option>
+                                    <option value="stars">Star Burst</option>
+                                    <option value="diya">Diya (Lamp)</option>
+                                    <option value="rangoli">Rangoli Dots</option>
+                                    <option value="hexagons">Hexagon Net</option>
+                                    <option value="sparkles">Magic Sparkles</option>
+                                    <option value="clouds">Festive Clouds</option>
+                                    <option value="snowflakes">Snowflakes</option>
+                                    <option value="sun">Sun Rays</option>
+                                    <option value="kites">Flying Kites</option>
+                                    <option value="balloons">Party Balloons</option>
+                                    <option value="confetti">Confetti Drop</option>
                                 </select>
                             </div>
                             <div>
@@ -318,6 +377,8 @@
                                     <option value="none">Clean White</option>
                                     <option value="vintage">Vintage Paper</option>
                                     <option value="canvas">Canvas Grid</option>
+                                    <option value="dots">Subtle Dots</option>
+                                    <option value="lines">Diagonal Lines</option>
                                 </select>
                             </div>
                         </div>
@@ -344,42 +405,92 @@
             <div class="preview-scale-wrapper" id="previewContainer">
                 <div class="pv-body" id="pvBody">
                     
-                    <!-- SVG FESTIVAL VECTORS -->
+                    <!-- SVG FESTIVAL VECTORS (15+ Options) -->
                     <div class="pv-festival-gfx">
-                        <!-- MANDALA PATTERN -->
-                        <div class="pattern-mandala" style="display:none;">
-                            <!-- Top Right Mandala -->
-                            <svg style="position:absolute; top: -20px; right: -20px; width: 300px; height: 300px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M50 0 C60 20 80 40 100 50 C80 60 60 80 50 100 C40 80 20 60 0 50 C20 40 40 20 50 0 Z" opacity="0.5"/>
-                                <circle cx="50" cy="50" r="20" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2"/>
-                                <circle cx="50" cy="50" r="10"/>
-                            </svg>
-                            <!-- Bottom Left Mandala -->
-                            <svg style="position:absolute; bottom: -20px; left: -20px; width: 300px; height: 300px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M50 0 C60 20 80 40 100 50 C80 60 60 80 50 100 C40 80 20 60 0 50 C20 40 40 20 50 0 Z" opacity="0.5"/>
-                                <circle cx="50" cy="50" r="20" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2"/>
-                                <circle cx="50" cy="50" r="10"/>
-                            </svg>
+                        
+                        <div class="pattern-mandala">
+                            <svg style="position:absolute; top: -20px; right: -20px; width: 300px; height: 300px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 0 C60 20 80 40 100 50 C80 60 60 80 50 100 C40 80 20 60 0 50 C20 40 40 20 50 0 Z" opacity="0.5"/><circle cx="50" cy="50" r="20" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2"/><circle cx="50" cy="50" r="10"/></svg>
+                            <svg style="position:absolute; bottom: -20px; left: -20px; width: 300px; height: 300px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 0 C60 20 80 40 100 50 C80 60 60 80 50 100 C40 80 20 60 0 50 C20 40 40 20 50 0 Z" opacity="0.5"/><circle cx="50" cy="50" r="20" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2"/><circle cx="50" cy="50" r="10"/></svg>
                         </div>
                         
-                        <!-- FIRECRACKER PATTERN -->
-                        <div class="pattern-crackers" style="display:none;">
-                            <!-- Top Right Crackers -->
-                            <svg style="position:absolute; top: 10px; right: 10px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M50 10 L55 40 L85 45 L55 50 L50 80 L45 50 L15 45 L45 40 Z" opacity="0.6"/>
-                                <circle cx="20" cy="20" r="3" opacity="0.8"/>
-                                <circle cx="80" cy="20" r="4" opacity="0.7"/>
-                                <circle cx="20" cy="80" r="2" opacity="0.9"/>
-                                <circle cx="80" cy="80" r="5" opacity="0.5"/>
-                            </svg>
-                            <!-- Bottom Left Crackers -->
-                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M50 10 L55 40 L85 45 L55 50 L50 80 L45 50 L15 45 L45 40 Z" opacity="0.6"/>
-                                <circle cx="20" cy="20" r="3" opacity="0.8"/>
-                                <circle cx="80" cy="20" r="4" opacity="0.7"/>
-                                <circle cx="20" cy="80" r="2" opacity="0.9"/>
-                                <circle cx="80" cy="80" r="5" opacity="0.5"/>
-                            </svg>
+                        <div class="pattern-crackers">
+                            <svg style="position:absolute; top: 10px; right: 10px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 10 L55 40 L85 45 L55 50 L50 80 L45 50 L15 45 L45 40 Z" opacity="0.6"/><circle cx="20" cy="20" r="3" opacity="0.8"/><circle cx="80" cy="20" r="4" opacity="0.7"/><circle cx="20" cy="80" r="2" opacity="0.9"/><circle cx="80" cy="80" r="5" opacity="0.5"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 10 L55 40 L85 45 L55 50 L50 80 L45 50 L15 45 L45 40 Z" opacity="0.6"/><circle cx="20" cy="20" r="3" opacity="0.8"/><circle cx="80" cy="20" r="4" opacity="0.7"/><circle cx="20" cy="80" r="2" opacity="0.9"/><circle cx="80" cy="80" r="5" opacity="0.5"/></svg>
+                        </div>
+
+                        <div class="pattern-lotus">
+                            <svg style="position:absolute; top: 20px; right: 20px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 90 C20 80 10 40 50 10 C90 40 80 80 50 90 Z" opacity="0.6"/><path d="M50 90 C35 70 30 40 50 20 C70 40 65 70 50 90 Z" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 20px; left: 20px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 90 C20 80 10 40 50 10 C90 40 80 80 50 90 Z" opacity="0.6"/><path d="M50 90 C35 70 30 40 50 20 C70 40 65 70 50 90 Z" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-rose">
+                            <svg style="position:absolute; top: 10px; right: 10px; width: 220px; height: 220px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" opacity="0.5"/><path d="M30 50 A 20 20 0 0 1 70 50" opacity="0.6"/><path d="M40 70 A 20 20 0 0 1 50 30" opacity="0.6"/><path d="M60 30 A 20 20 0 0 1 50 70" opacity="0.6"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 220px; height: 220px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" opacity="0.5"/><path d="M30 50 A 20 20 0 0 1 70 50" opacity="0.6"/><path d="M40 70 A 20 20 0 0 1 50 30" opacity="0.6"/><path d="M60 30 A 20 20 0 0 1 50 70" opacity="0.6"/></svg>
+                        </div>
+
+                        <div class="pattern-vines">
+                            <svg style="position:absolute; top: 0; right: 0; width: 250px; height: 250px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 3;" viewBox="0 0 100 100"><path d="M100 0 Q 80 50 20 80" opacity="0.6"/><path d="M90 20 Q 80 30 70 20" fill="var(--pv-accent, #000)" opacity="0.4"/><path d="M60 50 Q 50 60 40 50" fill="var(--pv-accent, #000)" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 0; left: 0; width: 250px; height: 250px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 3;" viewBox="0 0 100 100"><path d="M0 100 Q 20 50 80 20" opacity="0.6"/><path d="M10 80 Q 20 70 30 80" fill="var(--pv-accent, #000)" opacity="0.4"/><path d="M40 50 Q 50 40 60 50" fill="var(--pv-accent, #000)" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-leaves">
+                            <svg style="position:absolute; top: 20px; right: 30px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 10 C80 10 90 40 50 90 C10 40 20 10 50 10 Z" opacity="0.6"/><path d="M20 20 C40 20 50 40 20 70 C0 40 10 20 20 20 Z" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 20px; left: 30px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 10 C80 10 90 40 50 90 C10 40 20 10 50 10 Z" opacity="0.6"/><path d="M80 80 C60 80 50 60 80 30 C100 60 90 80 80 80 Z" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-stars">
+                            <svg style="position:absolute; top: 10px; right: 10px; width: 250px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><polygon points="50,5 60,35 95,35 65,55 75,90 50,70 25,90 35,55 5,35 40,35" opacity="0.6"/><polygon points="20,10 25,25 40,25 25,35 30,50 20,40 10,50 15,35 0,25 15,25" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 250px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><polygon points="50,5 60,35 95,35 65,55 75,90 50,70 25,90 35,55 5,35 40,35" opacity="0.6"/><polygon points="80,50 85,65 100,65 85,75 90,90 80,80 70,90 75,75 60,65 75,65" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-diya">
+                            <svg style="position:absolute; top: 20px; right: 20px; width: 180px; height: 180px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M20 60 C20 90 80 90 80 60 Z" opacity="0.6"/><path d="M50 50 C40 30 50 5 50 5 C50 5 60 30 50 50 Z" opacity="0.8"/></svg>
+                            <svg style="position:absolute; bottom: 20px; left: 20px; width: 180px; height: 180px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M20 60 C20 90 80 90 80 60 Z" opacity="0.6"/><path d="M50 50 C40 30 50 5 50 5 C50 5 60 30 50 50 Z" opacity="0.8"/></svg>
+                        </div>
+
+                        <div class="pattern-rangoli">
+                            <svg style="position:absolute; top: -30px; right: -30px; width: 250px; height: 250px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" opacity="0.4"/><circle cx="50" cy="50" r="25" opacity="0.5"/><path d="M10 50 L90 50 M50 10 L50 90 M20 20 L80 80 M20 80 L80 20" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: -30px; left: -30px; width: 250px; height: 250px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" opacity="0.4"/><circle cx="50" cy="50" r="25" opacity="0.5"/><path d="M10 50 L90 50 M50 10 L50 90 M20 20 L80 80 M20 80 L80 20" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-hexagons">
+                            <svg style="position:absolute; top: 10px; right: 10px; width: 220px; height: 220px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" opacity="0.5"/><polygon points="50,30 65,40 65,60 50,70 35,60 35,40" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 220px; height: 220px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><polygon points="50,10 85,30 85,70 50,90 15,70 15,30" opacity="0.5"/><polygon points="50,30 65,40 65,60 50,70 35,60 35,40" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-sparkles">
+                            <svg style="position:absolute; top: 20px; right: 20px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 0 Q50 50 100 50 Q50 50 50 100 Q50 50 0 50 Q50 50 50 0 Z" opacity="0.6"/><path d="M20 20 Q20 30 30 30 Q20 30 20 40 Q20 30 10 30 Q20 30 20 20 Z" opacity="0.5"/><path d="M80 70 Q80 80 90 80 Q80 80 80 90 Q80 80 70 80 Q80 80 80 70 Z" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 20px; left: 20px; width: 200px; height: 200px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><path d="M50 0 Q50 50 100 50 Q50 50 50 100 Q50 50 0 50 Q50 50 50 0 Z" opacity="0.6"/><path d="M20 20 Q20 30 30 30 Q20 30 20 40 Q20 30 10 30 Q20 30 20 20 Z" opacity="0.5"/><path d="M80 70 Q80 80 90 80 Q80 80 80 90 Q80 80 70 80 Q80 80 80 70 Z" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-clouds">
+                            <svg style="position:absolute; top: 30px; right: 10px; width: 240px; height: 150px; fill: var(--pv-accent, #000);" viewBox="0 0 100 50"><circle cx="20" cy="30" r="15" opacity="0.5"/><circle cx="50" cy="20" r="20" opacity="0.6"/><circle cx="80" cy="30" r="15" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 30px; left: 10px; width: 240px; height: 150px; fill: var(--pv-accent, #000);" viewBox="0 0 100 50"><circle cx="20" cy="30" r="15" opacity="0.5"/><circle cx="50" cy="20" r="20" opacity="0.6"/><circle cx="80" cy="30" r="15" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-snowflakes">
+                            <svg style="position:absolute; top: 10px; right: 20px; width: 200px; height: 200px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><path d="M50 10 L50 90 M10 50 L90 50 M20 20 L80 80 M20 80 L80 20" opacity="0.6"/><circle cx="50" cy="50" r="15" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 20px; width: 200px; height: 200px; fill: none; stroke: var(--pv-accent, #000); stroke-width: 2;" viewBox="0 0 100 100"><path d="M50 10 L50 90 M10 50 L90 50 M20 20 L80 80 M20 80 L80 20" opacity="0.6"/><circle cx="50" cy="50" r="15" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-sun">
+                            <svg style="position:absolute; top: -20px; right: -20px; width: 280px; height: 280px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" opacity="0.6"/><path d="M50 10 L55 25 L45 25 Z M50 90 L55 75 L45 75 Z M10 50 L25 45 L25 55 Z M90 50 L75 45 L75 55 Z M20 20 L35 30 L25 35 Z M80 80 L65 70 L75 65 Z M80 20 L65 30 L75 35 Z M20 80 L35 70 L25 65 Z" opacity="0.5"/></svg>
+                            <svg style="position:absolute; bottom: -20px; left: -20px; width: 280px; height: 280px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" opacity="0.6"/><path d="M50 10 L55 25 L45 25 Z M50 90 L55 75 L45 75 Z M10 50 L25 45 L25 55 Z M90 50 L75 45 L75 55 Z M20 20 L35 30 L25 35 Z M80 80 L65 70 L75 65 Z M80 20 L65 30 L75 35 Z M20 80 L35 70 L25 65 Z" opacity="0.5"/></svg>
+                        </div>
+
+                        <div class="pattern-kites">
+                            <svg style="position:absolute; top: 10px; right: 30px; width: 150px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 50 100"><polygon points="25,10 45,30 25,60 5,30" opacity="0.6"/><path d="M25 60 Q40 80 25 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2" opacity="0.5"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 30px; width: 150px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 50 100"><polygon points="25,10 45,30 25,60 5,30" opacity="0.6"/><path d="M25 60 Q40 80 25 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="2" opacity="0.5"/></svg>
+                        </div>
+
+                        <div class="pattern-balloons">
+                            <svg style="position:absolute; top: 20px; right: 20px; width: 200px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><ellipse cx="30" cy="30" rx="15" ry="20" opacity="0.5"/><path d="M30 50 L30 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="1" opacity="0.4"/><ellipse cx="70" cy="40" rx="12" ry="18" opacity="0.6"/><path d="M70 58 L70 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="1" opacity="0.4"/></svg>
+                            <svg style="position:absolute; bottom: 20px; left: 20px; width: 200px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><ellipse cx="30" cy="30" rx="15" ry="20" opacity="0.5"/><path d="M30 50 L30 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="1" opacity="0.4"/><ellipse cx="70" cy="40" rx="12" ry="18" opacity="0.6"/><path d="M70 58 L70 90" fill="none" stroke="var(--pv-accent, #000)" stroke-width="1" opacity="0.4"/></svg>
+                        </div>
+
+                        <div class="pattern-confetti">
+                            <svg style="position:absolute; top: 10px; right: 10px; width: 250px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><rect x="10" y="20" width="8" height="8" transform="rotate(20 14 24)" opacity="0.6"/><circle cx="40" cy="15" r="5" opacity="0.4"/><polygon points="70,10 75,20 65,20" opacity="0.5"/><rect x="80" y="40" width="10" height="4" transform="rotate(-30 85 42)" opacity="0.7"/><circle cx="20" cy="50" r="4" opacity="0.5"/><polygon points="50,60 55,70 45,70" opacity="0.6"/></svg>
+                            <svg style="position:absolute; bottom: 10px; left: 10px; width: 250px; height: 250px; fill: var(--pv-accent, #000);" viewBox="0 0 100 100"><rect x="10" y="20" width="8" height="8" transform="rotate(20 14 24)" opacity="0.6"/><circle cx="40" cy="15" r="5" opacity="0.4"/><polygon points="70,10 75,20 65,20" opacity="0.5"/><rect x="80" y="40" width="10" height="4" transform="rotate(-30 85 42)" opacity="0.7"/><circle cx="20" cy="50" r="4" opacity="0.5"/><polygon points="50,60 55,70 45,70" opacity="0.6"/></svg>
                         </div>
                     </div>
 
@@ -434,6 +545,7 @@
                         </table>
                     </div>
 
+                    <!-- Middle Section Fixed Dummy - Adjusted up for Signature -->
                     <div class="pv-middle-section">
                         <div class="pv-left-footer-info">
                             <div class="pv-thanks-box" id="pvThanksBox">
@@ -446,6 +558,15 @@
                                 <tr><td>Sub Total</td><td style="color:#000;">₹1000.00</td></tr>
                                 <tr class="pv-grand-row" id="pvGrandRow"><td>TOTAL :</td><td>₹1000.00</td></tr>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Live Signature Area -->
+                    <div class="pv-signature-area">
+                        <div class="sign-box">
+                            <div class="sign-placeholder"></div>
+                            <h4 id="pvSignNameText">Authorized Signatory</h4>
+                            <p>For Meena Marketing</p>
                         </div>
                     </div>
 
@@ -470,6 +591,39 @@
             setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
         };
+
+        // SIGNATURE MODAL LOGIC WITH MOBILE BACK BUTTON SUPPORT
+        const signModal = document.getElementById('signModal');
+        const openSignModalBtn = document.getElementById('openSignModalBtn');
+        const closeSignModalBtn = document.getElementById('closeSignModalBtn');
+        const applySignBtn = document.getElementById('applySignBtn');
+        const signNameInput = document.getElementById('signNameInput');
+
+        openSignModalBtn.addEventListener('click', () => {
+            signModal.style.display = 'flex';
+            history.pushState({ signModalOpen: true }, ''); 
+        });
+
+        function closeSignModal() {
+            signModal.style.display = 'none';
+            if (history.state && history.state.signModalOpen) history.back();
+            updateLivePreview(); // Trigger update on close
+        }
+
+        closeSignModalBtn.addEventListener('click', closeSignModal);
+        applySignBtn.addEventListener('click', closeSignModal);
+
+        window.addEventListener('popstate', (e) => {
+            if (signModal.style.display === 'flex') {
+                signModal.style.display = 'none';
+                updateLivePreview();
+            }
+        });
+
+        // Add real-time typing preview for signature
+        signNameInput.addEventListener('input', () => {
+            document.getElementById('pvSignNameText').innerText = signNameInput.value || 'Authorized Signatory';
+        });
 
         // DOM Elements
         const inputs = {
@@ -603,12 +757,15 @@
                 // Show Festival Vector Assets
                 pvBody.classList.add('show-fest-fx');
 
-                // Toggle SVGs based on Pattern selection
-                document.querySelectorAll('.pattern-mandala').forEach(el => el.style.display = inputs.festPattern.value === 'mandala' ? 'block' : 'none');
-                document.querySelectorAll('.pattern-crackers').forEach(el => el.style.display = inputs.festPattern.value === 'crackers' ? 'block' : 'none');
+                // Toggle ALL SVGs based on Pattern selection dynamically
+                document.querySelectorAll('.pv-festival-gfx > div').forEach(el => el.style.display = 'none');
+                if (inputs.festPattern.value !== 'none') {
+                    const activePattern = document.querySelector(`.pattern-${inputs.festPattern.value}`);
+                    if (activePattern) activePattern.style.display = 'block';
+                }
 
-                // Apply Paper Texture Classes
-                pvBody.classList.remove('texture-vintage', 'texture-canvas');
+                // Apply Paper Texture Classes safely
+                pvBody.classList.remove('texture-vintage', 'texture-canvas', 'texture-dots', 'texture-lines');
                 if (inputs.festTexture.value !== 'none') {
                     pvBody.classList.add(`texture-${inputs.festTexture.value}`);
                 }
@@ -629,16 +786,17 @@
                 cfg = themes[mode];
                 
                 // Hide custom elements
-                pvBody.classList.remove('show-fest-fx', 'texture-vintage', 'texture-canvas');
-                document.querySelectorAll('.pattern-mandala, .pattern-crackers').forEach(el => el.style.display = 'none');
+                pvBody.classList.remove('show-fest-fx', 'texture-vintage', 'texture-canvas', 'texture-dots', 'texture-lines');
+                document.querySelectorAll('.pv-festival-gfx > div').forEach(el => el.style.display = 'none');
                 bgLayer.style.backgroundImage = 'none';
                 bgLayer.style.opacity = 0;
                 watermarkText.innerText = '';
             }
 
-            // Always update Global Editable text
+            // Always update Global Editable text & Signature
             document.getElementById('pvGreetTitle').innerText = inputs.festTitle.value || 'Thank you!';
             document.getElementById('pvGreetMsg').innerText = inputs.festMsg.value || '';
+            document.getElementById('pvSignNameText').innerText = signNameInput.value || 'Authorized Signatory';
 
             // Execute CSS Variable Injections (ADDED BORDER SUPPORT SO IT SHOWS IN PREVIEW)
             previewContainer.style.setProperty('--pv-accent', cfg.accent);
@@ -680,9 +838,13 @@
                     // Main Theme
                     if(data.selectedTheme) inputs.themeSelect.value = data.selectedTheme;
 
-                    // Global Greetings
+                    // Global Greetings & Signature
                     if(data.customTitle) inputs.festTitle.value = data.customTitle;
                     if(data.customMsg) inputs.festMsg.value = data.customMsg;
+                    if(data.signName) {
+                        signNameInput.value = data.signName;
+                        document.getElementById('pvSignNameText').innerText = data.signName;
+                    }
 
                     // Custom Festival Data
                     if(data.customWatermark) inputs.festWatermark.value = data.customWatermark;
@@ -741,6 +903,7 @@
                 // Global text
                 customTitle: inputs.festTitle.value.trim(),
                 customMsg: inputs.festMsg.value.trim(),
+                signName: signNameInput.value.trim(),
 
                 // Custom theme configurations
                 customWatermark: inputs.festWatermark.value.trim(),
