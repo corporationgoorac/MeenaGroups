@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- STRICT NO-ZOOM META -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Login - Meena LogBook</title>
+  
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f0f0f">
+  
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* === PREMIUM AUTO DARK / LIGHT THEME === */
+    :root {
+      --bg-color: #f7f9fa;
+      --text-main: #0f0f0f;
+      --text-muted: #606060;
+      --card-bg: #ffffff;
+      --primary: #10b981;
+      --border: #e5e5e5;
+      --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+      --google-btn-bg: #ffffff;
+      --google-btn-text: #3c4043;
+      --google-btn-border: #dadce0;
+      --google-btn-hover: #f8f9fa;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #050505;
+        --text-main: #f1f1f1;
+        --text-muted: #aaaaaa;
+        --card-bg: #1a1a1a;
+        --primary: #10b981;
+        --border: #2a2a2a;
+        --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        --google-btn-bg: #1a1a1a;
+        --google-btn-text: #e8eaed;
+        --google-btn-border: #3f3f3f;
+        --google-btn-hover: #2a2a2a;
+      }
+    }
+
+    /* === HIDE SCROLLBARS GLOBALLY === */
+    *::-webkit-scrollbar {
+      display: none;
+    }
+    * {
+      -ms-overflow-style: none; 
+      scrollbar-width: none; 
+      /* STRICT NO COPY/SELECT */
+      -webkit-user-select: none; 
+      -moz-user-select: none; 
+      -ms-user-select: none; 
+      user-select: none; 
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* === BASE STYLES === */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* NO SCROLLING */
+      overscroll-behavior-y: none; /* NO PULL TO REFRESH */
+      transition: background-color 0.3s ease;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(0);
+      animation: floatUp 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(30px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .app-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin: 0 0 40px 0;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* === GOOGLE LOGIN BUTTON === */
+    .btn-google {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--google-btn-bg);
+      color: var(--google-btn-text);
+      border: 1px solid var(--google-btn-border);
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .btn-google:active:not(:disabled) {
+      transform: scale(0.97);
+      background: var(--google-btn-hover);
+    }
+
+    .btn-google:disabled {
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    /* Spinner Animation */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+    
+    .spinner circle {
+      stroke: var(--primary);
+      stroke-width: 3;
+      stroke-dasharray: 45;
+      stroke-dashoffset: 0;
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* States */
+    .btn-google.loading .google-icon { display: none; }
+    .btn-google.loading .spinner { display: block; }
+
+    .error-msg {
+      color: #ef4444;
+      font-size: 14px;
+      margin-top: 16px;
+      font-weight: 600;
+      min-height: 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .error-msg.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <img src="icon.png" alt="Meena LogBook" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzEwYjk4MSIvPjwvc3ZnPg=='">
+      <h1 class="title">Meena LogBook</h1>
+      <p class="subtitle">Securely manage your daily business transactions.</p>
+
+      <button id="googleBtn" class="btn-google">
+        <!-- Google Logo SVG -->
+        <svg class="google-icon" width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+          <path fill="none" d="M0 0h48v48H0z"></path>
+        </svg>
+
+        <!-- Loading Spinner SVG -->
+        <svg class="spinner" viewBox="0 0 50 50">
+          <circle cx="25" cy="25" r="20"></circle>
+        </svg>
+
+        <span id="btnText">Sign in with Google</span>
+      </button>
+
+      <div id="errorText" class="error-msg"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // === FIREBASE SETUP ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
+      authDomain: "meena-logbook.firebaseapp.com",
+      projectId: "meena-logbook",
+      storageBucket: "meena-logbook.firebasestorage.app",
+      messagingSenderId: "466637891440",
+      appId: "1:466637891440:web:0d74df16182c6c665491b5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // DOM Elements
+    const googleBtn = document.getElementById('googleBtn');
+    const btnText = document.getElementById('btnText');
+    const errorText = document.getElementById('errorText');
+
+    // Haptics Helper
+    const vibrate = () => { if (navigator.vibrate) navigator.vibrate(15); };
+
+    // Redirect immediately if already logged in
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setLoadingState(true, "Redirecting...");
+        window.location.href = 'index.html';
+      }
+    });
+
+    function setLoadingState(isLoading, text = "Logging in...") {
+      if (isLoading) {
+        googleBtn.classList.add('loading');
+        googleBtn.disabled = true;
+        btnText.innerText = text;
+        errorText.classList.remove('show');
+      } else {
+        googleBtn.classList.remove('loading');
+        googleBtn.disabled = false;
+        btnText.innerText = "Sign in with Google";
+      }
+    }
+
+    googleBtn.addEventListener('click', async () => {
+      vibrate();
+      setLoadingState(true);
+
+      try {
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged will handle the redirect once successful
+      } catch (error) {
+        console.error("Login Failed:", error);
+        setLoadingState(false);
+        errorText.innerText = "Login failed. Please try again.";
+        errorText.classList.add('show');
+        if (navigator.vibrate) navigator.vibrate([30, 50, 30]); // Error haptic
+      }
+    });
+  </script>
+</body>
+</html>
