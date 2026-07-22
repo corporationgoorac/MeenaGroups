@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bill Layout Customization - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <!-- Material Symbols & Dynamic Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Shared Core Theme (App UI) */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #212121;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+            --meena-red: #ff3333;
+            --marketing-white: #ffffff;
+            --accent-color: #0056b3;
+            --success-color: #00c853;
+            --warning-color: #ff9800;
+            --nav-bg: #1a1a1a;
+            --input-bg: #2a2a2a;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
+
+        /* Screen App Header */
+        header { background-color: var(--surface-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.5); flex-shrink: 0; width: 100%; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; }
+        .brand-container { display: flex; align-items: center; gap: 10px; }
+        .logo-img { width: 32px; height: 32px; border-radius: 6px; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .brand-title { font-size: 1.1em; font-weight: bold; }
+        .meena { color: var(--meena-red); }
+        .marketing { color: var(--marketing-white); }
+        .page-title { font-size: 0.75em; color: var(--success-color); text-transform: uppercase; letter-spacing: 1px;}
+
+        /* Layout Grid for Split Screen */
+        .dashboard-layout { display: flex; flex-wrap: wrap; flex-grow: 1; height: calc(100vh - 60px); }
+        .controls-pane { flex: 1 1 450px; overflow-y: auto; padding: 20px; background: var(--bg-color); }
+        .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; border-left: 1px solid #333; position: relative; }
+
+        /* Inputs & Sections */
+        .section-box { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .section-title { font-size: 1.1em; color: var(--marketing-white); border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;}
+        .form-group { display: flex; flex-direction: column; gap: 15px; }
+        .input-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .input-row > div { flex: 1; min-width: 140px; }
+        label { display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;}
+        input[type="text"], input[type="tel"], textarea, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; transition: 0.3s; }
+        input:focus, textarea:focus, select:focus { border-color: var(--accent-color); }
+        textarea { resize: vertical; min-height: 80px; }
+        
+        /* Custom Controls */
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; background: var(--input-bg); padding: 5px 12px; border-radius: 8px; border: 1px solid #444; }
+        input[type="color"] { background: none; border: none; width: 40px; height: 40px; cursor: pointer; padding: 0; }
+        input[type="range"] { width: 100%; accent-color: var(--accent-color); margin-top: 10px;}
+        
+        /* Master Toggle Switch */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: rgba(0, 200, 83, 0.1); border: 1px solid var(--success-color); padding: 15px; border-radius: 8px; margin-bottom: 20px;}
+        .toggle-label { font-weight: bold; font-size: 1.1em; color: var(--success-color); display: flex; align-items: center; gap: 10px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success-color); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        #customThemeSettings { display: none; margin-top: 15px; border-top: 1px dashed #444; padding-top: 15px; }
+
+        .btn-save { background: var(--success-color); color: white; width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;}
+        .btn-save:hover { background: #00a844; }
+
+        /* Loading Spinner */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; }
+
+        /* Toasts */
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-weight: bold; align-items: center; gap: 10px; opacity: 0; transition: opacity 0.3s;}
+        .toast-msg.error { background: var(--meena-red); }
+        .toast-msg.success { background: var(--success-color); }
+        .toast-msg.show { display: flex; opacity: 1; }
+
+        /* ---------------------------------------------------- */
+        /* --- LIVE PREVIEW (Replica of Print CSS) --- */
+        /* ---------------------------------------------------- */
+        .preview-scale-wrapper { 
+            width: 210mm; /* A4 strict width */
+            min-height: 297mm;
+            background: white; 
+            color: black;
+            transform-origin: top center; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        /* Scoped Print Styles applied to Preview Container */
+        .pv-body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding-bottom: 260px; position: relative; height: 100%; }
+        
+        .pv-top-band { background-color: #cccccc; padding: 35px 40px 25px 40px; display: flex; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid #999; position: relative; overflow: hidden; z-index: 1; }
+        
+        /* The Blended Image Layer */
+        .pv-header-bg { position: absolute; top: 0; right: 0; width: 60%; height: 100%; background-size: cover; background-position: right center; background-repeat: no-repeat; opacity: 0; mix-blend-mode: multiply; z-index: -1; transition: 0.3s;}
+
+        .pv-header-left { width: 55%; }
+        .pv-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 25px; }
+        .pv-brand h2 { margin: 0; font-size: 32px; font-weight: 900; letter-spacing: -1px; font-style: italic; color: var(--pv-accent, #d32f2f); line-height: 1; transition: color 0.3s;}
+        .pv-brand p { margin: 0; font-size: 11px; font-weight: bold; color: #333; }
+        .pv-address { font-weight: normal; margin-top: 4px; line-height: 1.4; font-size: 11px; }
+        
+        .pv-invoice-to { margin-top: 10px; }
+        .pv-section-label { font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; color: #555; }
+        .pv-invoice-to h3 { margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: #000;}
+        .pv-invoice-to p { margin: 3px 0; font-size: 12px; color: #222;}
+        .pv-invoice-to p strong { display: inline-block; width: 75px; font-size: 10px; text-transform: uppercase; color: #000;}
+
+        .pv-header-right { width: 40%; text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+        .pv-qr-box { border: 2px solid #000; background-color: #fff; padding: 5px; display: inline-block; margin-bottom: 15px; }
+        .pv-qr-box span { font-size: 36px; color: #000; display: block; }
+        
+        .pv-invoice-title { font-size: 40px; font-weight: 900; margin: 0; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: var(--pv-accent, #d32f2f); transition: color 0.3s;}
+        .pv-invoice-no { font-size: 14px; font-weight: bold; margin: 5px 0 15px 0; color: #000;}
+        
+        .pv-date-box { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        .pv-date-box div { text-align: left; display: flex; flex-direction: column; }
+        .pv-date-box div span { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #333;}
+        .pv-date-box div strong { font-size: 13px; font-weight: bold; color: #000;}
+
+        /* Dummy Table */
+        .pv-table-container { padding: 0 40px; }
+        .pv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
+        .pv-table th { background-color: #cccccc; padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+        .pv-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000; height: 25mm; max-height: 25mm;}
+
+        /* Middle Section Fixed Dummy */
+        .pv-middle-section { display: flex; justify-content: space-between; padding: 15px 40px; position: absolute; bottom: 105px; left: 0; right: 0; width: 100%; box-sizing: border-box;}
+        .pv-left-footer-info { width: 45%; }
+        
+        /* Strict CSS to protect pagination from massive text */
+        .pv-thanks-box { background-color: #eee; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--pv-accent, #d32f2f); border-radius: 2px; max-height: 80px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; transition: border-color 0.3s;} 
+        .pv-thanks-box strong { display: block; font-size: 13px; margin-bottom: 5px; color: #000;}
+        .pv-thanks-box p { margin: 0; font-size: 10px; color: #444; line-height: 1.5; }
+        
+        .pv-totals-box { width: 40%; }
+        .pv-totals-grid { width: 100%; border-collapse: collapse; }
+        .pv-totals-grid td { padding: 8px 15px 8px 10px; font-size: 12px; font-weight: bold; color: #444; text-align: right;}
+        .pv-grand-row { background-color: #cccccc; border-top: 2px solid #000; }
+        .pv-grand-row td { font-size: 16px; font-weight: 900; color: var(--pv-accent, #d32f2f); padding: 12px 15px 12px 10px; transition: color 0.3s;} 
+
+        /* Absolute Footer */
+        .pv-absolute-footer { background-color: #cccccc; padding: 10px 40px; display: flex; justify-content: center; align-items: center; position: absolute; bottom: 0; left: 0; right: 0; width: 100%; box-sizing: border-box; border-bottom: 6px solid var(--pv-accent, transparent); transition: border-color 0.3s;}
+        .pv-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
+        
+        /* Font Theme Classes */
+        .pv-font-modern .pv-brand h2, .pv-font-modern .pv-invoice-title { font-family: 'Montserrat', sans-serif; font-weight: 900; font-style: normal;}
+        .pv-font-modern .pv-body { font-family: 'Roboto', sans-serif; }
+        
+        .pv-font-elegant .pv-brand h2, .pv-font-elegant .pv-invoice-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic;}
+        .pv-font-elegant .pv-body { font-family: 'Open Sans', sans-serif; }
+
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">An error occurred.</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Action Successful!</span>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <a href="inventory.html" class="back-btn"><span class="material-symbols-outlined">arrow_back</span></a>
+            <div class="brand-container">
+                <img src="icon.png" alt="Icon" class="logo-img">
+                <div class="brand-text">
+                    <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
+                    <span class="page-title">Layout Settings</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-layout">
+        
+        <!-- Left Panel: Controls -->
+        <div class="controls-pane" id="controlsPane">
+            
+            <div class="section-box">
+                <h2 class="section-title"><span class="material-symbols-outlined">storefront</span> Master Business Details</h2>
+                <div class="form-group">
+                    <div>
+                        <label>Brand Name</label>
+                        <input type="text" id="busName" value="Meena Marketing">
+                    </div>
+                    <div>
+                        <label>Tagline</label>
+                        <input type="text" id="busTagline" value="Dealers in Premium Quality Products">
+                    </div>
+                    <div>
+                        <label>Full Address</label>
+                        <textarea id="busAddress">31B,C, East, Sannathi, Alwarthirunagari,&#10;Tamil Nadu 628612</textarea>
+                    </div>
+                    <div class="input-row">
+                        <div>
+                            <label>Phone Number</label>
+                            <input type="tel" id="busPhone" value="9444589733">
+                        </div>
+                        <div>
+                            <label>GSTIN</label>
+                            <input type="text" id="busGstin" value="33BUJPR3363M1Z5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <h2 class="section-title"><span class="material-symbols-outlined">palette</span> Theme Controller</h2>
+                
+                <div class="toggle-container">
+                    <div class="toggle-label">
+                        <span class="material-symbols-outlined" id="themeIcon">brush</span>
+                        <span id="themeText">Use Custom Theme</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="themeToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div id="customThemeSettings">
+                    <div class="form-group">
+                        <div>
+                            <label>Typography Style</label>
+                            <select id="fontStyle">
+                                <option value="standard">Standard Professional (Helvetica)</option>
+                                <option value="modern">Modern & Crisp (Montserrat)</option>
+                                <option value="elegant">Elegant / Festive (Playfair)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Primary Accent Color</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="accentColor" value="#d32f2f">
+                                <span id="hexDisplay" style="color: white; font-family: monospace;">#d32f2f</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Header Watermark Image (URL)</label>
+                            <input type="text" id="headerImgUrl" placeholder="https://example.com/diwali-pattern.png">
+                            
+                            <label style="margin-top: 10px;">Watermark Intensity: <span id="opacityVal">15%</span></label>
+                            <input type="range" id="imgOpacity" min="0" max="50" value="15">
+                        </div>
+                        <div class="input-row">
+                            <div>
+                                <label>Custom Greeting Title</label>
+                                <input type="text" id="greetTitle" value="Happy Festivities!">
+                            </div>
+                        </div>
+                        <div>
+                            <label>Custom Thank You Message</label>
+                            <textarea id="greetMsg">Wishing you a prosperous season! Thank you for your continued trust in Meena Marketing.</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-save" id="btnSaveSettings">
+                <span class="material-symbols-outlined">save</span> Save Layout
+            </button>
+
+        </div>
+
+        <!-- Right Panel: Live Preview -->
+        <div class="preview-pane" id="previewPane">
+            <div class="preview-scale-wrapper" id="previewContainer">
+                <div class="pv-body" id="pvBody">
+                    
+                    <div class="pv-top-band">
+                        <div class="pv-header-bg" id="pvHeaderBg"></div>
+                        <div class="pv-header-left">
+                            <div class="pv-brand">
+                                <h2 id="pvName">Meena Marketing</h2>
+                                <p id="pvTagline">Dealers in Premium Quality Products</p>
+                                <p class="pv-address" id="pvAddressRender">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
+                                <p class="pv-address" style="margin-top: 2px;"><strong>Ph:</strong> <span id="pvPhone">9444589733</span></p>
+                                <div style="margin-top: 10px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 5px 10px; border-radius: 4px; background-color: #f5f5f5;">GSTIN: <span id="pvGstin">33BUJPR3363M1Z5</span></span></div>
+                            </div>
+                            <div class="pv-invoice-to">
+                                <p class="pv-section-label">INVOICE TO</p>
+                                <h3>Sample Customer</h3>
+                            </div>
+                        </div>
+                        <div class="pv-header-right">
+                            <div class="pv-qr-box"><span class="material-symbols-outlined">qr_code_2</span></div>
+                            <h1 class="pv-invoice-title">INVOICE</h1>
+                            <p class="pv-invoice-no">No. INV-SAMPLE</p>
+                        </div>
+                    </div>
+
+                    <div class="pv-table-container">
+                        <table class="pv-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%;">No.</th>
+                                    <th style="width: 50%;">Descriptions</th>
+                                    <th style="width: 15%; text-align: right;">Unit Price</th>
+                                    <th style="width: 10%; text-align: center;">Unit</th>
+                                    <th style="width: 20%; text-align: right;">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>01.</td><td><strong>Premium Widget</strong></td><td style="text-align: right;">₹500.00</td><td style="text-align: center;">02</td><td style="text-align: right; font-weight:bold;">₹1000.00</td></tr>
+                                <tr><td colspan="5" style="border:none;"></td></tr> <!-- Padding -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pv-middle-section">
+                        <div class="pv-left-footer-info">
+                            <div class="pv-thanks-box">
+                                <strong id="pvGreetTitle">Thank you for your business!</strong>
+                                <p id="pvGreetMsg">We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
+                            </div>
+                        </div>
+                        <div class="pv-totals-box">
+                            <table class="pv-totals-grid">
+                                <tr><td>Sub Total</td><td style="color:#000;">₹1000.00</td></tr>
+                                <tr class="pv-grand-row"><td>TOTAL :</td><td>₹1000.00</td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="pv-absolute-footer" id="pvFooterStrip">
+                        <p>System Generated Invoice • Powered by Goorac Software Solutions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { db } from './config.js'; 
+        import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Toast Helper
+        window.showToast = function(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.style.display = 'none', 300); }, 3000);
+        };
+
+        // DOM Elements
+        const inputs = {
+            busName: document.getElementById('busName'),
+            busTagline: document.getElementById('busTagline'),
+            busAddress: document.getElementById('busAddress'),
+            busPhone: document.getElementById('busPhone'),
+            busGstin: document.getElementById('busGstin'),
+            
+            themeToggle: document.getElementById('themeToggle'),
+            fontStyle: document.getElementById('fontStyle'),
+            accentColor: document.getElementById('accentColor'),
+            headerImgUrl: document.getElementById('headerImgUrl'),
+            imgOpacity: document.getElementById('imgOpacity'),
+            greetTitle: document.getElementById('greetTitle'),
+            greetMsg: document.getElementById('greetMsg')
+        };
+
+        const previewContainer = document.getElementById('previewContainer');
+        const pvBody = document.getElementById('pvBody');
+
+        // Layout Scale Logic (Makes A4 preview fit in the right pane)
+        function scalePreview() {
+            const pane = document.getElementById('previewPane');
+            // A4 width in pixels is approx 794px at 96dpi. 210mm = 793.7px.
+            const targetWidth = 794; 
+            const availableWidth = pane.clientWidth - 40; // 40px for padding
+            
+            if (availableWidth < targetWidth) {
+                const scale = availableWidth / targetWidth;
+                previewContainer.style.transform = `scale(${scale})`;
+                // Adjust margin bottom to prevent extra scrolling space caused by scale
+                previewContainer.style.marginBottom = `-${(targetWidth * 1.414) * (1 - scale)}px`; 
+            } else {
+                previewContainer.style.transform = `scale(1)`;
+                previewContainer.style.marginBottom = '0px';
+            }
+        }
+        window.addEventListener('resize', scalePreview);
+
+        // UI Listeners
+        inputs.themeToggle.addEventListener('change', (e) => {
+            const isCustom = e.target.checked;
+            document.getElementById('customThemeSettings').style.display = isCustom ? 'block' : 'none';
+            
+            document.getElementById('themeText').innerText = isCustom ? 'Custom Theme Active' : 'Default Theme Active';
+            document.getElementById('themeText').style.color = isCustom ? 'var(--warning-color)' : 'var(--success-color)';
+            document.getElementById('themeIcon').innerText = isCustom ? 'auto_fix_high' : 'brush';
+            
+            updateLivePreview();
+        });
+
+        inputs.accentColor.addEventListener('input', (e) => {
+            document.getElementById('hexDisplay').innerText = e.target.value;
+            updateLivePreview();
+        });
+
+        inputs.imgOpacity.addEventListener('input', (e) => {
+            document.getElementById('opacityVal').innerText = `${e.target.value}%`;
+            updateLivePreview();
+        });
+
+        // Add input listeners to all fields to trigger live preview
+        Object.values(inputs).forEach(input => {
+            if(input.type !== 'checkbox') input.addEventListener('input', updateLivePreview);
+        });
+
+        // The Engine: Update Right Pane Instantly
+        function updateLivePreview() {
+            // 1. Map Master Details
+            document.getElementById('pvName').innerText = inputs.busName.value || 'Business Name';
+            document.getElementById('pvTagline').innerText = inputs.busTagline.value || '';
+            document.getElementById('pvAddressRender').innerHTML = (inputs.busAddress.value || '').replace(/\n/g, '<br>');
+            document.getElementById('pvPhone').innerText = inputs.busPhone.value || '';
+            document.getElementById('pvGstin').innerText = inputs.busGstin.value || '';
+
+            const isCustom = inputs.themeToggle.checked;
+            
+            // 2. Map Theme Settings
+            if (isCustom) {
+                // Fonts
+                pvBody.className = 'pv-body'; // Reset
+                if (inputs.fontStyle.value === 'modern') pvBody.classList.add('pv-font-modern');
+                if (inputs.fontStyle.value === 'elegant') pvBody.classList.add('pv-font-elegant');
+                
+                // Color & Borders
+                previewContainer.style.setProperty('--pv-accent', inputs.accentColor.value);
+                
+                // Header Image Blend
+                const bgLayer = document.getElementById('pvHeaderBg');
+                if (inputs.headerImgUrl.value.trim()) {
+                    bgLayer.style.backgroundImage = `url(${inputs.headerImgUrl.value.trim()})`;
+                    bgLayer.style.opacity = inputs.imgOpacity.value / 100;
+                } else {
+                    bgLayer.style.backgroundImage = 'none';
+                    bgLayer.style.opacity = 0;
+                }
+
+                // Text
+                document.getElementById('pvGreetTitle').innerText = inputs.greetTitle.value || 'Thank you!';
+                document.getElementById('pvGreetMsg').innerText = inputs.greetMsg.value || '';
+            } else {
+                // Revert to strict defaults
+                pvBody.className = 'pv-body'; 
+                previewContainer.style.setProperty('--pv-accent', '#d32f2f');
+                document.getElementById('pvHeaderBg').style.opacity = 0;
+                document.getElementById('pvGreetTitle').innerText = 'Thank you for your business!';
+                document.getElementById('pvGreetMsg').innerText = 'We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.';
+            }
+        }
+
+        // Fetch DB data on load
+        async function loadSettings() {
+            try {
+                const docRef = doc(db, "settings", "customBill");
+                const snap = await getDoc(docRef);
+                
+                if (snap.exists()) {
+                    const data = snap.data();
+                    
+                    // Master details
+                    if(data.busName) inputs.busName.value = data.busName;
+                    if(data.busTagline) inputs.busTagline.value = data.busTagline;
+                    if(data.busAddress) inputs.busAddress.value = data.busAddress;
+                    if(data.busPhone) inputs.busPhone.value = data.busPhone;
+                    if(data.busGstin) inputs.busGstin.value = data.busGstin;
+
+                    // Theme toggle
+                    const isCustom = data.isCustomTheme || false;
+                    inputs.themeToggle.checked = isCustom;
+                    
+                    // Theme configs
+                    if(data.fontStyle) inputs.fontStyle.value = data.fontStyle;
+                    if(data.accentColor) { 
+                        inputs.accentColor.value = data.accentColor; 
+                        document.getElementById('hexDisplay').innerText = data.accentColor;
+                    }
+                    if(data.headerImgUrl) inputs.headerImgUrl.value = data.headerImgUrl;
+                    if(data.imgOpacity) {
+                        inputs.imgOpacity.value = data.imgOpacity;
+                        document.getElementById('opacityVal').innerText = `${data.imgOpacity}%`;
+                    }
+                    if(data.greetTitle) inputs.greetTitle.value = data.greetTitle;
+                    if(data.greetMsg) inputs.greetMsg.value = data.greetMsg;
+
+                    // Trigger UI events to match state
+                    inputs.themeToggle.dispatchEvent(new Event('change'));
+                }
+            } catch (err) {
+                console.error("Error loading settings:", err);
+                showToast("Failed to load settings.");
+            } finally {
+                // Ensure layout triggers after data is injected
+                scalePreview();
+                updateLivePreview();
+            }
+        }
+
+        // Save logic to the 1 Firestore Doc
+        let isSaving = false;
+        document.getElementById('btnSaveSettings').addEventListener('click', async () => {
+            if(isSaving) return;
+            isSaving = true;
+            
+            const btn = document.getElementById('btnSaveSettings');
+            btn.innerHTML = '<span class="spinner"></span> Saving...';
+            btn.style.pointerEvents = 'none';
+
+            const payload = {
+                busName: inputs.busName.value.trim(),
+                busTagline: inputs.busTagline.value.trim(),
+                busAddress: inputs.busAddress.value.trim(),
+                busPhone: inputs.busPhone.value.trim(),
+                busGstin: inputs.busGstin.value.trim(),
+                
+                isCustomTheme: inputs.themeToggle.checked,
+                
+                fontStyle: inputs.fontStyle.value,
+                accentColor: inputs.accentColor.value,
+                headerImgUrl: inputs.headerImgUrl.value.trim(),
+                imgOpacity: parseInt(inputs.imgOpacity.value),
+                greetTitle: inputs.greetTitle.value.trim(),
+                greetMsg: inputs.greetMsg.value.trim(),
+                
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                await setDoc(doc(db, "settings", "customBill"), payload, { merge: true });
+                showToast("Layout Saved Successfully!", "success");
+            } catch (err) {
+                console.error("Save Error", err);
+                showToast("Failed to save layout.");
+            } finally {
+                isSaving = false;
+                btn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Layout';
+                btn.style.pointerEvents = 'auto';
+            }
+        });
+
+        // Init
+        window.addEventListener('load', loadSettings);
+
+    </script>
+</body>
+</html>
