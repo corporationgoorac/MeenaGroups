@@ -47,7 +47,7 @@
         /* Layout Grid for Split Screen */
         .dashboard-layout { display: flex; flex-wrap: wrap; flex-grow: 1; height: calc(100vh - 60px); }
         .controls-pane { flex: 1 1 450px; overflow-y: auto; padding: 20px; background: var(--bg-color); }
-        .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; border-left: 1px solid #333; position: relative; }
+        .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; overflow-x: hidden; border-left: 1px solid #333; position: relative; }
 
         /* Inputs & Sections */
         .section-box { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
@@ -65,17 +65,8 @@
         input[type="color"] { background: none; border: none; width: 40px; height: 40px; cursor: pointer; padding: 0; }
         input[type="range"] { width: 100%; accent-color: var(--accent-color); margin-top: 10px;}
         
-        /* Master Toggle Switch */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: rgba(0, 200, 83, 0.1); border: 1px solid var(--success-color); padding: 15px; border-radius: 8px; margin-bottom: 20px;}
-        .toggle-label { font-weight: bold; font-size: 1.1em; color: var(--success-color); display: flex; align-items: center; gap: 10px; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--success-color); }
-        input:checked + .slider:before { transform: translateX(24px); }
-
-        #customThemeSettings { display: none; margin-top: 15px; border-top: 1px dashed #444; padding-top: 15px; }
+        #customThemeSettings { display: none; margin-top: 15px; border-top: 1px dashed #444; padding-top: 15px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         .btn-save { background: var(--success-color); color: white; width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;}
         .btn-save:hover { background: #00a844; }
@@ -91,24 +82,23 @@
         .toast-msg.show { display: flex; opacity: 1; }
 
         /* ---------------------------------------------------- */
-        /* --- LIVE PREVIEW (Replica of Print CSS) --- */
+        /* --- LIVE PREVIEW (A4 STRICT DIMENSIONS) --- */
         /* ---------------------------------------------------- */
         .preview-scale-wrapper { 
-            width: 210mm; /* A4 strict width */
-            min-height: 297mm;
+            width: 794px; /* Exact A4 width at 96dpi */
+            height: 1123px; /* Exact A4 height at 96dpi */
             background: white; 
             color: black;
-            transform-origin: top center; 
+            transform-origin: top left; /* Changed from center for perfect height math */
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
             position: relative;
             box-sizing: border-box;
-            transition: 0.3s;
+            overflow: hidden;
         }
 
-        /* Scoped Print Styles applied to Preview Container */
-        .pv-body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding-bottom: 260px; position: relative; height: 100%; }
+        .pv-body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; width: 100%; height: 100%; position: relative; }
         
-        .pv-top-band { background-color: #cccccc; padding: 35px 40px 25px 40px; display: flex; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid #999; position: relative; overflow: hidden; z-index: 1; }
+        .pv-top-band { background-color: #cccccc; padding: 35px 40px 25px 40px; display: flex; justify-content: space-between; border-bottom: var(--pv-border-style, 1px solid #999); position: relative; overflow: hidden; z-index: 1; }
         
         /* The Blended Image Layer */
         .pv-header-bg { position: absolute; top: 0; right: 0; width: 60%; height: 100%; background-size: cover; background-position: right center; background-repeat: no-repeat; opacity: 0; mix-blend-mode: multiply; z-index: -1; transition: 0.3s;}
@@ -138,13 +128,16 @@
         .pv-date-box div strong { font-size: 13px; font-weight: bold; color: #000;}
 
         /* Dummy Table */
-        .pv-table-container { padding: 0 40px; }
-        .pv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
+        .pv-table-container { padding: 0 40px; position: relative; margin-top: 25px; }
+        .pv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; z-index: 2; position: relative;} 
         .pv-table th { background-color: #cccccc; padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: #000; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
         .pv-table td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000; height: 25mm; max-height: 25mm;}
 
+        /* Custom Festival Watermark */
+        .pv-watermark { position: absolute; top: 150px; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: var(--pv-accent, #d32f2f); opacity: 0.08; text-transform: uppercase; white-space: nowrap; z-index: 1; pointer-events: none; letter-spacing: 5px; font-family: 'Playfair Display', serif;}
+
         /* Middle Section Fixed Dummy */
-        .pv-middle-section { display: flex; justify-content: space-between; padding: 15px 40px; position: absolute; bottom: 105px; left: 0; right: 0; width: 100%; box-sizing: border-box;}
+        .pv-middle-section { display: flex; justify-content: space-between; padding: 15px 40px; position: absolute; bottom: 80px; left: 0; right: 0; width: 100%; box-sizing: border-box;}
         .pv-left-footer-info { width: 45%; }
         
         /* Strict CSS to protect pagination from massive text */
@@ -155,7 +148,7 @@
         .pv-totals-box { width: 40%; }
         .pv-totals-grid { width: 100%; border-collapse: collapse; }
         .pv-totals-grid td { padding: 8px 15px 8px 10px; font-size: 12px; font-weight: bold; color: #444; text-align: right;}
-        .pv-grand-row { background-color: #cccccc; border-top: 2px solid #000; }
+        .pv-grand-row { background-color: #cccccc; border-top: var(--pv-border-style, 2px solid #000); }
         .pv-grand-row td { font-size: 16px; font-weight: 900; color: var(--pv-accent, #d32f2f); padding: 12px 15px 12px 10px; transition: color 0.3s;} 
 
         /* Absolute Footer */
@@ -163,11 +156,13 @@
         .pv-absolute-footer p { margin: 0; font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 1px;}
         
         /* Font Theme Classes */
+        .pv-font-helvetica { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        
         .pv-font-modern .pv-brand h2, .pv-font-modern .pv-invoice-title { font-family: 'Montserrat', sans-serif; font-weight: 900; font-style: normal;}
-        .pv-font-modern .pv-body { font-family: 'Roboto', sans-serif; }
+        .pv-font-modern .pv-body, .pv-font-modern { font-family: 'Roboto', sans-serif; }
         
         .pv-font-elegant .pv-brand h2, .pv-font-elegant .pv-invoice-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic;}
-        .pv-font-elegant .pv-body { font-family: 'Open Sans', sans-serif; }
+        .pv-font-elegant .pv-body, .pv-font-elegant { font-family: 'Open Sans', sans-serif; }
 
     </style>
 </head>
@@ -189,7 +184,7 @@
                 <img src="icon.png" alt="Icon" class="logo-img">
                 <div class="brand-text">
                     <span class="brand-title"><span class="meena">Meena</span> <span class="marketing">Marketing</span></span>
-                    <span class="page-title">Layout Settings</span>
+                    <span class="page-title">Theme Engine</span>
                 </div>
             </div>
         </div>
@@ -201,87 +196,79 @@
         <div class="controls-pane" id="controlsPane">
             
             <div class="section-box">
-                <h2 class="section-title"><span class="material-symbols-outlined">storefront</span> Master Business Details</h2>
+                <h2 class="section-title"><span class="material-symbols-outlined">palette</span> Global Theme Controller</h2>
+                
                 <div class="form-group">
                     <div>
-                        <label>Brand Name</label>
-                        <input type="text" id="busName" value="Meena Marketing">
-                    </div>
-                    <div>
-                        <label>Tagline</label>
-                        <input type="text" id="busTagline" value="Dealers in Premium Quality Products">
-                    </div>
-                    <div>
-                        <label>Full Address</label>
-                        <textarea id="busAddress">31B,C, East, Sannathi, Alwarthirunagari,&#10;Tamil Nadu 628612</textarea>
-                    </div>
-                    <div class="input-row">
-                        <div>
-                            <label>Phone Number</label>
-                            <input type="tel" id="busPhone" value="9444589733">
-                        </div>
-                        <div>
-                            <label>GSTIN</label>
-                            <input type="text" id="busGstin" value="33BUJPR3363M1Z5">
-                        </div>
+                        <label>Select Bill Theme</label>
+                        <select id="mainThemeSelect" style="font-size: 1.1em; font-weight: bold; padding: 15px;">
+                            <option value="default">Default Theme (Current)</option>
+                            <option value="sleek">Sleek Mode</option>
+                            <option value="pro">Pro Business</option>
+                            <option value="premium">Premium Gold</option>
+                            <option value="classic">Classic Monotone</option>
+                            <option value="elegant">Elegant Purple</option>
+                            <option value="custom">✨ Custom Festival</option>
+                        </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="section-box">
-                <h2 class="section-title"><span class="material-symbols-outlined">palette</span> Theme Controller</h2>
-                
-                <div class="toggle-container">
-                    <div class="toggle-label">
-                        <span class="material-symbols-outlined" id="themeIcon">brush</span>
-                        <span id="themeText">Use Custom Theme</span>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="themeToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-
+                <!-- Custom Panel (Only visible when Custom Festival is selected) -->
                 <div id="customThemeSettings">
+                    <h3 style="margin: 0 0 15px 0; font-size: 0.9em; color: var(--warning-color); border-bottom: 1px solid #444; padding-bottom: 8px;">FESTIVAL CUSTOMIZATION</h3>
+                    
                     <div class="form-group">
                         <div>
-                            <label>Typography Style</label>
-                            <select id="fontStyle">
-                                <option value="standard">Standard Professional (Helvetica)</option>
-                                <option value="modern">Modern & Crisp (Montserrat)</option>
-                                <option value="elegant">Elegant / Festive (Playfair)</option>
-                            </select>
+                            <label>Large Festival Name (Watermark)</label>
+                            <input type="text" id="festWatermark" placeholder="e.g. HAPPY DIWALI">
+                        </div>
+                        <div class="input-row">
+                            <div>
+                                <label>Border Style</label>
+                                <select id="festBorder">
+                                    <option value="1px solid #999">Solid Line</option>
+                                    <option value="3px double #333">Double Line</option>
+                                    <option value="1px dashed #555">Dashed Line</option>
+                                    <option value="none">No Border</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Typography Style</label>
+                                <select id="festFont">
+                                    <option value="standard">Standard (Helvetica)</option>
+                                    <option value="modern">Modern (Montserrat)</option>
+                                    <option value="elegant">Elegant (Playfair)</option>
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label>Primary Accent Color</label>
                             <div class="color-picker-wrapper">
-                                <input type="color" id="accentColor" value="#d32f2f">
+                                <input type="color" id="festColor" value="#d32f2f">
                                 <span id="hexDisplay" style="color: white; font-family: monospace;">#d32f2f</span>
                             </div>
                         </div>
                         <div>
                             <label>Header Watermark Image (URL)</label>
-                            <input type="text" id="headerImgUrl" placeholder="https://example.com/diwali-pattern.png">
+                            <input type="text" id="festImgUrl" placeholder="https://example.com/diwali-pattern.png">
                             
-                            <label style="margin-top: 10px;">Watermark Intensity: <span id="opacityVal">15%</span></label>
-                            <input type="range" id="imgOpacity" min="0" max="50" value="15">
+                            <label style="margin-top: 10px;">Image Intensity: <span id="opacityVal">15%</span></label>
+                            <input type="range" id="festOpacity" min="0" max="50" value="15">
                         </div>
-                        <div class="input-row">
-                            <div>
-                                <label>Custom Greeting Title</label>
-                                <input type="text" id="greetTitle" value="Happy Festivities!">
-                            </div>
+                        <div>
+                            <label>Custom Greeting Title</label>
+                            <input type="text" id="festTitle" value="Happy Festivities!">
                         </div>
                         <div>
                             <label>Custom Thank You Message</label>
-                            <textarea id="greetMsg">Wishing you a prosperous season! Thank you for your continued trust in Meena Marketing.</textarea>
+                            <textarea id="festMsg">Wishing you a prosperous season! Thank you for your continued trust in Meena Marketing.</textarea>
                         </div>
                     </div>
                 </div>
             </div>
 
             <button class="btn-save" id="btnSaveSettings">
-                <span class="material-symbols-outlined">save</span> Save Layout
+                <span class="material-symbols-outlined">save</span> Save Layout Configuration
             </button>
 
         </div>
@@ -291,15 +278,15 @@
             <div class="preview-scale-wrapper" id="previewContainer">
                 <div class="pv-body" id="pvBody">
                     
-                    <div class="pv-top-band">
+                    <div class="pv-top-band" id="pvTopBand">
                         <div class="pv-header-bg" id="pvHeaderBg"></div>
                         <div class="pv-header-left">
                             <div class="pv-brand">
-                                <h2 id="pvName">Meena Marketing</h2>
-                                <p id="pvTagline">Dealers in Premium Quality Products</p>
-                                <p class="pv-address" id="pvAddressRender">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
-                                <p class="pv-address" style="margin-top: 2px;"><strong>Ph:</strong> <span id="pvPhone">9444589733</span></p>
-                                <div style="margin-top: 10px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 5px 10px; border-radius: 4px; background-color: #f5f5f5;">GSTIN: <span id="pvGstin">33BUJPR3363M1Z5</span></span></div>
+                                <h2>Meena Marketing</h2>
+                                <p>Dealers in Premium Quality Products</p>
+                                <p class="pv-address">31B,C, East, Sannathi, Alwarthirunagari,<br>Tamil Nadu 628612</p>
+                                <p class="pv-address" style="margin-top: 2px;"><strong>Ph:</strong> 9444589733</p>
+                                <div style="margin-top: 10px;"><span style="font-size: 11px; font-weight: bold; color: #000; border: 1px solid #999; padding: 5px 10px; border-radius: 4px; background-color: #f5f5f5;">GSTIN: 33BUJPR3363M1Z5</span></div>
                             </div>
                             <div class="pv-invoice-to">
                                 <p class="pv-section-label">INVOICE TO</p>
@@ -314,6 +301,7 @@
                     </div>
 
                     <div class="pv-table-container">
+                        <div class="pv-watermark" id="pvWatermarkText"></div>
                         <table class="pv-table">
                             <thead>
                                 <tr>
@@ -333,7 +321,7 @@
 
                     <div class="pv-middle-section">
                         <div class="pv-left-footer-info">
-                            <div class="pv-thanks-box">
+                            <div class="pv-thanks-box" id="pvThanksBox">
                                 <strong id="pvGreetTitle">Thank you for your business!</strong>
                                 <p id="pvGreetMsg">We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.</p>
                             </div>
@@ -341,7 +329,7 @@
                         <div class="pv-totals-box">
                             <table class="pv-totals-grid">
                                 <tr><td>Sub Total</td><td style="color:#000;">₹1000.00</td></tr>
-                                <tr class="pv-grand-row"><td>TOTAL :</td><td>₹1000.00</td></tr>
+                                <tr class="pv-grand-row" id="pvGrandRow"><td>TOTAL :</td><td>₹1000.00</td></tr>
                             </table>
                         </div>
                     </div>
@@ -370,112 +358,143 @@
 
         // DOM Elements
         const inputs = {
-            busName: document.getElementById('busName'),
-            busTagline: document.getElementById('busTagline'),
-            busAddress: document.getElementById('busAddress'),
-            busPhone: document.getElementById('busPhone'),
-            busGstin: document.getElementById('busGstin'),
-            
-            themeToggle: document.getElementById('themeToggle'),
-            fontStyle: document.getElementById('fontStyle'),
-            accentColor: document.getElementById('accentColor'),
-            headerImgUrl: document.getElementById('headerImgUrl'),
-            imgOpacity: document.getElementById('imgOpacity'),
-            greetTitle: document.getElementById('greetTitle'),
-            greetMsg: document.getElementById('greetMsg')
+            themeSelect: document.getElementById('mainThemeSelect'),
+            festWatermark: document.getElementById('festWatermark'),
+            festBorder: document.getElementById('festBorder'),
+            festFont: document.getElementById('festFont'),
+            festColor: document.getElementById('festColor'),
+            festImgUrl: document.getElementById('festImgUrl'),
+            festOpacity: document.getElementById('festOpacity'),
+            festTitle: document.getElementById('festTitle'),
+            festMsg: document.getElementById('festMsg')
         };
 
         const previewContainer = document.getElementById('previewContainer');
         const pvBody = document.getElementById('pvBody');
+        const customPanel = document.getElementById('customThemeSettings');
 
-        // Layout Scale Logic (Makes A4 preview fit in the right pane)
+        // Preset Theme Definitions
+        const themes = {
+            default: { color: '#d32f2f', font: 'helvetica', border: '1px solid #999' },
+            sleek:   { color: '#1a237e', font: 'modern', border: '1px solid #1a237e' },
+            pro:     { color: '#00695c', font: 'modern', border: '2px solid #000' },
+            premium: { color: '#b68d40', font: 'elegant', border: '3px double #333' },
+            classic: { color: '#000000', font: 'helvetica', border: '1px dashed #000' },
+            elegant: { color: '#4a148c', font: 'elegant', border: '1px solid #ccc' }
+        };
+
+        // Fix Scaling: Map perfectly down to center of left pane without overlap
         function scalePreview() {
             const pane = document.getElementById('previewPane');
-            // A4 width in pixels is approx 794px at 96dpi. 210mm = 793.7px.
             const targetWidth = 794; 
-            const availableWidth = pane.clientWidth - 40; // 40px for padding
+            const targetHeight = 1123;
+            // Add padding consideration
+            const availableWidth = pane.clientWidth - 40; 
             
             if (availableWidth < targetWidth) {
                 const scale = availableWidth / targetWidth;
                 previewContainer.style.transform = `scale(${scale})`;
-                // Adjust margin bottom to prevent extra scrolling space caused by scale
-                previewContainer.style.marginBottom = `-${(targetWidth * 1.414) * (1 - scale)}px`; 
+                
+                // CRITICAL FIX: To prevent the scaled div from pushing layout out of bounds
+                // Calculate the empty space left by the scale reduction and collapse it with negative margins
+                const reducedWidth = targetWidth * (1 - scale);
+                const reducedHeight = targetHeight * (1 - scale);
+                
+                // Center it using marginLeft and fix height gap with marginBottom
+                // Using transform-origin: top left makes this math exact.
+                const marginLeft = (availableWidth - (targetWidth * scale)) / 2;
+                previewContainer.style.marginLeft = `${marginLeft}px`;
+                previewContainer.style.marginBottom = `-${reducedHeight}px`; 
             } else {
                 previewContainer.style.transform = `scale(1)`;
+                previewContainer.style.marginLeft = '0px';
                 previewContainer.style.marginBottom = '0px';
             }
         }
+        
         window.addEventListener('resize', scalePreview);
 
         // UI Listeners
-        inputs.themeToggle.addEventListener('change', (e) => {
-            const isCustom = e.target.checked;
-            document.getElementById('customThemeSettings').style.display = isCustom ? 'block' : 'none';
-            
-            document.getElementById('themeText').innerText = isCustom ? 'Custom Theme Active' : 'Default Theme Active';
-            document.getElementById('themeText').style.color = isCustom ? 'var(--warning-color)' : 'var(--success-color)';
-            document.getElementById('themeIcon').innerText = isCustom ? 'auto_fix_high' : 'brush';
-            
+        inputs.themeSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') {
+                customPanel.style.display = 'block';
+            } else {
+                customPanel.style.display = 'none';
+            }
             updateLivePreview();
         });
 
-        inputs.accentColor.addEventListener('input', (e) => {
+        inputs.festColor.addEventListener('input', (e) => {
             document.getElementById('hexDisplay').innerText = e.target.value;
             updateLivePreview();
         });
 
-        inputs.imgOpacity.addEventListener('input', (e) => {
+        inputs.festOpacity.addEventListener('input', (e) => {
             document.getElementById('opacityVal').innerText = `${e.target.value}%`;
             updateLivePreview();
         });
 
-        // Add input listeners to all fields to trigger live preview
+        // Add input listeners to all custom fields to trigger live preview
         Object.values(inputs).forEach(input => {
-            if(input.type !== 'checkbox') input.addEventListener('input', updateLivePreview);
+            if(input.id !== 'mainThemeSelect') input.addEventListener('input', updateLivePreview);
         });
 
         // The Engine: Update Right Pane Instantly
         function updateLivePreview() {
-            // 1. Map Master Details
-            document.getElementById('pvName').innerText = inputs.busName.value || 'Business Name';
-            document.getElementById('pvTagline').innerText = inputs.busTagline.value || '';
-            document.getElementById('pvAddressRender').innerHTML = (inputs.busAddress.value || '').replace(/\n/g, '<br>');
-            document.getElementById('pvPhone').innerText = inputs.busPhone.value || '';
-            document.getElementById('pvGstin').innerText = inputs.busGstin.value || '';
-
-            const isCustom = inputs.themeToggle.checked;
+            const mode = inputs.themeSelect.value;
+            const bgLayer = document.getElementById('pvHeaderBg');
+            const watermarkText = document.getElementById('pvWatermarkText');
             
-            // 2. Map Theme Settings
-            if (isCustom) {
-                // Fonts
-                pvBody.className = 'pv-body'; // Reset
-                if (inputs.fontStyle.value === 'modern') pvBody.classList.add('pv-font-modern');
-                if (inputs.fontStyle.value === 'elegant') pvBody.classList.add('pv-font-elegant');
+            let applyColor, applyFont, applyBorder;
+
+            if (mode === 'custom') {
+                // Apply User Inputs
+                applyColor = inputs.festColor.value;
+                applyFont = inputs.festFont.value;
+                applyBorder = inputs.festBorder.value;
                 
-                // Color & Borders
-                previewContainer.style.setProperty('--pv-accent', inputs.accentColor.value);
-                
-                // Header Image Blend
-                const bgLayer = document.getElementById('pvHeaderBg');
-                if (inputs.headerImgUrl.value.trim()) {
-                    bgLayer.style.backgroundImage = `url(${inputs.headerImgUrl.value.trim()})`;
-                    bgLayer.style.opacity = inputs.imgOpacity.value / 100;
+                // Handle Image
+                if (inputs.festImgUrl.value.trim()) {
+                    bgLayer.style.backgroundImage = `url(${inputs.festImgUrl.value.trim()})`;
+                    bgLayer.style.opacity = inputs.festOpacity.value / 100;
                 } else {
                     bgLayer.style.backgroundImage = 'none';
                     bgLayer.style.opacity = 0;
                 }
 
-                // Text
-                document.getElementById('pvGreetTitle').innerText = inputs.greetTitle.value || 'Thank you!';
-                document.getElementById('pvGreetMsg').innerText = inputs.greetMsg.value || '';
+                // Handle Text
+                watermarkText.innerText = inputs.festWatermark.value.trim();
+                document.getElementById('pvGreetTitle').innerText = inputs.festTitle.value || 'Thank you!';
+                document.getElementById('pvGreetMsg').innerText = inputs.festMsg.value || '';
+
             } else {
-                // Revert to strict defaults
-                pvBody.className = 'pv-body'; 
-                previewContainer.style.setProperty('--pv-accent', '#d32f2f');
-                document.getElementById('pvHeaderBg').style.opacity = 0;
+                // Apply Preset Theme Configuration
+                const preset = themes[mode];
+                applyColor = preset.color;
+                applyFont = preset.font;
+                applyBorder = preset.border;
+                
+                // Reset custom visual elements
+                bgLayer.style.backgroundImage = 'none';
+                bgLayer.style.opacity = 0;
+                watermarkText.innerText = '';
                 document.getElementById('pvGreetTitle').innerText = 'Thank you for your business!';
                 document.getElementById('pvGreetMsg').innerText = 'We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.';
             }
+
+            // Execute CSS Injections
+            previewContainer.style.setProperty('--pv-accent', applyColor);
+            
+            // Fix Top Border & Grand Total row border
+            document.getElementById('pvTopBand').style.borderBottom = applyBorder === 'none' ? 'none' : applyBorder;
+            document.getElementById('pvGrandRow').style.borderTop = applyBorder === 'none' ? '2px solid #000' : applyBorder;
+            
+            // Fonts
+            pvBody.className = 'pv-body'; // Reset
+            if (applyFont === 'modern') pvBody.classList.add('pv-font-modern');
+            else if (applyFont === 'elegant') pvBody.classList.add('pv-font-elegant');
+            else pvBody.classList.add('pv-font-helvetica');
         }
 
         // Fetch DB data on load
@@ -487,33 +506,30 @@
                 if (snap.exists()) {
                     const data = snap.data();
                     
-                    // Master details
-                    if(data.busName) inputs.busName.value = data.busName;
-                    if(data.busTagline) inputs.busTagline.value = data.busTagline;
-                    if(data.busAddress) inputs.busAddress.value = data.busAddress;
-                    if(data.busPhone) inputs.busPhone.value = data.busPhone;
-                    if(data.busGstin) inputs.busGstin.value = data.busGstin;
+                    // Main Theme
+                    if(data.selectedTheme) {
+                        inputs.themeSelect.value = data.selectedTheme;
+                    }
 
-                    // Theme toggle
-                    const isCustom = data.isCustomTheme || false;
-                    inputs.themeToggle.checked = isCustom;
+                    // Custom Data
+                    if(data.customWatermark) inputs.festWatermark.value = data.customWatermark;
+                    if(data.customBorder) inputs.festBorder.value = data.customBorder;
+                    if(data.customFont) inputs.festFont.value = data.customFont;
                     
-                    // Theme configs
-                    if(data.fontStyle) inputs.fontStyle.value = data.fontStyle;
-                    if(data.accentColor) { 
-                        inputs.accentColor.value = data.accentColor; 
-                        document.getElementById('hexDisplay').innerText = data.accentColor;
+                    if(data.customColor) { 
+                        inputs.festColor.value = data.customColor; 
+                        document.getElementById('hexDisplay').innerText = data.customColor;
                     }
-                    if(data.headerImgUrl) inputs.headerImgUrl.value = data.headerImgUrl;
-                    if(data.imgOpacity) {
-                        inputs.imgOpacity.value = data.imgOpacity;
-                        document.getElementById('opacityVal').innerText = `${data.imgOpacity}%`;
+                    if(data.customImgUrl) inputs.festImgUrl.value = data.customImgUrl;
+                    if(data.customOpacity !== undefined) {
+                        inputs.festOpacity.value = data.customOpacity;
+                        document.getElementById('opacityVal').innerText = `${data.customOpacity}%`;
                     }
-                    if(data.greetTitle) inputs.greetTitle.value = data.greetTitle;
-                    if(data.greetMsg) inputs.greetMsg.value = data.greetMsg;
+                    if(data.customTitle) inputs.festTitle.value = data.customTitle;
+                    if(data.customMsg) inputs.festMsg.value = data.customMsg;
 
-                    // Trigger UI events to match state
-                    inputs.themeToggle.dispatchEvent(new Event('change'));
+                    // Trigger UI layout change
+                    inputs.themeSelect.dispatchEvent(new Event('change'));
                 }
             } catch (err) {
                 console.error("Error loading settings:", err);
@@ -536,33 +552,30 @@
             btn.style.pointerEvents = 'none';
 
             const payload = {
-                busName: inputs.busName.value.trim(),
-                busTagline: inputs.busTagline.value.trim(),
-                busAddress: inputs.busAddress.value.trim(),
-                busPhone: inputs.busPhone.value.trim(),
-                busGstin: inputs.busGstin.value.trim(),
+                selectedTheme: inputs.themeSelect.value,
                 
-                isCustomTheme: inputs.themeToggle.checked,
-                
-                fontStyle: inputs.fontStyle.value,
-                accentColor: inputs.accentColor.value,
-                headerImgUrl: inputs.headerImgUrl.value.trim(),
-                imgOpacity: parseInt(inputs.imgOpacity.value),
-                greetTitle: inputs.greetTitle.value.trim(),
-                greetMsg: inputs.greetMsg.value.trim(),
+                // Only these values matter if custom is active, but we store them anyway
+                customWatermark: inputs.festWatermark.value.trim(),
+                customBorder: inputs.festBorder.value,
+                customFont: inputs.festFont.value,
+                customColor: inputs.festColor.value,
+                customImgUrl: inputs.festImgUrl.value.trim(),
+                customOpacity: parseInt(inputs.festOpacity.value),
+                customTitle: inputs.festTitle.value.trim(),
+                customMsg: inputs.festMsg.value.trim(),
                 
                 updatedAt: serverTimestamp()
             };
 
             try {
                 await setDoc(doc(db, "settings", "customBill"), payload, { merge: true });
-                showToast("Layout Saved Successfully!", "success");
+                showToast("Layout Configuration Saved!", "success");
             } catch (err) {
                 console.error("Save Error", err);
                 showToast("Failed to save layout.");
             } finally {
                 isSaving = false;
-                btn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Layout';
+                btn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Layout Configuration';
                 btn.style.pointerEvents = 'auto';
             }
         });
