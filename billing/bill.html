@@ -189,14 +189,24 @@
             /* Custom Festival Watermark - Z-INDEX FIXED SO IT PRINTS ON TOP */
             .pv-watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: var(--pv-accent, #d32f2f) !important; opacity: 0.15; text-transform: uppercase; white-space: nowrap; z-index: 5; pointer-events: none; letter-spacing: 5px; font-family: 'Playfair Display', serif; }
 
-            /* Font Theme Classes */
+            /* Font Theme Classes with Protection for Material Icons */
             #printArea.pv-font-modern .print-brand h2, #printArea.pv-font-modern .invoice-title-text { font-family: 'Montserrat', sans-serif !important; font-weight: 900 !important; font-style: normal !important;}
-            #printArea.pv-font-modern, #printArea.pv-font-modern * { font-family: 'Roboto', sans-serif !important; }
+            #printArea.pv-font-modern, #printArea.pv-font-modern *:not(.material-symbols-outlined) { font-family: 'Roboto', sans-serif !important; }
             
             #printArea.pv-font-elegant .print-brand h2, #printArea.pv-font-elegant .invoice-title-text { font-family: 'Playfair Display', serif !important; font-weight: 700 !important; font-style: italic !important;}
-            #printArea.pv-font-elegant, #printArea.pv-font-elegant * { font-family: 'Open Sans', sans-serif !important; }
+            #printArea.pv-font-elegant, #printArea.pv-font-elegant *:not(.material-symbols-outlined) { font-family: 'Open Sans', sans-serif !important; }
             
-            #printArea.pv-font-helvetica, #printArea.pv-font-helvetica * { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
+            #printArea.pv-font-helvetica, #printArea.pv-font-helvetica *:not(.material-symbols-outlined) { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
+
+            /* Material Icon Protection Override */
+            #printArea .material-symbols-outlined,
+            .pv-font-modern .material-symbols-outlined,
+            .pv-font-elegant .material-symbols-outlined,
+            .pv-font-helvetica .material-symbols-outlined {
+                font-family: 'Material Symbols Outlined' !important;
+                font-weight: normal !important;
+                font-style: normal !important;
+            }
 
             /* Paper Texture Options */
             #printArea.texture-vintage { background-color: #fdf6e3 !important; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E") !important; }
@@ -234,8 +244,8 @@
             .print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
             .print-table th { background-color: var(--pv-th-bg, #cccccc) !important; padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: var(--pv-th-text, #000) !important; font-weight: bold; border-top: var(--pv-border-style, 1px solid #000) !important; border-bottom: var(--pv-border-style, 1px solid #000) !important; }
             
-            /* FIX: Item borders kept strictly clean and slim (1px solid #ddd) exactly like Custombill preview */
-            .print-table td { border-bottom: 1px solid #ddd !important; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
+            /* FIX: Allow Custom Borders to pass through to the Table Cells */
+            .print-table td { border-bottom: var(--pv-border-style, 1px solid #ddd) !important; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
             
             .print-table th.text-right, .print-table td.text-right { text-align: right; padding-right: 15px; } /* Perfect Right Alignment */
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
@@ -721,84 +731,87 @@
             elegant: { accent: '#4a148c', title: '#ffffff', font: 'elegant', border: '1px solid #ccc', hdrBg: '#4a148c', hdrText: '#ffffff', hdrSub: '#e1bee7', thBg: '#f3e5f5', thText: '#4a148c' }
         };
 
-        async function loadThemeConfiguration() {
+        function loadThemeConfiguration() {
             try {
                 const docRef = doc(db, "settings", "customBill");
-                const snap = await getDoc(docRef);
-                const printArea = document.getElementById('printArea');
-                const bgLayer = document.getElementById('prHeaderBg');
-                const watermarkText = document.getElementById('prWatermarkText');
+                
+                // CRITICAL FIX: Replaced one-time getDoc with real-time onSnapshot listener
+                onSnapshot(docRef, (snap) => {
+                    const printArea = document.getElementById('printArea');
+                    const bgLayer = document.getElementById('prHeaderBg');
+                    const watermarkText = document.getElementById('prWatermarkText');
 
-                if (snap.exists()) {
-                    const data = snap.data();
-                    const mode = data.selectedTheme || 'default';
-                    let cfg = {};
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const mode = data.selectedTheme || 'default';
+                        let cfg = {};
 
-                    // Handle Global Editable Greetings
-                    document.getElementById('prGreetTitle').innerText = data.customTitle || 'Thank you for your business!';
-                    document.getElementById('prGreetMsg').innerText = data.customMsg || 'We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.';
+                        // Handle Global Editable Greetings
+                        document.getElementById('prGreetTitle').innerText = data.customTitle || 'Thank you for your business!';
+                        document.getElementById('prGreetMsg').innerText = data.customMsg || 'We appreciate your trust in Meena Marketing. If you have any questions about this invoice, please contact us.';
 
-                    if (mode === 'custom') {
-                        cfg = {
-                            accent: data.customColor || '#d32f2f',
-                            title: data.customColor || '#d32f2f',
-                            font: data.customFont || 'standard',
-                            border: data.customBorder || '1px solid #999',
-                            hdrBg: data.customBgColor || '#f9f9f9',
-                            hdrText: data.customTextColor || '#000000',
-                            hdrSub: data.customTextColor || '#333333',
-                            thBg: data.customBgColor || '#f9f9f9',
-                            thText: data.customTextColor || '#000000'
-                        };
+                        if (mode === 'custom') {
+                            cfg = {
+                                accent: data.customColor || '#d32f2f',
+                                title: data.customColor || '#d32f2f',
+                                font: data.customFont || 'standard',
+                                border: data.customBorder || '1px solid #999',
+                                hdrBg: data.customBgColor || '#f9f9f9',
+                                hdrText: data.customTextColor || '#000000',
+                                hdrSub: data.customTextColor || '#333333',
+                                thBg: data.customBgColor || '#f9f9f9',
+                                thText: data.customTextColor || '#000000'
+                            };
 
-                        // Apply Festival Vectors & Texts
-                        printArea.classList.add('show-fest-fx');
-                        document.querySelectorAll('.pattern-mandala').forEach(el => el.style.display = data.customPattern === 'mandala' ? 'block' : 'none');
-                        document.querySelectorAll('.pattern-crackers').forEach(el => el.style.display = data.customPattern === 'crackers' ? 'block' : 'none');
-                        watermarkText.innerText = data.customWatermark || '';
+                            // Apply Festival Vectors & Texts
+                            printArea.classList.add('show-fest-fx');
+                            document.querySelectorAll('.pattern-mandala').forEach(el => el.style.display = data.customPattern === 'mandala' ? 'block' : 'none');
+                            document.querySelectorAll('.pattern-crackers').forEach(el => el.style.display = data.customPattern === 'crackers' ? 'block' : 'none');
+                            watermarkText.innerText = data.customWatermark || '';
 
-                        // Apply Textures
-                        printArea.classList.remove('texture-vintage', 'texture-canvas');
-                        if (data.customTexture && data.customTexture !== 'none') {
-                            printArea.classList.add(`texture-${data.customTexture}`);
-                        }
+                            // Apply Textures
+                            printArea.classList.remove('texture-vintage', 'texture-canvas');
+                            if (data.customTexture && data.customTexture !== 'none') {
+                                printArea.classList.add(`texture-${data.customTexture}`);
+                            }
 
-                        // Apply Dynamic Image Overlays for Header
-                        if (data.customImgUrl && data.customImgUrl.trim()) {
-                            bgLayer.style.backgroundImage = `linear-gradient(to right, ${cfg.hdrBg} 30%, transparent 100%), url(${data.customImgUrl.trim()})`;
-                            bgLayer.style.opacity = (data.customOpacity !== undefined ? data.customOpacity : 30) / 100;
+                            // Apply Dynamic Image Overlays for Header
+                            if (data.customImgUrl && data.customImgUrl.trim()) {
+                                bgLayer.style.backgroundImage = `linear-gradient(to right, ${cfg.hdrBg} 30%, transparent 100%), url(${data.customImgUrl.trim()})`;
+                                bgLayer.style.opacity = (data.customOpacity !== undefined ? data.customOpacity : 30) / 100;
+                            } else {
+                                bgLayer.style.backgroundImage = 'none';
+                                bgLayer.style.opacity = 0;
+                            }
+
                         } else {
+                            cfg = themesDefinitions[mode] || themesDefinitions['default'];
+                            
+                            // Disable specific festival elements for preset themes
+                            printArea.classList.remove('show-fest-fx', 'texture-vintage', 'texture-canvas');
+                            document.querySelectorAll('.pattern-mandala, .pattern-crackers').forEach(el => el.style.display = 'none');
                             bgLayer.style.backgroundImage = 'none';
                             bgLayer.style.opacity = 0;
+                            watermarkText.innerText = '';
                         }
 
-                    } else {
-                        cfg = themesDefinitions[mode] || themesDefinitions['default'];
-                        
-                        // Disable specific festival elements for preset themes
-                        printArea.classList.remove('show-fest-fx', 'texture-vintage', 'texture-canvas');
-                        document.querySelectorAll('.pattern-mandala, .pattern-crackers').forEach(el => el.style.display = 'none');
-                        bgLayer.style.backgroundImage = 'none';
-                        bgLayer.style.opacity = 0;
-                        watermarkText.innerText = '';
+                        // Map all configuration colors mathematically into CSS Variables for @media print translation
+                        printArea.style.setProperty('--pv-accent', cfg.accent);
+                        printArea.style.setProperty('--pv-invoice-title', cfg.title);
+                        printArea.style.setProperty('--pv-header-bg', cfg.hdrBg);
+                        printArea.style.setProperty('--pv-header-text', cfg.hdrText);
+                        printArea.style.setProperty('--pv-header-sub', cfg.hdrSub);
+                        printArea.style.setProperty('--pv-th-bg', cfg.thBg);
+                        printArea.style.setProperty('--pv-th-text', cfg.thText);
+                        printArea.style.setProperty('--pv-border-style', cfg.border === 'none' ? 'none' : cfg.border);
+
+                        // Map Custom Print Typography
+                        printArea.classList.remove('pv-font-modern', 'pv-font-elegant', 'pv-font-helvetica');
+                        if (cfg.font === 'modern') printArea.classList.add('pv-font-modern');
+                        else if (cfg.font === 'elegant') printArea.classList.add('pv-font-elegant');
+                        else printArea.classList.add('pv-font-helvetica');
                     }
-
-                    // Map all configuration colors mathematically into CSS Variables for @media print translation
-                    printArea.style.setProperty('--pv-accent', cfg.accent);
-                    printArea.style.setProperty('--pv-invoice-title', cfg.title);
-                    printArea.style.setProperty('--pv-header-bg', cfg.hdrBg);
-                    printArea.style.setProperty('--pv-header-text', cfg.hdrText);
-                    printArea.style.setProperty('--pv-header-sub', cfg.hdrSub);
-                    printArea.style.setProperty('--pv-th-bg', cfg.thBg);
-                    printArea.style.setProperty('--pv-th-text', cfg.thText);
-                    printArea.style.setProperty('--pv-border-style', cfg.border === 'none' ? 'none' : cfg.border);
-
-                    // Map Custom Print Typography
-                    printArea.classList.remove('pv-font-modern', 'pv-font-elegant', 'pv-font-helvetica');
-                    if (cfg.font === 'modern') printArea.classList.add('pv-font-modern');
-                    else if (cfg.font === 'elegant') printArea.classList.add('pv-font-elegant');
-                    else printArea.classList.add('pv-font-helvetica');
-                }
+                });
             } catch(e) {
                 console.error("Error loading print theme configuration", e);
             }
@@ -1327,14 +1340,14 @@
             printItems.forEach((item, index) => {
                 if (item.isEmptyRow) {
                     // Inject invisible spacing row to maintain physical space for pagination structure
-                    // FIXED: Reverted to light 1px border so it looks clean and matches Custombill preview
+                    // FIXED: Allow custom borders to pass through
                     tbody.innerHTML += `
                         <tr style="height: 25mm; max-height: 25mm;">
-                            <td style="border-bottom: 1px solid #ddd;"></td>
-                            <td style="border-bottom: 1px solid #ddd;"></td>
-                            <td style="border-bottom: 1px solid #ddd;"></td>
-                            <td style="border-bottom: 1px solid #ddd;"></td>
-                            <td style="border-bottom: 1px solid #ddd;"></td>
+                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
+                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
+                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
+                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
+                            <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);"></td>
                         </tr>
                     `;
                     return;
@@ -1350,14 +1363,14 @@
                     <span style="font-size:11px; color:var(--pv-header-sub, #555);">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
-                // FIXED: Reverted to light 1px border so items look clean exactly like Custombill preview
+                // FIXED: Allow custom borders to pass through
                 tbody.innerHTML += `
                     <tr style="height: 25mm; max-height: 25mm;">
-                        <td style="border-bottom: 1px solid #ddd;">${num}.</td>
-                        <td style="border-bottom: 1px solid #ddd;">${desc}</td>
-                        <td class="text-right" style="border-bottom: 1px solid #ddd;">₹${item.originalUnitPriceBase.toFixed(2)}</td>
-                        <td class="text-center" style="border-bottom: 1px solid #ddd;">${item.qty.toString().padStart(2, '0')}</td>
-                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: 1px solid #ddd;">₹${item.finalTotal.toFixed(2)}</td>
+                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${num}.</td>
+                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${desc}</td>
+                        <td class="text-right" style="border-bottom: var(--pv-border-style, 1px solid #ddd);">₹${item.originalUnitPriceBase.toFixed(2)}</td>
+                        <td class="text-center" style="border-bottom: var(--pv-border-style, 1px solid #ddd);">${item.qty.toString().padStart(2, '0')}</td>
+                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: var(--pv-border-style, 1px solid #ddd);">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
                 `;
             });
