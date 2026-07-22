@@ -48,8 +48,8 @@
         .dashboard-layout { display: flex; flex-wrap: wrap; flex-grow: 1; height: calc(100vh - 60px); }
         .controls-pane { flex: 1 1 450px; overflow-y: auto; padding: 20px; background: var(--bg-color); }
         
-        /* Mobile Scroll/Pan Fix */
-        .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow: auto; border-left: 1px solid #333; position: relative; }
+        /* Mobile Scroll/Pan Fix: Changed from flex to block to prevent flex-center clipping bugs */
+        .preview-pane { flex: 1 1 500px; background: #0a0a0a; display: block; padding: 20px; overflow: auto; border-left: 1px solid #333; position: relative; }
 
         /* Inputs & Sections */
         .section-box { background: var(--surface-color); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
@@ -434,7 +434,7 @@
             elegant: { accent: '#4a148c', title: '#ffffff', font: 'elegant', border: '1px solid #ccc', hdrBg: '#4a148c', hdrText: '#ffffff', hdrSub: '#e1bee7', thBg: '#f3e5f5', thText: '#4a148c' }
         };
 
-        // Fix Scaling: Map perfectly down without overlap/squishing
+        // Fix Scaling: Map perfectly down without overlap/squishing and remove flex-center clipping bugs
         function scalePreview() {
             const pane = document.getElementById('previewPane');
             const targetWidth = 794; 
@@ -447,12 +447,19 @@
                 previewContainer.style.transform = `scale(${scale})`;
                 
                 const reducedHeight = targetHeight * (1 - scale);
-                const marginLeft = (availableWidth - (targetWidth * scale)) / 2;
-                previewContainer.style.marginLeft = `${marginLeft > 0 ? marginLeft : 0}px`;
+                const reducedWidth = targetWidth * (1 - scale);
+                
+                // Align left so it doesn't clip, and collapse all phantom space securely
+                previewContainer.style.marginLeft = '0px';
+                previewContainer.style.marginRight = `-${reducedWidth}px`;
                 previewContainer.style.marginBottom = `-${reducedHeight}px`; 
             } else {
                 previewContainer.style.transform = `scale(1)`;
-                previewContainer.style.marginLeft = '0px';
+                
+                // Manually center it horizontally when there's enough space
+                const centerMargin = (availableWidth - targetWidth) / 2;
+                previewContainer.style.marginLeft = `${centerMargin > 0 ? centerMargin : 0}px`;
+                previewContainer.style.marginRight = '0px';
                 previewContainer.style.marginBottom = '0px';
             }
         }
