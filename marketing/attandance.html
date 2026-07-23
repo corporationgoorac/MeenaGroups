@@ -106,7 +106,7 @@
 
     <!-- Main Header -->
     <header class="no-select">
-        <button id="backBtn" class="back-btn hidden" onclick="history.back()">
+        <button id="backBtn" class="back-btn hidden" onclick="app.goBack()">
             <svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"/></svg>
         </button>
         <h1 id="headerTitle">Attendance</h1>
@@ -129,14 +129,14 @@
     <div id="view-home" class="view-section active">
         <input type="text" id="searchHome" class="search-bar" placeholder="Search employee for attendance...">
         <div id="homeList"></div>
-        <button class="load-more" onclick="app.loadEmployees('home')">Load More Employees</button>
+        <button id="loadMoreHome" class="load-more hidden" onclick="app.loadEmployees('home')">Load More Employees</button>
     </div>
 
     <!-- View: Employees Management -->
     <div id="view-employees" class="view-section">
         <input type="text" id="searchEmp" class="search-bar" placeholder="Search to edit/delete...">
         <div id="empList"></div>
-        <button class="load-more" onclick="app.loadEmployees('manage')">Load More Employees</button>
+        <button id="loadMoreEmp" class="load-more hidden" onclick="app.loadEmployees('manage')">Load More Employees</button>
     </div>
 
     <!-- View: Reports -->
@@ -209,7 +209,7 @@
             <input type="number" id="empWage" placeholder="Daily Wage (₹)" required>
             <div class="modal-actions">
                 <button class="modal-btn btn-cancel" onclick="history.back()">Cancel</button>
-                <button class="modal-btn btn-confirm" onclick="app.saveEmployee()">Save</button>
+                <button class="modal-btn btn-confirm" id="saveEmpBtn" onclick="app.saveEmployee()">Save</button>
             </div>
         </div>
     </div>
@@ -217,7 +217,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, addDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         // IMPORTANT: Replace with your actual Firebase config
         const firebaseConfig = {
@@ -257,7 +257,7 @@
             navigate(viewId, push = true) {
                 document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
                 
-                // Reset header
+                // Reset header defaults
                 document.getElementById('backBtn').classList.remove('hidden');
                 document.getElementById('btnAdmin').classList.add('hidden');
                 document.getElementById('btnReport').classList.add('hidden');
@@ -267,7 +267,7 @@
                 if (viewId === 'home') {
                     document.getElementById('view-home').classList.add('active');
                     document.getElementById('headerTitle').innerText = 'Attendance';
-                    document.getElementById('backBtn').classList.add('hidden');
+                    document.getElementById('backBtn').classList.add('hidden'); // No back button on home
                     document.getElementById('btnAdmin').classList.remove('hidden');
                     document.getElementById('btnReport').classList.remove('hidden');
                     document.getElementById('btnEmployees').classList.remove('hidden');
@@ -296,6 +296,14 @@
                 this.view = viewId;
             },
 
+            goBack() {
+                if (history.state) {
+                    history.back();
+                } else {
+                    this.navigate('home');
+                }
+            },
+
             openModal(modalId) {
                 history.pushState({ modal: modalId }, '', `#${modalId}`);
                 document.getElementById(modalId).classList.add('active');
@@ -315,6 +323,8 @@
             // --- Employee Management ---
             async loadEmployees(context, reset = false, searchTerm = "") {
                 const listEl = document.getElementById(context === 'home' ? 'homeList' : 'empList');
+                const loadBtn = document.getElementById(context === 'home' ? 'loadMoreHome' : 'loadMoreEmp');
+                
                 if (reset) { listEl.innerHTML = ''; this.cursors[context] = null; }
 
                 let qArgs = [collection(db, "employees"), orderBy("name"), limit(10)];
@@ -329,13 +339,24 @@
 
                 try {
                     const snap = await getDocs(query(...qArgs));
-                    if(snap.empty && !reset) return; // No more
                     
-                    if(snap.docs.length > 0) this.cursors[context] = snap.docs[snap.docs.length - 1];
+                    if (snap.empty && !reset) {
+                        loadBtn.classList.add('hidden');
+                        return;
+                    }
+                    
+                    if (snap.docs.length > 0) this.cursors[context] = snap.docs[snap.docs.length - 1];
+
+                    // Dynamically show/hide "Load More" button
+                    if (snap.docs.length === 10) {
+                        loadBtn.classList.remove('hidden');
+                    } else {
+                        loadBtn.classList.add('hidden');
+                    }
 
                     // For Home view, fetch today's attendance status to highlight buttons
                     let currentAtt = {};
-                    if(context === 'home') {
+                    if (context === 'home') {
                         const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
                         if(monthDoc.exists()) currentAtt = monthDoc.data().records || {};
                     }
@@ -346,7 +367,7 @@
                         const id = d.id;
                         let html = '';
 
-                        if(context === 'home') {
+                        if (context === 'home') {
                             const status = currentAtt[id] ? currentAtt[id][today] : null;
                             html = `
                                 <div class="emp-card" id="card-${id}">
@@ -425,19 +446,30 @@
                 const name = document.getElementById('empName').value.trim();
                 const role = document.getElementById('empRole').value.trim();
                 const wage = Number(document.getElementById('empWage').value);
-                if(!name || !role || !wage) return;
+                
+                if (!name || !role || !wage) return;
+
+                const saveBtn = document.getElementById('saveEmpBtn');
+                const originalText = saveBtn.innerText;
+                saveBtn.innerText = "Saving...";
 
                 const data = { name, role, wage, nameLower: name.toLowerCase() };
+                
                 try {
-                    if(id) {
+                    if (id) {
                         await updateDoc(doc(db, "employees", id), data);
                     } else {
                         data.createdAt = new Date();
-                        await setDoc(doc(collection(db, "employees")), data);
+                        await addDoc(collection(db, "employees"), data);
                     }
-                    history.back(); // close modal
-                    this.loadEmployees('manage', true); // reload list
-                } catch(e) { console.error(e); }
+                    history.back(); // cleanly close modal via popstate event
+                    this.loadEmployees('manage', true); // reload list instantly
+                } catch(e) { 
+                    console.error("Save error:", e); 
+                    alert("Error saving. Please check connection.");
+                } finally {
+                    saveBtn.innerText = originalText;
+                }
             },
             delEmp(id) {
                 this.confirm("Delete Employee", "This removes them from the active roster.", async () => {
@@ -589,7 +621,7 @@
 
         // Back Button & Hardware Back Logic
         window.addEventListener('popstate', (e) => {
-            app.closeModals(); // Always try closing modals first
+            app.closeModals(); // Always close modals first
             const state = e.state;
             if (state && state.view) {
                 app.navigate(state.view, false);
