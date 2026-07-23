@@ -216,28 +216,13 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs & External Config -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, addDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-
-        // IMPORTANT: Replace with your actual Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Safety check to alert if you forgot to add keys
-        if(firebaseConfig.apiKey === "YOUR_API_KEY") {
-            alert("⚠️ Please add your exact Firebase Project keys to the bottom of the HTML file, otherwise the app cannot save data.");
-        }
-
-        const fApp = initializeApp(firebaseConfig);
-        const db = getFirestore(fApp);
+        // Import your existing configured database directly from your config file
+        import { db } from './config.js';
+        
+        // Import the required Firestore functions (updated to match 12.9.0)
+        import { collection, doc, setDoc, getDoc, updateDoc, addDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         const app = {
             view: 'home',
@@ -248,21 +233,19 @@
 
             // --- Robust Time Utilities (Strict IST) ---
             getISTDateString() {
-                // Using Intl.DateTimeFormat is 100% reliable across all browsers for forcing Timezones
                 const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-                return formatter.format(new Date()); // Returns "YYYY-MM-DD"
+                return formatter.format(new Date()); 
             },
             getISTMonthString() {
                 const dateStr = this.getISTDateString();
-                return dateStr.substring(0, 7); // Returns "YYYY-MM"
+                return dateStr.substring(0, 7); 
             },
 
             // --- Routing & Modals ---
             navigate(viewId, push = true) {
                 document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
                 
-                // Reset header defaults
-                document.getElementById('backBtn').classList.remove('hidden'); // Always visible now
+                document.getElementById('backBtn').classList.remove('hidden'); 
                 document.getElementById('btnAdmin').classList.add('hidden');
                 document.getElementById('btnReport').classList.add('hidden');
                 document.getElementById('btnEmployees').classList.add('hidden');
@@ -300,16 +283,14 @@
             },
 
             goBack() {
-                // If a modal is open, close it
                 if (document.querySelectorAll('.overlay.active').length > 0) {
                     history.back();
                     return;
                 }
-                // If on home page, actually leave the app
                 if (this.view === 'home') {
                     window.history.go(-1);
                 } else {
-                    history.back(); // Goes back to previous view (home)
+                    history.back(); 
                 }
             },
 
@@ -342,7 +323,6 @@
 
                 let qArgs = [collection(db, "employees"), orderBy("nameLower"), limit(10)];
                 
-                // Prefix Search (Using lowercase to avoid case-sensitive bugs)
                 if (searchTerm.length > 0) {
                     const searchLower = searchTerm.toLowerCase();
                     const end = searchLower.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
@@ -354,24 +334,22 @@
                 try {
                     const snap = await getDocs(query(...qArgs));
                     
-                    if (reset) listEl.innerHTML = ''; // clear loading text
+                    if (reset) listEl.innerHTML = ''; 
                     
                     if (snap.empty && reset) {
                         listEl.innerHTML = '<div class="loading-text">No employees found.</div>';
                         return;
                     }
-                    if (snap.empty && !reset) return; // End of list
+                    if (snap.empty && !reset) return; 
                     
                     if (snap.docs.length > 0) this.cursors[context] = snap.docs[snap.docs.length - 1];
 
-                    // Dynamically show/hide "Load More" button
                     if (snap.docs.length === 10) {
                         loadBtn.classList.remove('hidden');
                     } else {
                         loadBtn.classList.add('hidden');
                     }
 
-                    // For Home view, fetch today's attendance status to highlight buttons
                     let currentAtt = {};
                     if (context === 'home') {
                         const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
@@ -423,7 +401,6 @@
 
             // --- Realtime Attendance Writes ---
             async mark(empId, status, wage) {
-                // UI Instant Update
                 const btns = document.querySelectorAll(`#card-${empId} .att-btn`);
                 btns.forEach(b => b.classList.remove('active'));
                 document.querySelector(`#card-${empId} .att-btn.${status}`).classList.add('active');
@@ -487,11 +464,9 @@
                         await addDoc(collection(db, "employees"), data);
                     }
                     
-                    // Safely close modal & force reload without crashing history
                     if(history.state && history.state.modal) history.back();
                     else this.closeModals();
                     
-                    // Force refresh the list 
                     setTimeout(() => { this.loadEmployees('manage', true); }, 200);
 
                 } catch(e) { 
@@ -582,7 +557,6 @@
                     if(this.currentPin === '2502') {
                         setTimeout(() => this.navigate('admin'), 200);
                     } else {
-                        // Shake effect
                         const dots = document.querySelector('.pin-dots');
                         dots.style.transform = 'translateX(10px)';
                         setTimeout(() => dots.style.transform = 'translateX(-10px)', 50);
@@ -600,7 +574,6 @@
                 }
             },
             async checkGarbage() {
-                // Find cutoff month (2 months ago)
                 const d = new Date();
                 d.setMonth(d.getMonth() - 2);
                 const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' });
@@ -632,10 +605,8 @@
                 });
             }
         };
-        // Expose to window so HTML onClick works
         window.app = app;
 
-        // Search Handlers (with debounce to prevent rapid queries)
         document.getElementById('searchHome').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.home);
             app.searchTimers.home = setTimeout(() => {
@@ -650,9 +621,8 @@
         });
         document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
 
-        // Back Button & Hardware Back Logic
         window.addEventListener('popstate', (e) => {
-            app.closeModals(); // Always close modals first
+            app.closeModals(); 
             const state = e.state;
             if (state && state.view) {
                 app.navigate(state.view, false);
@@ -661,7 +631,6 @@
             }
         });
 
-        // Initialize App on Load
         history.replaceState({ view: 'home' }, '', '#home');
         app.navigate('home', false);
 
