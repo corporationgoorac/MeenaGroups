@@ -148,12 +148,14 @@
         .pv-date-box div strong { font-size: 13px; font-weight: bold; color: var(--pv-header-text, #000); transition: color 0.3s;}
 
         /* Decorative Festival SVG Vectors */
-        .pv-festival-gfx { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; opacity: 0.35; }
+        /* BUG FIX 1: Removed opacity: 0.35 from parent container so nested opacities don't multiply into invisibility */
+        .pv-festival-gfx { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; opacity: 1; }
         .show-fest-fx .pv-festival-gfx { display: block; }
         .pv-festival-gfx > div { display: none; } /* Hide all by default */
 
         /* SMART 8+ PATTERN LAYOUT OVERRIDES */
-        .pv-festival-gfx > div > svg { position: absolute !important; }
+        /* BUG FIX 1 Continued: Apply default opacity strictly to the individual children SVGs */
+        .pv-festival-gfx > div > svg { position: absolute !important; opacity: 0.35; }
         /* Hide SVGs 5+ by default to keep standard layouts clean */
         .pv-festival-gfx > div > svg:nth-child(n+5) { display: none !important; }
         /* Hide SVG 3 and 4 by default for classic view */
@@ -174,11 +176,11 @@
         .layout-top-only > div > svg:nth-child(1) { top: 10px !important; right: 10px !important; bottom: auto !important; left: auto !important; display: block !important; }
         .layout-top-only > div > svg:nth-child(2) { top: 10px !important; left: 10px !important; bottom: auto !important; right: auto !important; display: block !important; transform: rotate(-90deg) !important;}
         
-        /* 5. Center Circle (FIXED EXACT CENTERING) */
+        /* 5. Center Circle (FIXED EXACT CENTERING & OPACITY VISIBILITY) */
         .layout-center-circle > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; right: auto !important; bottom: auto !important; margin-top: -150px !important; margin-left: -150px !important; width: 300px !important; height: 300px !important; transform: scale(1.5) !important; transform-origin: center center !important; display: block !important; opacity: 0.15 !important;}
         .layout-center-circle > div > svg:nth-child(2) { display: none !important; }
         
-        /* 6. Watermark Focus (FIXED EXACT CENTERING) */
+        /* 6. Watermark Focus (FIXED EXACT CENTERING & OPACITY VISIBILITY) */
         .layout-watermark-style > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; right: auto !important; bottom: auto !important; margin-top: -150px !important; margin-left: -150px !important; width: 300px !important; height: 300px !important; transform: scale(3) !important; transform-origin: center center !important; display: block !important; opacity: 0.08 !important;}
         .layout-watermark-style > div > svg:nth-child(2) { display: none !important; }
         
@@ -231,24 +233,24 @@
         .pv-font-elegant .pv-brand h2, .pv-font-elegant .pv-invoice-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic;}
         .pv-font-elegant .pv-body, .pv-font-elegant { font-family: 'Open Sans', sans-serif; }
         
-        /* Reliable CSS Paper Texture Options Applied Safely to the Frame */
+        /* BUG FIX 2: Reliable CSS Paper Texture Options (Opacity: 1 added so they actually show up) */
         .texture-vintage {
-            background-color: #fcf8ec !important; 
+            background-color: #fcf8ec !important; opacity: 1 !important; 
             background-image: radial-gradient(#e4d5b7 1px, transparent 1px) !important;
             background-size: 10px 10px !important;
         }
         .texture-canvas {
-            background-color: #fdfdfd !important; 
+            background-color: #fdfdfd !important; opacity: 1 !important; 
             background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px) !important;
             background-size: 8px 8px !important;
         }
         .texture-dots {
-            background-color: transparent !important; 
+            background-color: transparent !important; opacity: 1 !important; 
             background-image: radial-gradient(var(--pv-accent, #cccccc) 1px, transparent 1px) !important;
             background-size: 15px 15px !important;
         }
         .texture-lines {
-            background-color: transparent !important; 
+            background-color: transparent !important; opacity: 1 !important; 
             background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 10px) !important;
         }
 
@@ -1019,7 +1021,7 @@
                                     const left = (10 + c*20) + (pseudoRand(index+100)*6 - 3);
                                     const scale = 0.2 + pseudoRand(index+200)*0.2;
                                     const rot = pseudoRand(index+300) * 360;
-                                    const op = 0.1 + pseudoRand(index+400)*0.15;
+                                    const op = 0.15 + pseudoRand(index+400)*0.15; // Opacity 0.15 to 0.30 range
                                     
                                     svg.style.cssText = `position:absolute !important; top:${top}% !important; left:${left}% !important; transform:scale(${scale}) rotate(${rot}deg) !important; opacity:${op} !important; display:block !important; width:300px !important; height:300px !important; margin-top:-150px !important; margin-left:-150px !important; transform-origin:center center !important; right:auto !important; bottom:auto !important;`;
                                     index++;
@@ -1028,7 +1030,8 @@
                         } else if (patternType === 'layout-bordered') {
                             let index = 0;
                             const applyBorderSvg = (svg, t, l, scale, rot) => {
-                                svg.style.cssText = `position:absolute !important; top:${t} !important; left:${l} !important; transform:scale(${scale}) rotate(${rot}deg) !important; opacity:0.25 !important; display:block !important; width:300px !important; height:300px !important; margin-top:-150px !important; margin-left:-150px !important; transform-origin:center center !important; right:auto !important; bottom:auto !important;`;
+                                // Opacity set to 0.35 cleanly to ensure perfect visibility
+                                svg.style.cssText = `position:absolute !important; top:${t} !important; left:${l} !important; transform:scale(${scale}) rotate(${rot}deg) !important; opacity:0.35 !important; display:block !important; width:300px !important; height:300px !important; margin-top:-150px !important; margin-left:-150px !important; transform-origin:center center !important; right:auto !important; bottom:auto !important;`;
                             };
                             for(let i=0; i<8; i++) { applyBorderSvg(allSvgs[index++], '0%', `${5 + i*13}%`, 0.35, i*15); }
                             for(let i=0; i<8; i++) { applyBorderSvg(allSvgs[index++], '100%', `${5 + i*13}%`, 0.35, i*15 + 180); }
