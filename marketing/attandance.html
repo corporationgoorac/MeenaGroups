@@ -99,6 +99,10 @@
         .load-more { width: 100%; padding: 15px; background: transparent; border: 1px dashed var(--text-secondary); color: var(--text-secondary); border-radius: 12px; cursor: pointer; margin-top: 10px;}
         .loading-text { text-align: center; padding: 20px; color: var(--text-secondary); }
 
+        /* Skeleton Animations */
+        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 6px; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
         /* Utilities */
         .hidden { display: none !important; }
         .text-center { text-align: center; }
@@ -316,7 +320,20 @@
                 const loadBtn = document.getElementById(context === 'home' ? 'loadMoreHome' : 'loadMoreEmp');
                 
                 if (reset) { 
-                    listEl.innerHTML = '<div class="loading-text">Loading Data...</div>'; 
+                    const skeletonHTML = `
+                        <div class="emp-card">
+                            <div class="card-header">
+                                <div style="width: 60%;"><div class="skeleton" style="height: 22px; width: 80%; margin-bottom: 8px;"></div><div class="skeleton" style="height: 16px; width: 50%; border-radius: 8px;"></div></div>
+                                <div class="skeleton" style="height: 26px; width: 60px; border-radius: 10px;"></div>
+                            </div>
+                            <div class="att-btn-group">
+                                <div class="skeleton att-btn" style="height: 40px; border: none;"></div>
+                                <div class="skeleton att-btn" style="height: 40px; border: none;"></div>
+                                <div class="skeleton att-btn" style="height: 40px; border: none;"></div>
+                            </div>
+                        </div>
+                    `.repeat(3);
+                    listEl.innerHTML = skeletonHTML; 
                     this.cursors[context] = null; 
                     loadBtn.classList.add('hidden');
                 }
@@ -493,7 +510,8 @@
                 const thead = document.getElementById('reportHead');
                 const tbody = document.getElementById('reportBody');
                 thead.innerHTML = '<th class="sticky-col">Employee</th>';
-                tbody.innerHTML = '<tr><td colspan="35" class="loading-text">Loading Report...</td></tr>';
+                
+                tbody.innerHTML = `<tr><td colspan="35"><div class="skeleton" style="height: 30px; width: 100%;"></div></td></tr><tr><td colspan="35"><div class="skeleton" style="height: 30px; width: 100%;"></div></td></tr>`;
 
                 const [yyyy, mm] = targetMonth.split('-');
                 const daysInMonth = new Date(yyyy, mm, 0).getDate();
