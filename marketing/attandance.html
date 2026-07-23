@@ -42,7 +42,7 @@
         .action-btn:active { transform: scale(0.95); }
 
         /* Views */
-        .view-section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; animation: fadeIn 0.3s ease; padding-bottom: 80px; }
+        .view-section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; animation: fadeIn 0.3s ease; padding-bottom: 120px; }
         .view-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -53,9 +53,9 @@
         /* Cards */
         .emp-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 20px; box-shadow: var(--shadow-lg); margin-bottom: 15px; display: flex; flex-direction: column; gap: 15px; }
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .emp-name { font-size: 1.2em; font-weight: 700; margin-bottom: 5px; word-wrap: break-word; }
-        .emp-role { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2); }
-        .emp-wage { font-weight: 700; color: white; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 10px; font-size: 0.9em;}
+        .emp-name { font-size: 1.2em; font-weight: 700; margin-bottom: 5px; word-wrap: break-word; transition: 0.3s; }
+        .emp-role { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2); transition: 0.3s;}
+        .emp-wage { font-weight: 700; color: white; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 10px; font-size: 0.9em; transition: 0.3s;}
         
         /* Attendance Buttons */
         .att-btn-group { display: flex; gap: 10px; width: 100%; }
@@ -106,6 +106,12 @@
         .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 6px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+        /* Live Daily Summary */
+        #dailySummary { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(19, 27, 38, 0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; display: flex; justify-content: space-around; z-index: 400; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); }
+        .sum-block { text-align: center; }
+        .sum-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .sum-val { font-size: 1.4em; font-weight: 800; }
+
         /* Utilities */
         .hidden { display: none !important; }
         .text-center { text-align: center; }
@@ -139,6 +145,13 @@
         <input type="text" id="searchHome" class="search-bar" placeholder="Search employee for attendance...">
         <div id="homeList"></div>
         <button id="loadMoreHome" class="load-more hidden" onclick="app.loadEmployees('home')">Load More Employees</button>
+        
+        <!-- Live Daily Summary Counter -->
+        <div id="dailySummary">
+            <div class="sum-block"><div class="sum-label">Present</div><div id="sum-p" class="sum-val" style="color: var(--success-color);">0</div></div>
+            <div class="sum-block"><div class="sum-label">Half-Day</div><div id="sum-h" class="sum-val" style="color: var(--warning-color);">0</div></div>
+            <div class="sum-block"><div class="sum-label">Absent</div><div id="sum-a" class="sum-val" style="color: var(--meena-red);">0</div></div>
+        </div>
     </div>
 
     <!-- View: Employees Management -->
@@ -276,6 +289,12 @@
             searchTimers: { home: null, manage: null, adv: null },
             currentPin: '',
             garbageDocs: [],
+            
+            // Central RAM Cache (Eliminates excessive DB Reads for edits/attendance/UI updates)
+            ramCache: {
+                monthDoc: null,
+                monthStr: ''
+            },
 
             // --- Robust Time Utilities (Strict IST) ---
             getISTDateString() {
@@ -287,6 +306,27 @@
                 return dateStr.substring(0, 7); 
             },
             
+            // --- Daily Summary Update Function ---
+            updateDailySummary() {
+                if (!app.ramCache.monthDoc) return;
+                const today = this.getISTDateString();
+                let p = 0, h = 0, a = 0;
+                
+                Object.values(app.ramCache.monthDoc).forEach(empRec => {
+                    if (empRec[today] === 'present') p++;
+                    if (empRec[today] === 'half') h++;
+                    if (empRec[today] === 'absent') a++;
+                });
+                
+                const pEl = document.getElementById('sum-p');
+                const hEl = document.getElementById('sum-h');
+                const aEl = document.getElementById('sum-a');
+                
+                if (pEl) pEl.innerText = p;
+                if (hEl) hEl.innerText = h;
+                if (aEl) aEl.innerText = a;
+            },
+
             // --- Advanced Report Utilities ---
             getMonthsBetween(fromStr, toStr) {
                 const result = [];
@@ -448,12 +488,19 @@
                         loadBtn.classList.add('hidden');
                     }
 
+                    // Network call for current month attendance efficiently cached
                     let currentAtt = {};
                     const today = this.getISTDateString();
                     if (context === 'home') {
-                        const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
-                        if(monthDoc.exists()) currentAtt = monthDoc.data().records || {};
+                        if (!app.ramCache.monthDoc || app.ramCache.monthStr !== this.getISTMonthString()) {
+                            const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
+                            app.ramCache.monthDoc = monthDoc.exists() ? monthDoc.data().records || {} : {};
+                            app.ramCache.monthStr = this.getISTMonthString();
+                        }
+                        currentAtt = app.ramCache.monthDoc;
+                        
                         if (reset) listEl.innerHTML = '';
+                        this.updateDailySummary();
                     }
 
                     snap.docs.forEach(d => {
@@ -464,12 +511,12 @@
                         if (context === 'home') {
                             const status = currentAtt[id] ? currentAtt[id][today] : null;
                             html = `
-                                <div class="emp-card" id="card-${id}">
+                                <div class="emp-card" id="card-home-${id}">
                                     <div class="card-header">
-                                        <div><div class="emp-name">${data.name}</div><div class="emp-role">${data.role}</div></div>
-                                        <div class="emp-wage">₹${data.wage}</div>
+                                        <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
+                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}</div>
                                     </div>
-                                    <div class="att-btn-group">
+                                    <div class="att-btn-group att-btn-group-${id}">
                                         <button class="att-btn present ${status==='present'?'active':''}" onclick="app.mark('${id}', 'present', ${data.wage})">Present</button>
                                         <button class="att-btn half ${status==='half'?'active':''}" onclick="app.mark('${id}', 'half', ${data.wage})">Half Day</button>
                                         <button class="att-btn absent ${status==='absent'?'active':''}" onclick="app.mark('${id}', 'absent', ${data.wage})">Absent</button>
@@ -478,10 +525,10 @@
                             `;
                         } else if (context === 'manage') {
                             html = `
-                                <div class="emp-card">
+                                <div class="emp-card" id="card-manage-${id}">
                                     <div class="card-header">
-                                        <div><div class="emp-name">${data.name}</div><div class="emp-role">${data.role}</div></div>
-                                        <div class="emp-wage">₹${data.wage}</div>
+                                        <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
+                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}</div>
                                     </div>
                                     <div class="att-btn-group">
                                         <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${data.name}', '${data.role}', ${data.wage})">Edit</button>
@@ -491,10 +538,10 @@
                             `;
                         } else if (context === 'adv') {
                             html = `
-                                <div class="emp-card" style="padding: 15px;">
+                                <div class="emp-card" id="card-adv-${id}" style="padding: 15px;">
                                     <div class="card-header">
-                                        <div><div class="emp-name" style="font-size:1em;">${data.name}</div><div class="emp-role" style="font-size:0.7em;">${data.role}</div></div>
-                                        <div class="emp-wage" style="font-size:0.8em;">₹${data.wage}</div>
+                                        <div><div class="emp-name emp-name-${id}" style="font-size:1em;">${data.name}</div><div class="emp-role emp-role-${id}" style="font-size:0.7em;">${data.role}</div></div>
+                                        <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage}</div>
                                     </div>
                                     <div style="display:flex; gap:10px; margin-top: 10px;">
                                         <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, 'img')">Image</button>
@@ -513,14 +560,21 @@
 
             // --- Realtime Attendance Writes ---
             async mark(empId, status, wage) {
-                const btns = document.querySelectorAll(`#card-${empId} .att-btn`);
+                // Instantly update DOM correctly using class targeting
+                const btns = document.querySelectorAll(`.att-btn-group-${empId} .att-btn`);
                 btns.forEach(b => b.classList.remove('active'));
-                document.querySelector(`#card-${empId} .att-btn.${status}`).classList.add('active');
+                document.querySelector(`.att-btn-group-${empId} .att-btn.${status}`).classList.add('active');
                 if(navigator.vibrate) navigator.vibrate(30);
 
                 const month = this.getISTMonthString();
                 const date = this.getISTDateString();
                 const docRef = doc(db, 'attendance', month);
+                
+                // Keep RAM cache fully updated instantly
+                if (!app.ramCache.monthDoc) app.ramCache.monthDoc = {};
+                if (!app.ramCache.monthDoc[empId]) app.ramCache.monthDoc[empId] = {};
+                app.ramCache.monthDoc[empId][date] = status;
+                this.updateDailySummary();
 
                 try {
                     await updateDoc(docRef, { [`records.${empId}.${date}`]: status });
@@ -571,15 +625,20 @@
                 try {
                     if (id) {
                         await updateDoc(doc(db, "employees", id), data);
+                        // Instant DOM Update via RAM without doing network reload
+                        document.querySelectorAll(`.emp-name-${id}`).forEach(el => el.innerText = name);
+                        document.querySelectorAll(`.emp-role-${id}`).forEach(el => el.innerText = role);
+                        document.querySelectorAll(`.emp-wage-${id}`).forEach(el => el.innerText = '₹' + wage);
                     } else {
                         data.createdAt = new Date();
                         await addDoc(collection(db, "employees"), data);
+                        // Force network reload only on newly added staff to preserve sorting
+                        this.cursors.manage = null; 
+                        setTimeout(() => { this.loadEmployees('manage', true); }, 200);
                     }
                     
                     if(history.state && history.state.modal) history.back();
                     else this.closeModals();
-                    
-                    setTimeout(() => { this.loadEmployees('manage', true); }, 200);
 
                 } catch(e) { 
                     console.error("Save error:", e); 
@@ -592,7 +651,8 @@
             delEmp(id) {
                 this.confirm("Delete Employee", "This removes them from the active roster.", async () => {
                     await deleteDoc(doc(db, "employees", id));
-                    this.loadEmployees('manage', true);
+                    // Instant DOM Update removing UI cards without network reloads
+                    document.querySelectorAll(`#card-home-${id}, #card-manage-${id}, #card-adv-${id}`).forEach(el => el.remove());
                 });
             },
 
@@ -675,12 +735,15 @@
                     const monthsToFetch = this.getMonthsBetween(fromStr, toStr);
                     const attData = {};
                     
-                    for (let m of monthsToFetch) {
-                        const snap = await getDoc(doc(db, 'attendance', m));
+                    // High-speed parallel promise fetching
+                    const fetchPromises = monthsToFetch.map(m => getDoc(doc(db, 'attendance', m)));
+                    const snaps = await Promise.all(fetchPromises);
+                    
+                    snaps.forEach((snap, index) => {
                         if(snap.exists()) {
-                            attData[m] = snap.data().records || {};
+                            attData[monthsToFetch[index]] = snap.data().records || {};
                         }
-                    }
+                    });
 
                     let employees = [];
                     if (empId === 'ALL') {
@@ -898,6 +961,7 @@
             },
             async checkGarbage() {
                 const d = new Date();
+                d.setDate(1); // FIX: Prevent month rollover bugs on the 31st
                 d.setMonth(d.getMonth() - 2);
                 const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' });
                 const cutoff = formatter.format(d).substring(0, 7);
@@ -921,10 +985,24 @@
             },
             clearGarbage() {
                 this.confirm("Clear Garbage", `Delete ${this.garbageDocs.length} old monthly records permanently?`, async () => {
-                    const batch = writeBatch(db);
-                    this.garbageDocs.forEach(d => batch.delete(d.ref));
-                    await batch.commit();
-                    this.checkGarbage();
+                    try {
+                        const chunks = [];
+                        // Break into chunks of 460 to stay well under Firestore's 500 batch limit
+                        for(let i=0; i<this.garbageDocs.length; i+=460) {
+                            chunks.push(this.garbageDocs.slice(i, i+460));
+                        }
+                        
+                        for(let chunk of chunks) {
+                            const batch = writeBatch(db);
+                            chunk.forEach(d => batch.delete(d.ref));
+                            await batch.commit();
+                        }
+                        
+                        this.checkGarbage();
+                    } catch(e) {
+                        console.error("Garbage Collection Error:", e);
+                        alert("Failed to delete some records.");
+                    }
                 });
             }
         };
