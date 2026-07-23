@@ -152,8 +152,10 @@
         .show-fest-fx .pv-festival-gfx { display: block; }
         .pv-festival-gfx > div { display: none; } /* Hide all by default */
 
-        /* SMART 8+ PATTERN LAYOUT OVERRIDES (Overriding inline positions without removing lines) */
+        /* SMART 8+ PATTERN LAYOUT OVERRIDES */
         .pv-festival-gfx > div > svg { position: absolute !important; }
+        /* Hide SVGs 5+ by default to keep standard layouts clean */
+        .pv-festival-gfx > div > svg:nth-child(n+5) { display: none !important; }
         /* Hide SVG 3 and 4 by default for classic view */
         .pv-festival-gfx > div > svg:nth-child(3), .pv-festival-gfx > div > svg:nth-child(4) { display: none !important; }
         
@@ -171,12 +173,15 @@
         /* 4. Top Only */
         .layout-top-only > div > svg:nth-child(1) { top: 10px !important; right: 10px !important; bottom: auto !important; left: auto !important; display: block !important; }
         .layout-top-only > div > svg:nth-child(2) { top: 10px !important; left: 10px !important; bottom: auto !important; right: auto !important; display: block !important; transform: rotate(-90deg) !important;}
-        /* 5. Center Circle */
-        .layout-center-circle > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(1.5) !important; display: block !important; opacity: 0.15 !important;}
+        
+        /* 5. Center Circle (FIXED EXACT CENTERING) */
+        .layout-center-circle > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; right: auto !important; bottom: auto !important; margin-top: -150px !important; margin-left: -150px !important; width: 300px !important; height: 300px !important; transform: scale(1.5) !important; transform-origin: center center !important; display: block !important; opacity: 0.15 !important;}
         .layout-center-circle > div > svg:nth-child(2) { display: none !important; }
-        /* 6. Watermark Focus */
-        .layout-watermark-style > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) scale(2.8) !important; display: block !important; opacity: 0.05 !important;}
+        
+        /* 6. Watermark Focus (FIXED EXACT CENTERING) */
+        .layout-watermark-style > div > svg:nth-child(1) { top: 50% !important; left: 50% !important; right: auto !important; bottom: auto !important; margin-top: -150px !important; margin-left: -150px !important; width: 300px !important; height: 300px !important; transform: scale(3) !important; transform-origin: center center !important; display: block !important; opacity: 0.08 !important;}
         .layout-watermark-style > div > svg:nth-child(2) { display: none !important; }
+        
         /* 7. Left Edge */
         .layout-left-edge > div > svg:nth-child(1) { top: 10px !important; left: 10px !important; bottom: auto !important; right: auto !important; display: block !important; transform: rotate(-90deg) !important;}
         .layout-left-edge > div > svg:nth-child(2) { bottom: 10px !important; left: 10px !important; top: auto !important; right: auto !important; display: block !important; }
@@ -226,25 +231,25 @@
         .pv-font-elegant .pv-brand h2, .pv-font-elegant .pv-invoice-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic;}
         .pv-font-elegant .pv-body, .pv-font-elegant { font-family: 'Open Sans', sans-serif; }
         
-        /* Reliable CSS Paper Texture Options Applied to Multiply Overlay */
+        /* Reliable CSS Paper Texture Options Applied Safely to the Frame */
         .texture-vintage {
-            background-color: #fcf8ec !important; opacity: 1 !important;
-            background-image: radial-gradient(#e4d5b7 1px, transparent 1px);
-            background-size: 10px 10px;
+            background-color: #fcf8ec !important; 
+            background-image: radial-gradient(#e4d5b7 1px, transparent 1px) !important;
+            background-size: 10px 10px !important;
         }
         .texture-canvas {
-            background-color: #fdfdfd !important; opacity: 1 !important;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-            background-size: 8px 8px;
+            background-color: #fdfdfd !important; 
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px) !important;
+            background-size: 8px 8px !important;
         }
         .texture-dots {
-            background-color: transparent !important; opacity: 1 !important;
-            background-image: radial-gradient(var(--pv-accent, #cccccc) 1px, transparent 1px);
-            background-size: 15px 15px;
+            background-color: transparent !important; 
+            background-image: radial-gradient(var(--pv-accent, #cccccc) 1px, transparent 1px) !important;
+            background-size: 15px 15px !important;
         }
         .texture-lines {
-            background-color: transparent !important; opacity: 1 !important;
-            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 10px);
+            background-color: transparent !important; 
+            background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 10px) !important;
         }
 
     </style>
@@ -406,7 +411,7 @@
                             </div>
                         </div>
                         
-                        <!-- NEW 8+ PATTERN LAYOUT SELECTOR -->
+                        <!-- NEW 10+ PATTERN LAYOUT SELECTOR -->
                         <div>
                             <label>Pattern Layout / Positioning</label>
                             <select id="festPatternType" style="border-color: var(--warning-color);">
@@ -418,6 +423,9 @@
                                 <option value="layout-right-edge">Right Sidebar Flow</option>
                                 <option value="layout-center-circle">Large Centered Focus</option>
                                 <option value="layout-watermark-style">Oversized Watermark Blend</option>
+                                <!-- NEW DYNAMIC POSITIONS ADDED HERE -->
+                                <option value="layout-scattered-mini">Professional Scattered Mini (30 items)</option>
+                                <option value="layout-bordered">Professional Bordered Edges (30 items)</option>
                             </select>
                         </div>
 
@@ -919,7 +927,6 @@
             updateLivePreview();
         });
 
-        // Event Listeners for the 3 Manual Color Pickers
         inputs.festColor.addEventListener('input', (e) => {
             document.getElementById('hexDisplay').innerText = e.target.value;
             updateLivePreview();
@@ -970,17 +977,73 @@
                 
                 pvBody.classList.add('show-fest-fx');
 
-                // Advanced Pattern Types and SVGs display
-                festivalContainer.className = `pv-festival-gfx ${inputs.festPatternType.value}`;
+                const patternType = inputs.festPatternType.value;
+                festivalContainer.className = `pv-festival-gfx ${patternType}`;
                 document.querySelectorAll('.pv-festival-gfx > div').forEach(el => el.style.display = 'none');
+                
+                // --- SMART DYNAMIC PATTERN GENERATION ENGINE ---
                 if (inputs.festPattern.value !== 'none') {
                     const activePattern = document.querySelector(`.pattern-${inputs.festPattern.value}`);
-                    if (activePattern) activePattern.style.display = 'block';
+                    if (activePattern) {
+                        activePattern.style.display = 'block';
+                        
+                        // Dynamically clone up to 30 SVGs if an advanced layout is selected
+                        const currentSvgs = activePattern.querySelectorAll('svg');
+                        if (currentSvgs.length < 30) {
+                            const baseSvg = currentSvgs[0];
+                            const needed = 30 - currentSvgs.length;
+                            for (let i = 0; i < needed; i++) {
+                                activePattern.appendChild(baseSvg.cloneNode(true));
+                            }
+                        }
+                        
+                        const allSvgs = activePattern.querySelectorAll('svg');
+                        const pseudoRand = (i) => Math.abs(Math.sin(i * 1234.56)); // Seeded generator for perfect stability
+                        
+                        // Cache and Reset original styles so standard layouts aren't corrupted
+                        allSvgs.forEach(svg => {
+                            if (!svg.hasAttribute('data-orig-style')) {
+                                svg.setAttribute('data-orig-style', svg.style.cssText);
+                            }
+                            svg.style.cssText = svg.getAttribute('data-orig-style'); 
+                        });
+                        
+                        // Apply programmatic 30-item layouts bypassing CSS limitations
+                        if (patternType === 'layout-scattered-mini') {
+                            let index = 0;
+                            for(let r=0; r<6; r++) {
+                                for(let c=0; c<5; c++) {
+                                    if(index >= 30) break;
+                                    const svg = allSvgs[index];
+                                    const top = (10 + r*16) + (pseudoRand(index)*6 - 3); 
+                                    const left = (10 + c*20) + (pseudoRand(index+100)*6 - 3);
+                                    const scale = 0.2 + pseudoRand(index+200)*0.2;
+                                    const rot = pseudoRand(index+300) * 360;
+                                    const op = 0.1 + pseudoRand(index+400)*0.15;
+                                    
+                                    svg.style.cssText = `position:absolute !important; top:${top}% !important; left:${left}% !important; transform:scale(${scale}) rotate(${rot}deg) !important; opacity:${op} !important; display:block !important; width:300px !important; height:300px !important; margin-top:-150px !important; margin-left:-150px !important; transform-origin:center center !important; right:auto !important; bottom:auto !important;`;
+                                    index++;
+                                }
+                            }
+                        } else if (patternType === 'layout-bordered') {
+                            let index = 0;
+                            const applyBorderSvg = (svg, t, l, scale, rot) => {
+                                svg.style.cssText = `position:absolute !important; top:${t} !important; left:${l} !important; transform:scale(${scale}) rotate(${rot}deg) !important; opacity:0.25 !important; display:block !important; width:300px !important; height:300px !important; margin-top:-150px !important; margin-left:-150px !important; transform-origin:center center !important; right:auto !important; bottom:auto !important;`;
+                            };
+                            for(let i=0; i<8; i++) { applyBorderSvg(allSvgs[index++], '0%', `${5 + i*13}%`, 0.35, i*15); }
+                            for(let i=0; i<8; i++) { applyBorderSvg(allSvgs[index++], '100%', `${5 + i*13}%`, 0.35, i*15 + 180); }
+                            for(let i=0; i<7; i++) { applyBorderSvg(allSvgs[index++], `${15 + i*11}%`, '0%', 0.35, i*25); }
+                            for(let i=0; i<7; i++) { applyBorderSvg(allSvgs[index++], `${15 + i*11}%`, '100%', 0.35, i*25 + 90); }
+                        }
+                    }
                 }
 
-                // FIXED: Apply Texture safely over everything using the overlay div
+                // FIXED: Apply Texture safely over everything using the root elements
                 textureOverlay.className = 'texture-overlay';
+                pvBody.className = 'pv-body show-fest-fx';
                 if (inputs.festTexture.value !== 'none') {
+                    // Applied directly to body forcing the background-color and image gradient natively
+                    pvBody.classList.add(`texture-${inputs.festTexture.value}`);
                     textureOverlay.classList.add(`texture-${inputs.festTexture.value}`);
                 }
 
@@ -996,13 +1059,18 @@
 
             } else {
                 cfg = themes[mode];
-                pvBody.classList.remove('show-fest-fx');
-                textureOverlay.className = 'texture-overlay'; // Clear textures
+                pvBody.className = 'pv-body';
+                textureOverlay.className = 'texture-overlay';
                 document.querySelectorAll('.pv-festival-gfx > div').forEach(el => el.style.display = 'none');
                 bgLayer.style.backgroundImage = 'none';
                 bgLayer.style.opacity = 0;
                 watermarkText.innerText = '';
             }
+
+            // Always Execute Global Editable text & Signature Update
+            document.getElementById('pvGreetTitle').innerText = inputs.festTitle.value || 'Thank you!';
+            document.getElementById('pvGreetMsg').innerText = inputs.festMsg.value || '';
+            document.getElementById('pvSignNameText').innerText = signNameInput.value || 'Authorized Signatory';
 
             // Execute CSS Variable Injections
             previewContainer.style.setProperty('--pv-accent', cfg.accent);
@@ -1017,9 +1085,6 @@
             document.getElementById('pvTopBand').style.borderBottom = cfg.border === 'none' ? 'none' : cfg.border;
             document.getElementById('pvGrandRow').style.borderTop = cfg.border === 'none' ? `2px solid ${cfg.accent}` : cfg.border;
             
-            pvBody.className = 'pv-body'; 
-            if (mode === 'custom') pvBody.classList.add('show-fest-fx');
-            
             if (cfg.font === 'modern') pvBody.classList.add('pv-font-modern');
             else if (cfg.font === 'elegant') pvBody.classList.add('pv-font-elegant');
             else pvBody.classList.add('pv-font-helvetica');
@@ -1033,7 +1098,7 @@
                 qrPlaceholder.style.display = 'none';
                 qrContainer.style.display = 'block';
                 new QRCode(qrContainer, {
-                    text: `upi://pay?pa=${upiIdInput.value.trim()}&pn=Meena%20Marketing&am=1000`, // Example 1000 amount embedded for preview
+                    text: `upi://pay?pa=${upiIdInput.value.trim()}&pn=Meena%20Marketing&am=1000`, 
                     width: 60,
                     height: 60,
                     colorDark : mode === 'custom' ? cfg.accent : "#000000",
@@ -1115,12 +1180,12 @@
                 customTitle: inputs.festTitle.value.trim(),
                 customMsg: inputs.festMsg.value.trim(),
                 signName: signNameInput.value.trim(),
-                customUpiId: upiIdInput.value.trim(), // Save UPI integration
+                customUpiId: upiIdInput.value.trim(),
 
                 customWatermark: inputs.festWatermark.value.trim(),
                 customBorder: inputs.festBorder.value,
                 customFont: inputs.festFont.value,
-                customPatternType: inputs.festPatternType.value, // Save Pattern Layout
+                customPatternType: inputs.festPatternType.value,
                 
                 customColor: inputs.festColor.value,
                 customBgColor: inputs.festBgColor.value,
