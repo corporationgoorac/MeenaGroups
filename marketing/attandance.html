@@ -94,8 +94,10 @@
         .modal-btn { flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; }
         .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
         .btn-confirm { background: var(--success-color); color: white; }
+        .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-danger { background: var(--meena-red); color: white; }
         .load-more { width: 100%; padding: 15px; background: transparent; border: 1px dashed var(--text-secondary); color: var(--text-secondary); border-radius: 12px; cursor: pointer; margin-top: 10px;}
+        .loading-text { text-align: center; padding: 20px; color: var(--text-secondary); }
 
         /* Utilities */
         .hidden { display: none !important; }
@@ -106,7 +108,7 @@
 
     <!-- Main Header -->
     <header class="no-select">
-        <button id="backBtn" class="back-btn hidden" onclick="app.goBack()">
+        <button id="backBtn" class="back-btn" onclick="app.goBack()">
             <svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"/></svg>
         </button>
         <h1 id="headerTitle">Attendance</h1>
@@ -229,6 +231,11 @@
             appId: "YOUR_APP_ID"
         };
 
+        // Safety check to alert if you forgot to add keys
+        if(firebaseConfig.apiKey === "YOUR_API_KEY") {
+            alert("⚠️ Please add your exact Firebase Project keys to the bottom of the HTML file, otherwise the app cannot save data.");
+        }
+
         const fApp = initializeApp(firebaseConfig);
         const db = getFirestore(fApp);
 
@@ -239,18 +246,15 @@
             currentPin: '',
             garbageDocs: [],
 
-            // --- Time Utilities (Strict IST) ---
-            getISTDateObj() {
-                const now = new Date();
-                const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-                return new Date(istString);
-            },
+            // --- Robust Time Utilities (Strict IST) ---
             getISTDateString() {
-                const d = this.getISTDateObj();
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                // Using Intl.DateTimeFormat is 100% reliable across all browsers for forcing Timezones
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+                return formatter.format(new Date()); // Returns "YYYY-MM-DD"
             },
-            getISTMonthString(dateObj = this.getISTDateObj()) {
-                return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            getISTMonthString() {
+                const dateStr = this.getISTDateString();
+                return dateStr.substring(0, 7); // Returns "YYYY-MM"
             },
 
             // --- Routing & Modals ---
@@ -258,7 +262,7 @@
                 document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
                 
                 // Reset header defaults
-                document.getElementById('backBtn').classList.remove('hidden');
+                document.getElementById('backBtn').classList.remove('hidden'); // Always visible now
                 document.getElementById('btnAdmin').classList.add('hidden');
                 document.getElementById('btnReport').classList.add('hidden');
                 document.getElementById('btnEmployees').classList.add('hidden');
@@ -267,16 +271,15 @@
                 if (viewId === 'home') {
                     document.getElementById('view-home').classList.add('active');
                     document.getElementById('headerTitle').innerText = 'Attendance';
-                    document.getElementById('backBtn').classList.add('hidden'); // No back button on home
                     document.getElementById('btnAdmin').classList.remove('hidden');
                     document.getElementById('btnReport').classList.remove('hidden');
                     document.getElementById('btnEmployees').classList.remove('hidden');
-                    if(this.cursors.home === null) this.loadEmployees('home');
+                    if(this.cursors.home === null) this.loadEmployees('home', true);
                 } else if (viewId === 'employees') {
                     document.getElementById('view-employees').classList.add('active');
                     document.getElementById('headerTitle').innerText = 'Manage Staff';
                     document.getElementById('btnAddEmp').classList.remove('hidden');
-                    if(this.cursors.manage === null) this.loadEmployees('manage');
+                    if(this.cursors.manage === null) this.loadEmployees('manage', true);
                 } else if (viewId === 'report') {
                     document.getElementById('view-report').classList.add('active');
                     document.getElementById('headerTitle').innerText = 'Reports';
@@ -297,10 +300,16 @@
             },
 
             goBack() {
-                if (history.state) {
+                // If a modal is open, close it
+                if (document.querySelectorAll('.overlay.active').length > 0) {
                     history.back();
+                    return;
+                }
+                // If on home page, actually leave the app
+                if (this.view === 'home') {
+                    window.history.go(-1);
                 } else {
-                    this.navigate('home');
+                    history.back(); // Goes back to previous view (home)
                 }
             },
 
@@ -325,14 +334,19 @@
                 const listEl = document.getElementById(context === 'home' ? 'homeList' : 'empList');
                 const loadBtn = document.getElementById(context === 'home' ? 'loadMoreHome' : 'loadMoreEmp');
                 
-                if (reset) { listEl.innerHTML = ''; this.cursors[context] = null; }
+                if (reset) { 
+                    listEl.innerHTML = '<div class="loading-text">Loading Data...</div>'; 
+                    this.cursors[context] = null; 
+                    loadBtn.classList.add('hidden');
+                }
 
-                let qArgs = [collection(db, "employees"), orderBy("name"), limit(10)];
+                let qArgs = [collection(db, "employees"), orderBy("nameLower"), limit(10)];
                 
-                // Prefix Search
+                // Prefix Search (Using lowercase to avoid case-sensitive bugs)
                 if (searchTerm.length > 0) {
-                    const end = searchTerm.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
-                    qArgs = [collection(db, "employees"), where("name", ">=", searchTerm), where("name", "<", end), limit(10)];
+                    const searchLower = searchTerm.toLowerCase();
+                    const end = searchLower.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
+                    qArgs = [collection(db, "employees"), where("nameLower", ">=", searchLower), where("nameLower", "<", end), limit(10)];
                 } else if (this.cursors[context]) {
                     qArgs.push(startAfter(this.cursors[context]));
                 }
@@ -340,10 +354,13 @@
                 try {
                     const snap = await getDocs(query(...qArgs));
                     
-                    if (snap.empty && !reset) {
-                        loadBtn.classList.add('hidden');
+                    if (reset) listEl.innerHTML = ''; // clear loading text
+                    
+                    if (snap.empty && reset) {
+                        listEl.innerHTML = '<div class="loading-text">No employees found.</div>';
                         return;
                     }
+                    if (snap.empty && !reset) return; // End of list
                     
                     if (snap.docs.length > 0) this.cursors[context] = snap.docs[snap.docs.length - 1];
 
@@ -398,7 +415,10 @@
                         }
                         listEl.insertAdjacentHTML('beforeend', html);
                     });
-                } catch(e) { console.error("Error loading:", e); }
+                } catch(e) { 
+                    console.error("Error loading:", e); 
+                    if(reset) listEl.innerHTML = '<div class="loading-text" style="color:var(--meena-red);">Connection Error. Please Check your Firebase Config and Security Rules.</div>';
+                }
             },
 
             // --- Realtime Attendance Writes ---
@@ -414,12 +434,12 @@
                 const docRef = doc(db, 'attendance', month);
 
                 try {
-                    // Update dot notation
                     await updateDoc(docRef, { [`records.${empId}.${date}`]: status });
                 } catch(e) {
                     if (e.code === 'not-found') {
-                        // Create document if month just started
                         await setDoc(docRef, { records: { [empId]: { [date]: status } } });
+                    } else {
+                        alert("Database write blocked. Check your Firestore Security Rules.");
                     }
                 }
             },
@@ -447,11 +467,15 @@
                 const role = document.getElementById('empRole').value.trim();
                 const wage = Number(document.getElementById('empWage').value);
                 
-                if (!name || !role || !wage) return;
+                if (!name || !role || !wage) {
+                    alert("Please fill out all fields.");
+                    return;
+                }
 
                 const saveBtn = document.getElementById('saveEmpBtn');
                 const originalText = saveBtn.innerText;
                 saveBtn.innerText = "Saving...";
+                saveBtn.disabled = true;
 
                 const data = { name, role, wage, nameLower: name.toLowerCase() };
                 
@@ -462,13 +486,20 @@
                         data.createdAt = new Date();
                         await addDoc(collection(db, "employees"), data);
                     }
-                    history.back(); // cleanly close modal via popstate event
-                    this.loadEmployees('manage', true); // reload list instantly
+                    
+                    // Safely close modal & force reload without crashing history
+                    if(history.state && history.state.modal) history.back();
+                    else this.closeModals();
+                    
+                    // Force refresh the list 
+                    setTimeout(() => { this.loadEmployees('manage', true); }, 200);
+
                 } catch(e) { 
                     console.error("Save error:", e); 
-                    alert("Error saving. Please check connection.");
+                    alert("Error saving data. Make sure your Firestore Security Rules are set to True.");
                 } finally {
                     saveBtn.innerText = originalText;
+                    saveBtn.disabled = false;
                 }
             },
             delEmp(id) {
@@ -487,9 +518,8 @@
                 const thead = document.getElementById('reportHead');
                 const tbody = document.getElementById('reportBody');
                 thead.innerHTML = '<th class="sticky-col">Employee</th>';
-                tbody.innerHTML = '<tr><td colspan="35">Loading...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="35" class="loading-text">Loading Report...</td></tr>';
 
-                // Determine days in month
                 const [yyyy, mm] = targetMonth.split('-');
                 const daysInMonth = new Date(yyyy, mm, 0).getDate();
                 
@@ -499,15 +529,13 @@
                 thead.innerHTML += '<th>Present</th><th>Half</th><th>Absent</th><th>Total Wage</th>';
 
                 try {
-                    // Fetch all employees (required for full report, cost: N reads where N = staff count)
-                    const empSnap = await getDocs(query(collection(db, "employees"), orderBy("name")));
-                    // Fetch 1 month document
+                    const empSnap = await getDocs(query(collection(db, "employees"), orderBy("nameLower")));
                     const attSnap = await getDoc(doc(db, 'attendance', targetMonth));
                     const records = attSnap.exists() ? (attSnap.data().records || {}) : {};
 
                     tbody.innerHTML = '';
                     if(empSnap.empty) {
-                        tbody.innerHTML = '<tr><td colspan="35">No employees found.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="35" class="loading-text">No employees found.</td></tr>';
                         return;
                     }
 
@@ -535,7 +563,10 @@
                         </tr>`;
                         tbody.insertAdjacentHTML('beforeend', row);
                     });
-                } catch(e) { console.error(e); }
+                } catch(e) { 
+                    console.error(e); 
+                    tbody.innerHTML = '<tr><td colspan="35" class="loading-text" style="color:var(--meena-red);">Error loading report. Check database rules.</td></tr>';
+                }
             },
 
             // --- Admin & Garbage Collection ---
@@ -570,9 +601,10 @@
             },
             async checkGarbage() {
                 // Find cutoff month (2 months ago)
-                const d = this.getISTDateObj();
+                const d = new Date();
                 d.setMonth(d.getMonth() - 2);
-                const cutoff = this.getISTMonthString(d); 
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' });
+                const cutoff = formatter.format(d).substring(0, 7);
 
                 try {
                     const q = query(collection(db, 'attendance'), where(FieldPath.documentId(), '<', cutoff));
@@ -600,21 +632,20 @@
                 });
             }
         };
+        // Expose to window so HTML onClick works
         window.app = app;
 
         // Search Handlers (with debounce to prevent rapid queries)
         document.getElementById('searchHome').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.home);
             app.searchTimers.home = setTimeout(() => {
-                const val = e.target.value.trim();
-                app.loadEmployees('home', true, val.length > 0 ? val.charAt(0).toUpperCase() + val.slice(1) : "");
+                app.loadEmployees('home', true, e.target.value.trim());
             }, 500);
         });
         document.getElementById('searchEmp').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.manage);
             app.searchTimers.manage = setTimeout(() => {
-                const val = e.target.value.trim();
-                app.loadEmployees('manage', true, val.length > 0 ? val.charAt(0).toUpperCase() + val.slice(1) : "");
+                app.loadEmployees('manage', true, e.target.value.trim());
             }, 500);
         });
         document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
@@ -630,7 +661,7 @@
             }
         });
 
-        // Initialize App
+        // Initialize App on Load
         history.replaceState({ view: 'home' }, '', '#home');
         app.navigate('home', false);
 
