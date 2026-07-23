@@ -267,7 +267,7 @@
         // Import your existing configured database directly from your config file
         import { db } from './config.js';
         
-        // Import the required Firestore functions (updated to match 12.9.0)
+        // Import the required Firestore functions
         import { collection, doc, setDoc, getDoc, updateDoc, addDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         const app = {
@@ -709,9 +709,15 @@
                     if (format === 'csv') {
                         let csvContent = "\uFEFF"; // BOM for excel utf8
                         if (empId === 'ALL') {
-                            csvContent += "Employee Name,Role,Daily Wage,Present,Half-Day,Absent,Total Salary\n";
+                            csvContent += "Employee Name,Role,Daily Wage,Present,Half-Day,Absent,Total Salary," + exactDates.join(",") + "\n";
                             reportRows.forEach(r => {
-                                csvContent += `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage}\n`;
+                                let rowData = `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage}`;
+                                exactDates.forEach(date => {
+                                    const month = date.substring(0, 7);
+                                    const status = attData[month]?.[r.id]?.[date] || '-';
+                                    rowData += `,${status}`;
+                                });
+                                csvContent += rowData + "\n";
                             });
                         } else {
                             csvContent += `Employee: ${empName}, Wage: Rs. ${empWage}\n\n`;
@@ -742,7 +748,7 @@
                     hiddenDiv.style.position = 'absolute';
                     hiddenDiv.style.left = '-9999px';
                     hiddenDiv.style.top = '0';
-                    hiddenDiv.style.width = empId === 'ALL' ? '1000px' : '650px'; 
+                    hiddenDiv.style.width = '800px'; 
                     hiddenDiv.style.height = 'max-content'; // Prevents html2canvas cropping
                     hiddenDiv.style.overflow = 'visible';
                     hiddenDiv.style.zIndex = '-9999';
@@ -755,50 +761,29 @@
                     let innerContent = `
                         <div style="text-align:center; margin-bottom: 40px;">
                             <h1 style="color:#0d9488; margin:0; font-size:38px; font-weight:800; letter-spacing:-1px;">Meena Groups</h1>
-                            <h2 style="margin:8px 0 0 0; font-size:20px; font-weight:600;">${empId === 'ALL' ? 'Attendance & Payroll Export' : `Attendance Report: ${empName}`}</h2>
+                            <h2 style="margin:8px 0 0 0; font-size:20px; font-weight:600;">${empId === 'ALL' ? 'Attendance & Payroll Full Roster' : `Attendance Report: ${empName}`}</h2>
                             <p style="color:#94a3b8; font-size:14px; margin-top:8px;">Period: ${fromStr} to ${toStr}</p>
                         </div>
                     `;
 
-                    if (empId === 'ALL') {
-                        // Generate Table format
+                    reportRows.forEach(r => {
                         innerContent += `
-                            <table style="width:100%; border-collapse: collapse; text-align:center;">
-                                <thead>
-                                    <tr style="border-bottom: 2px solid #3a3b3c; color:#a8b3cf; font-size:14px; text-transform:uppercase;">
-                                        <th style="padding:15px; text-align:left;">Employee</th>
-                                        <th style="padding:15px;">Present</th>
-                                        <th style="padding:15px;">Half-Day</th>
-                                        <th style="padding:15px;">Absent</th>
-                                        <th style="padding:15px; text-align:right;">Total Salary</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${reportRows.map(r => `
-                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                            <td style="padding:18px 15px; text-align:left;">
-                                                <div style="font-weight:700; font-size:16px;">${r.name}</div>
-                                                <div style="font-size:12px; color:#a8b3cf; margin-top:4px;">₹${r.wage} / day</div>
-                                            </td>
-                                            <td style="padding:18px 15px; color:#10b981; font-weight:600; font-size:16px;">${r.p}</td>
-                                            <td style="padding:18px 15px; color:#f59e0b; font-weight:600; font-size:16px;">${r.h}</td>
-                                            <td style="padding:18px 15px; color:#ef4444; font-weight:600; font-size:16px;">${r.a}</td>
-                                            <td style="padding:18px 15px; text-align:right; color:#a855f7; font-weight:800; font-size:18px;">₹${r.totalWage.toLocaleString()}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        `;
-                    } else {
-                        // Generate Google Calendar Visual Format
-                        const r = reportRows[0];
-                        innerContent += `
-                            <div style="display:flex; justify-content:space-between; margin-bottom: 30px; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid #3a3b3c;">
-                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Present</div><div style="font-size:24px; font-weight:800; color:#10b981;">${r.p}</div></div>
-                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Half-Day</div><div style="font-size:24px; font-weight:800; color:#f59e0b;">${r.h}</div></div>
-                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Absent</div><div style="font-size:24px; font-weight:800; color:#ef4444;">${r.a}</div></div>
-                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Total Salary</div><div style="font-size:24px; font-weight:800; color:#a855f7;">₹${r.totalWage.toLocaleString()}</div></div>
-                            </div>
+                            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin-bottom: 30px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="text-align:left;">
+                                        <h3 style="margin:0; font-size:22px; font-weight:700; color:#ffffff;">${r.name}</h3>
+                                        <div style="color:#0d9488; font-size:13px; font-weight:600; margin-top:4px;">${r.role} &nbsp;•&nbsp; ₹${r.wage}/day</div>
+                                    </div>
+                                    <div style="display:flex; gap: 20px; text-align:center;">
+                                        <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Present</div><div style="font-size:22px; font-weight:800; color:#10b981;">${r.p}</div></div>
+                                        <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Half-Day</div><div style="font-size:22px; font-weight:800; color:#f59e0b;">${r.h}</div></div>
+                                        <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Absent</div><div style="font-size:22px; font-weight:800; color:#ef4444;">${r.a}</div></div>
+                                        <div style="padding-left:15px; border-left: 1px solid rgba(255,255,255,0.1);">
+                                            <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Total Salary</div>
+                                            <div style="font-size:22px; font-weight:800; color:#a855f7;">₹${r.totalWage.toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                </div>
                         `;
 
                         monthsToFetch.forEach(month => {
@@ -808,16 +793,16 @@
                             const startDay = dateObj.getDay();
                             const daysInMonth = new Date(parseInt(y), parseInt(m), 0).getDate();
 
-                            let grid = `<div style="margin-bottom: 30px;">
-                                <h3 style="text-align: left; margin-bottom: 15px; color: #e4e6eb; font-weight:600; font-size:18px;">${monthName}</h3>
-                                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Sun</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Mon</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Tue</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Wed</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Thu</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Fri</div>
-                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Sat</div>
+                            let grid = `<div style="margin-bottom: 20px;">
+                                <h4 style="text-align: left; margin: 0 0 10px 0; color: #e4e6eb; font-weight:600; font-size:15px;">${monthName}</h4>
+                                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center;">
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Sun</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Mon</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Tue</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Wed</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Thu</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Fri</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 4px; font-size:12px;">Sat</div>
                             `;
                             
                             for(let i=0; i<startDay; i++) { grid += `<div></div>`; }
@@ -825,23 +810,25 @@
                             for(let d=1; d<=daysInMonth; d++) {
                                 const dateStr = `${y}-${m}-${String(d).padStart(2, '0')}`;
                                 if(exactDates.includes(dateStr)) {
-                                    const status = attData[month]?.[empId]?.[dateStr];
+                                    const status = attData[month]?.[r.id]?.[dateStr];
                                     let bg = '#3a3b3c', col = '#e4e6eb', brd = 'rgba(255,255,255,0.05)';
                                     if(status === 'present') { bg = 'rgba(16, 185, 129, 0.15)'; col = '#10b981'; brd = 'rgba(16, 185, 129, 0.3)'; }
                                     else if(status === 'half') { bg = 'rgba(245, 158, 11, 0.15)'; col = '#f59e0b'; brd = 'rgba(245, 158, 11, 0.3)'; }
                                     else if(status === 'absent') { bg = 'rgba(239, 68, 68, 0.15)'; col = '#ef4444'; brd = 'rgba(239, 68, 68, 0.3)'; }
 
-                                    grid += `<div style="background: ${bg}; color: ${col}; padding: 15px 10px; border-radius: 12px; font-weight: 700; border: 1px solid ${brd}; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                                                <span style="font-size:16px;">${d}</span>
+                                    grid += `<div style="background: ${bg}; color: ${col}; padding: 10px 5px; border-radius: 8px; font-weight: 700; border: 1px solid ${brd}; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                                                <span style="font-size:14px;">${d}</span>
                                             </div>`;
                                 } else {
-                                    grid += `<div style="color: rgba(255,255,255,0.15); padding: 15px 10px; font-size:16px;">${d}</div>`;
+                                    grid += `<div style="color: rgba(255,255,255,0.1); padding: 10px 5px; font-size:14px;">${d}</div>`;
                                 }
                             }
                             grid += `</div></div>`;
                             innerContent += grid;
                         });
-                    }
+
+                        innerContent += `</div>`; // Close employee card
+                    });
 
                     innerContent += `
                         <div style="text-align:right; margin-top:30px; font-size:12px; color:#a8b3cf; font-weight:500;">
