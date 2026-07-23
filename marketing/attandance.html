@@ -13,6 +13,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
+        /* Hide all scrollbars completely but keep scroll functionality */
+        ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+        * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+
         /* Shared Core Theme */
         :root {
             --bg-color: #0b111a; 
@@ -107,7 +111,8 @@
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
         /* Live Daily Summary */
-        #dailySummary { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(19, 27, 38, 0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; display: flex; justify-content: space-around; z-index: 400; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); }
+        #dailySummary { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(19, 27, 38, 0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; display: flex; justify-content: space-around; z-index: 400; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); transform: translateY(120%); opacity: 0; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease; pointer-events: none;}
+        #dailySummary.visible { transform: translateY(0); opacity: 1; pointer-events: auto;}
         .sum-block { text-align: center; }
         .sum-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
         .sum-val { font-size: 1.4em; font-weight: 800; }
@@ -457,6 +462,11 @@
                     listEl.innerHTML = skeletonHTML; 
                     this.cursors[context] = null; 
                     loadBtn.classList.add('hidden');
+                    
+                    if (context === 'home') {
+                        const summaryEl = document.getElementById('dailySummary');
+                        if (summaryEl) summaryEl.classList.remove('visible');
+                    }
                 }
 
                 let qArgs = [collection(db, "employees"), orderBy("nameLower"), limit(10)];
@@ -476,6 +486,10 @@
                     
                     if (snap.empty && reset) {
                         listEl.innerHTML = '<div class="loading-text">No employees found.</div>';
+                        if (context === 'home') {
+                            const summaryEl = document.getElementById('dailySummary');
+                            if (summaryEl) setTimeout(() => summaryEl.classList.add('visible'), 100);
+                        }
                         return;
                     }
                     if (snap.empty && !reset) return; 
@@ -552,6 +566,14 @@
                         }
                         listEl.insertAdjacentHTML('beforeend', html);
                     });
+
+                    if (context === 'home') {
+                        setTimeout(() => {
+                            const summaryEl = document.getElementById('dailySummary');
+                            if (summaryEl) summaryEl.classList.add('visible');
+                        }, 100);
+                    }
+
                 } catch(e) { 
                     console.error("Error loading:", e); 
                     if(reset) listEl.innerHTML = '<div class="loading-text" style="color:var(--meena-red);">Connection Error. Please Check your Firebase Config and Security Rules.</div>';
