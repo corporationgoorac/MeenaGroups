@@ -46,31 +46,26 @@
         .action-btn:active { transform: scale(0.95); }
 
         /* Views */
-        .view-section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; animation: fadeIn 0.3s ease; padding-bottom: 100px; }
+        .view-section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; animation: fadeIn 0.3s ease; padding-bottom: 120px; }
         .view-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Animated Search Toolbar & Counters */
-        .toolbar { display: flex; align-items: center; justify-content: space-between; position: relative; height: 45px; margin-bottom: 20px; width: 100%; }
+        /* Top Bar & Animated Search (Replaces Bottom Summary) */
+        .home-top-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface-color); border: 1px solid var(--input-border); padding: 10px 20px; border-radius: 16px; margin-bottom: 20px; position: relative; height: 56px; overflow: hidden; }
+        .inline-summary { display: flex; gap: 15px; align-items: center; width: 100%; transition: opacity 0.4s ease, transform 0.4s ease; transform: translateX(0); opacity: 1; justify-content: space-between; padding-right: 15px;}
+        .inline-summary.dispersed { opacity: 0; transform: translateX(-30px); pointer-events: none; position: absolute; }
+        .inline-sum-block { display: flex; align-items: center; gap: 6px; }
+        .inline-sum-label { font-size: 0.85em; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; }
+        .inline-sum-val { font-size: 1.2em; font-weight: 800; }
         
-        .top-summary { display: flex; gap: 12px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; transform: translateX(0); width: 100%; align-items: center; }
-        .top-summary.hidden-anim { opacity: 0; transform: translateX(-20px) scale(0.95); pointer-events: none; }
+        .animated-search-bar { position: absolute; left: 20px; right: 50px; background: transparent; border: none; color: white; font-size: 1em; outline: none; height: 100%; transform: translateX(100%); opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); width: calc(100% - 70px); }
+        .animated-search-bar.active { transform: translateX(0); opacity: 1; pointer-events: auto; }
         
-        .sum-chip { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
-        .sum-chip .lbl { font-size: 0.75em; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
-        .sum-chip .val { font-size: 1.2em; font-weight: 800; line-height: 1; }
-        
-        .search-container { display: flex; align-items: center; background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 24px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); width: 45px; height: 45px; overflow: hidden; position: absolute; right: 0; z-index: 10; }
-        .search-container.expanded { width: 100%; border-color: var(--accent-color); box-shadow: 0 4px 15px rgba(0,0,0,0.3); background: var(--surface-hover); }
-        
-        .search-input { flex: 1; min-width: 0; background: transparent; border: none; color: white; padding: 0; font-size: 0.95em; font-family: 'Inter', sans-serif; outline: none; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        .search-container.expanded .search-input { padding: 0 10px 0 20px; opacity: 1; pointer-events: auto; }
-        
-        .search-btn { background: transparent; border: none; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; cursor: pointer; flex-shrink: 0; transition: color 0.2s; outline: none; margin-left: auto; }
-        .search-btn:hover { color: white; }
+        .search-icon-btn { background: none; border: none; color: var(--text-secondary); padding: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: color 0.2s; margin-left: auto; }
+        .search-icon-btn:hover { color: white; }
 
-        /* Legacy input overriding (for simple inputs not in toolbar) */
-        .search-bar { width: 100%; background: var(--surface-color); border: 1px solid var(--input-border); padding: 14px 20px; border-radius: 16px; color: white; font-size: 1em; outline: none; }
+        /* Standard Search Bar (used in other views) */
+        .search-bar { width: 100%; background: var(--surface-color); border: 1px solid var(--input-border); padding: 14px 20px; border-radius: 16px; color: white; font-size: 1em; margin-bottom: 20px; outline: none; }
         .search-bar:focus { border-color: var(--accent-color); }
 
         /* Cards */
@@ -132,11 +127,6 @@
         /* Utilities */
         .hidden { display: none !important; }
         .text-center { text-align: center; }
-
-        /* Floating Action Button */
-        .fab { position: fixed; bottom: 20px; right: 20px; background: var(--accent-color); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 600; border: none; outline: none; }
-        .fab:hover { transform: scale(1.1); box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.6); background: #0f766e; }
-        .fab:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -164,19 +154,20 @@
 
     <!-- View: Home (Daily Attendance) -->
     <div id="view-home" class="view-section active">
-        <!-- New Animated Search & Live Counter Toolbar -->
-        <div class="toolbar">
-            <div class="top-summary" id="homeSummary">
-                <div class="sum-chip"><span class="lbl">P</span><span class="val" id="sum-p" style="color: var(--success-color);">0</span></div>
-                <div class="sum-chip"><span class="lbl">H</span><span class="val" id="sum-h" style="color: var(--warning-color);">0</span></div>
-                <div class="sum-chip"><span class="lbl">A</span><span class="val" id="sum-a" style="color: var(--meena-red);">0</span></div>
+        
+        <!-- New Animated Top Bar for Summary & Search -->
+        <div class="home-top-bar">
+            <div class="inline-summary" id="inlineSummary">
+                <div class="inline-sum-block"><div class="inline-sum-label">P:</div><div id="sum-p" class="inline-sum-val" style="color: var(--success-color);">0</div></div>
+                <div class="inline-sum-block"><div class="inline-sum-label">H:</div><div id="sum-h" class="inline-sum-val" style="color: var(--warning-color);">0</div></div>
+                <div class="inline-sum-block"><div class="inline-sum-label">A:</div><div id="sum-a" class="inline-sum-val" style="color: var(--meena-red);">0</div></div>
             </div>
-            <div class="search-container" id="searchContHome">
-                <input type="text" id="searchHome" class="search-input" placeholder="Search employee...">
-                <button class="search-btn" onclick="app.toggleSearch('home')">
-                    <svg class="material-symbols-outlined" width="22" height="22" viewBox="0 -960 960 960" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
-                </button>
-            </div>
+            <input type="text" id="searchHome" class="animated-search-bar" placeholder="Search employee...">
+            <button class="search-icon-btn" id="toggleSearchBtn" onclick="app.toggleSearch()">
+                <svg class="material-symbols-outlined" id="searchIconSvg" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor">
+                    <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/>
+                </svg>
+            </button>
         </div>
 
         <div id="homeList"></div>
@@ -185,19 +176,7 @@
 
     <!-- View: Employees Management -->
     <div id="view-employees" class="view-section">
-        <!-- New Animated Search Toolbar -->
-        <div class="toolbar">
-            <div class="top-summary" id="empSummary">
-                <div style="font-weight: 600; color: var(--text-secondary); align-self: center; padding-left: 5px;">Employee Roster</div>
-            </div>
-            <div class="search-container" id="searchContEmp">
-                <input type="text" id="searchEmp" class="search-input" placeholder="Search to edit/delete...">
-                <button class="search-btn" onclick="app.toggleSearch('manage')">
-                    <svg class="material-symbols-outlined" width="22" height="22" viewBox="0 -960 960 960" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
-                </button>
-            </div>
-        </div>
-
+        <input type="text" id="searchEmp" class="search-bar" placeholder="Search to edit/delete...">
         <div id="empList"></div>
         <button id="loadMoreEmp" class="load-more hidden" onclick="app.loadEmployees('manage')">Load More Employees</button>
     </div>
@@ -305,18 +284,7 @@
             
             <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; margin-bottom: 15px;">
             
-            <!-- Animated Search Toolbar for Modal -->
-            <div class="toolbar" style="margin-bottom: 15px;">
-                <div class="top-summary" id="advSummary">
-                    <div style="font-weight: 600; color: var(--text-secondary); align-self: center; padding-left: 5px;">Select Employee</div>
-                </div>
-                <div class="search-container" id="searchContAdv">
-                    <input type="text" id="searchAdv" class="search-input" placeholder="Search specific employee...">
-                    <button class="search-btn" onclick="app.toggleSearch('adv')">
-                        <svg class="material-symbols-outlined" width="22" height="22" viewBox="0 -960 960 960" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
-                    </button>
-                </div>
-            </div>
+            <input type="text" id="searchAdv" class="search-bar" placeholder="Search specific employee..." style="margin-bottom: 15px;">
             
             <div id="advList" style="flex: 1; overflow-y: auto; text-align: left;"></div>
             <button id="loadMoreAdv" class="load-more hidden" onclick="app.loadEmployees('adv')">Load More</button>
@@ -326,11 +294,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Floating Action Button -->
-    <button class="fab" id="fabBtn" onclick="if(navigator.vibrate) navigator.vibrate(30); window.location.href='attendance.html';">
-        <svg class="material-symbols-outlined" width="28" height="28" viewBox="0 -960 960 960" fill="currentColor"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q150 0 255 105t105 255q0 150-105 255T480-120Zm0-80q116 0 198-82t82-198q0-116-82-198t-198-82q-116 0-198 82t-82 198q0 116 82 198t198 82Zm-40-160h80v-160h160v-80H520v-160h-80v400ZM480-480Z"/></svg>
-    </button>
 
     <!-- Firebase SDKs & External Config -->
     <script type="module">
@@ -362,6 +325,27 @@
                 const dateStr = this.getISTDateString();
                 return dateStr.substring(0, 7); 
             },
+
+            // --- Top Bar Animated UI Actions ---
+            toggleSearch() {
+                const searchBar = document.getElementById('searchHome');
+                const summary = document.getElementById('inlineSummary');
+                const btnSvg = document.getElementById('searchIconSvg');
+
+                if (searchBar.classList.contains('active')) {
+                    searchBar.classList.remove('active');
+                    summary.classList.remove('dispersed');
+                    searchBar.value = '';
+                    clearTimeout(app.searchTimers.home);
+                    app.loadEmployees('home', true, '');
+                    btnSvg.innerHTML = '<path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/>';
+                } else {
+                    searchBar.classList.add('active');
+                    summary.classList.add('dispersed');
+                    searchBar.focus();
+                    btnSvg.innerHTML = '<path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>';
+                }
+            },
             
             // --- Daily Summary Update Function ---
             updateDailySummary() {
@@ -382,44 +366,6 @@
                 if (pEl) pEl.innerText = p;
                 if (hEl) hEl.innerText = h;
                 if (aEl) aEl.innerText = a;
-            },
-
-            // --- Animated Search Toggle ---
-            toggleSearch(ctx) {
-                const maps = {
-                    'home': { cont: 'searchContHome', sum: 'homeSummary', inp: 'searchHome' },
-                    'manage': { cont: 'searchContEmp', sum: 'empSummary', inp: 'searchEmp' },
-                    'adv': { cont: 'searchContAdv', sum: 'advSummary', inp: 'searchAdv' }
-                };
-                
-                const config = maps[ctx];
-                const cont = document.getElementById(config.cont);
-                const sum = document.getElementById(config.sum);
-                const input = document.getElementById(config.inp);
-                const btn = cont.querySelector('.search-btn');
-
-                if(cont.classList.contains('expanded')) {
-                    // Close Search
-                    cont.classList.remove('expanded');
-                    if(sum) sum.classList.remove('hidden-anim');
-                    input.value = '';
-                    
-                    // Reset to magnifying glass icon
-                    btn.innerHTML = `<svg class="material-symbols-outlined" width="22" height="22" viewBox="0 -960 960 960" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>`;
-                    
-                    // Reload default list automatically
-                    app.loadEmployees(ctx, true, '');
-                } else {
-                    // Expand Search
-                    cont.classList.add('expanded');
-                    if(sum) sum.classList.add('hidden-anim');
-                    
-                    // Change to an 'X' close icon
-                    btn.innerHTML = `<svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>`;
-                    
-                    // Small delay to allow transition before focusing
-                    setTimeout(() => input.focus(), 150);
-                }
             },
 
             // --- Advanced Report Utilities ---
@@ -1104,7 +1050,6 @@
         };
         window.app = app;
 
-        // Debounced Search Inputs via Toolbar
         document.getElementById('searchHome').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.home);
             app.searchTimers.home = setTimeout(() => {
@@ -1123,7 +1068,6 @@
                 app.loadEmployees('adv', true, e.target.value.trim());
             }, 500);
         });
-        
         document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
 
         window.addEventListener('popstate', (e) => {
