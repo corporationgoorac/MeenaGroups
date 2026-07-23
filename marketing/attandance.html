@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Added html2canvas for Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <style>
         /* Shared Core Theme */
         :root {
@@ -147,7 +150,12 @@
 
     <!-- View: Reports -->
     <div id="view-report" class="view-section">
-        <input type="month" id="reportMonth" class="search-bar" style="width: auto; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <input type="month" id="reportMonth" class="search-bar" style="width: auto; margin-bottom: 0;">
+            <button class="action-btn" onclick="app.openAdvReportModal()" title="Advanced Image Report">
+                <svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm220-160 160-160-56-56-64 64v-168h-80v168l-64-64-56 56 160 160Z"/></svg>
+            </button>
+        </div>
         <div class="table-container">
             <table id="reportTable">
                 <thead><tr id="reportHead"></tr></thead>
@@ -220,6 +228,37 @@
         </div>
     </div>
 
+    <!-- Modal: Advanced Report (Image Export) -->
+    <div id="modal-adv-report" class="overlay">
+        <div class="modal-card" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; padding: 20px;">
+            <h3 style="margin-bottom: 20px;">Advanced Export</h3>
+            
+            <div style="display:flex; gap: 10px; margin-bottom: 15px; text-align: left;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8em; color:var(--text-secondary); font-weight: 600;">From Date</label>
+                    <input type="date" id="advFrom" style="width:100%; margin-top: 5px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:0.8em; color:var(--text-secondary); font-weight: 600;">To Date</label>
+                    <input type="date" id="advTo" style="width:100%; margin-top: 5px;">
+                </div>
+            </div>
+            
+            <button class="modal-btn btn-confirm" onclick="app.downloadAdvReport(event, 'ALL')" style="margin-bottom: 15px; padding: 14px;">Download All Data (Image)</button>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; margin-bottom: 15px;">
+            
+            <input type="text" id="searchAdv" class="search-bar" placeholder="Search specific employee..." style="margin-bottom: 15px;">
+            
+            <div id="advList" style="flex: 1; overflow-y: auto; text-align: left;"></div>
+            <button id="loadMoreAdv" class="load-more hidden" onclick="app.loadEmployees('adv')">Load More</button>
+            
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button class="modal-btn btn-cancel" onclick="history.back()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs & External Config -->
     <script type="module">
         // Import your existing configured database directly from your config file
@@ -230,8 +269,8 @@
 
         const app = {
             view: 'home',
-            cursors: { home: null, manage: null },
-            searchTimers: { home: null, manage: null },
+            cursors: { home: null, manage: null, adv: null },
+            searchTimers: { home: null, manage: null, adv: null },
             currentPin: '',
             garbageDocs: [],
 
@@ -243,6 +282,33 @@
             getISTMonthString() {
                 const dateStr = this.getISTDateString();
                 return dateStr.substring(0, 7); 
+            },
+            
+            // --- Advanced Report Utilities ---
+            getMonthsBetween(fromStr, toStr) {
+                const result = [];
+                const [y1, m1] = fromStr.split('-').map(Number);
+                const [y2, m2] = toStr.split('-').map(Number);
+                let curY = y1, curM = m1;
+                while(curY < y2 || (curY === y2 && curM <= m2)) {
+                    result.push(`${curY}-${String(curM).padStart(2, '0')}`);
+                    curM++;
+                    if(curM > 12) { curM = 1; curY++; }
+                }
+                return result;
+            },
+            getDatesBetween(fromStr, toStr) {
+                const result = [];
+                let current = new Date(fromStr);
+                const end = new Date(toStr);
+                while(current <= end) {
+                    const y = current.getFullYear();
+                    const m = String(current.getMonth() + 1).padStart(2, '0');
+                    const d = String(current.getDate()).padStart(2, '0');
+                    result.push(`${y}-${m}-${d}`);
+                    current.setDate(current.getDate() + 1);
+                }
+                return result;
             },
 
             // --- Routing & Modals ---
@@ -313,11 +379,23 @@
                 btn.onclick = () => { onConfirm(); history.back(); };
                 this.openModal('modal-confirm');
             },
+            
+            openAdvReportModal() {
+                const todayStr = this.getISTDateString();
+                document.getElementById('advTo').value = todayStr;
+                document.getElementById('advFrom').value = todayStr.substring(0, 8) + '01'; // Default: 1st of month
+                
+                this.loadEmployees('adv', true);
+                this.openModal('modal-adv-report');
+            },
 
             // --- Employee Management ---
             async loadEmployees(context, reset = false, searchTerm = "") {
-                const listEl = document.getElementById(context === 'home' ? 'homeList' : 'empList');
-                const loadBtn = document.getElementById(context === 'home' ? 'loadMoreHome' : 'loadMoreEmp');
+                const listIds = { home: 'homeList', manage: 'empList', adv: 'advList' };
+                const btnIds = { home: 'loadMoreHome', manage: 'loadMoreEmp', adv: 'loadMoreAdv' };
+                
+                const listEl = document.getElementById(listIds[context]);
+                const loadBtn = document.getElementById(btnIds[context]);
                 
                 if (reset) { 
                     const skeletonHTML = `
@@ -351,8 +429,10 @@
                 try {
                     const snap = await getDocs(query(...qArgs));
                     
-                    if (reset) listEl.innerHTML = ''; 
+                    // If we are NOT in home view, we don't need attendance data. So clear skeletons now.
+                    if (reset && context !== 'home') listEl.innerHTML = '';
                     
+                    // If no data found
                     if (snap.empty && reset) {
                         listEl.innerHTML = '<div class="loading-text">No employees found.</div>';
                         return;
@@ -367,13 +447,18 @@
                         loadBtn.classList.add('hidden');
                     }
 
+                    // Network call for current month attendance exclusively for the Home page
                     let currentAtt = {};
+                    const today = this.getISTDateString();
                     if (context === 'home') {
                         const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
                         if(monthDoc.exists()) currentAtt = monthDoc.data().records || {};
+                        
+                        // All async calls finished for Home page, now we can safely clear the skeletons
+                        if (reset) listEl.innerHTML = '';
                     }
-                    const today = this.getISTDateString();
 
+                    // Render Cards perfectly without delay
                     snap.docs.forEach(d => {
                         const data = d.data();
                         const id = d.id;
@@ -394,7 +479,7 @@
                                     </div>
                                 </div>
                             `;
-                        } else {
+                        } else if (context === 'manage') {
                             html = `
                                 <div class="emp-card">
                                     <div class="card-header">
@@ -405,6 +490,16 @@
                                         <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${data.name}', '${data.role}', ${data.wage})">Edit</button>
                                         <button class="att-btn absent" onclick="app.delEmp('${id}')">Delete</button>
                                     </div>
+                                </div>
+                            `;
+                        } else if (context === 'adv') {
+                            html = `
+                                <div class="emp-card" style="padding: 15px;">
+                                    <div class="card-header">
+                                        <div><div class="emp-name" style="font-size:1em;">${data.name}</div><div class="emp-role" style="font-size:0.7em;">${data.role}</div></div>
+                                        <div class="emp-wage" style="font-size:0.8em;">₹${data.wage}</div>
+                                    </div>
+                                    <button class="modal-btn btn-confirm" style="padding: 10px; width: 100%; margin-top: 10px;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage})">Download Data</button>
                                 </div>
                             `;
                         }
@@ -561,6 +656,128 @@
                     tbody.innerHTML = '<tr><td colspan="35" class="loading-text" style="color:var(--meena-red);">Error loading report. Check database rules.</td></tr>';
                 }
             },
+            
+            async downloadAdvReport(event, empId, empName = null, empWage = null) {
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "Generating Image...";
+                btn.disabled = true;
+
+                try {
+                    const fromStr = document.getElementById('advFrom').value;
+                    const toStr = document.getElementById('advTo').value;
+                    
+                    if (!fromStr || !toStr) {
+                        alert("Please select both dates.");
+                        return;
+                    }
+
+                    const monthsToFetch = this.getMonthsBetween(fromStr, toStr);
+                    const attData = {};
+                    
+                    // Fetch required attendance docs safely
+                    for (let m of monthsToFetch) {
+                        const snap = await getDoc(doc(db, 'attendance', m));
+                        if(snap.exists()) {
+                            attData[m] = snap.data().records || {};
+                        }
+                    }
+
+                    let employees = [];
+                    if (empId === 'ALL') {
+                        const snap = await getDocs(query(collection(db, "employees"), orderBy("nameLower")));
+                        snap.forEach(d => { employees.push({id: d.id, ...d.data()}); });
+                    } else {
+                        employees.push({ id: empId, name: empName, wage: empWage });
+                    }
+
+                    const exactDates = this.getDatesBetween(fromStr, toStr);
+                    
+                    const reportRows = employees.map(emp => {
+                        let p = 0, h = 0, a = 0;
+                        exactDates.forEach(date => {
+                            const month = date.substring(0, 7);
+                            const status = attData[month]?.[emp.id]?.[date];
+                            if(status === 'present') p++;
+                            else if(status === 'half') h++;
+                            else if(status === 'absent') a++;
+                        });
+                        const totalWage = (p * emp.wage) + (h * (emp.wage / 2));
+                        return { ...emp, p, h, a, totalWage };
+                    });
+
+                    // Construct Hidden Print Area Theme exactly matched to request
+                    const hiddenDiv = document.createElement('div');
+                    hiddenDiv.style.position = 'absolute';
+                    hiddenDiv.style.left = '-9999px';
+                    hiddenDiv.style.top = '-9999px';
+                    hiddenDiv.style.width = '800px'; 
+                    hiddenDiv.style.backgroundColor = '#0b111a';
+                    hiddenDiv.style.color = '#ffffff';
+                    hiddenDiv.style.fontFamily = 'Inter, sans-serif';
+                    hiddenDiv.style.padding = '40px';
+                    hiddenDiv.style.borderRadius = '16px';
+                    
+                    hiddenDiv.innerHTML = `
+                        <div style="text-align:center; margin-bottom: 40px;">
+                            <h1 style="color:#0d9488; margin:0; font-size:38px; font-weight:800; letter-spacing:-1px;">Meena Groups</h1>
+                            <h2 style="margin:8px 0 0 0; font-size:20px; font-weight:600;">Attendance & Payroll Export</h2>
+                            <p style="color:#94a3b8; font-size:14px; margin-top:8px;">Period: ${fromStr} to ${toStr}</p>
+                        </div>
+                        <table style="width:100%; border-collapse: collapse; text-align:center;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #334155; color:#94a3b8; font-size:14px; text-transform:uppercase;">
+                                    <th style="padding:15px; text-align:left;">Employee</th>
+                                    <th style="padding:15px;">Present</th>
+                                    <th style="padding:15px;">Half-Day</th>
+                                    <th style="padding:15px;">Absent</th>
+                                    <th style="padding:15px; text-align:right;">Total Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${reportRows.map(r => `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding:18px 15px; text-align:left;">
+                                            <div style="font-weight:700; font-size:16px;">${r.name}</div>
+                                            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">₹${r.wage} / day</div>
+                                        </td>
+                                        <td style="padding:18px 15px; color:#10b981; font-weight:600; font-size:16px;">${r.p}</td>
+                                        <td style="padding:18px 15px; color:#f59e0b; font-weight:600; font-size:16px;">${r.h}</td>
+                                        <td style="padding:18px 15px; color:#ef4444; font-weight:600; font-size:16px;">${r.a}</td>
+                                        <td style="padding:18px 15px; text-align:right; color:#a855f7; font-weight:800; font-size:18px;">₹${r.totalWage.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <div style="text-align:right; margin-top:30px; font-size:12px; color:#334155; font-weight:600;">
+                            Generated automatically by Meena Groups Hub • ${app.getISTDateString()}
+                        </div>
+                    `;
+                    document.body.appendChild(hiddenDiv);
+
+                    // Tiny pause for the browser to render the DOM box internally
+                    await new Promise(r => setTimeout(r, 400));
+                    
+                    // Render image natively
+                    const canvas = await html2canvas(hiddenDiv, { backgroundColor: '#0b111a', scale: 2 });
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    const link = document.createElement('a');
+                    link.download = `MeenaGroups_${empId === 'ALL' ? 'Full_Roster' : empName.replace(' ', '_')}_${fromStr}_to_${toStr}.png`;
+                    link.href = imgData;
+                    link.click();
+
+                    // Clean up 
+                    document.body.removeChild(hiddenDiv);
+
+                } catch(e) {
+                    console.error("Export Error:", e);
+                    alert("Failed to generate image report. Check network connection.");
+                } finally {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            },
 
             // --- Admin & Garbage Collection ---
             pin(val) {
@@ -635,6 +852,12 @@
             clearTimeout(app.searchTimers.manage);
             app.searchTimers.manage = setTimeout(() => {
                 app.loadEmployees('manage', true, e.target.value.trim());
+            }, 500);
+        });
+        document.getElementById('searchAdv').addEventListener('input', (e) => {
+            clearTimeout(app.searchTimers.adv);
+            app.searchTimers.adv = setTimeout(() => {
+                app.loadEmployees('adv', true, e.target.value.trim());
             }, 500);
         });
         document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
