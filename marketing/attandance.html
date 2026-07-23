@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Attendance - Realtime</title>
+    
+    <meta name="theme-color" content="#0b111a">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Core Theme */
+        :root {
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --nav-bg: rgba(19, 27, 38, 0.85); 
+            --input-border: #334155;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; background-color: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        *, *::before, *::after { box-sizing: border-box; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+
+        /* Header */
+        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 16px 20px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .back-btn { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 8px; border-radius: 50%; transition: 0.2s; margin-left: -8px;}
+        .back-btn:hover { background: rgba(255,255,255,0.1); }
+        header h1 { margin: 0; margin-right: auto; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em; }
+        .action-btn { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: white; cursor: pointer; display: flex; padding: 8px; border-radius: 50%; transition: all 0.2s ease; }
+        .action-btn:active { transform: scale(0.95); }
+
+        /* Views */
+        .view-section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; animation: fadeIn 0.3s ease; padding-bottom: 80px; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Search Bar */
+        .search-bar { width: 100%; background: var(--surface-color); border: 1px solid var(--input-border); padding: 14px 20px; border-radius: 16px; color: white; font-size: 1em; margin-bottom: 20px; outline: none; }
+        .search-bar:focus { border-color: var(--accent-color); }
+
+        /* Cards */
+        .emp-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 20px; box-shadow: var(--shadow-lg); margin-bottom: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .emp-name { font-size: 1.2em; font-weight: 700; margin-bottom: 5px; word-wrap: break-word; }
+        .emp-role { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2); }
+        .emp-wage { font-weight: 700; color: white; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 10px; font-size: 0.9em;}
+        
+        /* Attendance Buttons */
+        .att-btn-group { display: flex; gap: 10px; width: 100%; }
+        .att-btn { flex: 1; padding: 12px 0; border: 1px solid var(--input-border); border-radius: 12px; background: rgba(255,255,255,0.03); color: var(--text-secondary); font-weight: 600; font-size: 0.9em; cursor: pointer; transition: 0.2s; }
+        .att-btn.present { border-color: var(--success-color); color: var(--success-color); background: rgba(16, 185, 129, 0.1); }
+        .att-btn.present.active { background: var(--success-color); color: white; }
+        .att-btn.half { border-color: var(--warning-color); color: var(--warning-color); background: rgba(245, 158, 11, 0.1); }
+        .att-btn.half.active { background: var(--warning-color); color: white; }
+        .att-btn.absent { border-color: var(--meena-red); color: var(--meena-red); background: rgba(239, 68, 68, 0.1); }
+        .att-btn.absent.active { background: var(--meena-red); color: white; }
+
+        /* Report Table */
+        .table-container { overflow-x: auto; background: var(--surface-color); border-radius: 16px; border: 1px solid var(--input-border); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); font-size: 0.85em; }
+        th { background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+        .sticky-col { position: sticky; left: 0; background: var(--surface-color); z-index: 10; text-align: left; border-right: 1px solid var(--input-border); font-weight: 600; }
+        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+        .dot.P { background-color: var(--success-color); }
+        .dot.H { background-color: var(--warning-color); }
+        .dot.A { background-color: var(--meena-red); }
+        .total-wage { font-weight: 800; color: #a855f7; font-size: 1.1em; }
+
+        /* Admin Numpad */
+        .pin-dots { display: flex; justify-content: center; gap: 15px; margin: 40px 0; }
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text-secondary); }
+        .pin-dot.filled { background: white; border-color: white; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 300px; margin: 0 auto; }
+        .num-btn { background: var(--surface-color); border: 1px solid var(--input-border); color: white; font-size: 1.5em; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; cursor: pointer; }
+        .num-btn:active { background: rgba(255,255,255,0.1); }
+
+        /* Custom Modal & Overlays */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .overlay.active { display: flex; }
+        .modal-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 25px; width: 100%; max-width: 400px; text-align: center; }
+        .modal-card h3 { margin-top: 0; font-size: 1.2em; }
+        .modal-card input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--input-border); padding: 12px; border-radius: 10px; color: white; margin-bottom: 15px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
+        .btn-confirm { background: var(--success-color); color: white; }
+        .btn-danger { background: var(--meena-red); color: white; }
+        .load-more { width: 100%; padding: 15px; background: transparent; border: 1px dashed var(--text-secondary); color: var(--text-secondary); border-radius: 12px; cursor: pointer; margin-top: 10px;}
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Main Header -->
+    <header class="no-select">
+        <button id="backBtn" class="back-btn hidden" onclick="history.back()">
+            <svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"/></svg>
+        </button>
+        <h1 id="headerTitle">Attendance</h1>
+        
+        <button id="btnAdmin" class="action-btn" onclick="app.navigate('admin-lock')">
+            <svg class="material-symbols-outlined" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm240-200q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80Z"/></svg>
+        </button>
+        <button id="btnReport" class="action-btn" onclick="app.navigate('report')">
+            <svg class="material-symbols-outlined" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-640q0-33 23.5-56.5T200-880h320l240 240v480q0 33-23.5 56.5T720-80H200Zm280-520v-200H200v640h520v-440H480ZM240-240h480v-80H240v80Zm0-120h480v-80H240v80Zm0-120h200v-80H240v80ZM200-800v200-200 640-640Z"/></svg>
+        </button>
+        <button id="btnEmployees" class="action-btn" onclick="app.navigate('employees')">
+            <svg class="material-symbols-outlined" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M0-240v-63q0-43 44-70t116-27q13 0 25 .5t23 2.5q-14 21-21 44t-7 48v65H0Zm240 0v-65q0-32 17.5-58.5T307-410q32-20 76.5-30t96.5-10q53 0 97.5 10t76.5 30q32 20 49 46.5t17 58.5v65H240Zm540 0H600v-65q0-25-7-48t-21-44q11-2 23-2.5t25-.5q72 0 116 27t44 70v63ZM160-440q-50 0-85-35t-35-85q0-51 35-85.5t85-34.5q51 0 85.5 34.5T280-560q0 50-34.5 85T160-440Zm480 0q-51 0-85.5-35T520-560q0-51 34.5-85.5T640-680q50 0 85 34.5T760-560q0 50-35 85t-85 35Z"/></svg>
+        </button>
+        <button id="btnAddEmp" class="action-btn hidden" onclick="app.openEmpForm()">
+            <svg class="material-symbols-outlined" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+    </header>
+
+    <!-- View: Home (Daily Attendance) -->
+    <div id="view-home" class="view-section active">
+        <input type="text" id="searchHome" class="search-bar" placeholder="Search employee for attendance...">
+        <div id="homeList"></div>
+        <button class="load-more" onclick="app.loadEmployees('home')">Load More Employees</button>
+    </div>
+
+    <!-- View: Employees Management -->
+    <div id="view-employees" class="view-section">
+        <input type="text" id="searchEmp" class="search-bar" placeholder="Search to edit/delete...">
+        <div id="empList"></div>
+        <button class="load-more" onclick="app.loadEmployees('manage')">Load More Employees</button>
+    </div>
+
+    <!-- View: Reports -->
+    <div id="view-report" class="view-section">
+        <input type="month" id="reportMonth" class="search-bar" style="width: auto; margin-bottom: 20px;">
+        <div class="table-container">
+            <table id="reportTable">
+                <thead><tr id="reportHead"></tr></thead>
+                <tbody id="reportBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- View: Admin Lock -->
+    <div id="view-admin-lock" class="view-section">
+        <h2 class="text-center" style="margin-top: 50px;">Enter Admin PIN</h2>
+        <div class="pin-dots">
+            <div class="pin-dot" id="dot1"></div>
+            <div class="pin-dot" id="dot2"></div>
+            <div class="pin-dot" id="dot3"></div>
+            <div class="pin-dot" id="dot4"></div>
+        </div>
+        <div class="numpad">
+            <div class="num-btn" onclick="app.pin('1')">1</div>
+            <div class="num-btn" onclick="app.pin('2')">2</div>
+            <div class="num-btn" onclick="app.pin('3')">3</div>
+            <div class="num-btn" onclick="app.pin('4')">4</div>
+            <div class="num-btn" onclick="app.pin('5')">5</div>
+            <div class="num-btn" onclick="app.pin('6')">6</div>
+            <div class="num-btn" onclick="app.pin('7')">7</div>
+            <div class="num-btn" onclick="app.pin('8')">8</div>
+            <div class="num-btn" onclick="app.pin('9')">9</div>
+            <div></div>
+            <div class="num-btn" onclick="app.pin('0')">0</div>
+            <div class="num-btn" onclick="app.pin('back')" style="background: rgba(239, 68, 68, 0.1); color: var(--meena-red);">
+                <svg class="material-symbols-outlined" width="24" height="24" viewBox="0 -960 960 960" fill="currentColor"><path d="M360-200q-20 0-37.5-9T294-234L120-480l174-246q11-16 28.5-25t37.5-9h400q33 0 56.5 23.5T840-680v400q0 33-23.5 56.5T760-200H360Zm400-80v-400H360L218-480l142 200h400Zm-96-40L536-448l-128 128-56-56 128-128-128-128 56-56 128 128 128-128 56 56-128 128 128 128-56 56ZM360-280v-400 400Z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Admin Dashboard -->
+    <div id="view-admin" class="view-section">
+        <div class="emp-card text-center" style="margin-top: 20px;">
+            <svg class="material-symbols-outlined" style="font-size: 48px; color: var(--text-secondary); margin: 0 auto;" viewBox="0 -960 960 960" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-520H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-640v520-520Z"/></svg>
+            <h2 style="margin: 10px 0;">Garbage Collection</h2>
+            <p id="garbageText" style="color: var(--text-secondary); font-size: 0.9em;">Calculating old documents...</p>
+            <button id="btnGarbage" class="modal-btn btn-danger hidden" onclick="app.clearGarbage()" style="margin-top: 20px;">Delete Old Records</button>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmation -->
+    <div id="modal-confirm" class="overlay">
+        <div class="modal-card">
+            <h3 id="confirmTitle">Confirm</h3>
+            <p id="confirmMsg" style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px;">Are you sure?</p>
+            <div class="modal-actions">
+                <button class="modal-btn btn-cancel" onclick="history.back()">Cancel</button>
+                <button class="modal-btn btn-danger" id="confirmActionBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Employee -->
+    <div id="modal-employee" class="overlay">
+        <div class="modal-card">
+            <h3 id="empFormTitle">New Employee</h3>
+            <input type="hidden" id="empId">
+            <input type="text" id="empName" placeholder="Full Name" required>
+            <input type="text" id="empRole" placeholder="Role (e.g., Sales)" required>
+            <input type="number" id="empWage" placeholder="Daily Wage (₹)" required>
+            <div class="modal-actions">
+                <button class="modal-btn btn-cancel" onclick="history.back()">Cancel</button>
+                <button class="modal-btn btn-confirm" onclick="app.saveEmployee()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, query, where, orderBy, limit, startAfter, getDocs, deleteDoc, writeBatch, FieldPath } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+        // IMPORTANT: Replace with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const fApp = initializeApp(firebaseConfig);
+        const db = getFirestore(fApp);
+
+        const app = {
+            view: 'home',
+            cursors: { home: null, manage: null },
+            searchTimers: { home: null, manage: null },
+            currentPin: '',
+            garbageDocs: [],
+
+            // --- Time Utilities (Strict IST) ---
+            getISTDateObj() {
+                const now = new Date();
+                const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+                return new Date(istString);
+            },
+            getISTDateString() {
+                const d = this.getISTDateObj();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            },
+            getISTMonthString(dateObj = this.getISTDateObj()) {
+                return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            },
+
+            // --- Routing & Modals ---
+            navigate(viewId, push = true) {
+                document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+                
+                // Reset header
+                document.getElementById('backBtn').classList.remove('hidden');
+                document.getElementById('btnAdmin').classList.add('hidden');
+                document.getElementById('btnReport').classList.add('hidden');
+                document.getElementById('btnEmployees').classList.add('hidden');
+                document.getElementById('btnAddEmp').classList.add('hidden');
+
+                if (viewId === 'home') {
+                    document.getElementById('view-home').classList.add('active');
+                    document.getElementById('headerTitle').innerText = 'Attendance';
+                    document.getElementById('backBtn').classList.add('hidden');
+                    document.getElementById('btnAdmin').classList.remove('hidden');
+                    document.getElementById('btnReport').classList.remove('hidden');
+                    document.getElementById('btnEmployees').classList.remove('hidden');
+                    if(this.cursors.home === null) this.loadEmployees('home');
+                } else if (viewId === 'employees') {
+                    document.getElementById('view-employees').classList.add('active');
+                    document.getElementById('headerTitle').innerText = 'Manage Staff';
+                    document.getElementById('btnAddEmp').classList.remove('hidden');
+                    if(this.cursors.manage === null) this.loadEmployees('manage');
+                } else if (viewId === 'report') {
+                    document.getElementById('view-report').classList.add('active');
+                    document.getElementById('headerTitle').innerText = 'Reports';
+                    this.loadReport();
+                } else if (viewId === 'admin-lock') {
+                    document.getElementById('view-admin-lock').classList.add('active');
+                    document.getElementById('headerTitle').innerText = 'Admin Access';
+                    this.currentPin = '';
+                    this.updatePinUI();
+                } else if (viewId === 'admin') {
+                    document.getElementById('view-admin').classList.add('active');
+                    document.getElementById('headerTitle').innerText = 'Admin Dashboard';
+                    this.checkGarbage();
+                }
+
+                if (push) history.pushState({ view: viewId }, '', `#${viewId}`);
+                this.view = viewId;
+            },
+
+            openModal(modalId) {
+                history.pushState({ modal: modalId }, '', `#${modalId}`);
+                document.getElementById(modalId).classList.add('active');
+            },
+            closeModals() {
+                document.querySelectorAll('.overlay').forEach(m => m.classList.remove('active'));
+            },
+
+            confirm(title, msg, onConfirm) {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMsg').innerText = msg;
+                const btn = document.getElementById('confirmActionBtn');
+                btn.onclick = () => { onConfirm(); history.back(); };
+                this.openModal('modal-confirm');
+            },
+
+            // --- Employee Management ---
+            async loadEmployees(context, reset = false, searchTerm = "") {
+                const listEl = document.getElementById(context === 'home' ? 'homeList' : 'empList');
+                if (reset) { listEl.innerHTML = ''; this.cursors[context] = null; }
+
+                let qArgs = [collection(db, "employees"), orderBy("name"), limit(10)];
+                
+                // Prefix Search
+                if (searchTerm.length > 0) {
+                    const end = searchTerm.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
+                    qArgs = [collection(db, "employees"), where("name", ">=", searchTerm), where("name", "<", end), limit(10)];
+                } else if (this.cursors[context]) {
+                    qArgs.push(startAfter(this.cursors[context]));
+                }
+
+                try {
+                    const snap = await getDocs(query(...qArgs));
+                    if(snap.empty && !reset) return; // No more
+                    
+                    if(snap.docs.length > 0) this.cursors[context] = snap.docs[snap.docs.length - 1];
+
+                    // For Home view, fetch today's attendance status to highlight buttons
+                    let currentAtt = {};
+                    if(context === 'home') {
+                        const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
+                        if(monthDoc.exists()) currentAtt = monthDoc.data().records || {};
+                    }
+                    const today = this.getISTDateString();
+
+                    snap.docs.forEach(d => {
+                        const data = d.data();
+                        const id = d.id;
+                        let html = '';
+
+                        if(context === 'home') {
+                            const status = currentAtt[id] ? currentAtt[id][today] : null;
+                            html = `
+                                <div class="emp-card" id="card-${id}">
+                                    <div class="card-header">
+                                        <div><div class="emp-name">${data.name}</div><div class="emp-role">${data.role}</div></div>
+                                        <div class="emp-wage">₹${data.wage}</div>
+                                    </div>
+                                    <div class="att-btn-group">
+                                        <button class="att-btn present ${status==='present'?'active':''}" onclick="app.mark('${id}', 'present', ${data.wage})">Present</button>
+                                        <button class="att-btn half ${status==='half'?'active':''}" onclick="app.mark('${id}', 'half', ${data.wage})">Half Day</button>
+                                        <button class="att-btn absent ${status==='absent'?'active':''}" onclick="app.mark('${id}', 'absent', ${data.wage})">Absent</button>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html = `
+                                <div class="emp-card">
+                                    <div class="card-header">
+                                        <div><div class="emp-name">${data.name}</div><div class="emp-role">${data.role}</div></div>
+                                        <div class="emp-wage">₹${data.wage}</div>
+                                    </div>
+                                    <div class="att-btn-group">
+                                        <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${data.name}', '${data.role}', ${data.wage})">Edit</button>
+                                        <button class="att-btn absent" onclick="app.delEmp('${id}')">Delete</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        listEl.insertAdjacentHTML('beforeend', html);
+                    });
+                } catch(e) { console.error("Error loading:", e); }
+            },
+
+            // --- Realtime Attendance Writes ---
+            async mark(empId, status, wage) {
+                // UI Instant Update
+                const btns = document.querySelectorAll(`#card-${empId} .att-btn`);
+                btns.forEach(b => b.classList.remove('active'));
+                document.querySelector(`#card-${empId} .att-btn.${status}`).classList.add('active');
+                if(navigator.vibrate) navigator.vibrate(30);
+
+                const month = this.getISTMonthString();
+                const date = this.getISTDateString();
+                const docRef = doc(db, 'attendance', month);
+
+                try {
+                    // Update dot notation
+                    await updateDoc(docRef, { [`records.${empId}.${date}`]: status });
+                } catch(e) {
+                    if (e.code === 'not-found') {
+                        // Create document if month just started
+                        await setDoc(docRef, { records: { [empId]: { [date]: status } } });
+                    }
+                }
+            },
+
+            // --- Employee Form Actions ---
+            openEmpForm() {
+                document.getElementById('empId').value = '';
+                document.getElementById('empName').value = '';
+                document.getElementById('empRole').value = '';
+                document.getElementById('empWage').value = '';
+                document.getElementById('empFormTitle').innerText = 'New Employee';
+                this.openModal('modal-employee');
+            },
+            editEmp(id, name, role, wage) {
+                document.getElementById('empId').value = id;
+                document.getElementById('empName').value = name;
+                document.getElementById('empRole').value = role;
+                document.getElementById('empWage').value = wage;
+                document.getElementById('empFormTitle').innerText = 'Edit Employee';
+                this.openModal('modal-employee');
+            },
+            async saveEmployee() {
+                const id = document.getElementById('empId').value;
+                const name = document.getElementById('empName').value.trim();
+                const role = document.getElementById('empRole').value.trim();
+                const wage = Number(document.getElementById('empWage').value);
+                if(!name || !role || !wage) return;
+
+                const data = { name, role, wage, nameLower: name.toLowerCase() };
+                try {
+                    if(id) {
+                        await updateDoc(doc(db, "employees", id), data);
+                    } else {
+                        data.createdAt = new Date();
+                        await setDoc(doc(collection(db, "employees")), data);
+                    }
+                    history.back(); // close modal
+                    this.loadEmployees('manage', true); // reload list
+                } catch(e) { console.error(e); }
+            },
+            delEmp(id) {
+                this.confirm("Delete Employee", "This removes them from the active roster.", async () => {
+                    await deleteDoc(doc(db, "employees", id));
+                    this.loadEmployees('manage', true);
+                });
+            },
+
+            // --- Report Logic ---
+            async loadReport() {
+                const input = document.getElementById('reportMonth');
+                if(!input.value) input.value = this.getISTMonthString();
+                const targetMonth = input.value;
+                
+                const thead = document.getElementById('reportHead');
+                const tbody = document.getElementById('reportBody');
+                thead.innerHTML = '<th class="sticky-col">Employee</th>';
+                tbody.innerHTML = '<tr><td colspan="35">Loading...</td></tr>';
+
+                // Determine days in month
+                const [yyyy, mm] = targetMonth.split('-');
+                const daysInMonth = new Date(yyyy, mm, 0).getDate();
+                
+                for(let i=1; i<=daysInMonth; i++) {
+                    thead.innerHTML += `<th>${i}</th>`;
+                }
+                thead.innerHTML += '<th>Present</th><th>Half</th><th>Absent</th><th>Total Wage</th>';
+
+                try {
+                    // Fetch all employees (required for full report, cost: N reads where N = staff count)
+                    const empSnap = await getDocs(query(collection(db, "employees"), orderBy("name")));
+                    // Fetch 1 month document
+                    const attSnap = await getDoc(doc(db, 'attendance', targetMonth));
+                    const records = attSnap.exists() ? (attSnap.data().records || {}) : {};
+
+                    tbody.innerHTML = '';
+                    if(empSnap.empty) {
+                        tbody.innerHTML = '<tr><td colspan="35">No employees found.</td></tr>';
+                        return;
+                    }
+
+                    empSnap.forEach(eDoc => {
+                        const emp = eDoc.data();
+                        const empId = eDoc.id;
+                        const empRec = records[empId] || {};
+                        
+                        let row = `<tr><td class="sticky-col"><div><b>${emp.name}</b></div><div style="font-size:0.8em;color:var(--text-secondary)">₹${emp.wage}/d</div></td>`;
+                        
+                        let p = 0, h = 0, a = 0;
+                        for(let i=1; i<=daysInMonth; i++) {
+                            const dateStr = `${targetMonth}-${String(i).padStart(2, '0')}`;
+                            const status = empRec[dateStr];
+                            if(status === 'present') { p++; row += `<td><span class="dot P"></span></td>`; }
+                            else if(status === 'half') { h++; row += `<td><span class="dot H"></span></td>`; }
+                            else if(status === 'absent') { a++; row += `<td><span class="dot A"></span></td>`; }
+                            else { row += `<td>-</td>`; }
+                        }
+
+                        const total = (p * emp.wage) + (h * (emp.wage / 2));
+                        row += `
+                            <td>${p}</td><td>${h}</td><td>${a}</td>
+                            <td class="total-wage">₹${total.toLocaleString()}</td>
+                        </tr>`;
+                        tbody.insertAdjacentHTML('beforeend', row);
+                    });
+                } catch(e) { console.error(e); }
+            },
+
+            // --- Admin & Garbage Collection ---
+            pin(val) {
+                if(val === 'back') {
+                    this.currentPin = this.currentPin.slice(0, -1);
+                } else if(this.currentPin.length < 4) {
+                    this.currentPin += val;
+                }
+                this.updatePinUI();
+                
+                if(this.currentPin.length === 4) {
+                    if(this.currentPin === '2502') {
+                        setTimeout(() => this.navigate('admin'), 200);
+                    } else {
+                        // Shake effect
+                        const dots = document.querySelector('.pin-dots');
+                        dots.style.transform = 'translateX(10px)';
+                        setTimeout(() => dots.style.transform = 'translateX(-10px)', 50);
+                        setTimeout(() => dots.style.transform = 'translateX(10px)', 100);
+                        setTimeout(() => { dots.style.transform = 'translateX(0)'; this.currentPin = ''; this.updatePinUI(); }, 150);
+                        if(navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                    }
+                }
+            },
+            updatePinUI() {
+                for(let i=1; i<=4; i++) {
+                    const dot = document.getElementById(`dot${i}`);
+                    if(i <= this.currentPin.length) dot.classList.add('filled');
+                    else dot.classList.remove('filled');
+                }
+            },
+            async checkGarbage() {
+                // Find cutoff month (2 months ago)
+                const d = this.getISTDateObj();
+                d.setMonth(d.getMonth() - 2);
+                const cutoff = this.getISTMonthString(d); 
+
+                try {
+                    const q = query(collection(db, 'attendance'), where(FieldPath.documentId(), '<', cutoff));
+                    const snap = await getDocs(q);
+                    this.garbageDocs = snap.docs;
+                    
+                    const text = document.getElementById('garbageText');
+                    const btn = document.getElementById('btnGarbage');
+                    
+                    if(this.garbageDocs.length > 0) {
+                        text.innerHTML = `Found <b style="color:white">${this.garbageDocs.length}</b> old attendance record(s) from before ${cutoff}.`;
+                        btn.classList.remove('hidden');
+                    } else {
+                        text.innerHTML = `System is clean. No garbage data found before ${cutoff}.`;
+                        btn.classList.add('hidden');
+                    }
+                } catch(e) { console.error(e); }
+            },
+            clearGarbage() {
+                this.confirm("Clear Garbage", `Delete ${this.garbageDocs.length} old monthly records permanently?`, async () => {
+                    const batch = writeBatch(db);
+                    this.garbageDocs.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                    this.checkGarbage();
+                });
+            }
+        };
+        window.app = app;
+
+        // Search Handlers (with debounce to prevent rapid queries)
+        document.getElementById('searchHome').addEventListener('input', (e) => {
+            clearTimeout(app.searchTimers.home);
+            app.searchTimers.home = setTimeout(() => {
+                const val = e.target.value.trim();
+                app.loadEmployees('home', true, val.length > 0 ? val.charAt(0).toUpperCase() + val.slice(1) : "");
+            }, 500);
+        });
+        document.getElementById('searchEmp').addEventListener('input', (e) => {
+            clearTimeout(app.searchTimers.manage);
+            app.searchTimers.manage = setTimeout(() => {
+                const val = e.target.value.trim();
+                app.loadEmployees('manage', true, val.length > 0 ? val.charAt(0).toUpperCase() + val.slice(1) : "");
+            }, 500);
+        });
+        document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
+
+        // Back Button & Hardware Back Logic
+        window.addEventListener('popstate', (e) => {
+            app.closeModals(); // Always try closing modals first
+            const state = e.state;
+            if (state && state.view) {
+                app.navigate(state.view, false);
+            } else if (!state || !state.modal) {
+                app.navigate('home', false);
+            }
+        });
+
+        // Initialize App
+        history.replaceState({ view: 'home' }, '', '#home');
+        app.navigate('home', false);
+
+    </script>
+</body>
+</html>
