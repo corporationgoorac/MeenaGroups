@@ -477,6 +477,7 @@
             async loadEmployees(context, reset = false, searchTerm = "") {
                 const listIds = { home: 'homeList', manage: 'empList', adv: 'advList' };
                 const btnIds = { home: 'loadMoreHome', manage: 'loadMoreEmp', adv: 'loadMoreAdv' };
+                const searchInputIds = { home: 'searchHome', manage: 'searchEmp', adv: 'searchAdv' };
                 
                 const listEl = document.getElementById(listIds[context]);
                 const loadBtn = document.getElementById(btnIds[context]);
@@ -500,13 +501,21 @@
                     loadBtn.classList.add('hidden');
                 }
 
+                // FIX: Fallback to the active search value from DOM if pagination trigger occurs
+                const activeSearch = (searchTerm !== undefined && searchTerm !== null && searchTerm !== "") 
+                    ? searchTerm 
+                    : (document.getElementById(searchInputIds[context])?.value.trim() || "");
+
                 let qArgs = [collection(db, "employees"), orderBy("nameLower"), limit(10)];
                 
-                if (searchTerm.length > 0) {
-                    const searchLower = searchTerm.toLowerCase();
+                if (activeSearch.length > 0) {
+                    const searchLower = activeSearch.toLowerCase();
                     const end = searchLower.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
-                    qArgs = [collection(db, "employees"), where("nameLower", ">=", searchLower), where("nameLower", "<", end), limit(10)];
-                } else if (this.cursors[context]) {
+                    qArgs = [collection(db, "employees"), where("nameLower", ">=", searchLower), where("nameLower", "<", end), orderBy("nameLower"), limit(10)];
+                } 
+                
+                // Keep Pagination Intact specifically when Load More is clicked
+                if (!reset && this.cursors[context]) {
                     qArgs.push(startAfter(this.cursors[context]));
                 }
 
@@ -1054,19 +1063,19 @@
             clearTimeout(app.searchTimers.home);
             app.searchTimers.home = setTimeout(() => {
                 app.loadEmployees('home', true, e.target.value.trim());
-            }, 500);
+            }, 400);
         });
         document.getElementById('searchEmp').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.manage);
             app.searchTimers.manage = setTimeout(() => {
                 app.loadEmployees('manage', true, e.target.value.trim());
-            }, 500);
+            }, 400);
         });
         document.getElementById('searchAdv').addEventListener('input', (e) => {
             clearTimeout(app.searchTimers.adv);
             app.searchTimers.adv = setTimeout(() => {
                 app.loadEmployees('adv', true, e.target.value.trim());
-            }, 500);
+            }, 400);
         });
         document.getElementById('reportMonth').addEventListener('change', () => app.loadReport());
 
