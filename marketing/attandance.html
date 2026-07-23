@@ -228,7 +228,7 @@
         </div>
     </div>
 
-    <!-- Modal: Advanced Report (Image Export) -->
+    <!-- Modal: Advanced Report (Image & CSV Export) -->
     <div id="modal-adv-report" class="overlay">
         <div class="modal-card" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; padding: 20px;">
             <h3 style="margin-bottom: 20px;">Advanced Export</h3>
@@ -244,7 +244,10 @@
                 </div>
             </div>
             
-            <button class="modal-btn btn-confirm" onclick="app.downloadAdvReport(event, 'ALL')" style="margin-bottom: 15px; padding: 14px;">Download All Data (Image)</button>
+            <div style="display:flex; gap: 10px; margin-bottom: 15px;">
+                <button class="modal-btn btn-confirm" onclick="app.downloadAdvReport(event, 'ALL', null, null, 'img')" style="flex: 1; padding: 14px;">Image Report</button>
+                <button class="modal-btn" onclick="app.downloadAdvReport(event, 'ALL', null, null, 'csv')" style="flex: 1; padding: 14px; background: #0ea5e9; color: white; border: none;">CSV Data</button>
+            </div>
             
             <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; margin-bottom: 15px;">
             
@@ -429,10 +432,8 @@
                 try {
                     const snap = await getDocs(query(...qArgs));
                     
-                    // If we are NOT in home view, we don't need attendance data. So clear skeletons now.
                     if (reset && context !== 'home') listEl.innerHTML = '';
                     
-                    // If no data found
                     if (snap.empty && reset) {
                         listEl.innerHTML = '<div class="loading-text">No employees found.</div>';
                         return;
@@ -447,18 +448,14 @@
                         loadBtn.classList.add('hidden');
                     }
 
-                    // Network call for current month attendance exclusively for the Home page
                     let currentAtt = {};
                     const today = this.getISTDateString();
                     if (context === 'home') {
                         const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
                         if(monthDoc.exists()) currentAtt = monthDoc.data().records || {};
-                        
-                        // All async calls finished for Home page, now we can safely clear the skeletons
                         if (reset) listEl.innerHTML = '';
                     }
 
-                    // Render Cards perfectly without delay
                     snap.docs.forEach(d => {
                         const data = d.data();
                         const id = d.id;
@@ -499,7 +496,10 @@
                                         <div><div class="emp-name" style="font-size:1em;">${data.name}</div><div class="emp-role" style="font-size:0.7em;">${data.role}</div></div>
                                         <div class="emp-wage" style="font-size:0.8em;">₹${data.wage}</div>
                                     </div>
-                                    <button class="modal-btn btn-confirm" style="padding: 10px; width: 100%; margin-top: 10px;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage})">Download Data</button>
+                                    <div style="display:flex; gap:10px; margin-top: 10px;">
+                                        <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, 'img')">Image</button>
+                                        <button class="modal-btn" style="padding: 8px; flex:1; background: #0ea5e9; color: white; border: none;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, 'csv')">CSV</button>
+                                    </div>
                                 </div>
                             `;
                         }
@@ -657,10 +657,10 @@
                 }
             },
             
-            async downloadAdvReport(event, empId, empName = null, empWage = null) {
+            async downloadAdvReport(event, empId, empName = null, empWage = null, format = 'img') {
                 const btn = event.target;
                 const originalText = btn.innerText;
-                btn.innerText = "Generating Image...";
+                btn.innerText = format === 'csv' ? "Generating CSV..." : "Generating Image...";
                 btn.disabled = true;
 
                 try {
@@ -675,7 +675,6 @@
                     const monthsToFetch = this.getMonthsBetween(fromStr, toStr);
                     const attData = {};
                     
-                    // Fetch required attendance docs safely
                     for (let m of monthsToFetch) {
                         const snap = await getDoc(doc(db, 'attendance', m));
                         if(snap.exists()) {
@@ -706,73 +705,175 @@
                         return { ...emp, p, h, a, totalWage };
                     });
 
-                    // Construct Hidden Print Area Theme exactly matched to request
+                    // --- Handle CSV Export ---
+                    if (format === 'csv') {
+                        let csvContent = "\uFEFF"; // BOM for excel utf8
+                        if (empId === 'ALL') {
+                            csvContent += "Employee Name,Role,Daily Wage,Present,Half-Day,Absent,Total Salary\n";
+                            reportRows.forEach(r => {
+                                csvContent += `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage}\n`;
+                            });
+                        } else {
+                            csvContent += `Employee: ${empName}, Wage: Rs. ${empWage}\n\n`;
+                            csvContent += "Date,Status,Earned\n";
+                            const emp = reportRows[0];
+                            exactDates.forEach(date => {
+                                const month = date.substring(0, 7);
+                                const status = attData[month]?.[emp.id]?.[date] || 'Not Marked';
+                                let earned = 0;
+                                if(status === 'present') earned = emp.wage;
+                                else if(status === 'half') earned = emp.wage / 2;
+                                csvContent += `${date},${status},${earned}\n`;
+                            });
+                            csvContent += `\nTotal,,,${emp.totalWage}\n`;
+                        }
+                        
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `MeenaGroups_${empId === 'ALL' ? 'Full_Roster' : empName.replace(/ /g, '_')}_${fromStr}_to_${toStr}.csv`;
+                        link.click();
+                        return; // Done with CSV
+                    }
+
+                    // --- Handle Image Export ---
                     const hiddenDiv = document.createElement('div');
                     hiddenDiv.style.position = 'absolute';
                     hiddenDiv.style.left = '-9999px';
-                    hiddenDiv.style.top = '-9999px';
-                    hiddenDiv.style.width = '800px'; 
-                    hiddenDiv.style.backgroundColor = '#0b111a';
-                    hiddenDiv.style.color = '#ffffff';
+                    hiddenDiv.style.top = '0';
+                    hiddenDiv.style.width = empId === 'ALL' ? '1000px' : '650px'; 
+                    hiddenDiv.style.height = 'max-content'; // Prevents html2canvas cropping
+                    hiddenDiv.style.overflow = 'visible';
+                    hiddenDiv.style.zIndex = '-9999';
+                    hiddenDiv.style.background = 'linear-gradient(145deg, #18191a, #242526)'; // Meta Dark Theme
+                    hiddenDiv.style.color = '#e4e6eb';
                     hiddenDiv.style.fontFamily = 'Inter, sans-serif';
                     hiddenDiv.style.padding = '40px';
                     hiddenDiv.style.borderRadius = '16px';
                     
-                    hiddenDiv.innerHTML = `
+                    let innerContent = `
                         <div style="text-align:center; margin-bottom: 40px;">
                             <h1 style="color:#0d9488; margin:0; font-size:38px; font-weight:800; letter-spacing:-1px;">Meena Groups</h1>
-                            <h2 style="margin:8px 0 0 0; font-size:20px; font-weight:600;">Attendance & Payroll Export</h2>
+                            <h2 style="margin:8px 0 0 0; font-size:20px; font-weight:600;">${empId === 'ALL' ? 'Attendance & Payroll Export' : `Attendance Report: ${empName}`}</h2>
                             <p style="color:#94a3b8; font-size:14px; margin-top:8px;">Period: ${fromStr} to ${toStr}</p>
                         </div>
-                        <table style="width:100%; border-collapse: collapse; text-align:center;">
-                            <thead>
-                                <tr style="border-bottom: 2px solid #334155; color:#94a3b8; font-size:14px; text-transform:uppercase;">
-                                    <th style="padding:15px; text-align:left;">Employee</th>
-                                    <th style="padding:15px;">Present</th>
-                                    <th style="padding:15px;">Half-Day</th>
-                                    <th style="padding:15px;">Absent</th>
-                                    <th style="padding:15px; text-align:right;">Total Salary</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${reportRows.map(r => `
-                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                        <td style="padding:18px 15px; text-align:left;">
-                                            <div style="font-weight:700; font-size:16px;">${r.name}</div>
-                                            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">₹${r.wage} / day</div>
-                                        </td>
-                                        <td style="padding:18px 15px; color:#10b981; font-weight:600; font-size:16px;">${r.p}</td>
-                                        <td style="padding:18px 15px; color:#f59e0b; font-weight:600; font-size:16px;">${r.h}</td>
-                                        <td style="padding:18px 15px; color:#ef4444; font-weight:600; font-size:16px;">${r.a}</td>
-                                        <td style="padding:18px 15px; text-align:right; color:#a855f7; font-weight:800; font-size:18px;">₹${r.totalWage.toLocaleString()}</td>
+                    `;
+
+                    if (empId === 'ALL') {
+                        // Generate Table format
+                        innerContent += `
+                            <table style="width:100%; border-collapse: collapse; text-align:center;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #3a3b3c; color:#a8b3cf; font-size:14px; text-transform:uppercase;">
+                                        <th style="padding:15px; text-align:left;">Employee</th>
+                                        <th style="padding:15px;">Present</th>
+                                        <th style="padding:15px;">Half-Day</th>
+                                        <th style="padding:15px;">Absent</th>
+                                        <th style="padding:15px; text-align:right;">Total Salary</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        <div style="text-align:right; margin-top:30px; font-size:12px; color:#334155; font-weight:600;">
+                                </thead>
+                                <tbody>
+                                    ${reportRows.map(r => `
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding:18px 15px; text-align:left;">
+                                                <div style="font-weight:700; font-size:16px;">${r.name}</div>
+                                                <div style="font-size:12px; color:#a8b3cf; margin-top:4px;">₹${r.wage} / day</div>
+                                            </td>
+                                            <td style="padding:18px 15px; color:#10b981; font-weight:600; font-size:16px;">${r.p}</td>
+                                            <td style="padding:18px 15px; color:#f59e0b; font-weight:600; font-size:16px;">${r.h}</td>
+                                            <td style="padding:18px 15px; color:#ef4444; font-weight:600; font-size:16px;">${r.a}</td>
+                                            <td style="padding:18px 15px; text-align:right; color:#a855f7; font-weight:800; font-size:18px;">₹${r.totalWage.toLocaleString()}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    } else {
+                        // Generate Google Calendar Visual Format
+                        const r = reportRows[0];
+                        innerContent += `
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 30px; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid #3a3b3c;">
+                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Present</div><div style="font-size:24px; font-weight:800; color:#10b981;">${r.p}</div></div>
+                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Half-Day</div><div style="font-size:24px; font-weight:800; color:#f59e0b;">${r.h}</div></div>
+                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Absent</div><div style="font-size:24px; font-weight:800; color:#ef4444;">${r.a}</div></div>
+                                <div style="text-align:center;"><div style="font-size:12px; color:#a8b3cf;">Total Salary</div><div style="font-size:24px; font-weight:800; color:#a855f7;">₹${r.totalWage.toLocaleString()}</div></div>
+                            </div>
+                        `;
+
+                        monthsToFetch.forEach(month => {
+                            const [y, m] = month.split('-');
+                            const dateObj = new Date(parseInt(y), parseInt(m)-1, 1);
+                            const monthName = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                            const startDay = dateObj.getDay();
+                            const daysInMonth = new Date(parseInt(y), parseInt(m), 0).getDate();
+
+                            let grid = `<div style="margin-bottom: 30px;">
+                                <h3 style="text-align: left; margin-bottom: 15px; color: #e4e6eb; font-weight:600; font-size:18px;">${monthName}</h3>
+                                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Sun</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Mon</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Tue</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Wed</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Thu</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Fri</div>
+                                    <div style="font-weight: 600; color: #a8b3cf; padding: 5px; font-size:13px;">Sat</div>
+                            `;
+                            
+                            for(let i=0; i<startDay; i++) { grid += `<div></div>`; }
+                            
+                            for(let d=1; d<=daysInMonth; d++) {
+                                const dateStr = `${y}-${m}-${String(d).padStart(2, '0')}`;
+                                if(exactDates.includes(dateStr)) {
+                                    const status = attData[month]?.[empId]?.[dateStr];
+                                    let bg = '#3a3b3c', col = '#e4e6eb', brd = 'rgba(255,255,255,0.05)';
+                                    if(status === 'present') { bg = 'rgba(16, 185, 129, 0.15)'; col = '#10b981'; brd = 'rgba(16, 185, 129, 0.3)'; }
+                                    else if(status === 'half') { bg = 'rgba(245, 158, 11, 0.15)'; col = '#f59e0b'; brd = 'rgba(245, 158, 11, 0.3)'; }
+                                    else if(status === 'absent') { bg = 'rgba(239, 68, 68, 0.15)'; col = '#ef4444'; brd = 'rgba(239, 68, 68, 0.3)'; }
+
+                                    grid += `<div style="background: ${bg}; color: ${col}; padding: 15px 10px; border-radius: 12px; font-weight: 700; border: 1px solid ${brd}; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                                                <span style="font-size:16px;">${d}</span>
+                                            </div>`;
+                                } else {
+                                    grid += `<div style="color: rgba(255,255,255,0.15); padding: 15px 10px; font-size:16px;">${d}</div>`;
+                                }
+                            }
+                            grid += `</div></div>`;
+                            innerContent += grid;
+                        });
+                    }
+
+                    innerContent += `
+                        <div style="text-align:right; margin-top:30px; font-size:12px; color:#a8b3cf; font-weight:500;">
                             Generated automatically by Meena Groups Hub • ${app.getISTDateString()}
                         </div>
                     `;
+
+                    hiddenDiv.innerHTML = innerContent;
                     document.body.appendChild(hiddenDiv);
 
-                    // Tiny pause for the browser to render the DOM box internally
-                    await new Promise(r => setTimeout(r, 400));
+                    // Pause allows browser to completely render the off-screen layout
+                    await new Promise(r => setTimeout(r, 600));
                     
-                    // Render image natively
-                    const canvas = await html2canvas(hiddenDiv, { backgroundColor: '#0b111a', scale: 2 });
+                    // Render image natively without cutoffs using scrollHeight
+                    const canvas = await html2canvas(hiddenDiv, { 
+                        backgroundColor: '#18191a', 
+                        scale: 2,
+                        windowWidth: hiddenDiv.scrollWidth,
+                        windowHeight: hiddenDiv.scrollHeight
+                    });
                     const imgData = canvas.toDataURL('image/png');
                     
                     const link = document.createElement('a');
-                    link.download = `MeenaGroups_${empId === 'ALL' ? 'Full_Roster' : empName.replace(' ', '_')}_${fromStr}_to_${toStr}.png`;
+                    link.download = `MeenaGroups_${empId === 'ALL' ? 'Full_Roster' : empName.replace(/ /g, '_')}_${fromStr}_to_${toStr}.png`;
                     link.href = imgData;
                     link.click();
 
-                    // Clean up 
                     document.body.removeChild(hiddenDiv);
 
                 } catch(e) {
                     console.error("Export Error:", e);
-                    alert("Failed to generate image report. Check network connection.");
+                    alert("Failed to generate report. Check network connection.");
                 } finally {
                     btn.innerText = originalText;
                     btn.disabled = false;
