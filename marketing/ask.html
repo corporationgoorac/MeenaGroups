@@ -31,14 +31,14 @@
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
         }
 
-        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; scroll-behavior: smooth; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
         
         *, *::before, *::after { box-sizing: border-box; }
         .no-select { user-select: none; -webkit-user-select: none; }
 
         /* Header */
-        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 16px 20px; display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        header { background-color: var(--nav-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 16px 20px; display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
         .back-btn { background: none; border: none; color: white; cursor: pointer; display: flex; padding: 8px; border-radius: 50%; transition: background 0.2s; margin-left: -8px;}
         .back-btn:hover { background: rgba(255,255,255,0.1); }
         header h1 { margin: 0; margin-right: auto; font-size: 1.25em; font-weight: 600; letter-spacing: -0.01em; }
@@ -52,11 +52,16 @@
         header .action-btn:not(:last-child) { margin-right: 0; margin-left: 0; }
         header .action-btn:last-child { margin-left: 0; margin-right: -8px; }
 
-        /* Main Container */
-        .container { padding: 25px 20px; max-width: 600px; margin: 0 auto; width: 100%; }
+        /* Main Container with Entrance Animation */
+        .container { padding: 25px 20px; max-width: 600px; margin: 0 auto; width: 100%; animation: fadeInSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; transform: translateY(15px); }
 
-        /* Sleek Card */
-        .ask-card { background: var(--surface-color); border: 1px solid var(--input-border); border-radius: 20px; padding: 25px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        @keyframes fadeInSlideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sleek Card - Enhanced with subtle gradient and better shadows */
+        .ask-card { background: linear-gradient(145deg, var(--surface-color), #16202d); border: 1px solid var(--input-border); border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 25px; box-shadow: var(--shadow-lg), 0 20px 40px rgba(0,0,0,0.3); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; width: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .ask-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg), 0 25px 50px rgba(0,0,0,0.4); }
         
         /* Top Row: Name, Model, Qty */
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; flex-wrap: nowrap; }
@@ -67,7 +72,7 @@
         .prod-model { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px solid rgba(13, 148, 136, 0.2); letter-spacing: 0.5px; max-width: 100%; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
         
         /* Capped width on qty so it doesn't squish the name out of existence */
-        .prod-qty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 14px; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; max-width: 35%; min-width: 70px; overflow: hidden;}
+        .prod-qty { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 12px 18px; border-radius: 14px; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; max-width: 35%; min-width: 70px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);}
         .qty-lbl { font-size: 0.65em; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
         .qty-val { font-size: clamp(1em, 5vw, 1.4em); font-weight: 800; color: white; word-break: break-word; overflow-wrap: break-word; }
 
@@ -83,7 +88,7 @@
         .my-rate-container { text-align: center; padding-top: 10px; width: 100%; overflow: hidden; }
         .my-rate-lbl { font-size: 0.85em; color: #a855f7; text-transform: uppercase; font-weight: 700; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         /* Dynamic Clamp fixes the cut-off zero issue: it scales from 2.5em to 4.5em based on screen size, and word-breaks if absolutely necessary */
-        .my-rate-val { font-size: clamp(2.5em, 12vw, 4.5em); font-weight: 800; background: linear-gradient(135deg, #a855f7, #d946ef); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; filter: drop-shadow(0 10px 20px rgba(168, 85, 247, 0.4)); letter-spacing: -2px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+        .my-rate-val { font-size: clamp(2.5em, 12vw, 4.5em); font-weight: 800; background: linear-gradient(135deg, #a855f7, #e879f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; filter: drop-shadow(0 10px 20px rgba(168, 85, 247, 0.4)); letter-spacing: -2px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
 
         /* Timestamp Footer */
         .time-footer { text-align: center; font-size: 0.75em; color: var(--text-secondary); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 500;}
@@ -93,17 +98,23 @@
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
         /* Expired / Empty State */
-        .empty-state { display: none; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px; background: var(--surface-color); border: 1px dashed var(--input-border); border-radius: 20px; margin-top: 20px; }
+        .empty-state { display: none; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px; background: linear-gradient(145deg, var(--surface-color), #16202d); border: 1px dashed var(--input-border); border-radius: 20px; margin-top: 20px; box-shadow: var(--shadow-md); }
         .empty-state .material-symbols-outlined { font-size: 4em; color: var(--text-secondary); opacity: 0.5; margin-bottom: 15px; }
         .empty-state h3 { margin: 0 0 10px 0; color: white; font-weight: 600; }
         .empty-state p { margin: 0; color: var(--text-secondary); font-size: 0.9em; line-height: 1.5; }
 
-        /* Floating Attendance Button */
+        /* Floating Attendance Button - Redesigned to signify "Attendance" */
+        @keyframes pulse-soft {
+            0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4), 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4), 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4), 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
         .fab-attendance {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: linear-gradient(135deg, var(--accent-color), #0f766e);
+            background: linear-gradient(135deg, var(--success-color), #047857);
             color: white;
             width: 60px;
             height: 60px;
@@ -111,17 +122,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.4);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
             cursor: pointer;
             z-index: 1000;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             -webkit-tap-highlight-color: transparent;
+            animation: pulse-soft 2.5s infinite;
         }
         .fab-attendance:hover {
             transform: translateY(-4px) scale(1.05);
-            box-shadow: 0 8px 20px rgba(13, 148, 136, 0.6);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+            animation: none; /* Stops pulse on hover for cleaner interaction */
         }
         .fab-attendance:active {
             transform: translateY(0) scale(0.95);
@@ -228,10 +241,10 @@
 
     </div>
 
-    <!-- Floating Attendance Button -->
+    <!-- Floating Attendance Button - Redesigned Icon & Color -->
     <a href="attandance.html" class="fab-attendance" onclick="if(navigator.vibrate) navigator.vibrate(30);" title="Attendance">
         <svg class="material-symbols-outlined" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
-            <path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm224-64 212-212-56-56-156 156-84-84-56 56 140 140Z"/>
+            <path d="M684-136 492-328l56-56 136 136 292-292 56 56-348 348ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q32 0 63 3.5t61 10.5l-44 63q-39-11-79-17h-41v112H160Zm160-400q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Z"/>
         </svg>
     </a>
 
