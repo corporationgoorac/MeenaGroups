@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Meena LogBook - Reports</title>
+  
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#121212">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
+  
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Chart.js for High-Performance Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* === PREMIUM AUTO DARK / LIGHT THEME (DARK GRAY VIBE) === */
+    :root {
+      --bg-color: #121212;
+      --text-main: #F5F5F7;
+      --text-muted: #A1A1A6;
+      --card-bg: #1E1E1E;
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --cash-color: #2ba640;
+      --online-color: #3ea6ff;
+      --split-color: #f29900;
+      --pending-color: #fbbf24;
+      --border: #38383A;
+      --input-bg: #2C2C2E;
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+      --card-radius: 16px;
+      --skeleton-base: #2C2C2E;
+      --skeleton-highlight: #38383A;
+      --header-bg: rgba(18, 18, 18, 0.85);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --text-main: #F5F5F7;
+        --text-muted: #A1A1A6;
+        --card-bg: #1E1E1E;
+        --primary: #10b981;
+        --primary-dark: #059669;
+        --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --cash-color: #2ba640;
+        --online-color: #3ea6ff;
+        --split-color: #f29900;
+        --pending-color: #fbbf24;
+        --border: #38383A;
+        --input-bg: #2C2C2E;
+        --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+        --skeleton-base: #2C2C2E;
+        --skeleton-highlight: #38383A;
+        --header-bg: rgba(18, 18, 18, 0.85);
+      }
+    }
+
+    *::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+
+    html, body { overscroll-behavior-y: none; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      padding-bottom: 90px;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 100vh;
+      overflow-x: hidden;
+      user-select: none; 
+    }
+
+    /* === HEADER === */
+    header {
+      background-color: var(--header-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 20px;
+      padding-top: env(safe-area-inset-top, 20px);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 16px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .back-btn:active { transform: scale(0.85); }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* === SKELETON LOADING === */
+    .skeleton {
+      background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skeleton-text { height: 32px; width: 80%; margin: 0 auto; }
+    .skeleton-chart { height: 250px; width: 100%; border-radius: 16px; }
+
+    /* === SUMMARY CARDS === */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .summary-card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      padding: 24px 16px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .summary-card.full-width {
+      grid-column: span 2;
+    }
+
+    .summary-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .sc-total::after { background: var(--primary-gradient); }
+    .sc-cash::after { background: var(--cash-color); }
+    .sc-online::after { background: var(--online-color); }
+    .sc-pending::after { background: var(--pending-color); }
+
+    .summary-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .summary-value {
+      font-size: clamp(24px, 6vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      word-break: break-all;
+    }
+
+    .text-cash { color: var(--cash-color); }
+    .text-online { color: var(--online-color); }
+    .text-total { color: var(--primary); }
+    .text-pending { color: var(--pending-color); }
+
+    /* === CHART CARDS === */
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    
+    .chart-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .canvas-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+    }
+
+    /* === MODALS === */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+      z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .mini-modal {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: var(--card-bg); border-radius: 20px; padding: 28px;
+      width: 85%; max-width: 380px; z-index: 60; opacity: 0; pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .mini-modal.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+
+    .btn-action {
+      width: 100%; padding: 16px; background: var(--primary-gradient);
+      color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800;
+      cursor: pointer; margin-top: 20px; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+    }
+    .btn-action:active { transform: scale(0.97); }
+
+    /* PC Adjustments */
+    @media (min-width: 769px) {
+      .container { max-width: 1200px; padding: 40px 24px; }
+      .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+      .chart-card { margin-bottom: 0; }
+      .summary-grid { grid-template-columns: repeat(4, 1fr); }
+      .summary-card.full-width { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="back-btn" onclick="window.location.href='index.html'">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    Reports & Analytics
+  </header>
+
+  <div class="container">
+    
+    <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800;">This Month's Overview</h2>
+      <span id="currentMonthLabel" style="color: var(--text-muted); font-weight: 700; font-size: 14px; text-transform: uppercase;"></span>
+    </div>
+
+    <!-- Numbers / Totals -->
+    <div class="summary-grid">
+      <div class="summary-card sc-total full-width">
+        <div class="summary-label">Total Sales</div>
+        <div class="summary-value text-total" id="valTotal"><div class="skeleton skeleton-text"></div></div>
+      </div>
+      <div class="summary-card sc-cash">
+        <div class="summary-label">Cash Total</div>
+        <div class="summary-value text-cash" id="valCash"><div class="skeleton skeleton-text"></div></div>
+      </div>
+      <div class="summary-card sc-online">
+        <div class="summary-label">Online Total</div>
+        <div class="summary-value text-online" id="valOnline"><div class="skeleton skeleton-text"></div></div>
+      </div>
+      <div class="summary-card sc-pending full-width">
+        <div class="summary-label">Pending Dues</div>
+        <div class="summary-value text-pending" id="valPending"><div class="skeleton skeleton-text"></div></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <!-- 30 Days Line Chart -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Daily Trends 
+          <span class="chart-subtitle">Last 30 Days</span>
+        </div>
+        <div class="canvas-container" id="box30Days">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+      </div>
+
+      <!-- 6 Months Bar Chart -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Monthly Revenue 
+          <span class="chart-subtitle">Last 6 Months</span>
+        </div>
+        <div class="canvas-container" id="box6Months">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+      </div>
+
+      <!-- This Week vs Last Week -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Weekly Comparison 
+          <span class="chart-subtitle">Current vs Previous</span>
+        </div>
+        <div class="canvas-container" id="boxWeekVsWeek">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+      </div>
+
+      <!-- This Month vs Last Month -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Monthly Comparison 
+          <span class="chart-subtitle">Current vs Previous</span>
+        </div>
+        <div class="canvas-container" id="boxMonthVsMonth">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Missing Index Auto-Detector Modal -->
+  <div class="modal-overlay" id="indexModalOverlay"></div>
+  <div class="mini-modal" id="indexModal">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f29900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    <h3 style="margin-top: 0; font-size: 22px; font-weight: 800; margin-bottom: 12px;">Database Index Required</h3>
+    <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">
+      Firebase requires a composite index to calculate these aggregated reports securely. Click below to auto-build it.
+    </p>
+    <button class="btn-action" id="buildIndexBtn">Open Firebase URL</button>
+    <button onclick="closeIndexModal()" style="background: none; border: none; color: var(--text-muted); margin-top: 16px; font-weight: 600; cursor: pointer; font-size: 14px;">Dismiss</button>
+  </div>
+
+  <script type="module">
+    // === FIREBASE SETUP ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getAggregateFromServer, sum, getDoc, doc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
+      authDomain: "meena-logbook.firebaseapp.com",
+      projectId: "meena-logbook",
+      storageBucket: "meena-logbook.firebasestorage.app",
+      messagingSenderId: "466637891440",
+      appId: "1:466637891440:web:0d74df16182c6c665491b5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const transactionsRef = collection(db, "daily_transactions");
+
+    // Authenticate First
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+      } else {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && (userDoc.data().admin || userDoc.data().staffs)) {
+          loadAllReports();
+        } else {
+          window.location.href = 'index.html';
+        }
+      }
+    });
+
+    // === UTILITIES ===
+    const formatCurrency = (amt) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amt || 0);
+    const getFormattedDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
+    // Chart.js Global Defaults for Premium Dark Theme
+    Chart.defaults.color = '#A1A1A6';
+    Chart.defaults.font.family = "'Segoe UI', Roboto, system-ui, sans-serif";
+    Chart.defaults.font.weight = '600';
+    Chart.defaults.scale.grid.color = '#2C2C2E';
+    Chart.defaults.scale.grid.borderColor = 'transparent';
+
+    // === INDEX ERROR HANDLER (AUTO-DETECTOR) ===
+    let extractedIndexUrl = "";
+    const indexModal = document.getElementById('indexModal');
+    const indexModalOverlay = document.getElementById('indexModalOverlay');
+    const buildIndexBtn = document.getElementById('buildIndexBtn');
+
+    function handleFirebaseError(err) {
+      if (err.code === 'failed-precondition' && err.message.includes('index')) {
+        const urlMatch = err.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/);
+        if (urlMatch && urlMatch[1]) {
+          extractedIndexUrl = urlMatch[1];
+          indexModal.classList.add('open');
+          indexModalOverlay.classList.add('open');
+        } else {
+          console.error("Index required but couldn't parse URL:", err);
+        }
+      } else {
+        console.error("Firebase Error:", err);
+      }
+    }
+
+    buildIndexBtn.addEventListener('click', () => {
+      if(extractedIndexUrl) window.open(extractedIndexUrl, '_blank');
+      closeIndexModal();
+    });
+
+    window.closeIndexModal = () => {
+      indexModal.classList.remove('open');
+      indexModalOverlay.classList.remove('open');
+    }
+
+    // === SERVER-SIDE AGGREGATION LOGIC (SAVES READS) ===
+    // This fetches totals directly from Firebase servers using ONLY 1 read per query!
+    async function getAggregatedTotals(startDate, endDate) {
+      try {
+        const q = query(transactionsRef, where("dateString", ">=", startDate), where("dateString", "<=", endDate));
+        const snapshot = await getAggregateFromServer(q, {
+          total: sum('totalAmount'),
+          cash: sum('cashAmount'),
+          online: sum('onlineAmount'),
+          pending: sum('pendingAmount')
+        });
+        const data = snapshot.data();
+        return { total: data.total || 0, cash: data.cash || 0, online: data.online || 0, pending: data.pending || 0 };
+      } catch (err) {
+        handleFirebaseError(err);
+        return { total: 0, cash: 0, online: 0, pending: 0 };
+      }
+    }
+
+    // Specially used for 30 Days loop (using exact match '==' doesn't usually trigger composite index errors)
+    async function getDailyTotal(dateStr) {
+      try {
+        const q = query(transactionsRef, where("dateString", "==", dateStr));
+        const snapshot = await getAggregateFromServer(q, { total: sum('totalAmount') });
+        return snapshot.data().total || 0;
+      } catch (err) {
+        console.warn("Daily aggregate failed", err);
+        return 0;
+      }
+    }
+
+    // === REPORT GENERATORS ===
+    async function loadAllReports() {
+      const today = new Date();
+      document.getElementById('currentMonthLabel').innerText = today.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      // 1. THIS MONTH'S OVERVIEW CARDS
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      const monthData = await getAggregatedTotals(getFormattedDate(firstDayOfMonth), getFormattedDate(lastDayOfMonth));
+      
+      document.getElementById('valTotal').innerText = formatCurrency(monthData.total);
+      document.getElementById('valCash').innerText = formatCurrency(monthData.cash);
+      document.getElementById('valOnline').innerText = formatCurrency(monthData.online);
+      document.getElementById('valPending').innerText = formatCurrency(monthData.pending);
+
+      // Fire off chart generators concurrently
+      Promise.all([
+        render30DaysChart(),
+        render6MonthsChart(),
+        renderWeekVsWeekChart(),
+        renderMonthVsMonthChart()
+      ]);
+    }
+
+    // CHART 1: LAST 30 DAYS (LINE CHART)
+    async function render30DaysChart() {
+      const labels = [];
+      const dates = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dates.push(getFormattedDate(d));
+        labels.push(d.getDate() + ' ' + d.toLocaleString('default', {month:'short'}));
+      }
+
+      // Execute 30 single-day aggregation queries concurrently (Costs exactly 30 reads)
+      const dataPoints = await Promise.all(dates.map(date => getDailyTotal(date)));
+
+      document.getElementById('box30Days').innerHTML = '<canvas id="chart30Days"></canvas>';
+      const ctx = document.getElementById('chart30Days').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Sales (₹)',
+            data: dataPoints,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            tension: 0.4, // Smooth curves
+            fill: true,
+            pointRadius: 0, // Hide points for clean look
+            pointHitRadius: 20
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+          scales: {
+            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } }
+          }
+        }
+      });
+    }
+
+    // CHART 2: LAST 6 MONTHS (BAR CHART)
+    async function render6MonthsChart() {
+      const months = [];
+      const promises = [];
+
+      for(let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const start = getFormattedDate(new Date(y, m, 1));
+        const end = getFormattedDate(new Date(y, m + 1, 0));
+        months.push(d.toLocaleString('default', {month: 'short'}));
+        
+        promises.push(getAggregatedTotals(start, end));
+      }
+
+      const results = await Promise.all(promises);
+      const dataPoints = results.map(r => r.total);
+
+      document.getElementById('box6Months').innerHTML = '<canvas id="chart6Months"></canvas>';
+      const ctx = document.getElementById('chart6Months').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Monthly Revenue',
+            data: dataPoints,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // CHART 3: THIS WEEK VS LAST WEEK
+    async function renderWeekVsWeekChart() {
+      const today = new Date();
+      
+      // Current 7 Days
+      const currEnd = new Date(today);
+      const currStart = new Date(today); currStart.setDate(currEnd.getDate() - 6);
+      
+      // Previous 7 Days
+      const prevEnd = new Date(today); prevEnd.setDate(today.getDate() - 7);
+      const prevStart = new Date(today); prevStart.setDate(prevEnd.getDate() - 6);
+
+      const [currData, prevData] = await Promise.all([
+        getAggregatedTotals(getFormattedDate(currStart), getFormattedDate(currEnd)),
+        getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
+      ]);
+
+      document.getElementById('boxWeekVsWeek').innerHTML = '<canvas id="chartWeekVsWeek"></canvas>';
+      const ctx = document.getElementById('chartWeekVsWeek').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Total Sales', 'Cash', 'Online'],
+          datasets: [
+            {
+              label: 'Last 7 Days',
+              data: [currData.total, currData.cash, currData.online],
+              backgroundColor: '#10b981',
+              borderRadius: 6
+            },
+            {
+              label: 'Previous 7 Days',
+              data: [prevData.total, prevData.cash, prevData.online],
+              backgroundColor: '#38383A',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
+          scales: {
+            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // CHART 4: THIS MONTH VS LAST MONTH
+    async function renderMonthVsMonthChart() {
+      const today = new Date();
+      
+      // Current Month
+      const currStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const currEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      // Previous Month
+      const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const prevEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
+      const currLabel = currStart.toLocaleString('default', {month: 'long'});
+      const prevLabel = prevStart.toLocaleString('default', {month: 'long'});
+
+      const [currData, prevData] = await Promise.all([
+        getAggregatedTotals(getFormattedDate(currStart), getFormattedDate(currEnd)),
+        getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
+      ]);
+
+      document.getElementById('boxMonthVsMonth').innerHTML = '<canvas id="chartMonthVsMonth"></canvas>';
+      const ctx = document.getElementById('chartMonthVsMonth').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Total Sales', 'Cash', 'Online'],
+          datasets: [
+            {
+              label: currLabel,
+              data: [currData.total, currData.cash, currData.online],
+              backgroundColor: '#3ea6ff', // Use blue for month comparison to differentiate
+              borderRadius: 6
+            },
+            {
+              label: prevLabel,
+              data: [prevData.total, prevData.cash, prevData.online],
+              backgroundColor: '#38383A',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
+          scales: {
+            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
