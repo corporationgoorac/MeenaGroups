@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Settings - Meena LogBook</title>
+  
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#121212">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
+  
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* === PREMIUM AUTO DARK / LIGHT THEME (DARK GRAY VIBE) === */
+    :root {
+      --bg-color: #121212;
+      --text-main: #F5F5F7;
+      --text-muted: #A1A1A6;
+      --card-bg: #1E1E1E;
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --border: #38383A;
+      --input-bg: #2C2C2E;
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+      --skeleton-base: #2C2C2E;
+      --skeleton-highlight: #38383A;
+      --header-bg: rgba(18, 18, 18, 0.85);
+      --danger: #ef4444;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --text-main: #F5F5F7;
+        --text-muted: #A1A1A6;
+        --card-bg: #1E1E1E;
+        --primary: #10b981;
+        --border: #38383A;
+        --input-bg: #2C2C2E;
+      }
+    }
+
+    *::-webkit-scrollbar { display: none; }
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      -webkit-user-select: none; 
+      -moz-user-select: none; 
+      -ms-user-select: none; 
+      user-select: none; 
+      -webkit-tap-highlight-color: transparent;
+    }
+    input { user-select: auto; -webkit-user-select: auto; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overscroll-behavior-y: none;
+    }
+
+    /* === HEADER === */
+    header {
+      background-color: var(--header-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 20px;
+      padding-top: env(safe-area-inset-top, 20px);
+      font-size: 20px;
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .back-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .back-btn:active { transform: scale(0.9); }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      padding-bottom: 90px;
+    }
+
+    /* === LOCK SCREEN === */
+    #lockScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-color);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: opacity 0.4s ease, visibility 0.4s;
+    }
+    #lockScreen.unlocked {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-icon {
+      width: 64px; height: 64px;
+      background: var(--card-bg);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-lg);
+      color: var(--primary);
+    }
+    
+    .pin-display {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .pin-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+    }
+    .pin-dot.filled {
+      background: var(--primary);
+      border-color: var(--primary);
+      transform: scale(1.2);
+    }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 320px;
+      width: 100%;
+    }
+    .num-btn {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 28px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.1s;
+    }
+    .num-btn:active {
+      transform: scale(0.9);
+      background: var(--input-bg);
+    }
+    .num-btn.empty { background: transparent; border: none; box-shadow: none; cursor: default; }
+
+    /* Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .shake { animation: shake 0.4s; }
+
+    /* === USER CARDS === */
+    .section-title {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      margin-top: 32px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    .user-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s;
+    }
+
+    .user-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--input-bg);
+      border: 2px solid var(--border);
+    }
+
+    .user-info { flex: 1; overflow: hidden; }
+    .user-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 4px 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-badges {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px;
+    }
+    .badge-admin { background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-staff { background: rgba(62, 166, 255, 0.15); color: #3ea6ff; border: 1px solid rgba(62, 166, 255, 0.3); }
+    .badge-user { background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .edit-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+    .edit-btn:active { transform: scale(0.9); }
+
+    /* === SKELETONS === */
+    .skeleton {
+      background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .sk-avatar { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; }
+    .sk-text { height: 20px; width: 60%; border-radius: 4px; margin-bottom: 8px; }
+    .sk-badge { height: 16px; width: 40px; border-radius: 4px; }
+    .sk-btn { width: 44px; height: 44px; border-radius: 12px; }
+
+    /* === MODAL === */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+      z-index: 40; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal {
+      position: fixed; top: 0; right: -100%; bottom: 0;
+      width: 100%; max-width: 500px;
+      background: var(--bg-color);
+      z-index: 50; display: flex; flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: -10px 0 35px rgba(0,0,0,0.3);
+    }
+    .modal.open { right: 0; }
+
+    .modal-header {
+      padding: 20px 24px; padding-top: env(safe-area-inset-top, 20px);
+      background: var(--card-bg); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 22px; font-weight: 800;
+    }
+    .close-btn {
+      background: var(--input-bg); border: none; color: var(--text-main);
+      width: 40px; height: 40px; border-radius: 50%; font-size: 24px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    
+    .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+
+    /* Forms */
+    .form-group { margin-bottom: 24px; }
+    .form-group label {
+      display: block; margin-bottom: 10px; font-size: 14px;
+      color: var(--text-muted); font-weight: 700; text-transform: uppercase;
+    }
+    input[type="text"] {
+      width: 100%; padding: 16px; border: 1.5px solid var(--border);
+      border-radius: 10px; background: var(--input-bg); color: var(--text-main);
+      box-sizing: border-box; font-size: 16px; font-weight: 600;
+    }
+    input:focus { outline: none; border-color: var(--primary); }
+
+    /* Toggles (Matched to previous theme) */
+    .toggle-container {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; background: var(--input-bg);
+      border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px;
+    }
+    .toggle-label { font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .switch { position: relative; display: inline-block; width: 54px; height: 30px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #555555; transition: .4s; border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 22px; width: 22px;
+      left: 4px; bottom: 4px; background-color: white; transition: .4s;
+      border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    .btn-save {
+      width: 100%; padding: 18px; background: var(--primary-gradient);
+      color: white; border: none; border-radius: 12px;
+      font-size: 17px; font-weight: 800; cursor: pointer;
+      margin-top: 12px; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+    }
+    .btn-save:active { transform: scale(0.97); }
+    .btn-save:disabled { background: var(--text-muted); cursor: not-allowed; box-shadow: none;}
+
+    .loading-spinner { text-align: center; padding: 20px; color: var(--text-muted); font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- === LOCK SCREEN === -->
+  <div id="lockScreen">
+    <div class="lock-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Enter PIN</h2>
+    <p style="color: var(--text-muted); margin: 0 0 32px 0; font-weight: 500;">Admin access required</p>
+    
+    <div class="pin-display" id="pinDisplay">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+
+    <div class="numpad" id="numpad">
+      <button class="num-btn" onclick="addPin('1')">1</button>
+      <button class="num-btn" onclick="addPin('2')">2</button>
+      <button class="num-btn" onclick="addPin('3')">3</button>
+      <button class="num-btn" onclick="addPin('4')">4</button>
+      <button class="num-btn" onclick="addPin('5')">5</button>
+      <button class="num-btn" onclick="addPin('6')">6</button>
+      <button class="num-btn" onclick="addPin('7')">7</button>
+      <button class="num-btn" onclick="addPin('8')">8</button>
+      <button class="num-btn" onclick="addPin('9')">9</button>
+      <div class="num-btn empty"></div>
+      <button class="num-btn" onclick="addPin('0')">0</button>
+      <button class="num-btn" onclick="deletePin()" style="background: transparent; border: none; box-shadow: none;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+          <line x1="18" y1="9" x2="12" y2="15"></line>
+          <line x1="12" y1="9" x2="18" y2="15"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- === MAIN UI === -->
+  <div id="mainUI" style="display: none;">
+    <header>
+      <div class="back-btn" onclick="window.location.href='index.html'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      </div>
+      Settings
+    </header>
+
+    <div class="container">
+      <div class="section-title">My Profile</div>
+      <div id="currentUserContainer">
+        <!-- Skeleton -->
+        <div class="user-card skeleton-card">
+          <div class="sk-avatar skeleton"></div>
+          <div class="user-info">
+            <div class="sk-text skeleton"></div>
+            <div class="sk-badge skeleton"></div>
+          </div>
+          <div class="sk-btn skeleton"></div>
+        </div>
+      </div>
+
+      <div class="section-title">All Users</div>
+      <div id="usersList">
+        <!-- Skeletons -->
+        <div class="user-card"><div class="sk-avatar skeleton"></div><div class="user-info"><div class="sk-text skeleton"></div><div class="sk-badge skeleton"></div></div></div>
+        <div class="user-card"><div class="sk-avatar skeleton"></div><div class="user-info"><div class="sk-text skeleton"></div><div class="sk-badge skeleton"></div></div></div>
+        <div class="user-card"><div class="sk-avatar skeleton"></div><div class="user-info"><div class="sk-text skeleton"></div><div class="sk-badge skeleton"></div></div></div>
+      </div>
+      
+      <div id="loadMoreTrigger" class="loading-spinner">Loading more...</div>
+    </div>
+  </div>
+
+  <!-- === EDIT MODAL === -->
+  <div class="modal-overlay" id="editModalOverlay"></div>
+  <div class="modal" id="editModal">
+    <div class="modal-header">
+      <span>Edit User</span>
+      <button class="close-btn" onclick="history.back()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="editName" required autocomplete="off">
+        </div>
+        
+        <div class="toggle-container">
+          <span class="toggle-label">Admin Access</span>
+          <label class="switch">
+            <input type="checkbox" id="toggleAdmin">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-container">
+          <span class="toggle-label">Staff Access</span>
+          <label class="switch">
+            <input type="checkbox" id="toggleStaff">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-save" id="saveEditBtn">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    // === FIREBASE SETUP ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
+      authDomain: "meena-logbook.firebaseapp.com",
+      projectId: "meena-logbook",
+      storageBucket: "meena-logbook.firebasestorage.app",
+      messagingSenderId: "466637891440",
+      appId: "1:466637891440:web:0d74df16182c6c665491b5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUserDoc = null;
+    window.usersMap = {}; // Cache for modal editing
+
+    // Haptics Helper
+    const vibrate = (pattern = 10) => { if (navigator.vibrate) navigator.vibrate(pattern); };
+    
+    // Auth Check
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+      } else {
+        currentUserDoc = user;
+      }
+    });
+
+    // === LOCK SCREEN LOGIC ===
+    let currentPin = "";
+    const pinDots = document.querySelectorAll('.pin-dot');
+    const lockScreen = document.getElementById('lockScreen');
+    const mainUI = document.getElementById('mainUI');
+
+    window.addPin = (digit) => {
+      if(currentPin.length < 4) {
+        currentPin += digit;
+        vibrate();
+        updatePinUI();
+      }
+      if(currentPin.length === 4) setTimeout(verifyPin, 50);
+    }
+
+    window.deletePin = () => {
+      if(currentPin.length > 0) {
+        currentPin = currentPin.slice(0, -1);
+        vibrate(5);
+        updatePinUI();
+      }
+    }
+
+    function updatePinUI() {
+      pinDots.forEach((dot, index) => {
+        if(index < currentPin.length) dot.classList.add('filled');
+        else dot.classList.remove('filled');
+      });
+    }
+
+    function verifyPin() {
+      if(currentPin === '2502') {
+        vibrate([30, 50, 30]); // Success
+        lockScreen.classList.add('unlocked');
+        setTimeout(() => {
+          lockScreen.style.display = 'none';
+          mainUI.style.display = 'block';
+          initDataFetch();
+        }, 400);
+      } else {
+        vibrate([50, 50, 50, 50]); // Error
+        document.getElementById('pinDisplay').classList.add('shake');
+        setTimeout(() => {
+          document.getElementById('pinDisplay').classList.remove('shake');
+          currentPin = "";
+          updatePinUI();
+        }, 400);
+      }
+    }
+
+    // === DATA FETCHING & PAGINATION ===
+    let lastVisible = null;
+    let isFetching = false;
+    let hasMore = true;
+    const currentUserContainer = document.getElementById('currentUserContainer');
+    const usersList = document.getElementById('usersList');
+    const loadMoreTrigger = document.getElementById('loadMoreTrigger');
+
+    function createCardHTML(userData, isCurrentUser = false) {
+      const avatar = userData.photoURL || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzI2MjYyNiIvPjwvc3ZnPg==';
+      
+      let badges = [];
+      if(userData.admin) badges.push('<span class="badge badge-admin">Admin</span>');
+      if(userData.staffs) badges.push('<span class="badge badge-staff">Staff</span>');
+      if(badges.length === 0) badges.push('<span class="badge badge-user">User</span>');
+
+      return `
+        <div class="user-card" id="card-${userData.uid}">
+          <img src="${avatar}" class="user-avatar" alt="Avatar">
+          <div class="user-info">
+            <h3 class="user-name">${userData.name || 'Unknown User'} ${isCurrentUser ? '(You)' : ''}</h3>
+            <div class="user-badges" id="badges-${userData.uid}">${badges.join('')}</div>
+          </div>
+          <div class="edit-btn" onclick="openEditModal('${userData.uid}')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </div>
+        </div>
+      `;
+    }
+
+    async function initDataFetch() {
+      // 1. Fetch current user specifically
+      try {
+        const docRef = doc(db, 'users', currentUserDoc.uid);
+        const docSnap = await getDoc(docRef);
+        if(docSnap.exists()) {
+          const data = docSnap.data();
+          window.usersMap[data.uid] = data;
+          currentUserContainer.innerHTML = createCardHTML(data, true);
+        }
+      } catch(e) { console.error("Error fetching current user", e); }
+
+      // 2. Clear skeleton and fetch paginated list
+      usersList.innerHTML = '';
+      fetchUsers();
+    }
+
+    async function fetchUsers() {
+      if(isFetching || !hasMore) return;
+      isFetching = true;
+      loadMoreTrigger.style.display = 'block';
+
+      try {
+        const usersCol = collection(db, 'users');
+        let q;
+        if (lastVisible) {
+          q = query(usersCol, orderBy("name"), startAfter(lastVisible), limit(10));
+        } else {
+          q = query(usersCol, orderBy("name"), limit(10));
+        }
+
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+          hasMore = false;
+          loadMoreTrigger.innerText = "No more users";
+          return;
+        }
+
+        lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        
+        let html = '';
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if(data.uid !== currentUserDoc.uid) { // Skip rendering if it's current user (already at top)
+            window.usersMap[data.uid] = data;
+            html += createCardHTML(data);
+          }
+        });
+        
+        usersList.insertAdjacentHTML('beforeend', html);
+
+        if(snapshot.docs.length < 10) {
+          hasMore = false;
+          loadMoreTrigger.innerText = "End of list";
+        }
+      } catch(e) {
+        console.error("Error fetching users:", e);
+        loadMoreTrigger.innerText = "Error loading users";
+      } finally {
+        isFetching = false;
+        if(hasMore) loadMoreTrigger.style.display = 'none'; // hide until observer triggers
+      }
+    }
+
+    // Intersection Observer for Infinite Scroll
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && lockScreen.classList.contains('unlocked')) {
+        fetchUsers();
+      }
+    }, { rootMargin: '100px' });
+    observer.observe(loadMoreTrigger);
+
+
+    // === EDIT MODAL LOGIC ===
+    const editModal = document.getElementById('editModal');
+    const editModalOverlay = document.getElementById('editModalOverlay');
+    const editForm = document.getElementById('editForm');
+    let editingUserId = null;
+
+    window.openEditModal = (uid) => {
+      vibrate();
+      editingUserId = uid;
+      const user = window.usersMap[uid];
+      
+      document.getElementById('editName').value = user.name || '';
+      document.getElementById('toggleAdmin').checked = !!user.admin;
+      document.getElementById('toggleStaff').checked = !!user.staffs;
+
+      editModal.classList.add('open');
+      editModalOverlay.classList.add('open');
+      history.pushState({ modalOpen: true }, '', '#edit-user');
+    };
+
+    function closeEditModal() {
+      editModal.classList.remove('open');
+      editModalOverlay.classList.remove('open');
+      editingUserId = null;
+    }
+
+    window.addEventListener('popstate', (e) => {
+      if(editModal.classList.contains('open')) closeEditModal();
+    });
+
+    editModalOverlay.addEventListener('click', () => history.back());
+
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      vibrate();
+      const saveBtn = document.getElementById('saveEditBtn');
+      saveBtn.innerText = "Saving...";
+      saveBtn.disabled = true;
+
+      const newName = document.getElementById('editName').value.trim();
+      const isAdmin = document.getElementById('toggleAdmin').checked;
+      const isStaff = document.getElementById('toggleStaff').checked;
+
+      try {
+        await updateDoc(doc(db, "users", editingUserId), {
+          name: newName,
+          admin: isAdmin,
+          staffs: isStaff
+        });
+
+        // Update local cache & UI immediately without reload
+        window.usersMap[editingUserId].name = newName;
+        window.usersMap[editingUserId].admin = isAdmin;
+        window.usersMap[editingUserId].staffs = isStaff;
+
+        const card = document.getElementById(`card-${editingUserId}`);
+        if(card) {
+          card.querySelector('.user-name').innerText = newName + (editingUserId === currentUserDoc.uid ? ' (You)' : '');
+          let badges = [];
+          if(isAdmin) badges.push('<span class="badge badge-admin">Admin</span>');
+          if(isStaff) badges.push('<span class="badge badge-staff">Staff</span>');
+          if(badges.length === 0) badges.push('<span class="badge badge-user">User</span>');
+          document.getElementById(`badges-${editingUserId}`).innerHTML = badges.join('');
+        }
+
+        history.back(); // close modal natively
+      } catch(err) {
+        console.error("Update failed", err);
+        alert("Failed to update user. Check permissions.");
+      } finally {
+        saveBtn.innerText = "Save Changes";
+        saveBtn.disabled = false;
+      }
+    });
+
+  </script>
+</body>
+</html>
