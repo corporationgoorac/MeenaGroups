@@ -108,7 +108,7 @@
     .back-btn:active { transform: scale(0.85); }
 
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 24px 20px;
     }
@@ -153,13 +153,15 @@
     }
 
     .chart-subtitle {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
       background: var(--input-bg);
       padding: 4px 10px;
       border-radius: 6px;
       border: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .canvas-container {
@@ -204,7 +206,7 @@
     }
 
     .ms-val {
-      font-size: clamp(13px, 3.5vw, 16px);
+      font-size: clamp(14px, 3.5vw, 17px);
       font-weight: 800;
       word-break: break-all;
     }
@@ -245,7 +247,7 @@
 
     /* PC Adjustments */
     @media (min-width: 769px) {
-      .container { max-width: 1200px; padding: 40px 24px; }
+      .container { padding: 40px 24px; }
       .chart-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -261,17 +263,17 @@
 
   <div class="container">
     
-    <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
-      <h2 style="margin: 0; font-size: 20px; font-weight: 800;">Analytics Dashboard</h2>
+    <div style="margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 800;">Analytics Dashboard</h2>
       <span id="currentMonthLabel" style="color: var(--primary); font-weight: 800; font-size: 14px; text-transform: uppercase;"></span>
     </div>
 
     <div class="chart-grid">
       
-      <!-- NEW: Payment Breakdown Doughnut (This Month) -->
+      <!-- CHART 0: Payment Breakdown Doughnut (This Month) -->
       <div class="chart-card">
         <div class="chart-title">
-          Payment Breakdown 
+          Payment Method 
           <span class="chart-subtitle">This Month</span>
         </div>
         <div class="canvas-container" id="boxPieChart">
@@ -282,10 +284,10 @@
         </div>
       </div>
 
-      <!-- UPGRADED: 30 Days Line Chart (Cash vs Online Dual Line) -->
+      <!-- CHART 1: 30 Days Line Chart (Total Sales Only) -->
       <div class="chart-card">
         <div class="chart-title">
-          Daily Trends 
+          Sales Trend 
           <span class="chart-subtitle">Last 30 Days</span>
         </div>
         <div class="canvas-container" id="box30Days">
@@ -296,11 +298,25 @@
         </div>
       </div>
 
-      <!-- 6 Months Bar Chart -->
+      <!-- CHART 2: Pending Dues Trend (Area Chart) - NEW -->
       <div class="chart-card">
         <div class="chart-title">
-          Monthly Revenue 
-          <span class="chart-subtitle">Last 6 Months</span>
+          Pending Dues Tracker 
+          <span class="chart-subtitle">Last 30 Days</span>
+        </div>
+        <div class="canvas-container" id="boxPending30Days">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="boardPending30Days">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- CHART 3: 6 Months Bar Chart -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Revenue Growth 
+          <span class="chart-subtitle">6 Months</span>
         </div>
         <div class="canvas-container" id="box6Months">
           <div class="skeleton skeleton-chart"></div>
@@ -310,7 +326,21 @@
         </div>
       </div>
 
-      <!-- This Week vs Last Week -->
+      <!-- CHART 4: 6 Months Trend (Line Chart) - NEW -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Revenue Trend 
+          <span class="chart-subtitle">6 Months Graph</span>
+        </div>
+        <div class="canvas-container" id="box6MonthsLine">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="board6MonthsLine">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- CHART 5: This Week vs Last Week -->
       <div class="chart-card">
         <div class="chart-title">
           Weekly Comparison 
@@ -324,7 +354,7 @@
         </div>
       </div>
 
-      <!-- This Month vs Last Month -->
+      <!-- CHART 6: This Month vs Last Month -->
       <div class="chart-card">
         <div class="chart-title">
           Monthly Comparison 
@@ -338,6 +368,48 @@
         </div>
       </div>
 
+      <!-- CHART 7: Quarterly Performance - NEW -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Quarterly Overview 
+          <span class="chart-subtitle">Current Year</span>
+        </div>
+        <div class="canvas-container" id="boxQuarterly">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="boardQuarterly">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- CHART 8: 12 Months Overview - NEW -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Yearly Trajectory 
+          <span class="chart-subtitle">12 Months</span>
+        </div>
+        <div class="canvas-container" id="box12Months">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="board12Months">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- CHART 9: Year-To-Date Snapshot - NEW -->
+      <div class="chart-card">
+        <div class="chart-title">
+          YTD Health 
+          <span class="chart-subtitle">Current Year</span>
+        </div>
+        <div class="canvas-container" id="boxYTD">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="boardYTD">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -347,7 +419,7 @@
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f29900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
     <h3 style="margin-top: 0; font-size: 20px; font-weight: 800; margin-bottom: 12px;">Indexes Required</h3>
     <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">
-      Firebase requires composite indexes to calculate these reports fast. Click all buttons below to auto-build them.
+      Firebase requires composite indexes to calculate these new charts fast. Click all buttons below to auto-build them.
     </p>
     
     <div id="indexButtonsContainer" style="display: flex; flex-direction: column; gap: 8px;">
@@ -400,8 +472,18 @@
       return `${y}-${m}-${d}`;
     };
 
-    // Generates the sleek Mini Stat Board HTML string
-    const generateMiniBoard = (total, cash, online, pending) => {
+    // Standard Unified Board (Total + Pending)
+    const generateMiniBoard = (total, pending) => {
+      return `
+        <div class="mini-stat-board">
+          <div class="mini-stat"><span class="ms-label">Total Sales</span><span class="ms-val ms-total">${formatCurrency(total)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Pending Dues</span><span class="ms-val ms-pending">${formatCurrency(pending)}</span></div>
+        </div>
+      `;
+    };
+
+    // Special Board for Pie Chart (Includes Cash/Online)
+    const generatePieMiniBoard = (total, cash, online, pending) => {
       return `
         <div class="mini-stat-board">
           <div class="mini-stat"><span class="ms-label">Total</span><span class="ms-val ms-total">${formatCurrency(total)}</span></div>
@@ -465,10 +547,7 @@
       try {
         const q = query(transactionsRef, where("dateString", ">=", startDate), where("dateString", "<=", endDate));
         const snapshot = await getAggregateFromServer(q, {
-          total: sum('totalAmount'),
-          cash: sum('cashAmount'),
-          online: sum('onlineAmount'),
-          pending: sum('pendingAmount')
+          total: sum('totalAmount'), cash: sum('cashAmount'), online: sum('onlineAmount'), pending: sum('pendingAmount')
         });
         const data = snapshot.data();
         return { total: data.total || 0, cash: data.cash || 0, online: data.online || 0, pending: data.pending || 0 };
@@ -482,17 +561,44 @@
       try {
         const q = query(transactionsRef, where("dateString", "==", dateStr));
         const snapshot = await getAggregateFromServer(q, { 
-          total: sum('totalAmount'),
-          cash: sum('cashAmount'),
-          online: sum('onlineAmount'),
-          pending: sum('pendingAmount')
+          total: sum('totalAmount'), pending: sum('pendingAmount') 
         });
         const data = snapshot.data();
-        return { total: data.total || 0, cash: data.cash || 0, online: data.online || 0, pending: data.pending || 0 };
+        return { total: data.total || 0, pending: data.pending || 0 };
       } catch (err) {
         console.warn("Daily aggregate failed", err);
-        return { total: 0, cash: 0, online: 0, pending: 0 };
+        return { total: 0, pending: 0 };
       }
+    }
+
+    // === CENTRALIZED DATA FETCHING (PREVENTS REDUNDANT READS) ===
+    async function fetchLast30DaysData() {
+      const results = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = getFormattedDate(d);
+        const label = d.getDate() + ' ' + d.toLocaleString('default', {month:'short'});
+        const data = await getDailyTotal(dateStr);
+        results.push({ label, ...data });
+      }
+      return results;
+    }
+
+    async function fetchLast12MonthsData() {
+      const results = [];
+      for(let i = 11; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        const start = getFormattedDate(new Date(y, m, 1));
+        const end = getFormattedDate(new Date(y, m + 1, 0));
+        const label = d.toLocaleString('default', {month: 'short'});
+        const data = await getAggregatedTotals(start, end);
+        results.push({ label, ...data });
+      }
+      return results;
     }
 
     // === REPORT GENERATORS ===
@@ -500,144 +606,122 @@
       const today = new Date();
       document.getElementById('currentMonthLabel').innerText = today.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-      // Run all independently so one failing index doesn't block everything
+      // Run Pie Chart independently
       renderPieChart(today);
-      render30DaysChart();
-      render6MonthsChart();
+
+      // Fetch unified arrays to save reads
+      const [thirtyDaysData, twelveMonthsData] = await Promise.all([
+        fetchLast30DaysData(),
+        fetchLast12MonthsData()
+      ]);
+
+      // Use unified arrays to render multiple charts with zero extra reads!
+      render30DaysCharts(thirtyDaysData);
+      renderMonthCharts(twelveMonthsData); // Renders 6M Bar, 6M Line, 12M Bar
+
+      // Run remaining comparisons
       renderWeekVsWeekChart(today);
       renderMonthVsMonthChart(today);
+      renderQuarterlyChart(today);
+      renderYTDChart(today);
     }
 
-    // CHART 0: PAYMENT BREAKDOWN DOUGHNUT (This Month)
+    // CHART 0: PAYMENT BREAKDOWN DOUGHNUT
     async function renderPieChart(today) {
       const start = new Date(today.getFullYear(), today.getMonth(), 1);
       const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
       const data = await getAggregatedTotals(getFormattedDate(start), getFormattedDate(end));
       
-      document.getElementById('boardPieChart').innerHTML = generateMiniBoard(data.total, data.cash, data.online, data.pending);
+      document.getElementById('boardPieChart').innerHTML = generatePieMiniBoard(data.total, data.cash, data.online, data.pending);
       document.getElementById('boxPieChart').innerHTML = '<canvas id="chartPie"></canvas>';
       
       new Chart(document.getElementById('chartPie').getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['Cash', 'Online'],
-          datasets: [{
-            data: [data.cash, data.online],
-            backgroundColor: ['#2ba640', '#3ea6ff'],
-            borderWidth: 0,
-            hoverOffset: 4
-          }]
+          datasets: [{ data: [data.cash, data.online], backgroundColor: ['#2ba640', '#3ea6ff'], borderWidth: 0, hoverOffset: 4 }]
         },
-        options: {
-          responsive: true, maintainAspectRatio: false, cutout: '75%',
-          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } } }
       });
     }
 
-    // CHART 1: LAST 30 DAYS (DUAL LINE CHART)
-    async function render30DaysChart() {
-      const labels = [];
-      const dates = [];
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        dates.push(getFormattedDate(d));
-        labels.push(d.getDate() + ' ' + d.toLocaleString('default', {month:'short'}));
-      }
-
-      const dailyData = await Promise.all(dates.map(date => getDailyTotal(date)));
-      
-      // Summarize for mini board
+    // CHARTS 1 & 2: 30 DAYS TOTAL (LINE) & PENDING (AREA)
+    function render30DaysCharts(dailyData) {
       const totalSummary = dailyData.reduce((acc, curr) => ({
-        total: acc.total + curr.total, cash: acc.cash + curr.cash,
-        online: acc.online + curr.online, pending: acc.pending + curr.pending
-      }), {total:0, cash:0, online:0, pending:0});
+        total: acc.total + curr.total, pending: acc.pending + curr.pending
+      }), {total:0, pending:0});
 
-      document.getElementById('board30Days').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.cash, totalSummary.online, totalSummary.pending);
-      
-      const cashPoints = dailyData.map(d => d.cash);
-      const onlinePoints = dailyData.map(d => d.online);
+      const labels = dailyData.map(d => d.label);
+      const totalPoints = dailyData.map(d => d.total);
+      const pendingPoints = dailyData.map(d => d.pending);
 
+      // Chart 1: Total Sales Line
+      document.getElementById('board30Days').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.pending);
       document.getElementById('box30Days').innerHTML = '<canvas id="chart30Days"></canvas>';
-      
       new Chart(document.getElementById('chart30Days').getContext('2d'), {
         type: 'line',
         data: {
           labels: labels,
-          datasets: [
-            {
-              label: 'Cash', data: cashPoints, borderColor: '#2ba640', 
-              backgroundColor: 'rgba(43, 166, 64, 0.1)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15
-            },
-            {
-              label: 'Online', data: onlinePoints, borderColor: '#3ea6ff', 
-              backgroundColor: 'rgba(62, 166, 255, 0.1)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15
-            }
-          ]
+          datasets: [{ label: 'Total Sales', data: totalPoints, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 3, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15 }]
         },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
-          scales: {
-            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
-            x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } } } }
+      });
+
+      // Chart 2: Pending Area
+      document.getElementById('boardPending30Days').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.pending);
+      document.getElementById('boxPending30Days').innerHTML = '<canvas id="chartPending30Days"></canvas>';
+      new Chart(document.getElementById('chartPending30Days').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Pending Dues', data: pendingPoints, borderColor: '#fbbf24', backgroundColor: 'rgba(251, 191, 36, 0.15)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } } } }
       });
     }
 
-    // CHART 2: LAST 6 MONTHS (BAR CHART)
-    async function render6MonthsChart() {
-      const months = [];
-      const promises = [];
+    // CHARTS 3, 4, 8: 6M BAR, 6M LINE, 12M BAR
+    function renderMonthCharts(twelveMonthsData) {
+      // Create 6-month slice for the smaller charts
+      const sixMonthsData = twelveMonthsData.slice(-6);
 
-      for(let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const y = d.getFullYear();
-        const m = d.getMonth();
-        const start = getFormattedDate(new Date(y, m, 1));
-        const end = getFormattedDate(new Date(y, m + 1, 0));
-        months.push(d.toLocaleString('default', {month: 'short'}));
-        
-        promises.push(getAggregatedTotals(start, end));
-      }
+      const sixMSummary = sixMonthsData.reduce((acc, curr) => ({
+        total: acc.total + curr.total, pending: acc.pending + curr.pending
+      }), {total:0, pending:0});
 
-      const results = await Promise.all(promises);
-      
-      const totalSummary = results.reduce((acc, curr) => ({
-        total: acc.total + curr.total, cash: acc.cash + curr.cash,
-        online: acc.online + curr.online, pending: acc.pending + curr.pending
-      }), {total:0, cash:0, online:0, pending:0});
+      const twelveMSummary = twelveMonthsData.reduce((acc, curr) => ({
+        total: acc.total + curr.total, pending: acc.pending + curr.pending
+      }), {total:0, pending:0});
 
-      document.getElementById('board6Months').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.cash, totalSummary.online, totalSummary.pending);
-
-      const dataPoints = results.map(r => r.total);
-
+      // Chart 3: 6 Months Bar
+      document.getElementById('board6Months').innerHTML = generateMiniBoard(sixMSummary.total, sixMSummary.pending);
       document.getElementById('box6Months').innerHTML = '<canvas id="chart6Months"></canvas>';
-      
       new Chart(document.getElementById('chart6Months').getContext('2d'), {
         type: 'bar',
-        data: {
-          labels: months,
-          datasets: [{
-            label: 'Monthly Revenue', data: dataPoints, backgroundColor: '#10b981', borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
-            x: { grid: { display: false } }
-          }
-        }
+        data: { labels: sixMonthsData.map(d=>d.label), datasets: [{ label: 'Total Sales', data: sixMonthsData.map(d=>d.total), backgroundColor: '#10b981', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
+      });
+
+      // Chart 4: 6 Months Line Trend
+      document.getElementById('board6MonthsLine').innerHTML = generateMiniBoard(sixMSummary.total, sixMSummary.pending);
+      document.getElementById('box6MonthsLine').innerHTML = '<canvas id="chart6MonthsLine"></canvas>';
+      new Chart(document.getElementById('chart6MonthsLine').getContext('2d'), {
+        type: 'line',
+        data: { labels: sixMonthsData.map(d=>d.label), datasets: [{ label: 'Total Sales', data: sixMonthsData.map(d=>d.total), borderColor: '#3ea6ff', borderWidth: 3, tension: 0.3, pointBackgroundColor: '#3ea6ff', pointRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
+      });
+
+      // Chart 8: 12 Months Overview
+      document.getElementById('board12Months').innerHTML = generateMiniBoard(twelveMSummary.total, twelveMSummary.pending);
+      document.getElementById('box12Months').innerHTML = '<canvas id="chart12Months"></canvas>';
+      new Chart(document.getElementById('chart12Months').getContext('2d'), {
+        type: 'bar',
+        data: { labels: twelveMonthsData.map(d=>d.label), datasets: [{ label: 'Total Sales', data: twelveMonthsData.map(d=>d.total), backgroundColor: 'rgba(16, 185, 129, 0.7)', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
       });
     }
 
-    // CHART 3: THIS WEEK VS LAST WEEK
+    // CHART 5: THIS WEEK VS LAST WEEK
     async function renderWeekVsWeekChart(today) {
       const currEnd = new Date(today);
       const currStart = new Date(today); currStart.setDate(currEnd.getDate() - 6);
@@ -650,36 +734,26 @@
         getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
       ]);
 
-      // Combine both weeks for the mini board below this graph
-      document.getElementById('boardWeekVsWeek').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.cash + prevData.cash, currData.online + prevData.online, currData.pending + prevData.pending);
-
+      document.getElementById('boardWeekVsWeek').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.pending + prevData.pending);
       document.getElementById('boxWeekVsWeek').innerHTML = '<canvas id="chartWeekVsWeek"></canvas>';
       
       new Chart(document.getElementById('chartWeekVsWeek').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: ['Total Sales', 'Cash', 'Online'],
+          labels: ['Total Sales', 'Pending Dues'],
           datasets: [
-            { label: 'Last 7 Days', data: [currData.total, currData.cash, currData.online], backgroundColor: '#10b981', borderRadius: 6 },
-            { label: 'Previous 7 Days', data: [prevData.total, prevData.cash, prevData.online], backgroundColor: '#38383A', borderRadius: 6 }
+            { label: 'Last 7 Days', data: [currData.total, currData.pending], backgroundColor: '#10b981', borderRadius: 6 },
+            { label: 'Previous 7 Days', data: [prevData.total, prevData.pending], backgroundColor: '#38383A', borderRadius: 6 }
           ]
         },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
-          scales: {
-            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
-            x: { grid: { display: false } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
       });
     }
 
-    // CHART 4: THIS MONTH VS LAST MONTH
+    // CHART 6: THIS MONTH VS LAST MONTH
     async function renderMonthVsMonthChart(today) {
       const currStart = new Date(today.getFullYear(), today.getMonth(), 1);
       const currEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
       const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const prevEnd = new Date(today.getFullYear(), today.getMonth(), 0);
 
@@ -691,27 +765,68 @@
         getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
       ]);
 
-      document.getElementById('boardMonthVsMonth').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.cash + prevData.cash, currData.online + prevData.online, currData.pending + prevData.pending);
-
+      document.getElementById('boardMonthVsMonth').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.pending + prevData.pending);
       document.getElementById('boxMonthVsMonth').innerHTML = '<canvas id="chartMonthVsMonth"></canvas>';
       
       new Chart(document.getElementById('chartMonthVsMonth').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: ['Total Sales', 'Cash', 'Online'],
+          labels: ['Total Sales', 'Pending Dues'],
           datasets: [
-            { label: currLabel, data: [currData.total, currData.cash, currData.online], backgroundColor: '#3ea6ff', borderRadius: 6 },
-            { label: prevLabel, data: [prevData.total, prevData.cash, prevData.online], backgroundColor: '#38383A', borderRadius: 6 }
+            { label: currLabel, data: [currData.total, currData.pending], backgroundColor: '#3ea6ff', borderRadius: 6 },
+            { label: prevLabel, data: [prevData.total, prevData.pending], backgroundColor: '#38383A', borderRadius: 6 }
           ]
         },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
-          scales: {
-            y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
-            x: { grid: { display: false } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    // CHART 7: QUARTERLY PERFORMANCE (Current Year)
+    async function renderQuarterlyChart(today) {
+      const y = today.getFullYear();
+      
+      const [q1, q2, q3, q4] = await Promise.all([
+        getAggregatedTotals(getFormattedDate(new Date(y, 0, 1)), getFormattedDate(new Date(y, 3, 0))),
+        getAggregatedTotals(getFormattedDate(new Date(y, 3, 1)), getFormattedDate(new Date(y, 6, 0))),
+        getAggregatedTotals(getFormattedDate(new Date(y, 6, 1)), getFormattedDate(new Date(y, 9, 0))),
+        getAggregatedTotals(getFormattedDate(new Date(y, 9, 1)), getFormattedDate(new Date(y, 12, 0)))
+      ]);
+
+      const tTotal = q1.total + q2.total + q3.total + q4.total;
+      const tPending = q1.pending + q2.pending + q3.pending + q4.pending;
+
+      document.getElementById('boardQuarterly').innerHTML = generateMiniBoard(tTotal, tPending);
+      document.getElementById('boxQuarterly').innerHTML = '<canvas id="chartQuarterly"></canvas>';
+      
+      new Chart(document.getElementById('chartQuarterly').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'],
+          datasets: [{ label: 'Quarterly Sales', data: [q1.total, q2.total, q3.total, q4.total], backgroundColor: '#10b981', borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    // CHART 9: YEAR-TO-DATE (YTD) SNAPSHOT
+    async function renderYTDChart(today) {
+      const start = new Date(today.getFullYear(), 0, 1); // Jan 1st
+      const end = today; // Today
+      
+      const data = await getAggregatedTotals(getFormattedDate(start), getFormattedDate(end));
+      
+      const clearedSales = data.total - data.pending;
+
+      document.getElementById('boardYTD').innerHTML = generateMiniBoard(data.total, data.pending);
+      document.getElementById('boxYTD').innerHTML = '<canvas id="chartYTD"></canvas>';
+      
+      new Chart(document.getElementById('chartYTD').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Cleared Revenue', 'Pending Dues'],
+          datasets: [{ data: [clearedSales, data.pending], backgroundColor: ['#10b981', '#fbbf24'], borderWidth: 0, hoverOffset: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } } }
       });
     }
   </script>
