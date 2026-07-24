@@ -45,19 +45,12 @@
         --text-muted: #A1A1A6;
         --card-bg: #1E1E1E;
         --primary: #10b981;
-        --primary-dark: #059669;
         --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
         --cash-color: #2ba640;
         --online-color: #3ea6ff;
-        --split-color: #f29900;
         --pending-color: #fbbf24;
         --border: #38383A;
         --input-bg: #2C2C2E;
-        --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
-        --skeleton-base: #2C2C2E;
-        --skeleton-highlight: #38383A;
         --header-bg: rgba(18, 18, 18, 0.85);
       }
     }
@@ -131,69 +124,22 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-    .skeleton-text { height: 32px; width: 80%; margin: 0 auto; }
-    .skeleton-chart { height: 250px; width: 100%; border-radius: 16px; }
-
-    /* === SUMMARY CARDS === */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .summary-card {
-      background: var(--card-bg);
-      border-radius: var(--card-radius);
-      padding: 24px 16px;
-      text-align: center;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .summary-card.full-width {
-      grid-column: span 2;
-    }
-
-    .summary-card::after {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-    }
-    .sc-total::after { background: var(--primary-gradient); }
-    .sc-cash::after { background: var(--cash-color); }
-    .sc-online::after { background: var(--online-color); }
-    .sc-pending::after { background: var(--pending-color); }
-
-    .summary-label {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 700;
-    }
-
-    .summary-value {
-      font-size: clamp(24px, 6vw, 36px);
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      word-break: break-all;
-    }
-
-    .text-cash { color: var(--cash-color); }
-    .text-online { color: var(--online-color); }
-    .text-total { color: var(--primary); }
-    .text-pending { color: var(--pending-color); }
+    .skeleton-chart { height: 220px; width: 100%; border-radius: 12px; margin-bottom: 16px; }
+    .skeleton-board { height: 60px; width: 100%; border-radius: 8px; }
 
     /* === CHART CARDS === */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
     .chart-card {
       background: var(--card-bg);
       border-radius: var(--card-radius);
       padding: 24px;
       box-shadow: var(--shadow-md);
       border: 1px solid var(--border);
-      margin-bottom: 24px;
     }
     
     .chart-title {
@@ -210,6 +156,10 @@
       font-size: 13px;
       color: var(--text-muted);
       font-weight: 600;
+      background: var(--input-bg);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
 
     .canvas-container {
@@ -217,6 +167,52 @@
       height: 250px;
       width: 100%;
     }
+
+    /* === MINI STAT BOARDS (BELOW GRAPHS) === */
+    .mini-stat-board {
+      display: flex;
+      justify-content: space-between;
+      background: var(--input-bg);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .mini-stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .mini-stat:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    .ms-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .ms-val {
+      font-size: clamp(13px, 3.5vw, 16px);
+      font-weight: 800;
+      word-break: break-all;
+    }
+    
+    .ms-total { color: var(--primary); }
+    .ms-cash { color: var(--cash-color); }
+    .ms-online { color: var(--online-color); }
+    .ms-pending { color: var(--pending-color); }
 
     /* === MODALS === */
     .modal-overlay {
@@ -230,27 +226,27 @@
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(0.95);
       background: var(--card-bg); border-radius: 20px; padding: 28px;
-      width: 85%; max-width: 380px; z-index: 60; opacity: 0; pointer-events: none;
+      width: 85%; max-width: 400px; z-index: 60; opacity: 0; pointer-events: none;
       transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid var(--border);
       text-align: center;
+      max-height: 85vh;
+      overflow-y: auto;
     }
     .mini-modal.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
 
     .btn-action {
-      width: 100%; padding: 16px; background: var(--primary-gradient);
-      color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800;
-      cursor: pointer; margin-top: 20px; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+      width: 100%; padding: 14px; background: var(--primary-gradient);
+      color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 800;
+      cursor: pointer; margin-top: 12px; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-action:active { transform: scale(0.97); }
 
     /* PC Adjustments */
     @media (min-width: 769px) {
       .container { max-width: 1200px; padding: 40px 24px; }
-      .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-      .chart-card { margin-bottom: 0; }
-      .summary-grid { grid-template-columns: repeat(4, 1fr); }
-      .summary-card.full-width { grid-column: span 1; }
+      .chart-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -266,32 +262,27 @@
   <div class="container">
     
     <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
-      <h2 style="margin: 0; font-size: 20px; font-weight: 800;">This Month's Overview</h2>
-      <span id="currentMonthLabel" style="color: var(--text-muted); font-weight: 700; font-size: 14px; text-transform: uppercase;"></span>
-    </div>
-
-    <!-- Numbers / Totals -->
-    <div class="summary-grid">
-      <div class="summary-card sc-total full-width">
-        <div class="summary-label">Total Sales</div>
-        <div class="summary-value text-total" id="valTotal"><div class="skeleton skeleton-text"></div></div>
-      </div>
-      <div class="summary-card sc-cash">
-        <div class="summary-label">Cash Total</div>
-        <div class="summary-value text-cash" id="valCash"><div class="skeleton skeleton-text"></div></div>
-      </div>
-      <div class="summary-card sc-online">
-        <div class="summary-label">Online Total</div>
-        <div class="summary-value text-online" id="valOnline"><div class="skeleton skeleton-text"></div></div>
-      </div>
-      <div class="summary-card sc-pending full-width">
-        <div class="summary-label">Pending Dues</div>
-        <div class="summary-value text-pending" id="valPending"><div class="skeleton skeleton-text"></div></div>
-      </div>
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800;">Analytics Dashboard</h2>
+      <span id="currentMonthLabel" style="color: var(--primary); font-weight: 800; font-size: 14px; text-transform: uppercase;"></span>
     </div>
 
     <div class="chart-grid">
-      <!-- 30 Days Line Chart -->
+      
+      <!-- NEW: Payment Breakdown Doughnut (This Month) -->
+      <div class="chart-card">
+        <div class="chart-title">
+          Payment Breakdown 
+          <span class="chart-subtitle">This Month</span>
+        </div>
+        <div class="canvas-container" id="boxPieChart">
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="boardPieChart">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- UPGRADED: 30 Days Line Chart (Cash vs Online Dual Line) -->
       <div class="chart-card">
         <div class="chart-title">
           Daily Trends 
@@ -299,6 +290,9 @@
         </div>
         <div class="canvas-container" id="box30Days">
           <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="board30Days">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
         </div>
       </div>
 
@@ -311,16 +305,22 @@
         <div class="canvas-container" id="box6Months">
           <div class="skeleton skeleton-chart"></div>
         </div>
+        <div id="board6Months">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
       </div>
 
       <!-- This Week vs Last Week -->
       <div class="chart-card">
         <div class="chart-title">
           Weekly Comparison 
-          <span class="chart-subtitle">Current vs Previous</span>
+          <span class="chart-subtitle">Week vs Week</span>
         </div>
         <div class="canvas-container" id="boxWeekVsWeek">
           <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="boardWeekVsWeek">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
         </div>
       </div>
 
@@ -328,26 +328,33 @@
       <div class="chart-card">
         <div class="chart-title">
           Monthly Comparison 
-          <span class="chart-subtitle">Current vs Previous</span>
+          <span class="chart-subtitle">Month vs Month</span>
         </div>
         <div class="canvas-container" id="boxMonthVsMonth">
           <div class="skeleton skeleton-chart"></div>
         </div>
+        <div id="boardMonthVsMonth">
+          <div class="skeleton skeleton-board" style="margin-top: 20px;"></div>
+        </div>
       </div>
-    </div>
 
+    </div>
   </div>
 
-  <!-- Missing Index Auto-Detector Modal -->
+  <!-- Missing Index Auto-Detector Modal (Multi-Support) -->
   <div class="modal-overlay" id="indexModalOverlay"></div>
   <div class="mini-modal" id="indexModal">
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f29900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-    <h3 style="margin-top: 0; font-size: 22px; font-weight: 800; margin-bottom: 12px;">Database Index Required</h3>
-    <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">
-      Firebase requires a composite index to calculate these aggregated reports securely. Click below to auto-build it.
+    <h3 style="margin-top: 0; font-size: 20px; font-weight: 800; margin-bottom: 12px;">Indexes Required</h3>
+    <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">
+      Firebase requires composite indexes to calculate these reports fast. Click all buttons below to auto-build them.
     </p>
-    <button class="btn-action" id="buildIndexBtn">Open Firebase URL</button>
-    <button onclick="closeIndexModal()" style="background: none; border: none; color: var(--text-muted); margin-top: 16px; font-weight: 600; cursor: pointer; font-size: 14px;">Dismiss</button>
+    
+    <div id="indexButtonsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+      <!-- Buttons injected here dynamically -->
+    </div>
+
+    <button onclick="closeIndexModal()" style="background: none; border: none; color: var(--text-muted); margin-top: 24px; font-weight: 700; cursor: pointer; font-size: 15px; text-transform: uppercase;">Dismiss</button>
   </div>
 
   <script type="module">
@@ -393,38 +400,60 @@
       return `${y}-${m}-${d}`;
     };
 
-    // Chart.js Global Defaults for Premium Dark Theme
+    // Generates the sleek Mini Stat Board HTML string
+    const generateMiniBoard = (total, cash, online, pending) => {
+      return `
+        <div class="mini-stat-board">
+          <div class="mini-stat"><span class="ms-label">Total</span><span class="ms-val ms-total">${formatCurrency(total)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Cash</span><span class="ms-val ms-cash">${formatCurrency(cash)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Online</span><span class="ms-val ms-online">${formatCurrency(online)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Pending</span><span class="ms-val ms-pending">${formatCurrency(pending)}</span></div>
+        </div>
+      `;
+    };
+
+    // Chart.js Global Defaults
     Chart.defaults.color = '#A1A1A6';
     Chart.defaults.font.family = "'Segoe UI', Roboto, system-ui, sans-serif";
     Chart.defaults.font.weight = '600';
     Chart.defaults.scale.grid.color = '#2C2C2E';
     Chart.defaults.scale.grid.borderColor = 'transparent';
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(24, 24, 27, 0.95)';
+    Chart.defaults.plugins.tooltip.titleColor = '#F5F5F7';
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
-    // === INDEX ERROR HANDLER (AUTO-DETECTOR) ===
-    let extractedIndexUrl = "";
+    // === MULTI-INDEX ERROR HANDLER ===
+    let missingIndexes = new Set();
     const indexModal = document.getElementById('indexModal');
     const indexModalOverlay = document.getElementById('indexModalOverlay');
-    const buildIndexBtn = document.getElementById('buildIndexBtn');
+    const indexButtonsContainer = document.getElementById('indexButtonsContainer');
 
     function handleFirebaseError(err) {
       if (err.code === 'failed-precondition' && err.message.includes('index')) {
         const urlMatch = err.message.match(/(https:\/\/console\.firebase\.google\.com[^\s]+)/);
         if (urlMatch && urlMatch[1]) {
-          extractedIndexUrl = urlMatch[1];
-          indexModal.classList.add('open');
-          indexModalOverlay.classList.add('open');
-        } else {
-          console.error("Index required but couldn't parse URL:", err);
+          missingIndexes.add(urlMatch[1]);
+          renderIndexButtons();
         }
       } else {
         console.error("Firebase Error:", err);
       }
     }
 
-    buildIndexBtn.addEventListener('click', () => {
-      if(extractedIndexUrl) window.open(extractedIndexUrl, '_blank');
-      closeIndexModal();
-    });
+    function renderIndexButtons() {
+      indexButtonsContainer.innerHTML = '';
+      let counter = 1;
+      missingIndexes.forEach(url => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> Build Index ${counter++}`;
+        btn.onclick = () => window.open(url, '_blank');
+        indexButtonsContainer.appendChild(btn);
+      });
+      indexModal.classList.add('open');
+      indexModalOverlay.classList.add('open');
+    }
 
     window.closeIndexModal = () => {
       indexModal.classList.remove('open');
@@ -432,7 +461,6 @@
     }
 
     // === SERVER-SIDE AGGREGATION LOGIC (SAVES READS) ===
-    // This fetches totals directly from Firebase servers using ONLY 1 read per query!
     async function getAggregatedTotals(startDate, endDate) {
       try {
         const q = query(transactionsRef, where("dateString", ">=", startDate), where("dateString", "<=", endDate));
@@ -450,15 +478,20 @@
       }
     }
 
-    // Specially used for 30 Days loop (using exact match '==' doesn't usually trigger composite index errors)
     async function getDailyTotal(dateStr) {
       try {
         const q = query(transactionsRef, where("dateString", "==", dateStr));
-        const snapshot = await getAggregateFromServer(q, { total: sum('totalAmount') });
-        return snapshot.data().total || 0;
+        const snapshot = await getAggregateFromServer(q, { 
+          total: sum('totalAmount'),
+          cash: sum('cashAmount'),
+          online: sum('onlineAmount'),
+          pending: sum('pendingAmount')
+        });
+        const data = snapshot.data();
+        return { total: data.total || 0, cash: data.cash || 0, online: data.online || 0, pending: data.pending || 0 };
       } catch (err) {
         console.warn("Daily aggregate failed", err);
-        return 0;
+        return { total: 0, cash: 0, online: 0, pending: 0 };
       }
     }
 
@@ -467,27 +500,43 @@
       const today = new Date();
       document.getElementById('currentMonthLabel').innerText = today.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-      // 1. THIS MONTH'S OVERVIEW CARDS
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
-      const monthData = await getAggregatedTotals(getFormattedDate(firstDayOfMonth), getFormattedDate(lastDayOfMonth));
-      
-      document.getElementById('valTotal').innerText = formatCurrency(monthData.total);
-      document.getElementById('valCash').innerText = formatCurrency(monthData.cash);
-      document.getElementById('valOnline').innerText = formatCurrency(monthData.online);
-      document.getElementById('valPending').innerText = formatCurrency(monthData.pending);
-
-      // Fire off chart generators concurrently
-      Promise.all([
-        render30DaysChart(),
-        render6MonthsChart(),
-        renderWeekVsWeekChart(),
-        renderMonthVsMonthChart()
-      ]);
+      // Run all independently so one failing index doesn't block everything
+      renderPieChart(today);
+      render30DaysChart();
+      render6MonthsChart();
+      renderWeekVsWeekChart(today);
+      renderMonthVsMonthChart(today);
     }
 
-    // CHART 1: LAST 30 DAYS (LINE CHART)
+    // CHART 0: PAYMENT BREAKDOWN DOUGHNUT (This Month)
+    async function renderPieChart(today) {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      const data = await getAggregatedTotals(getFormattedDate(start), getFormattedDate(end));
+      
+      document.getElementById('boardPieChart').innerHTML = generateMiniBoard(data.total, data.cash, data.online, data.pending);
+      document.getElementById('boxPieChart').innerHTML = '<canvas id="chartPie"></canvas>';
+      
+      new Chart(document.getElementById('chartPie').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Cash', 'Online'],
+          datasets: [{
+            data: [data.cash, data.online],
+            backgroundColor: ['#2ba640', '#3ea6ff'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '75%',
+          plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } }
+        }
+      });
+    }
+
+    // CHART 1: LAST 30 DAYS (DUAL LINE CHART)
     async function render30DaysChart() {
       const labels = [];
       const dates = [];
@@ -498,31 +547,40 @@
         labels.push(d.getDate() + ' ' + d.toLocaleString('default', {month:'short'}));
       }
 
-      // Execute 30 single-day aggregation queries concurrently (Costs exactly 30 reads)
-      const dataPoints = await Promise.all(dates.map(date => getDailyTotal(date)));
+      const dailyData = await Promise.all(dates.map(date => getDailyTotal(date)));
+      
+      // Summarize for mini board
+      const totalSummary = dailyData.reduce((acc, curr) => ({
+        total: acc.total + curr.total, cash: acc.cash + curr.cash,
+        online: acc.online + curr.online, pending: acc.pending + curr.pending
+      }), {total:0, cash:0, online:0, pending:0});
+
+      document.getElementById('board30Days').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.cash, totalSummary.online, totalSummary.pending);
+      
+      const cashPoints = dailyData.map(d => d.cash);
+      const onlinePoints = dailyData.map(d => d.online);
 
       document.getElementById('box30Days').innerHTML = '<canvas id="chart30Days"></canvas>';
-      const ctx = document.getElementById('chart30Days').getContext('2d');
       
-      new Chart(ctx, {
+      new Chart(document.getElementById('chart30Days').getContext('2d'), {
         type: 'line',
         data: {
           labels: labels,
-          datasets: [{
-            label: 'Total Sales (₹)',
-            data: dataPoints,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderWidth: 3,
-            tension: 0.4, // Smooth curves
-            fill: true,
-            pointRadius: 0, // Hide points for clean look
-            pointHitRadius: 20
-          }]
+          datasets: [
+            {
+              label: 'Cash', data: cashPoints, borderColor: '#2ba640', 
+              backgroundColor: 'rgba(43, 166, 64, 0.1)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15
+            },
+            {
+              label: 'Online', data: onlinePoints, borderColor: '#3ea6ff', 
+              backgroundColor: 'rgba(62, 166, 255, 0.1)', borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 15
+            }
+          ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
           scales: {
             y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
             x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } }
@@ -549,26 +607,28 @@
       }
 
       const results = await Promise.all(promises);
+      
+      const totalSummary = results.reduce((acc, curr) => ({
+        total: acc.total + curr.total, cash: acc.cash + curr.cash,
+        online: acc.online + curr.online, pending: acc.pending + curr.pending
+      }), {total:0, cash:0, online:0, pending:0});
+
+      document.getElementById('board6Months').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.cash, totalSummary.online, totalSummary.pending);
+
       const dataPoints = results.map(r => r.total);
 
       document.getElementById('box6Months').innerHTML = '<canvas id="chart6Months"></canvas>';
-      const ctx = document.getElementById('chart6Months').getContext('2d');
       
-      new Chart(ctx, {
+      new Chart(document.getElementById('chart6Months').getContext('2d'), {
         type: 'bar',
         data: {
           labels: months,
           datasets: [{
-            label: 'Monthly Revenue',
-            data: dataPoints,
-            backgroundColor: 'rgba(16, 185, 129, 0.8)',
-            borderRadius: 6,
-            borderSkipped: false
+            label: 'Monthly Revenue', data: dataPoints, backgroundColor: '#10b981', borderRadius: 6
           }]
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, border: { display: false }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000)+'k' : v) } },
             x: { grid: { display: false } }
@@ -578,14 +638,10 @@
     }
 
     // CHART 3: THIS WEEK VS LAST WEEK
-    async function renderWeekVsWeekChart() {
-      const today = new Date();
-      
-      // Current 7 Days
+    async function renderWeekVsWeekChart(today) {
       const currEnd = new Date(today);
       const currStart = new Date(today); currStart.setDate(currEnd.getDate() - 6);
       
-      // Previous 7 Days
       const prevEnd = new Date(today); prevEnd.setDate(today.getDate() - 7);
       const prevStart = new Date(today); prevStart.setDate(prevEnd.getDate() - 6);
 
@@ -594,26 +650,18 @@
         getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
       ]);
 
+      // Combine both weeks for the mini board below this graph
+      document.getElementById('boardWeekVsWeek').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.cash + prevData.cash, currData.online + prevData.online, currData.pending + prevData.pending);
+
       document.getElementById('boxWeekVsWeek').innerHTML = '<canvas id="chartWeekVsWeek"></canvas>';
-      const ctx = document.getElementById('chartWeekVsWeek').getContext('2d');
       
-      new Chart(ctx, {
+      new Chart(document.getElementById('chartWeekVsWeek').getContext('2d'), {
         type: 'bar',
         data: {
           labels: ['Total Sales', 'Cash', 'Online'],
           datasets: [
-            {
-              label: 'Last 7 Days',
-              data: [currData.total, currData.cash, currData.online],
-              backgroundColor: '#10b981',
-              borderRadius: 6
-            },
-            {
-              label: 'Previous 7 Days',
-              data: [prevData.total, prevData.cash, prevData.online],
-              backgroundColor: '#38383A',
-              borderRadius: 6
-            }
+            { label: 'Last 7 Days', data: [currData.total, currData.cash, currData.online], backgroundColor: '#10b981', borderRadius: 6 },
+            { label: 'Previous 7 Days', data: [prevData.total, prevData.cash, prevData.online], backgroundColor: '#38383A', borderRadius: 6 }
           ]
         },
         options: {
@@ -628,14 +676,10 @@
     }
 
     // CHART 4: THIS MONTH VS LAST MONTH
-    async function renderMonthVsMonthChart() {
-      const today = new Date();
-      
-      // Current Month
+    async function renderMonthVsMonthChart(today) {
       const currStart = new Date(today.getFullYear(), today.getMonth(), 1);
       const currEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       
-      // Previous Month
       const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const prevEnd = new Date(today.getFullYear(), today.getMonth(), 0);
 
@@ -647,26 +691,17 @@
         getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
       ]);
 
+      document.getElementById('boardMonthVsMonth').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.cash + prevData.cash, currData.online + prevData.online, currData.pending + prevData.pending);
+
       document.getElementById('boxMonthVsMonth').innerHTML = '<canvas id="chartMonthVsMonth"></canvas>';
-      const ctx = document.getElementById('chartMonthVsMonth').getContext('2d');
       
-      new Chart(ctx, {
+      new Chart(document.getElementById('chartMonthVsMonth').getContext('2d'), {
         type: 'bar',
         data: {
           labels: ['Total Sales', 'Cash', 'Online'],
           datasets: [
-            {
-              label: currLabel,
-              data: [currData.total, currData.cash, currData.online],
-              backgroundColor: '#3ea6ff', // Use blue for month comparison to differentiate
-              borderRadius: 6
-            },
-            {
-              label: prevLabel,
-              data: [prevData.total, prevData.cash, prevData.online],
-              backgroundColor: '#38383A',
-              borderRadius: 6
-            }
+            { label: currLabel, data: [currData.total, currData.cash, currData.online], backgroundColor: '#3ea6ff', borderRadius: 6 },
+            { label: prevLabel, data: [prevData.total, prevData.cash, prevData.online], backgroundColor: '#38383A', borderRadius: 6 }
           ]
         },
         options: {
