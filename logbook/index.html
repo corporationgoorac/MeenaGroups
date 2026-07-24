@@ -1367,14 +1367,28 @@
       }
     });
 
+    // === BULLETPROOF IMAGE REPORT (REWRITTEN & CORRECTED) ===
     window.processImageReport = async (action) => {
       const selectedDate = reportDateInput.value;
       if(!selectedDate) return customAlert("Please select a valid date.");
+      
       const btn = action === 'share' ? document.getElementById('shareImgBtn') : document.getElementById('downloadImgBtn');
       const originalText = btn.innerHTML;
       btn.innerText = action === 'share' ? "Preparing Share..." : "Capturing Image...";
       
       try {
+        // 1. Dynamic Fallback: Ensure html2canvas is heavily scoped into this execution context
+        if (typeof window.html2canvas === 'undefined') {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Failed to load html2canvas library."));
+            document.head.appendChild(script);
+          });
+        }
+
+        // 2. Fetch Data
         const q = query(transactionsRef, where("dateString", "==", selectedDate));
         const snapshot = await getDocs(q);
         let totalCash = 0, totalOnline = 0;
@@ -1396,15 +1410,15 @@
         const totalSales = totalCash + totalOnline;
         const formattedDate = new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-        // Create Offscreen Node (Instagram Dark Mode theme independent of viewport)
+        // 3. Create Safe Offscreen Node 
+        // FIX: Moved to left: -9999px instead of opacity:0 to prevent black rendering bugs
         const captureContainer = document.createElement('div');
-        captureContainer.style.position = 'absolute'; // CRITICAL SENIOR FIX: Changed from 'fixed' to 'absolute'
-        captureContainer.style.left = '-9999px';      // Off-screen so user doesn't see it flash
+        captureContainer.style.position = 'fixed';
+        captureContainer.style.left = '-9999px'; 
         captureContainer.style.top = '0';
         captureContainer.style.zIndex = '-9999';
-        // DO NOT ADD opacity: 0; or pointer-events: none;. html2canvas ignores those completely and fails to render.
         captureContainer.style.width = '1080px';
-        captureContainer.style.height = 'max-content'; 
+        captureContainer.style.height = 'max-content';
         captureContainer.style.backgroundColor = '#121212';
         captureContainer.style.color = '#F5F5F7';
         captureContainer.style.padding = '60px';
@@ -1474,7 +1488,8 @@
         // Pause allows browser to completely render the off-screen layout
         await new Promise(r => setTimeout(r, 600));
 
-        const canvas = await html2canvas(captureContainer, {
+        // 4. Capture using Explicit Window Context
+        const canvas = await window.html2canvas(captureContainer, {
           scale: 2,
           useCORS: true,
           backgroundColor: '#121212',
@@ -1483,31 +1498,37 @@
           logging: false
         });
 
-        // SENIOR DEV FIX: Properly Promisify Blob generation so it doesn't escape the try/catch loop
-        const blob = await new Promise((resolve, reject) => {
-          canvas.toBlob((b) => {
-            if (b) resolve(b);
-            else reject(new Error("Canvas to Blob conversion failed"));
-          }, 'image/png');
-        });
+        // Clean up immediately after processing the element
+        document.body.removeChild(captureContainer);
+
+        // 5. Wrap Blob conversion into Promise for safe Download Handling 
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error("Image Blob compilation failed");
+        
+        const filename = `Meena_Logs_${selectedDate}.png`;
 
         if (action === 'share') {
-           const file = new File([blob], `Meena_Logs_${selectedDate}.png`, { type: 'image/png' });
+           const file = new File([blob], filename, { type: 'image/png' });
            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-             await navigator.share({
-               title: 'Daily Sales Report',
-               files: [file]
-             });
+             try {
+               await navigator.share({
+                 title: 'Daily Sales Report',
+                 files: [file]
+               });
+             } catch (err) {
+               // User may have simply canceled the share sheet
+               if(err.name !== 'AbortError') console.log("Share API failed", err);
+             }
            } else {
              customAlert("Your device doesn't support direct image sharing.");
            }
         } else {
-           // SENIOR DEV FIX: Bypass Base64 size limit on Android Native Download Manager
+           // SENIOR DEV FIX: Bypass Base64 limit and async OS Download Manager bug
            const url = window.URL.createObjectURL(blob);
            const link = document.createElement('a');
            link.style.display = 'none';
            link.href = url;
-           link.download = `Meena_Logs_Report_${selectedDate}.png`;
+           link.download = filename;
            document.body.appendChild(link);
            link.click();
            document.body.removeChild(link);
@@ -1515,14 +1536,12 @@
            setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
         }
 
-        document.body.removeChild(captureContainer);
         history.back(); // close modal
       } catch (err) {
         console.error(err);
-        customAlert("Error capturing image: " + err.message);
+        customAlert(err.message || "Error capturing image. Make sure you are online.");
       } finally {
         btn.innerHTML = originalText;
-        btn.disabled = false;
       }
     };
 
