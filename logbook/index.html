@@ -1398,14 +1398,13 @@
 
         // Create Offscreen Node (Instagram Dark Mode theme independent of viewport)
         const captureContainer = document.createElement('div');
-        captureContainer.style.position = 'fixed';
-        captureContainer.style.left = '0';
+        captureContainer.style.position = 'absolute'; // CRITICAL SENIOR FIX: Changed from 'fixed' to 'absolute'
+        captureContainer.style.left = '-9999px';      // Off-screen so user doesn't see it flash
         captureContainer.style.top = '0';
         captureContainer.style.zIndex = '-9999';
-        captureContainer.style.opacity = '0';
-        captureContainer.style.pointerEvents = 'none';
+        // DO NOT ADD opacity: 0; or pointer-events: none;. html2canvas ignores those completely and fails to render.
         captureContainer.style.width = '1080px';
-        captureContainer.style.height = 'max-content'; // Prevents html2canvas cropping
+        captureContainer.style.height = 'max-content'; 
         captureContainer.style.backgroundColor = '#121212';
         captureContainer.style.color = '#F5F5F7';
         captureContainer.style.padding = '60px';
@@ -1479,53 +1478,51 @@
           scale: 2,
           useCORS: true,
           backgroundColor: '#121212',
-          windowWidth: captureContainer.scrollWidth,
+          windowWidth: 1080,
           windowHeight: captureContainer.scrollHeight,
           logging: false
         });
 
+        // SENIOR DEV FIX: Properly Promisify Blob generation so it doesn't escape the try/catch loop
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error("Canvas to Blob conversion failed"));
+          }, 'image/png');
+        });
+
         if (action === 'share') {
-           canvas.toBlob(async (blob) => {
-             if (blob) {
-               const file = new File([blob], `Meena_Logs_${selectedDate}.png`, { type: 'image/png' });
-               if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                 try {
-                   await navigator.share({
-                     title: 'Daily Sales Report',
-                     files: [file]
-                   });
-                 } catch (err) {
-                   console.log("Share canceled or failed", err);
-                 }
-               } else {
-                 customAlert("Your device doesn't support direct image sharing.");
-               }
-             }
-           }, 'image/png');
+           const file = new File([blob], `Meena_Logs_${selectedDate}.png`, { type: 'image/png' });
+           if (navigator.canShare && navigator.canShare({ files: [file] })) {
+             await navigator.share({
+               title: 'Daily Sales Report',
+               files: [file]
+             });
+           } else {
+             customAlert("Your device doesn't support direct image sharing.");
+           }
         } else {
-           // SENIOR DEV FIX: Bypass Base64 limit and async OS Download Manager bug
-           canvas.toBlob((blob) => {
-             if (!blob) throw new Error("Blob creation failed");
-             const url = window.URL.createObjectURL(blob);
-             const link = document.createElement('a');
-             link.style.display = 'none';
-             link.href = url;
-             link.download = `Meena_Logs_Report_${selectedDate}.png`;
-             document.body.appendChild(link);
-             link.click();
-             document.body.removeChild(link);
-             // CRITICAL: Delay revocation so Android's Download Manager has time to read the memory pointer!
-             setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
-           }, 'image/png');
+           // SENIOR DEV FIX: Bypass Base64 size limit on Android Native Download Manager
+           const url = window.URL.createObjectURL(blob);
+           const link = document.createElement('a');
+           link.style.display = 'none';
+           link.href = url;
+           link.download = `Meena_Logs_Report_${selectedDate}.png`;
+           document.body.appendChild(link);
+           link.click();
+           document.body.removeChild(link);
+           // CRITICAL: Delay revocation so Android's Download Manager has time to read the memory pointer!
+           setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
         }
 
         document.body.removeChild(captureContainer);
         history.back(); // close modal
       } catch (err) {
         console.error(err);
-        customAlert("Error capturing image. Make sure you are online.");
+        customAlert("Error capturing image: " + err.message);
       } finally {
         btn.innerHTML = originalText;
+        btn.disabled = false;
       }
     };
 
