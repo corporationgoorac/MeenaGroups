@@ -25,6 +25,8 @@
       --google-btn-text: #3c4043;
       --google-btn-border: #dadce0;
       --google-btn-hover: #f8f9fa;
+      --skeleton-base: #e5e5e5;
+      --skeleton-highlight: #f8f9fa;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -40,6 +42,8 @@
         --google-btn-text: #e8eaed;
         --google-btn-border: #3f3f3f;
         --google-btn-hover: #2a2a2a;
+        --skeleton-base: #2a2a2a;
+        --skeleton-highlight: #3f3f3f;
       }
     }
 
@@ -75,6 +79,14 @@
       transition: background-color 0.3s ease;
     }
 
+    /* Re-enable selection specifically for inputs so typing works normally */
+    input {
+      -webkit-user-select: auto;
+      -moz-user-select: auto;
+      -ms-user-select: auto;
+      user-select: auto;
+    }
+
     .login-wrapper {
       width: 100%;
       padding: 20px;
@@ -82,9 +94,10 @@
       justify-content: center;
       align-items: center;
       box-sizing: border-box;
+      position: relative;
     }
 
-    .login-card {
+    .login-card, .setup-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 24px;
@@ -96,6 +109,10 @@
       transform: translateY(0);
       animation: floatUp 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
       opacity: 0;
+    }
+
+    .setup-card {
+      display: none; /* Hidden initially, shown only for new users */
     }
 
     @keyframes floatUp {
@@ -194,12 +211,94 @@
     .error-msg.show {
       opacity: 1;
     }
+
+    /* === PROFILE SETUP UI === */
+    .profile-img-container {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 24px auto;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      background: var(--skeleton-base);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .skeleton-img {
+      background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0;
+      z-index: 1;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .profile-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    .input-name {
+      width: 100%;
+      padding: 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-color);
+      color: var(--text-main);
+      box-sizing: border-box;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-align: center;
+    }
+    
+    .input-name:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .btn-primary:disabled {
+      background: var(--text-muted);
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
 
   <div class="login-wrapper">
-    <div class="login-card">
+    <!-- EXISTING LOGIN CARD -->
+    <div class="login-card" id="loginCard">
       <img src="icon.png" alt="Meena LogBook" class="app-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzEwYjk4MSIvPjwvc3ZnPg=='">
       <h1 class="title">Meena LogBook</h1>
       <p class="subtitle">Securely manage your daily business transactions.</p>
@@ -224,12 +323,30 @@
 
       <div id="errorText" class="error-msg"></div>
     </div>
+
+    <!-- NEW SETUP CARD -->
+    <div class="setup-card" id="setupCard">
+      <h1 class="title" style="margin-bottom: 24px;">Complete Profile</h1>
+      
+      <div class="profile-img-container">
+        <div class="skeleton-img" id="imgSkeleton"></div>
+        <img id="profileImg" class="profile-img" alt="Profile" 
+             onload="this.style.opacity='1'; document.getElementById('imgSkeleton').style.display='none';" 
+             onerror="this.style.display='none'; document.getElementById('imgSkeleton').style.display='none';">
+      </div>
+
+      <input type="text" id="setupName" class="input-name" placeholder="Enter your full name" required autocomplete="off">
+      
+      <button id="nextBtn" class="btn-primary">Next</button>
+    </div>
   </div>
 
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+    // ADDED FIRESTORE IMPORTS
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
@@ -243,20 +360,61 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
+    const db = getFirestore(app); // ADDED FIRESTORE INIT
 
     // DOM Elements
+    const loginCard = document.getElementById('loginCard');
     const googleBtn = document.getElementById('googleBtn');
     const btnText = document.getElementById('btnText');
     const errorText = document.getElementById('errorText');
+    
+    // NEW DOM ELEMENTS FOR SETUP
+    const setupCard = document.getElementById('setupCard');
+    const profileImg = document.getElementById('profileImg');
+    const setupName = document.getElementById('setupName');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let currentUser = null;
 
     // Haptics Helper
     const vibrate = () => { if (navigator.vibrate) navigator.vibrate(15); };
 
-    // Redirect immediately if already logged in
-    onAuthStateChanged(auth, (user) => {
+    // Redirect or Show Setup if logged in
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setLoadingState(true, "Redirecting...");
-        window.location.href = 'index.html';
+        setLoadingState(true, "Checking profile...");
+        currentUser = user;
+        
+        try {
+          // Check if user document exists in Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            // Already set up, redirect immediately
+            window.location.href = 'index.html';
+          } else {
+            // First time login - Show Profile Setup Screen
+            loginCard.style.display = 'none';
+            setupCard.style.display = 'block';
+            
+            // Pre-fill Name and Image from Google Profile
+            if (user.displayName) {
+              setupName.value = user.displayName;
+            }
+            if (user.photoURL) {
+              // Increase image quality by manipulating the google photo URL
+              profileImg.src = user.photoURL.replace('s96-c', 's192-c');
+            } else {
+              document.getElementById('imgSkeleton').style.display = 'none';
+            }
+          }
+        } catch (err) {
+          console.error("Firestore Check Failed:", err);
+          setLoadingState(false);
+          errorText.innerText = "Error connecting to database. Please try again.";
+          errorText.classList.add('show');
+        }
       }
     });
 
@@ -279,13 +437,49 @@
 
       try {
         await signInWithPopup(auth, provider);
-        // onAuthStateChanged will handle the redirect once successful
+        // onAuthStateChanged will handle the redirect or setup once successful
       } catch (error) {
         console.error("Login Failed:", error);
         setLoadingState(false);
         errorText.innerText = "Login failed. Please try again.";
         errorText.classList.add('show');
         if (navigator.vibrate) navigator.vibrate([30, 50, 30]); // Error haptic
+      }
+    });
+
+    // Handle Setup Form Submission
+    nextBtn.addEventListener('click', async () => {
+      vibrate();
+      const finalName = setupName.value.trim();
+      
+      if (!finalName) {
+        setupName.focus();
+        setupName.style.borderColor = '#ef4444';
+        setTimeout(() => setupName.style.borderColor = 'var(--border)', 1500);
+        return;
+      }
+
+      nextBtn.innerText = "Saving...";
+      nextBtn.disabled = true;
+
+      try {
+        // Create User Document
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          uid: currentUser.uid,
+          name: finalName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL || null,
+          createdAt: serverTimestamp(),
+          role: 'user'
+        });
+        
+        // Redirect upon successful creation
+        window.location.href = 'index.html';
+      } catch (err) {
+        console.error("Profile Setup Failed:", err);
+        nextBtn.innerText = "Next";
+        nextBtn.disabled = false;
+        alert("Failed to save profile. Check permissions or internet connection.");
       }
     });
   </script>
