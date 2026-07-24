@@ -441,12 +441,12 @@
       return `${y}-${m}-${d}`;
     };
 
-    // Standard Unified Board (Total + Pending Only) - Used for all graphs except Pie
+    // Standard Unified Board (Net Pending Logic applied dynamically)
     const generateMiniBoard = (total, pending) => {
       return `
         <div class="mini-stat-board">
           <div class="mini-stat"><span class="ms-label">Total Sales</span><span class="ms-val ms-total">${formatCurrency(total)}</span></div>
-          <div class="mini-stat"><span class="ms-label">Pending Dues</span><span class="ms-val ms-pending">${formatCurrency(pending)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Net Pending</span><span class="ms-val ms-pending">${formatCurrency(pending)}</span></div>
         </div>
       `;
     };
@@ -510,7 +510,7 @@
       indexModalOverlay.classList.remove('open');
     }
 
-    // === SERVER-SIDE AGGREGATION LOGIC (SAVES READS) ===
+    // === SERVER-SIDE AGGREGATION LOGIC WITH NET PENDING MATH ===
     async function getAggregatedTotals(startDate, endDate) {
       try {
         const q = query(transactionsRef, where("dateString", ">=", startDate), where("dateString", "<=", endDate));
@@ -521,10 +521,31 @@
           pending: sum('pendingAmount')
         });
         const data = snapshot.data();
-        return { total: data.total || 0, cash: data.cash || 0, online: data.online || 0, pending: data.pending || 0 };
+
+        // Second query to grab the old balance recoveries in this timeframe
+        let oldBalanceTotal = 0;
+        try {
+          const qOld = query(transactionsRef, where("dateString", ">=", startDate), where("dateString", "<=", endDate), where("isOldBalance", "==", true));
+          const snapOld = await getAggregateFromServer(qOld, { oldBal: sum('totalAmount') });
+          oldBalanceTotal = snapOld.data().oldBal || 0;
+        } catch (e) {
+          handleFirebaseError(e);
+        }
+
+        const grossPending = data.pending || 0;
+        const netPending = grossPending - oldBalanceTotal;
+
+        return { 
+          total: data.total || 0, 
+          cash: data.cash || 0, 
+          online: data.online || 0, 
+          pending: netPending, 
+          grossPending: grossPending,
+          oldBalance: oldBalanceTotal
+        };
       } catch (err) {
         handleFirebaseError(err);
-        return { total: 0, cash: 0, online: 0, pending: 0 };
+        return { total: 0, cash: 0, online: 0, pending: 0, grossPending: 0, oldBalance: 0 };
       }
     }
 
@@ -536,11 +557,29 @@
           pending: sum('pendingAmount')
         });
         const data = snapshot.data();
-        return { total: data.total || 0, pending: data.pending || 0 };
+
+        // Get old balances for just this day
+        let oldBalanceTotal = 0;
+        try {
+          const qOld = query(transactionsRef, where("dateString", "==", dateStr), where("isOldBalance", "==", true));
+          const snapOld = await getAggregateFromServer(qOld, { oldBal: sum('totalAmount') });
+          oldBalanceTotal = snapOld.data().oldBal || 0;
+        } catch (e) {
+          handleFirebaseError(e);
+        }
+
+        const grossPending = data.pending || 0;
+        const netPending = grossPending - oldBalanceTotal;
+
+        return { 
+          total: data.total || 0, 
+          pending: netPending,
+          grossPending: grossPending,
+          oldBalance: oldBalanceTotal
+        };
       } catch (err) {
-        // FIXED: Catch error and trigger UI index popup properly
         handleFirebaseError(err);
-        return { total: 0, pending: 0 };
+        return { total: 0, pending: 0, grossPending: 0, oldBalance: 0 };
       }
     }
 
@@ -552,8 +591,8 @@
       // Run all charts concurrently
       renderPieChart(today);
       render30DaysChart();
-      renderPendingVsOldBalanceChart(today); // New Chart
-      render6MonthsCharts(); // Handles both Bar and Line charts
+      renderPendingVsOldBalanceChart(today);
+      render6MonthsCharts();
       renderWeekVsWeekChart(today);
       renderMonthVsMonthChart(today);
     }
@@ -599,7 +638,7 @@
 
       const dailyData = await Promise.all(dates.map(date => getDailyTotal(date)));
       
-      // Summarize for mini board
+      // Summarize for mini board (Using the Net Pending directly from the updated logic)
       const totalSummary = dailyData.reduce((acc, curr) => ({
         total: acc.total + curr.total, pending: acc.pending + curr.pending
       }), {total:0, pending:0});
@@ -638,28 +677,12 @@
       const start = new Date(today.getFullYear(), today.getMonth(), 1);
       const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-      const startStr = getFormattedDate(start);
-      const endStr = getFormattedDate(end);
-
-      // Get this month's standard data (for pending total)
-      const data = await getAggregatedTotals(startStr, endStr);
-
-      // Get Old Balance total safely wrapped in try-catch to trigger auto-indexer if needed
-      let oldBalanceTotal = 0;
-      try {
-        const q = query(transactionsRef, where("dateString", ">=", startStr), where("dateString", "<=", endStr), where("isOldBalance", "==", true));
-        const snapshot = await getAggregateFromServer(q, {
-          total: sum('totalAmount')
-        });
-        oldBalanceTotal = snapshot.data().total || 0;
-      } catch (err) {
-        handleFirebaseError(err);
-      }
+      const data = await getAggregatedTotals(getFormattedDate(start), getFormattedDate(end));
 
       document.getElementById('boardPendingOldBalance').innerHTML = `
         <div class="mini-stat-board">
-          <div class="mini-stat"><span class="ms-label">Pending</span><span class="ms-val" style="color:#fbbf24">${formatCurrency(data.pending)}</span></div>
-          <div class="mini-stat"><span class="ms-label">Old Balance</span><span class="ms-val" style="color:#a855f7">${formatCurrency(oldBalanceTotal)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Net Pending</span><span class="ms-val" style="color:#fbbf24">${formatCurrency(data.pending)}</span></div>
+          <div class="mini-stat"><span class="ms-label">Recovered (Old Bal)</span><span class="ms-val" style="color:#a855f7">${formatCurrency(data.oldBalance)}</span></div>
         </div>
       `;
 
@@ -668,10 +691,10 @@
       new Chart(document.getElementById('chartPendingOldBalance').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: ['Pending Dues', 'Old Balance Received'],
+          labels: ['New Pending Dues', 'Old Balance Recovered'],
           datasets: [{
             label: 'Amount (₹)',
-            data: [data.pending, oldBalanceTotal],
+            data: [data.grossPending, data.oldBalance],
             backgroundColor: ['#fbbf24', '#a855f7'],
             borderRadius: 6
           }]
@@ -727,7 +750,7 @@
         }
       });
 
-      // Render Line Chart (Reusing the same optimized data)
+      // Render Line Chart
       document.getElementById('board6MonthsLine').innerHTML = generateMiniBoard(totalSummary.total, totalSummary.pending);
       document.getElementById('box6MonthsLine').innerHTML = '<canvas id="chart6MonthsLine"></canvas>';
       new Chart(document.getElementById('chart6MonthsLine').getContext('2d'), {
@@ -756,7 +779,6 @@
         getAggregatedTotals(getFormattedDate(prevStart), getFormattedDate(prevEnd))
       ]);
 
-      // Combine both weeks for the mini board
       document.getElementById('boardWeekVsWeek').innerHTML = generateMiniBoard(currData.total + prevData.total, currData.pending + prevData.pending);
 
       document.getElementById('boxWeekVsWeek').innerHTML = '<canvas id="chartWeekVsWeek"></canvas>';
@@ -764,7 +786,7 @@
       new Chart(document.getElementById('chartWeekVsWeek').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: ['Total Sales', 'Pending Dues'],
+          labels: ['Total Sales', 'Net Pending Dues'],
           datasets: [
             { label: 'Last 7 Days', data: [currData.total, currData.pending], backgroundColor: '#10b981', borderRadius: 6 },
             { label: 'Previous 7 Days', data: [prevData.total, prevData.pending], backgroundColor: '#38383A', borderRadius: 6 }
@@ -804,7 +826,7 @@
       new Chart(document.getElementById('chartMonthVsMonth').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: ['Total Sales', 'Pending Dues'],
+          labels: ['Total Sales', 'Net Pending Dues'],
           datasets: [
             { label: currLabel, data: [currData.total, currData.pending], backgroundColor: '#3ea6ff', borderRadius: 6 },
             { label: prevLabel, data: [prevData.total, prevData.pending], backgroundColor: '#38383A', borderRadius: 6 }
