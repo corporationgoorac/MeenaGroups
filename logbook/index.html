@@ -1503,12 +1503,20 @@
              }
            }, 'image/png');
         } else {
-           // Use DataURL for stable direct download to avoid Android Webview/Chrome Blob Network Error
-           const imgData = canvas.toDataURL('image/png');
-           const link = document.createElement('a');
-           link.download = `Meena_Logs_Report_${selectedDate}.png`;
-           link.href = imgData;
-           link.click();
+           // SENIOR DEV FIX: Bypass Base64 limit and async OS Download Manager bug
+           canvas.toBlob((blob) => {
+             if (!blob) throw new Error("Blob creation failed");
+             const url = window.URL.createObjectURL(blob);
+             const link = document.createElement('a');
+             link.style.display = 'none';
+             link.href = url;
+             link.download = `Meena_Logs_Report_${selectedDate}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             // CRITICAL: Delay revocation so Android's Download Manager has time to read the memory pointer!
+             setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
+           }, 'image/png');
         }
 
         document.body.removeChild(captureContainer);
