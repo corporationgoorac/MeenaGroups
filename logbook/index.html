@@ -9,6 +9,8 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212">
   
   <link rel="manifest" href="manifest.json">
+  <!-- Include html2canvas for Image Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQmJb0OzzUrDQxys61sS2igkANfE/b8OU6L+X4hrcw5CUe2e/eE1Z/G/2Kq+X585B5oB+E2j78jB4uK33TQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
     /* === PREMIUM AUTO DARK / LIGHT THEME (DARK GRAY VIBE) === */
@@ -132,6 +134,12 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     /* === RESPONSIVE DATE PICKER === */
     .date-picker-container {
       position: relative;
@@ -171,7 +179,7 @@
         cursor: pointer;
         box-shadow: var(--shadow-sm);
       }
-      .date-picker-nav {
+      .date-picker-nav.hide-mobile {
         position: absolute;
         top: 0;
         left: 0;
@@ -183,6 +191,9 @@
         margin: 0;
         border: none;
         z-index: 2;
+      }
+      .report-text-hide {
+        display: none;
       }
     }
 
@@ -236,7 +247,7 @@
     .summary-card {
       background: var(--card-bg);
       border-radius: 16px; /* Enhanced rounding */
-      padding: 28px 24px;
+      padding: 24px 16px;
       display: flex;
       justify-content: space-between;
       box-shadow: var(--shadow-lg); /* Deeper shadow */
@@ -244,6 +255,7 @@
       border: 1px solid var(--border);
       position: relative;
       overflow: hidden;
+      gap: 8px; /* Support for 3 items without breaking */
     }
 
     .summary-card::after {
@@ -256,29 +268,35 @@
     .summary-item {
       text-align: center;
       flex: 1;
+      min-width: 0; /* allows flex items to shrink below their content size if needed */
     }
 
-    .summary-item:first-child { 
+    .summary-item:not(:last-child) { 
       border-right: 1px solid var(--border); 
     }
 
     .summary-label {
-      font-size: 13px;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
       font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
     .summary-value {
-      font-size: 32px; /* Slightly larger */
+      font-size: clamp(16px, 4vw, 28px); /* Dynamically scales to prevent breaking */
       font-weight: 800;
       letter-spacing: -0.5px;
+      word-break: break-all; /* Ensure large numbers just wrap if they absolutely must */
     }
     
     .text-cash { color: var(--cash-color); }
     .text-online { color: var(--online-color); }
+    .text-total { color: var(--primary); }
 
     /* === HISTORY LIST === */
     .section-title {
@@ -621,6 +639,21 @@
       box-shadow: none;
     }
 
+    .btn-report {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+
     /* === PC RESPONSIVENESS (PERFECT FLEX) === */
     @media (min-width: 769px) {
       .container {
@@ -656,20 +689,27 @@
 
   <header>
     <div class="header-left">
-      <img src="icon.png" alt="Logo" style="width: 28px; height: 28px; border-radius: 6px;">
+      <img src="icon.png" id="appLogo" alt="Logo" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover;">
       Meena LogBook
     </div>
     
-    <div class="date-picker-container">
-      <div class="date-icon" onclick="try{document.getElementById('dateFilter').showPicker()}catch(e){}">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
+    <div class="header-right">
+      <button id="openReportModalBtn" class="btn-report">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <span class="report-text-hide">Report</span>
+      </button>
+
+      <div class="date-picker-container">
+        <div class="date-icon" onclick="try{document.getElementById('dateFilter').showPicker()}catch(e){}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <input type="date" id="dateFilter" class="date-picker-nav hide-mobile">
       </div>
-      <input type="date" id="dateFilter" class="date-picker-nav">
     </div>
   </header>
 
@@ -689,6 +729,12 @@
       <div class="summary-item">
         <div class="summary-label">Total Online</div>
         <div class="summary-value text-online" id="totalOnlineView">
+          <div class="skeleton skeleton-text"></div>
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Total Sales</div>
+        <div class="summary-value text-total" id="totalSalesView">
           <div class="skeleton skeleton-text"></div>
         </div>
       </div>
@@ -800,6 +846,25 @@
       </div>
   </div>
 
+  <!-- === NEW: REPORT MODAL === -->
+  <div class="modal-overlay" id="reportModalOverlay"></div>
+  <div class="mini-modal" id="reportModal">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Download Report</h3>
+      <button class="close-btn" style="width: 32px; height: 32px; font-size: 22px;" onclick="history.back()">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Select Date for Report</label>
+      <input type="date" id="reportDateInput" class="date-picker-nav" style="width: 100%; margin-bottom: 15px; box-sizing: border-box;">
+    </div>
+    <button id="downloadImgBtn" class="btn-save" style="margin-bottom: 12px; background: #262626; border: 1px solid #38383A; display: flex; justify-content: center; gap: 8px;">
+      📸 Download Image
+    </button>
+    <button id="downloadCsvBtn" class="btn-save" style="display: flex; justify-content: center; gap: 8px;">
+      📊 Download CSV
+    </button>
+  </div>
+
   <!-- === NEW: ADVANCED SYSTEM ALERT MODAL OVERRIDE === -->
   <div class="modal-overlay" id="alertModalOverlay"></div>
   <div class="mini-modal" id="alertModal" style="text-align: center; padding-top: 32px;">
@@ -809,9 +874,27 @@
   </div>
 
   <script type="module">
+    // === LOGO LOCAL STORAGE CACHING (0ms loading) ===
+    const appLogo = document.getElementById('appLogo');
+    const cachedLogo = localStorage.getItem('logbook_logo_b64');
+    if (cachedLogo) {
+      appLogo.src = cachedLogo;
+    }
+    // Refresh cache asynchronously
+    fetch('icon.png')
+      .then(response => response.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+          localStorage.setItem('logbook_logo_b64', reader.result);
+          appLogo.src = reader.result;
+        }
+        reader.readAsDataURL(blob);
+      }).catch(e => console.log('Logo cache fail - relying on network fallback.'));
+
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, doc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
     // === NEW: FIREBASE AUTH IMPORT ===
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
@@ -868,6 +951,11 @@
     dateFilter.setAttribute('value', todayDocId); 
     dateFilter.max = todayDocId; 
 
+    // Setup Report Date input
+    const reportDateInput = document.getElementById('reportDateInput');
+    reportDateInput.value = todayDocId;
+    reportDateInput.max = todayDocId;
+
     // === UI ELEMENTS ===
     const fabBtn = document.getElementById('fabBtn');
     const entryModal = document.getElementById('entryModal');
@@ -883,6 +971,10 @@
 
     const detailModal = document.getElementById('detailModal');
     const detailModalOverlay = document.getElementById('detailModalOverlay');
+
+    const reportModal = document.getElementById('reportModal');
+    const reportModalOverlay = document.getElementById('reportModalOverlay');
+    const openReportModalBtn = document.getElementById('openReportModalBtn');
 
     // === NEW: CUSTOM ALERT UI ELEMENTS ===
     const alertModal = document.getElementById('alertModal');
@@ -918,6 +1010,19 @@
       document.getElementById('isPending').checked = false; // Reset toggle specifically
       toggleSplitFields();
       togglePendingField(); // Reset pending field
+    }
+
+    // === REPORT MODAL LOGIC ===
+    openReportModalBtn.addEventListener('click', () => {
+      reportDateInput.value = dateFilter.value; // Sync with main view
+      reportModal.classList.add('open');
+      reportModalOverlay.classList.add('open');
+      history.pushState({ reportModalOpen: true }, '', '#report');
+    });
+
+    function closeReportModal() {
+      reportModal.classList.remove('open');
+      reportModalOverlay.classList.remove('open');
     }
 
     // === DELETE MODAL LOGIC ===
@@ -1008,18 +1113,11 @@
 
     // === POPSTATE LISTENER FOR BACK BUTTON SUPPORT ON ALL POPUPS ===
     window.addEventListener('popstate', (e) => {
-      if (entryModal.classList.contains('open')) {
-        closeModal();
-      }
-      if (deleteModal.classList.contains('open')) {
-        closeDeleteModal();
-      }
-      if (detailModal.classList.contains('open')) {
-        closeDetailModal();
-      }
-      if (alertModal.classList.contains('open')) {
-        closeAlertModal();
-      }
+      if (entryModal.classList.contains('open')) closeModal();
+      if (deleteModal.classList.contains('open')) closeDeleteModal();
+      if (detailModal.classList.contains('open')) closeDetailModal();
+      if (alertModal.classList.contains('open')) closeAlertModal();
+      if (reportModal.classList.contains('open')) closeReportModal();
     });
 
     fabBtn.addEventListener('click', openModal);
@@ -1028,6 +1126,7 @@
     deleteModalOverlay.addEventListener('click', () => history.back());
     detailModalOverlay.addEventListener('click', () => history.back());
     alertModalOverlay.addEventListener('click', () => history.back());
+    reportModalOverlay.addEventListener('click', () => history.back());
 
     // === PENDING AMOUNT LOGIC ===
     window.togglePendingField = function() {
@@ -1084,6 +1183,7 @@
 
       document.getElementById('totalCashView').innerHTML = '<div class="skeleton skeleton-text"></div>';
       document.getElementById('totalOnlineView').innerHTML = '<div class="skeleton skeleton-text"></div>';
+      document.getElementById('totalSalesView').innerHTML = '<div class="skeleton skeleton-text"></div>';
       historyList.innerHTML = '<div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>';
 
       const q = query(transactionsRef, where("dateString", "==", targetDate));
@@ -1108,6 +1208,7 @@
 
         document.getElementById('totalCashView').innerText = formatCurrency(totalCash);
         document.getElementById('totalOnlineView').innerText = formatCurrency(totalOnline);
+        document.getElementById('totalSalesView').innerText = formatCurrency(totalCash + totalOnline);
 
         if (txList.length > 0) {
           txList.sort((a, b) => {
@@ -1167,6 +1268,172 @@
     dateFilter.addEventListener('change', (e) => {
       if(e.target.value) {
         fetchLogsForDate(e.target.value);
+      }
+    });
+
+    // === REPORTS LOGIC (IMAGE & CSV) ===
+    document.getElementById('downloadCsvBtn').addEventListener('click', async () => {
+      const selectedDate = reportDateInput.value;
+      if(!selectedDate) return customAlert("Please select a valid date.");
+      const btn = document.getElementById('downloadCsvBtn');
+      btn.innerText = "Generating CSV...";
+      
+      try {
+        const q = query(transactionsRef, where("dateString", "==", selectedDate));
+        const snapshot = await getDocs(q);
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Date,Time,Invoice No,Customer Name,Reason,Payment Mode,Cash Amount,Online Amount,Total Amount,Status,Pending Amount\n";
+
+        snapshot.forEach(docSnap => {
+          const tx = docSnap.data();
+          const cleanReason = (tx.reason || "").replace(/,/g, " ");
+          const cleanCustomer = (tx.customerName || "").replace(/,/g, " ");
+          const status = tx.isPending ? "Pending" : "Cleared";
+          const pendingAmt = tx.isPending ? (tx.pendingAmount || 0) : 0;
+          
+          const row = [
+            tx.dateString, tx.time, tx.invoiceNo, cleanCustomer, cleanReason, 
+            tx.mode, tx.cashAmount || 0, tx.onlineAmount || 0, tx.totalAmount, 
+            status, pendingAmt
+          ];
+          csvContent += row.join(",") + "\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Meena_Logs_${selectedDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        history.back(); // close modal
+      } catch (err) {
+        console.error(err);
+        customAlert("Error generating CSV. Make sure you are online.");
+      } finally {
+        btn.innerHTML = "📊 Download CSV";
+      }
+    });
+
+    document.getElementById('downloadImgBtn').addEventListener('click', async () => {
+      const selectedDate = reportDateInput.value;
+      if(!selectedDate) return customAlert("Please select a valid date.");
+      const btn = document.getElementById('downloadImgBtn');
+      btn.innerText = "Capturing Image...";
+      
+      try {
+        const q = query(transactionsRef, where("dateString", "==", selectedDate));
+        const snapshot = await getDocs(q);
+        let totalCash = 0, totalOnline = 0;
+        let entries = [];
+        
+        snapshot.forEach(docSnap => {
+          const tx = docSnap.data();
+          totalCash += tx.cashAmount || 0;
+          totalOnline += tx.onlineAmount || 0;
+          entries.push(tx);
+        });
+
+        entries.sort((a, b) => {
+          const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+          const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+          return timeA - timeB; // Ascending for image report
+        });
+
+        const totalSales = totalCash + totalOnline;
+        const formattedDate = new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        // Create Offscreen Node (Instagram Dark Mode theme independent of viewport)
+        const captureContainer = document.createElement('div');
+        captureContainer.style.position = 'absolute';
+        captureContainer.style.left = '-9999px';
+        captureContainer.style.top = '0';
+        captureContainer.style.width = '1080px';
+        captureContainer.style.backgroundColor = '#121212';
+        captureContainer.style.color = '#F5F5F7';
+        captureContainer.style.padding = '60px';
+        captureContainer.style.fontFamily = "'Segoe UI', Roboto, system-ui, sans-serif";
+        captureContainer.style.boxSizing = 'border-box';
+
+        let html = `
+          <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="margin: 0; font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Meena Marketing Daily Logs</h1>
+            <h3 style="margin-top: 12px; font-size: 24px; color: #A1A1A6; font-weight: 600;">Sales Report • ${formattedDate}</h3>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; background: #1E1E1E; border: 1px solid #38383A; border-radius: 20px; padding: 40px; margin-bottom: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <div style="flex: 1; text-align: center; border-right: 1px solid #38383A;">
+              <div style="font-size: 16px; color: #A1A1A6; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Total Cash</div>
+              <div style="font-size: 42px; font-weight: 800; color: #2ba640; word-break: break-all;">${formatCurrency(totalCash)}</div>
+            </div>
+            <div style="flex: 1; text-align: center; border-right: 1px solid #38383A;">
+              <div style="font-size: 16px; color: #A1A1A6; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Total Online</div>
+              <div style="font-size: 42px; font-weight: 800; color: #3ea6ff; word-break: break-all;">${formatCurrency(totalOnline)}</div>
+            </div>
+            <div style="flex: 1; text-align: center;">
+              <div style="font-size: 16px; color: #A1A1A6; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Total Sales</div>
+              <div style="font-size: 42px; font-weight: 800; color: #10b981; word-break: break-all;">${formatCurrency(totalSales)}</div>
+            </div>
+          </div>
+        `;
+
+        if(entries.length > 0) {
+          entries.forEach((tx, idx) => {
+            let splitDetails = tx.mode === 'Split' ? `<div style="color:#f29900; font-size:16px; font-weight:600; margin-top:8px;">Split: Cash ${formatCurrency(tx.cashAmount)} | Online ${formatCurrency(tx.onlineAmount)}</div>` : '';
+            let pendingDetails = tx.isPending ? `<div style="color:#fbbf24; font-size:16px; font-weight:800; margin-top:8px;">PENDING: ${formatCurrency(tx.pendingAmount)}</div>` : '';
+            
+            html += `
+              <div style="background: #262626; border: 1px solid #38383A; border-radius: 16px; padding: 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1; padding-right: 20px;">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span style="background: #38383A; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px; color: #F5F5F7;">#${idx + 1}</span>
+                    <span style="font-size: 16px; color: #A1A1A6; font-weight: 600;">${tx.invoiceNo}</span>
+                    <span style="font-size: 16px; color: #A1A1A6; font-weight: 600;">• ${tx.time}</span>
+                  </div>
+                  <div style="font-size: 24px; font-weight: 800; color: #F5F5F7; margin-bottom: 6px;">${tx.customerName}</div>
+                  <div style="font-size: 18px; color: #A1A1A6; font-weight: 500;">${tx.reason}</div>
+                  ${splitDetails}
+                  ${pendingDetails}
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 32px; font-weight: 800; color: #F5F5F7; margin-bottom: 12px;">${formatCurrency(tx.totalAmount)}</div>
+                  <div style="display: inline-block; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; ${tx.mode === 'Cash' ? 'background: rgba(43, 166, 64, 0.15); color: #2ba640;' : tx.mode === 'Online' ? 'background: rgba(62, 166, 255, 0.15); color: #3ea6ff;' : 'background: rgba(242, 153, 0, 0.15); color: #f29900;'}">${tx.mode}</div>
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          html += `<div style="text-align:center; padding: 40px; font-size: 24px; color: #A1A1A6; font-weight: 600;">No entries recorded for this date.</div>`;
+        }
+
+        html += `
+          <div style="text-align: center; margin-top: 50px; font-size: 18px; color: #A1A1A6; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
+            — Total Entries: ${entries.length} —
+          </div>
+        `;
+
+        captureContainer.innerHTML = html;
+        document.body.appendChild(captureContainer);
+
+        const canvas = await html2canvas(captureContainer, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#121212'
+        });
+
+        const link = document.createElement('a');
+        link.download = `Meena_Logs_Report_${selectedDate}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        document.body.removeChild(captureContainer);
+        history.back(); // close modal
+      } catch (err) {
+        console.error(err);
+        customAlert("Error capturing image. Make sure you are online.");
+      } finally {
+        btn.innerHTML = "📸 Download Image";
       }
     });
 
