@@ -126,6 +126,86 @@
       padding-bottom: 90px;
     }
 
+    /* === LOCK SCREEN === */
+    #lockScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-color);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: opacity 0.4s ease, visibility 0.4s;
+    }
+    #lockScreen.unlocked {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-icon {
+      width: 64px; height: 64px;
+      background: var(--card-bg);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-lg);
+      color: var(--primary);
+    }
+    
+    .pin-display {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .pin-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+    }
+    .pin-dot.filled {
+      background: var(--primary);
+      border-color: var(--primary);
+      transform: scale(1.2);
+    }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 320px;
+      width: 100%;
+    }
+    .num-btn {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 28px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.1s;
+    }
+    .num-btn:active {
+      transform: scale(0.9);
+      background: var(--input-bg);
+    }
+    .num-btn.empty { background: transparent; border: none; box-shadow: none; cursor: default; }
+
+    /* Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .shake { animation: shake 0.4s; }
+
     /* === USER CARDS === */
     .section-title {
       font-size: 14px;
@@ -307,8 +387,45 @@
 </head>
 <body>
 
+  <!-- === LOCK SCREEN === -->
+  <div id="lockScreen">
+    <div class="lock-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Enter PIN</h2>
+    <p style="color: var(--text-muted); margin: 0 0 32px 0; font-weight: 500;">Admin access required</p>
+    
+    <div class="pin-display" id="pinDisplay">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+
+    <div class="numpad" id="numpad">
+      <button class="num-btn" onclick="addPin('1')">1</button>
+      <button class="num-btn" onclick="addPin('2')">2</button>
+      <button class="num-btn" onclick="addPin('3')">3</button>
+      <button class="num-btn" onclick="addPin('4')">4</button>
+      <button class="num-btn" onclick="addPin('5')">5</button>
+      <button class="num-btn" onclick="addPin('6')">6</button>
+      <button class="num-btn" onclick="addPin('7')">7</button>
+      <button class="num-btn" onclick="addPin('8')">8</button>
+      <button class="num-btn" onclick="addPin('9')">9</button>
+      <div class="num-btn empty"></div>
+      <button class="num-btn" onclick="addPin('0')">0</button>
+      <button class="num-btn" onclick="deletePin()" style="background: transparent; border: none; box-shadow: none;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+          <line x1="18" y1="9" x2="12" y2="15"></line>
+          <line x1="12" y1="9" x2="18" y2="15"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
   <!-- === MAIN UI === -->
-  <div id="mainUI">
+  <div id="mainUI" style="display: none;">
     <header>
       <div class="header-left">
         <div class="back-btn" onclick="window.location.href='index.html'">
@@ -432,9 +549,59 @@
         window.location.href = 'login.html';
       } else {
         currentUserDoc = user;
-        initDataFetch(); // Instantly load data as PIN screen is removed
+        // Wait for PIN verification before calling initDataFetch()
       }
     });
+
+    // === LOCK SCREEN LOGIC ===
+    let currentPin = "";
+    const pinDots = document.querySelectorAll('.pin-dot');
+    const lockScreen = document.getElementById('lockScreen');
+    const mainUI = document.getElementById('mainUI');
+
+    window.addPin = (digit) => {
+      if(currentPin.length < 4) {
+        currentPin += digit;
+        vibrate();
+        updatePinUI();
+      }
+      if(currentPin.length === 4) setTimeout(verifyPin, 50);
+    }
+
+    window.deletePin = () => {
+      if(currentPin.length > 0) {
+        currentPin = currentPin.slice(0, -1);
+        vibrate(5);
+        updatePinUI();
+      }
+    }
+
+    function updatePinUI() {
+      pinDots.forEach((dot, index) => {
+        if(index < currentPin.length) dot.classList.add('filled');
+        else dot.classList.remove('filled');
+      });
+    }
+
+    function verifyPin() {
+      if(currentPin === '2502') {
+        vibrate([30, 50, 30]); // Success
+        lockScreen.classList.add('unlocked');
+        setTimeout(() => {
+          lockScreen.style.display = 'none';
+          mainUI.style.display = 'block';
+          initDataFetch();
+        }, 400);
+      } else {
+        vibrate([50, 50, 50, 50]); // Error
+        document.getElementById('pinDisplay').classList.add('shake');
+        setTimeout(() => {
+          document.getElementById('pinDisplay').classList.remove('shake');
+          currentPin = "";
+          updatePinUI();
+        }, 400);
+      }
+    }
 
     // === DATA FETCHING & PAGINATION ===
     let lastVisible = null;
@@ -533,7 +700,7 @@
 
     // Intersection Observer for Infinite Scroll
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
+      if (entries[0].isIntersecting && lockScreen.classList.contains('unlocked')) {
         fetchUsers();
       }
     }, { rootMargin: '100px' });
