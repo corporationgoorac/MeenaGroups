@@ -424,14 +424,13 @@
       `;
     };
 
-    // Special Board for Pie Chart (Includes Cash/Online)
-    const generatePieMiniBoard = (total, cash, online, pending) => {
+    // Special Board for Pie Chart (Only Total, Cash, Online - No Pending)
+    const generatePieMiniBoard = (total, cash, online) => {
       return `
         <div class="mini-stat-board">
           <div class="mini-stat"><span class="ms-label">Total</span><span class="ms-val ms-total">${formatCurrency(total)}</span></div>
           <div class="mini-stat"><span class="ms-label">Cash</span><span class="ms-val ms-cash">${formatCurrency(cash)}</span></div>
           <div class="mini-stat"><span class="ms-label">Online</span><span class="ms-val ms-online">${formatCurrency(online)}</span></div>
-          <div class="mini-stat"><span class="ms-label">Pending</span><span class="ms-val ms-pending">${formatCurrency(pending)}</span></div>
         </div>
       `;
     };
@@ -512,7 +511,8 @@
         const data = snapshot.data();
         return { total: data.total || 0, pending: data.pending || 0 };
       } catch (err) {
-        console.warn("Daily aggregate failed", err);
+        // FIXED: Catch error and trigger UI index popup properly
+        handleFirebaseError(err);
         return { total: 0, pending: 0 };
       }
     }
@@ -537,7 +537,8 @@
       
       const data = await getAggregatedTotals(getFormattedDate(start), getFormattedDate(end));
       
-      document.getElementById('boardPieChart').innerHTML = generatePieMiniBoard(data.total, data.cash, data.online, data.pending);
+      // Changed to only show Total, Cash, and Online
+      document.getElementById('boardPieChart').innerHTML = generatePieMiniBoard(data.total, data.cash, data.online);
       document.getElementById('boxPieChart').innerHTML = '<canvas id="chartPie"></canvas>';
       
       new Chart(document.getElementById('chartPie').getContext('2d'), {
