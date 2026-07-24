@@ -78,8 +78,20 @@
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 16px;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
     }
 
     .back-btn {
@@ -94,92 +106,25 @@
     }
     .back-btn:active { transform: scale(0.9); }
 
+    .action-icon-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .action-icon-btn:active { transform: scale(0.9); }
+    .action-icon-btn.danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+
     .container {
       max-width: 800px;
       margin: 0 auto;
       padding: 24px 20px;
       padding-bottom: 90px;
     }
-
-    /* === LOCK SCREEN === */
-    #lockScreen {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: var(--bg-color);
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      transition: opacity 0.4s ease, visibility 0.4s;
-    }
-    #lockScreen.unlocked {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .lock-icon {
-      width: 64px; height: 64px;
-      background: var(--card-bg);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow-lg);
-      color: var(--primary);
-    }
-    
-    .pin-display {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 40px;
-    }
-    .pin-dot {
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      transition: all 0.2s;
-    }
-    .pin-dot.filled {
-      background: var(--primary);
-      border-color: var(--primary);
-      transform: scale(1.2);
-    }
-
-    .numpad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      max-width: 320px;
-      width: 100%;
-    }
-    .num-btn {
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      font-size: 28px;
-      font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.1s;
-    }
-    .num-btn:active {
-      transform: scale(0.9);
-      background: var(--input-bg);
-    }
-    .num-btn.empty { background: transparent; border: none; box-shadow: none; cursor: default; }
-
-    /* Shake Animation */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-10px); }
-      40%, 80% { transform: translateX(10px); }
-    }
-    .shake { animation: shake 0.4s; }
 
     /* === USER CARDS === */
     .section-title {
@@ -256,7 +201,7 @@
     .sk-badge { height: 16px; width: 40px; border-radius: 4px; }
     .sk-btn { width: 44px; height: 44px; border-radius: 12px; }
 
-    /* === MODAL === */
+    /* === MODALS === */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.65);
@@ -275,6 +220,29 @@
       box-shadow: -10px 0 35px rgba(0,0,0,0.3);
     }
     .modal.open { right: 0; }
+
+    /* Mini Modal for Garbage Delete */
+    .mini-modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 28px;
+      width: 85%;
+      max-width: 340px;
+      z-index: 60;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+    }
+    .mini-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
 
     .modal-header {
       padding: 20px 24px; padding-top: env(safe-area-inset-top, 20px);
@@ -339,50 +307,25 @@
 </head>
 <body>
 
-  <!-- === LOCK SCREEN === -->
-  <div id="lockScreen">
-    <div class="lock-icon">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
-    <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Enter PIN</h2>
-    <p style="color: var(--text-muted); margin: 0 0 32px 0; font-weight: 500;">Admin access required</p>
-    
-    <div class="pin-display" id="pinDisplay">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-    </div>
-
-    <div class="numpad" id="numpad">
-      <button class="num-btn" onclick="addPin('1')">1</button>
-      <button class="num-btn" onclick="addPin('2')">2</button>
-      <button class="num-btn" onclick="addPin('3')">3</button>
-      <button class="num-btn" onclick="addPin('4')">4</button>
-      <button class="num-btn" onclick="addPin('5')">5</button>
-      <button class="num-btn" onclick="addPin('6')">6</button>
-      <button class="num-btn" onclick="addPin('7')">7</button>
-      <button class="num-btn" onclick="addPin('8')">8</button>
-      <button class="num-btn" onclick="addPin('9')">9</button>
-      <div class="num-btn empty"></div>
-      <button class="num-btn" onclick="addPin('0')">0</button>
-      <button class="num-btn" onclick="deletePin()" style="background: transparent; border: none; box-shadow: none;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-          <line x1="18" y1="9" x2="12" y2="15"></line>
-          <line x1="12" y1="9" x2="18" y2="15"></line>
-        </svg>
-      </button>
-    </div>
-  </div>
-
   <!-- === MAIN UI === -->
-  <div id="mainUI" style="display: none;">
+  <div id="mainUI">
     <header>
-      <div class="back-btn" onclick="window.location.href='index.html'">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      <div class="header-left">
+        <div class="back-btn" onclick="window.location.href='index.html'">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </div>
+        Settings
       </div>
-      Settings
+      <div class="header-right">
+        <!-- Reports Icon -->
+        <div class="action-icon-btn" onclick="window.location.href='reports.html'" title="Reports">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <!-- Garbage / Delete Server Icon -->
+        <div class="action-icon-btn danger" onclick="openGarbageModal()" title="Clean Server">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><line x1="10" y1="12" x2="14" y2="16"></line><line x1="14" y1="12" x2="10" y2="16"></line></svg>
+        </div>
+      </div>
     </header>
 
     <div class="container">
@@ -446,11 +389,22 @@
     </div>
   </div>
 
+  <!-- === GARBAGE CLEANUP MODAL === -->
+  <div class="modal-overlay" id="garbageModalOverlay"></div>
+  <div class="mini-modal" id="garbageModal" style="text-align: center;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><line x1="10" y1="12" x2="14" y2="16"></line><line x1="14" y1="12" x2="10" y2="16"></line></svg>
+    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 20px; font-weight: 800; color: var(--danger);">Server Cleanup</h3>
+    <p id="garbageText" style="font-size: 15px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">Scanning for documents older than 1 month...</p>
+    
+    <button class="btn-save" id="btnConfirmGarbage" onclick="deleteGarbageRecords()" style="background: var(--danger); box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3); display: none; margin-bottom: 12px;">Delete Old Records</button>
+    <button class="btn-save" onclick="history.back()" style="background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); margin-top: 0;">Cancel</button>
+  </div>
+
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, limit, startAfter, orderBy, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
@@ -467,6 +421,7 @@
 
     let currentUserDoc = null;
     window.usersMap = {}; // Cache for modal editing
+    window.garbageDocs = []; // Cache for garbage collector
 
     // Haptics Helper
     const vibrate = (pattern = 10) => { if (navigator.vibrate) navigator.vibrate(pattern); };
@@ -477,58 +432,9 @@
         window.location.href = 'login.html';
       } else {
         currentUserDoc = user;
+        initDataFetch(); // Instantly load data as PIN screen is removed
       }
     });
-
-    // === LOCK SCREEN LOGIC ===
-    let currentPin = "";
-    const pinDots = document.querySelectorAll('.pin-dot');
-    const lockScreen = document.getElementById('lockScreen');
-    const mainUI = document.getElementById('mainUI');
-
-    window.addPin = (digit) => {
-      if(currentPin.length < 4) {
-        currentPin += digit;
-        vibrate();
-        updatePinUI();
-      }
-      if(currentPin.length === 4) setTimeout(verifyPin, 50);
-    }
-
-    window.deletePin = () => {
-      if(currentPin.length > 0) {
-        currentPin = currentPin.slice(0, -1);
-        vibrate(5);
-        updatePinUI();
-      }
-    }
-
-    function updatePinUI() {
-      pinDots.forEach((dot, index) => {
-        if(index < currentPin.length) dot.classList.add('filled');
-        else dot.classList.remove('filled');
-      });
-    }
-
-    function verifyPin() {
-      if(currentPin === '2502') {
-        vibrate([30, 50, 30]); // Success
-        lockScreen.classList.add('unlocked');
-        setTimeout(() => {
-          lockScreen.style.display = 'none';
-          mainUI.style.display = 'block';
-          initDataFetch();
-        }, 400);
-      } else {
-        vibrate([50, 50, 50, 50]); // Error
-        document.getElementById('pinDisplay').classList.add('shake');
-        setTimeout(() => {
-          document.getElementById('pinDisplay').classList.remove('shake');
-          currentPin = "";
-          updatePinUI();
-        }, 400);
-      }
-    }
 
     // === DATA FETCHING & PAGINATION ===
     let lastVisible = null;
@@ -627,7 +533,7 @@
 
     // Intersection Observer for Infinite Scroll
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && lockScreen.classList.contains('unlocked')) {
+      if (entries[0].isIntersecting) {
         fetchUsers();
       }
     }, { rootMargin: '100px' });
@@ -660,11 +566,92 @@
       editingUserId = null;
     }
 
+    // === GARBAGE SERVER DELETE LOGIC ===
+    const garbageModal = document.getElementById('garbageModal');
+    const garbageModalOverlay = document.getElementById('garbageModalOverlay');
+    const garbageText = document.getElementById('garbageText');
+    const btnConfirmGarbage = document.getElementById('btnConfirmGarbage');
+
+    window.openGarbageModal = async () => {
+      vibrate();
+      garbageModal.classList.add('open');
+      garbageModalOverlay.classList.add('open');
+      history.pushState({ modalOpen: 'garbage' }, '', '#cleanup');
+
+      btnConfirmGarbage.style.display = 'none';
+      garbageText.innerText = "Scanning database for records older than 1 month...";
+
+      try {
+        // Calculate 1 month ago cutoff correctly for IST timezone string matching
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const cutoffDate = formatter.format(d);
+
+        // Fetch documents older than the cutoff
+        const q = query(collection(db, 'daily_transactions'), where('dateString', '<', cutoffDate));
+        const snap = await getDocs(q);
+        window.garbageDocs = snap.docs;
+
+        if (window.garbageDocs.length > 0) {
+          garbageText.innerHTML = `Found <b style="color:var(--text-main); font-size:18px;">${window.garbageDocs.length}</b> old transaction(s) before <span style="color:var(--text-main)">${cutoffDate}</span>.`;
+          btnConfirmGarbage.style.display = 'block';
+        } else {
+          garbageText.innerHTML = `Database is perfectly clean.<br>No junk records found before <span style="color:var(--text-main)">${cutoffDate}</span>.`;
+        }
+      } catch (err) {
+        console.error(err);
+        garbageText.innerText = "Error scanning database. Check permissions or internet connection.";
+      }
+    };
+
+    window.deleteGarbageRecords = async () => {
+      vibrate([30, 50, 30]);
+      btnConfirmGarbage.innerText = "Deleting Records...";
+      btnConfirmGarbage.disabled = true;
+
+      try {
+        const chunks = [];
+        // Max limit for Firestore batch is 500, setting chunk to 450 to be completely safe
+        for (let i = 0; i < window.garbageDocs.length; i += 450) {
+          chunks.push(window.garbageDocs.slice(i, i + 450));
+        }
+
+        for (let chunk of chunks) {
+          const batch = writeBatch(db);
+          chunk.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        garbageText.innerHTML = `<span style="color:var(--primary); font-weight: 700;">Successfully deleted ${window.garbageDocs.length} junk records!</span>`;
+        btnConfirmGarbage.style.display = 'none';
+        window.garbageDocs = [];
+        
+        setTimeout(() => {
+            history.back(); // Native auto-close
+        }, 2000);
+      } catch (err) {
+        console.error(err);
+        garbageText.innerText = "Error deleting records. Something went wrong.";
+      } finally {
+        btnConfirmGarbage.innerText = "Delete Old Records";
+        btnConfirmGarbage.disabled = false;
+      }
+    };
+
+    function closeGarbageModal() {
+      garbageModal.classList.remove('open');
+      garbageModalOverlay.classList.remove('open');
+    }
+
+    // Modal Overlays click to close
+    editModalOverlay.addEventListener('click', () => history.back());
+    garbageModalOverlay.addEventListener('click', () => history.back());
+
     window.addEventListener('popstate', (e) => {
       if(editModal.classList.contains('open')) closeEditModal();
+      if(garbageModal.classList.contains('open')) closeGarbageModal();
     });
-
-    editModalOverlay.addEventListener('click', () => history.back());
 
     editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
