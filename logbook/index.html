@@ -865,9 +865,14 @@
       <label>Select Date for Report</label>
       <input type="date" id="reportDateInput" class="date-picker-nav" style="width: 100%; margin-bottom: 15px; box-sizing: border-box;">
     </div>
-    <button id="downloadImgBtn" class="btn-save" style="margin-bottom: 12px; background: #262626; border: 1px solid #38383A; display: flex; justify-content: center; gap: 8px;">
-      📸 Download Image
-    </button>
+    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+      <button id="downloadImgBtn" class="btn-save" style="margin-top: 0; background: #262626; border: 1px solid #38383A; display: flex; justify-content: center; align-items: center; gap: 8px; flex: 1; padding: 14px;">
+        📸 Download
+      </button>
+      <button id="shareImgBtn" class="btn-save" style="margin-top: 0; background: #0ea5e9; border: none; display: flex; justify-content: center; align-items: center; gap: 8px; flex: 1; padding: 14px;">
+        🔗 Share Image
+      </button>
+    </div>
     <button id="downloadCsvBtn" class="btn-save" style="display: flex; justify-content: center; gap: 8px;">
       📊 Download CSV
     </button>
@@ -1362,11 +1367,12 @@
       }
     });
 
-    document.getElementById('downloadImgBtn').addEventListener('click', async () => {
+    window.processImageReport = async (action) => {
       const selectedDate = reportDateInput.value;
       if(!selectedDate) return customAlert("Please select a valid date.");
-      const btn = document.getElementById('downloadImgBtn');
-      btn.innerText = "Capturing Image...";
+      const btn = action === 'share' ? document.getElementById('shareImgBtn') : document.getElementById('downloadImgBtn');
+      const originalText = btn.innerHTML;
+      btn.innerText = action === 'share' ? "Preparing Share..." : "Capturing Image...";
       
       try {
         const q = query(transactionsRef, where("dateString", "==", selectedDate));
@@ -1399,6 +1405,7 @@
         captureContainer.style.opacity = '0';
         captureContainer.style.pointerEvents = 'none';
         captureContainer.style.width = '1080px';
+        captureContainer.style.height = 'max-content'; // Prevents html2canvas cropping
         captureContainer.style.backgroundColor = '#121212';
         captureContainer.style.color = '#F5F5F7';
         captureContainer.style.padding = '60px';
@@ -1465,25 +1472,44 @@
         captureContainer.innerHTML = html;
         document.body.appendChild(captureContainer);
 
+        // Pause allows browser to completely render the off-screen layout
+        await new Promise(r => setTimeout(r, 600));
+
         const canvas = await html2canvas(captureContainer, {
           scale: 2,
           useCORS: true,
           backgroundColor: '#121212',
+          windowWidth: captureContainer.scrollWidth,
+          windowHeight: captureContainer.scrollHeight,
           logging: false
         });
 
-        await new Promise((resolve, reject) => {
-          canvas.toBlob((blob) => {
-            if (!blob) return reject(new Error("Failed to create image blob."));
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `Meena_Logs_Report_${selectedDate}.png`;
-            link.href = url;
-            link.click();
-            URL.revokeObjectURL(url);
-            resolve();
-          }, 'image/png');
-        });
+        if (action === 'share') {
+           canvas.toBlob(async (blob) => {
+             if (blob) {
+               const file = new File([blob], `Meena_Logs_${selectedDate}.png`, { type: 'image/png' });
+               if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                 try {
+                   await navigator.share({
+                     title: 'Daily Sales Report',
+                     files: [file]
+                   });
+                 } catch (err) {
+                   console.log("Share canceled or failed", err);
+                 }
+               } else {
+                 customAlert("Your device doesn't support direct image sharing.");
+               }
+             }
+           }, 'image/png');
+        } else {
+           // Use DataURL for stable direct download to avoid Android Webview/Chrome Blob Network Error
+           const imgData = canvas.toDataURL('image/png');
+           const link = document.createElement('a');
+           link.download = `Meena_Logs_Report_${selectedDate}.png`;
+           link.href = imgData;
+           link.click();
+        }
 
         document.body.removeChild(captureContainer);
         history.back(); // close modal
@@ -1491,9 +1517,12 @@
         console.error(err);
         customAlert("Error capturing image. Make sure you are online.");
       } finally {
-        btn.innerHTML = "📸 Download Image";
+        btn.innerHTML = originalText;
       }
-    });
+    };
+
+    document.getElementById('downloadImgBtn').addEventListener('click', () => processImageReport('download'));
+    document.getElementById('shareImgBtn').addEventListener('click', () => processImageReport('share'));
 
     // === SAVE ENTRY ===
     entryForm.addEventListener('submit', async (e) => {
