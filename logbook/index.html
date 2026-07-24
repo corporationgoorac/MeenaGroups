@@ -312,26 +312,33 @@
     .history-card {
       background: var(--card-bg);
       border-radius: 16px; /* App-like rounding */
-      padding: 20px;
+      padding: 24px; /* UPGRADED: Bigger padding for premium feel */
       margin-bottom: 16px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 12px;
       transition: transform 0.2s, box-shadow 0.2s;
       cursor: pointer;
+      border: 1.5px solid transparent; /* Prepare for dynamic glows */
     }
     
     .history-card:active { 
       transform: scale(0.97); 
-      box-shadow: none;
+      box-shadow: none !important;
     }
 
-    /* Yellow border for pending items */
-    .pending-card {
-      border: 2px solid var(--pending-color) !important;
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.15) !important;
+    /* === DYNAMIC CARD GLOWS === */
+    .card-sales {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15), inset 0 0 8px rgba(16, 185, 129, 0.05);
+    }
+    .card-old {
+      border-color: var(--online-color);
+      box-shadow: 0 0 12px rgba(62, 166, 255, 0.15), inset 0 0 8px rgba(62, 166, 255, 0.05);
+    }
+    .card-pending {
+      border-color: var(--pending-color);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.15), inset 0 0 8px rgba(251, 191, 36, 0.05);
     }
 
     .hc-top {
@@ -349,14 +356,37 @@
       align-items: center;
     }
 
-    .hc-customer { font-weight: 700; font-size: 17px; color: var(--text-main); }
-    .hc-amount { font-weight: 800; font-size: 20px; }
+    .hc-customer { font-weight: 800; font-size: 19px; color: var(--text-main); }
+    .hc-amount { font-weight: 800; font-size: 22px; }
     
     .hc-bottom {
       display: flex;
       gap: 12px;
       font-size: 13px;
       align-items: center;
+      flex-wrap: wrap; /* Support for long content + badges */
+    }
+
+    /* === SVG SLEEK BADGES === */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .sb-sales {
+      background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--primary);
+    }
+    .sb-pending {
+      background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--pending-color);
+    }
+    .sb-old {
+      background: rgba(62, 166, 255, 0.15); border: 1px solid rgba(62, 166, 255, 0.3); color: var(--online-color);
     }
 
     .badge {
@@ -561,7 +591,7 @@
 
     .input-row { display: flex; gap: 14px; }
 
-    /* === PENDING TOGGLE SWITCH === */
+    /* === TOGGLE SWITCHES === */
     .toggle-container {
       display: flex;
       justify-content: space-between;
@@ -613,6 +643,11 @@
     }
     input:checked + .slider:before {
       transform: translateX(24px);
+    }
+    
+    /* Specific switch color for Old Balance */
+    #isOldBalance:checked + .slider {
+      background-color: var(--online-color);
     }
 
     .btn-save {
@@ -820,6 +855,16 @@
           </div>
         </div>
 
+        <!-- NEW OLD BALANCE TOGGLE -->
+        <div class="toggle-container" style="margin-bottom: 12px;">
+          <span class="toggle-label">Mark as Old Balance</span>
+          <label class="switch">
+            <input type="checkbox" id="isOldBalance">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- ORIGINAL PENDING TOGGLE -->
         <div class="toggle-container">
           <span class="toggle-label">Mark as Pending</span>
           <label class="switch">
@@ -935,7 +980,7 @@
     function setupAdminUI() {
       const logoImg = document.getElementById('appLogo');
       logoImg.setAttribute('data-is-admin', 'true');
-      const settingsSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="%23F5F5F7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+      const settingsSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="%23F5F5F7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1-2 2h.09A1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
       logoImg.src = settingsSvg;
       logoImg.style.background = 'transparent';
       logoImg.style.cursor = 'pointer';
@@ -1062,6 +1107,7 @@
       modalOverlay.classList.remove('open');
       entryForm.reset();
       document.getElementById('isPending').checked = false; // Reset toggle specifically
+      document.getElementById('isOldBalance').checked = false; // Reset toggle specifically
       toggleSplitFields();
       togglePendingField(); // Reset pending field
     }
@@ -1108,10 +1154,20 @@
         `;
       }
 
+      let oldBalHTML = '';
+      if (tx.isOldBalance) {
+        oldBalHTML = `
+          <div class="detail-row" style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);">
+            <span class="detail-label" style="color: var(--online-color); font-weight: 800;">Entry Type:</span> 
+            <span class="detail-value" style="color: var(--online-color); font-weight: 800;">Old Balance</span>
+          </div>
+        `;
+      }
+
       let pendingHTML = '';
       if (tx.isPending) {
         pendingHTML = `
-          <div class="detail-row" style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);">
+          <div class="detail-row" style="${tx.isOldBalance ? 'margin-top: 6px;' : 'margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);'}">
             <span class="detail-label" style="color: var(--pending-color); font-weight: 800;">Status:</span> 
             <span class="detail-value" style="color: var(--pending-color); font-weight: 800;">Pending</span>
           </div>
@@ -1133,6 +1189,7 @@
           <span class="detail-label" style="font-weight: 800;">Total Amount:</span> 
           <span class="detail-value" style="font-size: 20px;">${formatCurrency(tx.totalAmount)}</span>
         </div>
+        ${oldBalHTML}
         ${pendingHTML}
       `;
 
@@ -1273,10 +1330,26 @@
 
           historyList.innerHTML = txList.map(tx => {
             const modeClass = tx.mode.toLowerCase() === 'split' ? 'split' : tx.mode.toLowerCase();
-            const pendingClass = tx.isPending ? 'pending-card' : ''; // Apply yellow border if pending
             
+            // Apply proper dynamic border glow based on type
+            let glowClass = 'card-sales';
+            if (tx.isOldBalance) glowClass = 'card-old';
+            if (tx.isPending) glowClass = 'card-pending'; // Pending naturally overwrites border color but keeps structure
+
+            // Build Sleek SVG Badges
+            let badgesHTML = '';
+            if (tx.isOldBalance) {
+                badgesHTML += `<span class="status-badge sb-old"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><polyline points="12 7 12 12 15 15"></polyline></svg> OLD BALANCE</span>`;
+            }
+            if (tx.isPending) {
+                badgesHTML += `<span class="status-badge sb-pending"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> PENDING: ${formatCurrency(tx.pendingAmount)}</span>`;
+            }
+            if (!tx.isOldBalance && !tx.isPending) {
+                badgesHTML += `<span class="status-badge sb-sales"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg> NORMAL SALE</span>`;
+            }
+
             return `
-            <div class="history-card ${pendingClass}" onclick="openDetailModal('${tx.id}')">
+            <div class="history-card ${glowClass}" onclick="openDetailModal('${tx.id}')">
               <div class="hc-top">
                 <span style="font-weight: 700; color: var(--text-main);">${tx.invoiceNo}</span>
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -1294,12 +1367,8 @@
               </div>
               <div class="hc-bottom">
                 <span class="badge bg-${modeClass}">${tx.mode}</span>
-                <span style="color: var(--text-muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">${tx.reason}</span>
-                ${tx.isPending ? `
-                <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.15); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);">
-                  <span style="color: var(--pending-color); font-weight: 800; font-size: 11px;">PENDING:</span>
-                  <span style="color: var(--pending-color); font-weight: 800; font-size: 13px;">${formatCurrency(tx.pendingAmount || 0)}</span>
-                </span>` : ''}
+                <span style="color: var(--text-muted); flex: 1; min-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">${tx.reason}</span>
+                ${badgesHTML}
               </div>
             </div>
           `}).join('') + `
@@ -1335,7 +1404,8 @@
         const snapshot = await getDocs(q);
         
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Date,Time,Invoice No,Customer Name,Reason,Payment Mode,Cash Amount,Online Amount,Total Amount,Status,Pending Amount\n";
+        // UPDATED: Added Old Balance column to CSV headers
+        csvContent += "Date,Time,Invoice No,Customer Name,Reason,Payment Mode,Cash Amount,Online Amount,Total Amount,Status,Pending Amount,Old Balance\n";
 
         snapshot.forEach(docSnap => {
           const tx = docSnap.data();
@@ -1343,11 +1413,12 @@
           const cleanCustomer = (tx.customerName || "").replace(/,/g, " ");
           const status = tx.isPending ? "Pending" : "Cleared";
           const pendingAmt = tx.isPending ? (tx.pendingAmount || 0) : 0;
+          const oldBalanceStatus = tx.isOldBalance ? "Yes" : "No";
           
           const row = [
             tx.dateString, tx.time, tx.invoiceNo, cleanCustomer, cleanReason, 
             tx.mode, tx.cashAmount || 0, tx.onlineAmount || 0, tx.totalAmount, 
-            status, pendingAmt
+            status, pendingAmt, oldBalanceStatus
           ];
           csvContent += row.join(",") + "\n";
         });
@@ -1368,28 +1439,14 @@
       }
     });
 
-    // === BULLETPROOF IMAGE REPORT (REWRITTEN & CORRECTED FOR 2-COLUMN GRID) ===
     window.processImageReport = async (action) => {
       const selectedDate = reportDateInput.value;
       if(!selectedDate) return customAlert("Please select a valid date.");
-      
       const btn = action === 'share' ? document.getElementById('shareImgBtn') : document.getElementById('downloadImgBtn');
       const originalText = btn.innerHTML;
       btn.innerText = action === 'share' ? "Preparing Share..." : "Capturing Image...";
       
       try {
-        // 1. Dynamic Fallback: Ensure html2canvas is heavily scoped into this execution context
-        if (typeof window.html2canvas === 'undefined') {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            script.onload = resolve;
-            script.onerror = () => reject(new Error("Failed to load html2canvas library."));
-            document.head.appendChild(script);
-          });
-        }
-
-        // 2. Fetch Data
         const q = query(transactionsRef, where("dateString", "==", selectedDate));
         const snapshot = await getDocs(q);
         let totalCash = 0, totalOnline = 0;
@@ -1411,30 +1468,27 @@
         const totalSales = totalCash + totalOnline;
         const formattedDate = new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-        // 3. Create Safe Offscreen Node 
+        // Create Offscreen Node (Instagram Dark Mode theme independent of viewport)
         const captureContainer = document.createElement('div');
         captureContainer.style.position = 'fixed';
-        captureContainer.style.left = '-9999px'; 
+        captureContainer.style.left = '-9999px';
         captureContainer.style.top = '0';
         captureContainer.style.zIndex = '-9999';
         captureContainer.style.width = '1080px';
-        captureContainer.style.height = 'max-content';
+        captureContainer.style.height = 'max-content'; // Prevents html2canvas cropping
         captureContainer.style.backgroundColor = '#121212';
         captureContainer.style.color = '#F5F5F7';
         captureContainer.style.padding = '60px';
         captureContainer.style.fontFamily = "'Segoe UI', Roboto, system-ui, sans-serif";
         captureContainer.style.boxSizing = 'border-box';
 
-        // 4. Enhanced Professional Header UI
         let html = `
-          <div style="text-align: center; margin-bottom: 40px; padding: 40px 30px; background: linear-gradient(145deg, #1A1A1A, #121212); border-radius: 20px; border: 1px solid #38383A; box-shadow: 0 15px 35px rgba(0,0,0,0.4);">
-            <h1 style="margin: 0; font-size: 46px; font-weight: 900; background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 1px;">Meena Marketing</h1>
-            <h2 style="margin: 8px 0 0 0; font-size: 26px; color: #F5F5F7; font-weight: 700; letter-spacing: 4px;">DAILY LOGS</h2>
-            <div style="margin: 24px auto 0; width: 60px; height: 4px; background: #10b981; border-radius: 2px;"></div>
-            <h3 style="margin-top: 24px; font-size: 20px; color: #A1A1A6; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Sales Report • ${formattedDate}</h3>
+          <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="margin: 0; font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Meena Marketing Daily Logs</h1>
+            <h3 style="margin-top: 12px; font-size: 24px; color: #A1A1A6; font-weight: 600;">Sales Report • ${formattedDate}</h3>
           </div>
           
-          <div style="display: flex; justify-content: space-between; background: #1E1E1E; border: 1px solid #38383A; border-radius: 20px; padding: 40px; margin-bottom: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+          <div style="display: flex; justify-content: space-between; background: #1E1E1E; border: 1px solid #38383A; border-radius: 20px; padding: 40px; margin-bottom: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
             <div style="flex: 1; text-align: center; border-right: 1px solid #38383A;">
               <div style="font-size: 16px; color: #A1A1A6; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px;">Total Cash</div>
               <div style="font-size: 42px; font-weight: 800; color: #2ba640; word-break: break-all;">${formatCurrency(totalCash)}</div>
@@ -1451,19 +1505,36 @@
         `;
 
         if(entries.length > 0) {
-          // 5. 2-COLUMN GRID / FLEXBOX (Calculated perfectly to wrap 2 items per row)
           html += `<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch;">`;
 
           entries.forEach((tx, idx) => {
             let splitDetails = tx.mode === 'Split' ? `<div style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 700;"><span style="color:#2ba640;">Cash: ${formatCurrency(tx.cashAmount)}</span><span style="color:#3ea6ff;">Online: ${formatCurrency(tx.onlineAmount)}</span></div>` : '';
             
-            // Professional Pending Glow configuration
-            const isPending = tx.isPending;
-            const cardBorder = isPending ? '#fbbf24' : '#38383A';
-            const cardShadow = isPending ? '0 0 15px rgba(245, 158, 11, 0.2), inset 0 0 10px rgba(245, 158, 11, 0.05)' : '0 4px 15px rgba(0,0,0,0.2)';
-            let pendingDetails = isPending ? `<div style="margin-top: 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;"><span style="color:#fbbf24; font-size:14px; font-weight:800; letter-spacing: 1px;">PENDING DUE</span><span style="color:#fbbf24; font-size:20px; font-weight:900;">${formatCurrency(tx.pendingAmount)}</span></div>` : '';
+            // Build Dynamic Badges for Image Output
+            let badgesHTML = '';
+            if (tx.isOldBalance) {
+                badgesHTML += `<span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(62, 166, 255, 0.15); border: 1px solid rgba(62, 166, 255, 0.3); color: #3ea6ff; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><polyline points="12 7 12 12 15 15"></polyline></svg> OLD BALANCE</span>`;
+            }
+            if (tx.isPending) {
+                badgesHTML += `<span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> PENDING: ${formatCurrency(tx.pendingAmount)}</span>`;
+            }
+            if (!tx.isOldBalance && !tx.isPending) {
+                badgesHTML += `<span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg> NORMAL SALE</span>`;
+            }
+
+            // Sync Dynamic Card Borders
+            let cardBorder = '#10b981';
+            let cardShadow = '0 0 15px rgba(16, 185, 129, 0.15), inset 0 0 10px rgba(16, 185, 129, 0.05)';
             
-            // Left one box right one box (width: calc(50% - 12px))
+            if (tx.isOldBalance) {
+                cardBorder = '#3ea6ff';
+                cardShadow = '0 0 15px rgba(62, 166, 255, 0.2), inset 0 0 10px rgba(62, 166, 255, 0.05)';
+            }
+            if (tx.isPending) {
+                cardBorder = '#fbbf24';
+                cardShadow = '0 0 15px rgba(245, 158, 11, 0.2), inset 0 0 10px rgba(245, 158, 11, 0.05)';
+            }
+
             html += `
               <div style="width: calc(50% - 12px); background: #262626; border: 1.5px solid ${cardBorder}; box-shadow: ${cardShadow}; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
                 
@@ -1485,7 +1556,9 @@
                     <div style="font-size: 30px; font-weight: 800; color: #F5F5F7;">${formatCurrency(tx.totalAmount)}</div>
                   </div>
                   ${splitDetails}
-                  ${pendingDetails}
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
+                     ${badgesHTML}
+                  </div>
                 </div>
 
               </div>
@@ -1509,7 +1582,6 @@
         // Pause allows browser to completely render the off-screen layout
         await new Promise(r => setTimeout(r, 600));
 
-        // 4. Capture using Explicit Window Context
         const canvas = await window.html2canvas(captureContainer, {
           scale: 2,
           useCORS: true,
@@ -1519,48 +1591,46 @@
           logging: false
         });
 
-        // Clean up immediately after processing the element
-        document.body.removeChild(captureContainer);
-
-        // 5. Wrap Blob conversion into Promise for safe Download Handling 
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-        if (!blob) throw new Error("Image Blob compilation failed");
-        
-        const filename = `Meena_Logs_${selectedDate}.png`;
-
         if (action === 'share') {
-           const file = new File([blob], filename, { type: 'image/png' });
-           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-             try {
-               await navigator.share({
-                 title: 'Daily Sales Report',
-                 files: [file]
-               });
-             } catch (err) {
-               // User may have simply canceled the share sheet
-               if(err.name !== 'AbortError') console.log("Share API failed", err);
+           canvas.toBlob(async (blob) => {
+             if (blob) {
+               const file = new File([blob], `Meena_Logs_${selectedDate}.png`, { type: 'image/png' });
+               if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                 try {
+                   await navigator.share({
+                     title: 'Daily Sales Report',
+                     files: [file]
+                   });
+                 } catch (err) {
+                   console.log("Share canceled or failed", err);
+                 }
+               } else {
+                 customAlert("Your device doesn't support direct image sharing.");
+               }
              }
-           } else {
-             customAlert("Your device doesn't support direct image sharing.");
-           }
+           }, 'image/png');
         } else {
            // SENIOR DEV FIX: Bypass Base64 limit and async OS Download Manager bug
-           const url = window.URL.createObjectURL(blob);
-           const link = document.createElement('a');
-           link.style.display = 'none';
-           link.href = url;
-           link.download = filename;
-           document.body.appendChild(link);
-           link.click();
-           document.body.removeChild(link);
-           // CRITICAL: Delay revocation so Android's Download Manager has time to read the memory pointer!
-           setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
+           canvas.toBlob((blob) => {
+             if (!blob) throw new Error("Blob creation failed");
+             const url = window.URL.createObjectURL(blob);
+             const link = document.createElement('a');
+             link.style.display = 'none';
+             link.href = url;
+             link.download = `Meena_Logs_Report_${selectedDate}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             // CRITICAL: Delay revocation so Android's Download Manager has time to read the memory pointer!
+             setTimeout(() => window.URL.revokeObjectURL(url), 5000); 
+           }, 'image/png');
         }
 
+        document.body.removeChild(captureContainer);
         history.back(); // close modal
       } catch (err) {
         console.error(err);
-        customAlert(err.message || "Error capturing image. Make sure you are online.");
+        customAlert("Error capturing image. Make sure you are online.");
       } finally {
         btn.innerHTML = originalText;
       }
@@ -1583,6 +1653,7 @@
       const reason = document.getElementById('reason').value;
       const mode = document.getElementById('payMode').value;
       const isPending = document.getElementById('isPending').checked; // Read toggle
+      const isOldBalance = document.getElementById('isOldBalance').checked; // Read NEW toggle
       const pendingAmt = isPending ? (Number(document.getElementById('pendingAmount').value) || 0) : 0;
       
       let cashAmt = 0;
@@ -1611,8 +1682,9 @@
           cashAmount: cashAmt,
           onlineAmount: onlineAmt,
           totalAmount: totalAmt,
-          isPending: isPending, // Save to Firestore
-          pendingAmount: pendingAmt, // Save pending amount to Firestore
+          isPending: isPending, 
+          isOldBalance: isOldBalance, // Save Old Balance to Firestore
+          pendingAmount: pendingAmt, 
           time: timeStr,
           timestamp: serverTimestamp() 
         });
