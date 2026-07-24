@@ -301,7 +301,7 @@
     }
     .modal.open { right: 0; }
 
-    /* Mini Modal for Garbage & Delete */
+    /* Mini Modal for Garbage Delete */
     .mini-modal {
       position: fixed;
       top: 50%; left: 50%;
@@ -381,15 +381,15 @@
     }
     .btn-save:active { transform: scale(0.97); }
     .btn-save:disabled { background: var(--text-muted); cursor: not-allowed; box-shadow: none;}
-
-    .btn-delete {
-      width: 100%; padding: 18px; background: var(--danger);
-      color: white; border: none; border-radius: 12px;
+    
+    /* Delete button modifier */
+    .btn-delete-user {
+      width: 100%; padding: 18px; background: transparent;
+      color: var(--danger); border: 1px solid var(--danger); border-radius: 12px;
       font-size: 17px; font-weight: 800; cursor: pointer;
-      margin-top: 12px; box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
+      margin-top: 16px;
     }
-    .btn-delete:active { transform: scale(0.97); }
-    .btn-delete:disabled { background: var(--text-muted); cursor: not-allowed; box-shadow: none;}
+    .btn-delete-user:active { transform: scale(0.97); }
 
     .loading-spinner { text-align: center; padding: 20px; color: var(--text-muted); font-weight: 600; font-size: 14px; }
   </style>
@@ -511,20 +511,9 @@
         </div>
 
         <button type="submit" class="btn-save" id="saveEditBtn">Save Changes</button>
-        <button type="button" class="btn-delete" id="deleteUserBtn" onclick="openDeleteUserModal()" style="margin-top: 16px;">Delete User</button>
+        <button type="button" class="btn-delete-user" id="btnOpenDeleteUserModal" onclick="openDeleteUserModal()">Delete User</button>
       </form>
     </div>
-  </div>
-
-  <!-- === DELETE USER MODAL === -->
-  <div class="modal-overlay" id="deleteUserModalOverlay"></div>
-  <div class="mini-modal" id="deleteUserModal" style="text-align: center;">
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 20px; font-weight: 800; color: var(--danger);">Delete User</h3>
-    <p id="deleteUserText" style="font-size: 15px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">Are you sure you want to permanently delete this user? This action cannot be undone.</p>
-    
-    <button class="btn-delete" id="btnConfirmDeleteUser" onclick="executeDeleteUser()" style="margin-bottom: 12px;">Yes, Delete User</button>
-    <button class="btn-save" onclick="history.back()" style="background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); margin-top: 0;">Cancel</button>
   </div>
 
   <!-- === GARBAGE CLEANUP MODAL === -->
@@ -538,11 +527,24 @@
     <button class="btn-save" onclick="history.back()" style="background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); margin-top: 0;">Cancel</button>
   </div>
 
+  <!-- === DELETE USER CONFIRMATION MODAL === -->
+  <div class="modal-overlay" id="deleteUserModalOverlay"></div>
+  <div class="mini-modal" id="deleteUserModal" style="text-align: center;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;">
+      <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>
+    </svg>
+    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 20px; font-weight: 800; color: var(--danger);">Delete User</h3>
+    <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 24px; font-weight: 500; line-height: 1.5;">Are you sure you want to permanently delete this user? This action cannot be undone.</p>
+    
+    <button class="btn-save" id="btnConfirmDeleteUser" onclick="confirmDeleteUser()" style="background: var(--danger); box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3); margin-bottom: 12px;">Delete Permanently</button>
+    <button class="btn-save" onclick="history.back()" style="background: var(--input-bg); color: var(--text-main); box-shadow: none; border: 1px solid var(--border); margin-top: 0;">Cancel</button>
+  </div>
+
   <script type="module">
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, limit, startAfter, orderBy, where, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, deleteDoc, collection, query, limit, startAfter, orderBy, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAumKMYJnORESyGLoYttNSJi1HhOJU6rgM",
@@ -732,7 +734,7 @@
     const editModal = document.getElementById('editModal');
     const editModalOverlay = document.getElementById('editModalOverlay');
     const editForm = document.getElementById('editForm');
-    const deleteUserBtn = document.getElementById('deleteUserBtn');
+    const btnOpenDeleteUserModal = document.getElementById('btnOpenDeleteUserModal');
     let editingUserId = null;
 
     window.openEditModal = (uid) => {
@@ -743,12 +745,12 @@
       document.getElementById('editName').value = user.name || '';
       document.getElementById('toggleAdmin').checked = !!user.admin;
       document.getElementById('toggleStaff').checked = !!user.staffs;
-      
-      // Prevent deleting self just as a safety measure
+
+      // Hide delete button if trying to edit own profile (prevents deleting oneself)
       if (uid === currentUserDoc.uid) {
-        deleteUserBtn.style.display = 'none';
+        btnOpenDeleteUserModal.style.display = 'none';
       } else {
-        deleteUserBtn.style.display = 'block';
+        btnOpenDeleteUserModal.style.display = 'block';
       }
 
       editModal.classList.add('open');
@@ -761,8 +763,8 @@
       editModalOverlay.classList.remove('open');
       editingUserId = null;
     }
-    
-    // === DELETE USER MODAL LOGIC ===
+
+    // === DELETE USER LOGIC ===
     const deleteUserModal = document.getElementById('deleteUserModal');
     const deleteUserModalOverlay = document.getElementById('deleteUserModalOverlay');
     const btnConfirmDeleteUser = document.getElementById('btnConfirmDeleteUser');
@@ -771,41 +773,44 @@
       vibrate();
       deleteUserModal.classList.add('open');
       deleteUserModalOverlay.classList.add('open');
-      history.pushState({ modalOpen: 'deleteUser' }, '', '#delete-user');
+      history.pushState({ modalOpen: 'deleteUser' }, '', '#confirm-delete');
     };
 
-    window.executeDeleteUser = async () => {
+    function closeDeleteUserModal() {
+      deleteUserModal.classList.remove('open');
+      deleteUserModalOverlay.classList.remove('open');
+      
+      // Reset button state just in case
+      btnConfirmDeleteUser.innerText = "Delete Permanently";
+      btnConfirmDeleteUser.disabled = false;
+    }
+
+    window.confirmDeleteUser = async () => {
       vibrate([30, 50, 30]);
       btnConfirmDeleteUser.innerText = "Deleting...";
       btnConfirmDeleteUser.disabled = true;
 
       try {
         await deleteDoc(doc(db, "users", editingUserId));
-        
-        // Remove from UI and map
-        const card = document.getElementById(`card-${editingUserId}`);
-        if(card) card.remove();
+
+        // Remove from local cache & UI
         delete window.usersMap[editingUserId];
+        const card = document.getElementById(`card-${editingUserId}`);
+        if(card) {
+          card.remove();
+        }
 
-        // Programmatically close UI and drop history stack twice (-2 to bypass delete & edit hash states)
-        closeDeleteUserModal();
-        closeEditModal();
+        // Close both the delete mini-modal and the edit modal
+        // since we pushed two states, we navigate back twice
         history.go(-2);
-
-      } catch (err) {
+        
+      } catch(err) {
         console.error("Delete failed", err);
         alert("Failed to delete user. Check permissions.");
-        btnConfirmDeleteUser.innerText = "Yes, Delete User";
+        btnConfirmDeleteUser.innerText = "Delete Permanently";
         btnConfirmDeleteUser.disabled = false;
       }
     };
-
-    function closeDeleteUserModal() {
-      deleteUserModal.classList.remove('open');
-      deleteUserModalOverlay.classList.remove('open');
-      btnConfirmDeleteUser.innerText = "Yes, Delete User";
-      btnConfirmDeleteUser.disabled = false;
-    }
 
     // === GARBAGE SERVER DELETE LOGIC ===
     const garbageModal = document.getElementById('garbageModal');
@@ -887,18 +892,16 @@
 
     // Modal Overlays click to close
     editModalOverlay.addEventListener('click', () => history.back());
-    deleteUserModalOverlay.addEventListener('click', () => history.back());
     garbageModalOverlay.addEventListener('click', () => history.back());
+    deleteUserModalOverlay.addEventListener('click', () => history.back());
 
     window.addEventListener('popstate', (e) => {
-      // Logic evaluates top-most active modals first 
       if(deleteUserModal.classList.contains('open')) {
         closeDeleteUserModal();
-      } else if(editModal.classList.contains('open')) {
-        closeEditModal();
-      } else if(garbageModal.classList.contains('open')) {
-        closeGarbageModal();
+        return;
       }
+      if(editModal.classList.contains('open')) closeEditModal();
+      if(garbageModal.classList.contains('open')) closeGarbageModal();
     });
 
     editForm.addEventListener('submit', async (e) => {
