@@ -311,7 +311,7 @@
             .print-table th { background-color: var(--pv-th-bg, #cccccc) !important; padding: 12px 10px; font-size: 11px; text-transform: uppercase; text-align: left; color: var(--pv-th-text, #000) !important; font-weight: bold; border-top: var(--pv-border-style, 1px solid #000) !important; border-bottom: var(--pv-border-style, 1px solid #000) !important; }
             
             /* FIX: Allow Custom Borders to pass through to the Table Cells */
-            .print-table td { border-bottom: var(--pv-border-style, 1px solid #ddd) !important; padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
+            .print-table td { padding: 12px 10px; font-size: 12px; vertical-align: middle; color: #000;}
             
             .print-table th.text-right, .print-table td.text-right { text-align: right; padding-right: 15px; } /* Perfect Right Alignment */
             .print-table th.text-center, .print-table td.text-center { text-align: center; }
@@ -1694,14 +1694,19 @@
                     <span style="font-size:11px; color:var(--pv-header-sub, #555);">${item.model ? 'Model: '+item.model : 'Standard Item'}${gstText}${discText}</span>
                 `;
                 
-                // FIXED: Allow custom borders to pass through with !important safely
+                // NEW LOGIC: Check if this is the last actual product in the cart
+                const isLastProduct = (index === cartItems.length - 1);
+                
+                // Applies the Theme Engine's '--pv-border-style' to all items EXCEPT the last one
+                const dynamicBorder = isLastProduct ? 'none !important' : 'var(--pv-border-style, 1px solid #ddd) !important';
+                
                 tbody.innerHTML += `
                     <tr style="height: 25mm; max-height: 25mm;">
-                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd) !important;">${num}.</td>
-                        <td style="border-bottom: var(--pv-border-style, 1px solid #ddd) !important;">${desc}</td>
-                        <td class="text-right" style="border-bottom: var(--pv-border-style, 1px solid #ddd) !important;">₹${item.originalUnitPriceBase.toFixed(2)}</td>
-                        <td class="text-center" style="border-bottom: var(--pv-border-style, 1px solid #ddd) !important;">${item.qty.toString().padStart(2, '0')}</td>
-                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: var(--pv-border-style, 1px solid #ddd) !important;">₹${item.finalTotal.toFixed(2)}</td>
+                        <td style="border-bottom: ${dynamicBorder};">${num}.</td>
+                        <td style="border-bottom: ${dynamicBorder};">${desc}</td>
+                        <td class="text-right" style="border-bottom: ${dynamicBorder};">₹${item.originalUnitPriceBase.toFixed(2)}</td>
+                        <td class="text-center" style="border-bottom: ${dynamicBorder};">${item.qty.toString().padStart(2, '0')}</td>
+                        <td class="text-right" style="font-weight:bold; color:var(--pv-header-text, #000); border-bottom: ${dynamicBorder};">₹${item.finalTotal.toFixed(2)}</td>
                     </tr>
                 `;
             });
