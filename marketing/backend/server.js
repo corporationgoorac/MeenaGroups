@@ -1011,8 +1011,14 @@ db.collection('alerts').doc('stock_reduction').onSnapshot(async (docSnap) => {
     // Prevent firing old alerts on server boot
     if (editTime && editTime < serverStartTime) return;
 
-    if (!currentAdminPhone1) {
-        console.log("⚠️ Stock reduction alert received but Admin 1 phone number is unset. Dispatch aborted.");
+    // PRODUCTION FIX: Build active admins array exactly like the sales listener
+    const activeAdmins = [];
+    if (currentAdminPhone1) activeAdmins.push(currentAdminPhone1);
+    if (currentAdminPhone2) activeAdmins.push(currentAdminPhone2);
+    if (currentAdminPhone3) activeAdmins.push(currentAdminPhone3);
+
+    if (activeAdmins.length === 0) {
+        console.log("⚠️ Stock reduction alert received but no Admin phone numbers are set. Dispatch aborted.");
         return;
     }
 
@@ -1034,8 +1040,8 @@ db.collection('alerts').doc('stock_reduction').onSnapshot(async (docSnap) => {
         });
     }
 
-    // Perfect WhatsApp Message
-    const alertMessage = `📉 *STOCK REDUCTION ALERT*
+    // Perfect WhatsApp Message (For Admin 1)
+    const englishAlertMessage = `📉 *STOCK REDUCTION ALERT*
 ━━━━━━━━━━━━━━━━━━
 📦 *Product:* ${prodName}
 🔖 *Model:* ${prodModel}
@@ -1049,29 +1055,41 @@ db.collection('alerts').doc('stock_reduction').onSnapshot(async (docSnap) => {
 ━━━━━━━━━━━━━━━━━━
 _Meena Marketing Security_`;
 
-    // Send to Admin 1 bypassing sales mute
-    const adminPlainPhone = currentAdminPhone1 ? String(currentAdminPhone1).replace(/\D/g, '') : '';
-    try {
-        await sleep(1500); // DOM margin delay
-        const adminContactId = await client.getNumberId(adminPlainPhone);
-        const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
-        
+    // Conversational Tamil Message (For Admin 2 & 3)
+    const tamilNumbers = {
+        1: 'ஒன்று', 2: 'இரண்டு', 3: 'மூன்று', 4: 'நான்கு', 5: 'ஐந்து',
+        6: 'ஆறு', 7: 'ஏழு', 8: 'எட்டு', 9: 'ஒன்பது', 10: 'பத்து'
+    };
+    const qtyInTamil = tamilNumbers[reducedBy] || reducedBy.toString();
+    const tamilAlertMessage = `கடையில், ${prodName} ${qtyInTamil} இருப்பு குறைக்கப்பட்டுள்ளது.`;
+
+    // Loop through all active admins to send the correct formatted message
+    for (const adminPhone of activeAdmins) {
+        let messageToSend = (adminPhone === currentAdminPhone1) ? englishAlertMessage : tamilAlertMessage;
+
+        const adminPlainPhone = adminPhone ? String(adminPhone).replace(/\D/g, '') : '';
         try {
-            await client.sendMessage(verifiedAdminId, alertMessage);
-            console.log(`✅ Stock reduction alert sent to Admin 1 for "${prodName}"`);
-        } catch (sendErr) {
-            // Multi-device sync fallback (Initialization workaround)
-            if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
-                console.log(`⚠️ Applying path initialization workaround for Stock Alert Channel...`);
-                await client.sendMessage(verifiedAdminId, `🔎 Syncing Inventory Alert Stream...`);
-                await sleep(1500);
-                await client.sendMessage(verifiedAdminId, alertMessage);
-            } else {
-                throw sendErr;
+            await sleep(1500); // DOM margin delay ensures smooth multi-device dispatching
+            const adminContactId = await client.getNumberId(adminPlainPhone);
+            const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+            
+            try {
+                await client.sendMessage(verifiedAdminId, messageToSend);
+                console.log(`✅ Stock reduction alert sent to Admin (${adminPhone}) for "${prodName}"`);
+            } catch (sendErr) {
+                // Multi-device sync fallback (Initialization workaround)
+                if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                    console.log(`⚠️ Applying path initialization workaround for Stock Alert Channel...`);
+                    await client.sendMessage(verifiedAdminId, `🔎 Syncing Inventory Alert Stream...`);
+                    await sleep(1500);
+                    await client.sendMessage(verifiedAdminId, messageToSend);
+                } else {
+                    throw sendErr;
+                }
             }
+        } catch (err) {
+            console.error("Error sending stock reduction alert:", err.message);
         }
-    } catch (err) {
-        console.error("Error sending stock reduction alert:", err.message);
     }
 }, (error) => {
     console.error('🔥 [FATAL] Firestore Stock Alert Snapshot Error:', error);
