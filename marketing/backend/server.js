@@ -1269,9 +1269,9 @@ client.on('ready', () => {
     }
 
     // Look for check module (Account statements)
-    if (fs.existsSync('./check.js')) {
-        console.log('📦 Loading check.js module...');
-        require('./check.js')(client, db);
+    if (fs.existsSync('./other.js')) {
+        console.log('📦 Loading other.js module...');
+        require('./other.js')(client, db);
     }
 });
 
