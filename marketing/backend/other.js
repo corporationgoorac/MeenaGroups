@@ -134,7 +134,7 @@ module.exports = (client) => {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@500;700&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
                     <style>
                         body {
                             margin: 0;
@@ -148,7 +148,7 @@ module.exports = (client) => {
                             align-items: center;
                             text-align: center;
                             color: white;
-                            font-family: 'Montserrat', sans-serif;
+                            font-family: 'Montserrat', 'Noto Color Emoji', sans-serif;
                             box-sizing: border-box;
                             border: 15px solid rgba(255, 215, 0, 0.4); 
                             overflow: hidden; /* Prevent visual overflow */
