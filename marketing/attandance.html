@@ -120,6 +120,33 @@
         .load-more { width: 100%; padding: 15px; background: transparent; border: 1px dashed var(--text-secondary); color: var(--text-secondary); border-radius: 12px; cursor: pointer; margin-top: 10px;}
         .loading-text { text-align: center; padding: 20px; color: var(--text-secondary); }
 
+        /* Floating Date Picker Pill */
+        .fab-date {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 30px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+            cursor: pointer;
+            z-index: 400;
+            transition: transform 0.2s, background 0.3s;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .fab-date:active { transform: scale(0.95); }
+        .fab-date input[type="date"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer;
+            -webkit-appearance: none;
+        }
+
         /* Skeleton Animations */
         .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 6px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -172,6 +199,13 @@
 
         <div id="homeList"></div>
         <button id="loadMoreHome" class="load-more hidden" onclick="app.loadEmployees('home')">Load More Employees</button>
+        
+        <!-- Floating Pill Date Picker -->
+        <div class="fab-date" id="fabDateBtn">
+            <svg class="material-symbols-outlined" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Zm280 240q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400Z"/></svg>
+            <span id="fabDateText">Today</span>
+            <input type="date" id="homeDatePicker" onchange="app.changeHomeDate(this.value)">
+        </div>
     </div>
 
     <!-- View: Employees Management -->
@@ -309,6 +343,7 @@
             searchTimers: { home: null, manage: null, adv: null },
             currentPin: '',
             garbageDocs: [],
+            selectedDate: null, // Tracks currently selected home page date
             
             // Central RAM Cache (Eliminates excessive DB Reads for edits/attendance/UI updates)
             ramCache: {
@@ -324,6 +359,34 @@
             getISTMonthString() {
                 const dateStr = this.getISTDateString();
                 return dateStr.substring(0, 7); 
+            },
+
+            // --- Floating Date Picker Handler ---
+            changeHomeDate(dateStr) {
+                if (!dateStr) dateStr = this.getISTDateString();
+                this.selectedDate = dateStr;
+                
+                const picker = document.getElementById('homeDatePicker');
+                const text = document.getElementById('fabDateText');
+                if (picker) picker.value = dateStr;
+                
+                if (dateStr === this.getISTDateString()) {
+                    text.innerText = "Today";
+                } else {
+                    const d = new Date(dateStr);
+                    text.innerText = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                }
+                
+                // Clear the cache trigger if they selected a date from a different month
+                const selectedMonth = dateStr.substring(0, 7);
+                if (this.ramCache.monthStr !== selectedMonth) {
+                    this.ramCache.monthDoc = null; 
+                }
+                
+                // Reload home view with new selected date
+                if(this.view === 'home') {
+                    this.loadEmployees('home', true);
+                }
             },
 
             // --- Top Bar Animated UI Actions ---
@@ -350,13 +413,13 @@
             // --- Daily Summary Update Function ---
             updateDailySummary() {
                 if (!app.ramCache.monthDoc) return;
-                const today = this.getISTDateString();
+                const targetDate = this.selectedDate || this.getISTDateString();
                 let p = 0, h = 0, a = 0;
                 
                 Object.values(app.ramCache.monthDoc).forEach(empRec => {
-                    if (empRec[today] === 'present') p++;
-                    if (empRec[today] === 'half') h++;
-                    if (empRec[today] === 'absent') a++;
+                    if (empRec[targetDate] === 'present') p++;
+                    if (empRec[targetDate] === 'half') h++;
+                    if (empRec[targetDate] === 'absent') a++;
                 });
                 
                 const pEl = document.getElementById('sum-p');
@@ -540,12 +603,14 @@
 
                     // Network call for current month attendance efficiently cached
                     let currentAtt = {};
-                    const today = this.getISTDateString();
+                    const targetDate = this.selectedDate || this.getISTDateString();
+                    
                     if (context === 'home') {
-                        if (!app.ramCache.monthDoc || app.ramCache.monthStr !== this.getISTMonthString()) {
-                            const monthDoc = await getDoc(doc(db, 'attendance', this.getISTMonthString()));
+                        const selectedMonth = targetDate.substring(0, 7);
+                        if (!app.ramCache.monthDoc || app.ramCache.monthStr !== selectedMonth) {
+                            const monthDoc = await getDoc(doc(db, 'attendance', selectedMonth));
                             app.ramCache.monthDoc = monthDoc.exists() ? monthDoc.data().records || {} : {};
-                            app.ramCache.monthStr = this.getISTMonthString();
+                            app.ramCache.monthStr = selectedMonth;
                         }
                         currentAtt = app.ramCache.monthDoc;
                         
@@ -559,7 +624,7 @@
                         let html = '';
 
                         if (context === 'home') {
-                            const status = currentAtt[id] ? currentAtt[id][today] : null;
+                            const status = currentAtt[id] ? currentAtt[id][targetDate] : null;
                             html = `
                                 <div class="emp-card" id="card-home-${id}">
                                     <div class="card-header">
@@ -617,21 +682,21 @@
                 document.querySelector(`.att-btn-group-${empId} .att-btn.${status}`).classList.add('active');
                 if(navigator.vibrate) navigator.vibrate(30);
 
-                const month = this.getISTMonthString();
-                const date = this.getISTDateString();
+                const targetDate = this.selectedDate || this.getISTDateString();
+                const month = targetDate.substring(0, 7);
                 const docRef = doc(db, 'attendance', month);
                 
                 // Keep RAM cache fully updated instantly
                 if (!app.ramCache.monthDoc) app.ramCache.monthDoc = {};
                 if (!app.ramCache.monthDoc[empId]) app.ramCache.monthDoc[empId] = {};
-                app.ramCache.monthDoc[empId][date] = status;
+                app.ramCache.monthDoc[empId][targetDate] = status;
                 this.updateDailySummary();
 
                 try {
-                    await updateDoc(docRef, { [`records.${empId}.${date}`]: status });
+                    await updateDoc(docRef, { [`records.${empId}.${targetDate}`]: status });
                 } catch(e) {
                     if (e.code === 'not-found') {
-                        await setDoc(docRef, { records: { [empId]: { [date]: status } } });
+                        await setDoc(docRef, { records: { [empId]: { [targetDate]: status } } });
                     } else {
                         alert("Database write blocked. Check your Firestore Security Rules.");
                     }
@@ -1089,6 +1154,8 @@
             }
         });
 
+        // Initialize the app with today's date configured
+        app.changeHomeDate(app.getISTDateString());
         history.replaceState({ view: 'home' }, '', '#home');
         app.navigate('home', false);
 
