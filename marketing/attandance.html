@@ -312,8 +312,8 @@
             </div>
             
             <div style="display:flex; gap: 10px; margin-bottom: 15px;">
-                <button class="modal-btn btn-confirm" onclick="app.downloadAdvReport(event, 'ALL', null, null, 'img')" style="flex: 1; padding: 14px;">Image Report</button>
-                <button class="modal-btn" onclick="app.downloadAdvReport(event, 'ALL', null, null, 'csv')" style="flex: 1; padding: 14px; background: #0ea5e9; color: white; border: none;">CSV Data</button>
+                <button class="modal-btn btn-confirm" onclick="app.downloadAdvReport(event, 'ALL', null, null, null, 'img')" style="flex: 1; padding: 14px;">Image Report</button>
+                <button class="modal-btn" onclick="app.downloadAdvReport(event, 'ALL', null, null, null, 'csv')" style="flex: 1; padding: 14px; background: #0ea5e9; color: white; border: none;">CSV Data</button>
             </div>
             
             <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; margin-bottom: 15px;">
@@ -661,8 +661,8 @@
                                         <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage}</div>
                                     </div>
                                     <div style="display:flex; gap:10px; margin-top: 10px;">
-                                        <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, 'img')">Image</button>
-                                        <button class="modal-btn" style="padding: 8px; flex:1; background: #0ea5e9; color: white; border: none;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, 'csv')">CSV</button>
+                                        <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, '${data.role}', 'img')">Image</button>
+                                        <button class="modal-btn" style="padding: 8px; flex:1; background: #0ea5e9; color: white; border: none;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, '${data.role}', 'csv')">CSV</button>
                                     </div>
                                 </div>
                             `;
@@ -835,7 +835,7 @@
                 }
             },
             
-            async downloadAdvReport(event, empId, empName = null, empWage = null, format = 'img') {
+            async downloadAdvReport(event, empId, empName = null, empWage = null, empRole = null, format = 'img') {
                 const btn = event.target;
                 const originalText = btn.innerText;
                 btn.innerText = format === 'csv' ? "Generating CSV..." : "Generating Image...";
@@ -868,7 +868,7 @@
                         const snap = await getDocs(query(collection(db, "employees"), orderBy("nameLower")));
                         snap.forEach(d => { employees.push({id: d.id, ...d.data()}); });
                     } else {
-                        employees.push({ id: empId, name: empName, wage: empWage });
+                        employees.push({ id: empId, name: empName, wage: empWage, role: empRole });
                     }
 
                     const exactDates = this.getDatesBetween(fromStr, toStr);
