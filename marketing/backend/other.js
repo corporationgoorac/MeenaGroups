@@ -5,11 +5,13 @@
  * Features:
  * - Puppeteer HTML-to-Image Generation for Festivals & Mugurtham
  * - Bulletproof Memory Management (Guaranteed tab/browser closure)
- * - 6,500+ Dynamic Tanglish/English Template Permutations
+ * - Dynamic Tanglish/English Template Permutations via External JSON
  * - Network-Resilient Weather & Calendar Fetches
  * - Zero API Keys Needed
  * - Advanced Error Retries & Pre-flight Disk Cleanup
  * - Admin On-Demand WhatsApp Command Listener
+ * - Hardcore Process & Disconnect Crash Protection (NEW)
+ * - Scalable SVG Graphics Integration (NEW)
  */
 
 const cron = require('node-cron');
@@ -23,6 +25,49 @@ const { MessageMedia } = require('whatsapp-web.js');
 
 module.exports = (client) => {
     console.log("📦 Starting other.js");
+
+    // ---------------------------------------------------------
+    // CRASH PROTECTION NET (Prevents silent exits)
+    // ---------------------------------------------------------
+    process.on('uncaughtException', (err) => {
+        console.error("🚨 CRITICAL ERROR (Uncaught Exception):", err.message);
+        console.error(err.stack);
+        // Keeps the Node process alive instead of crashing
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error("🚨 CRITICAL ERROR (Unhandled Rejection):", reason);
+        // Keeps the Node process alive instead of crashing
+    });
+
+    client.on('disconnected', (reason) => {
+        console.error('🔴 WhatsApp Client Disconnected! Reason:', reason);
+        console.log('🔄 Attempting to safely restart the client in 10 seconds...');
+        setTimeout(() => {
+            try {
+                client.initialize();
+            } catch (err) {
+                console.error('⚠️ Failed to re-initialize client:', err.message);
+            }
+        }, 10000);
+    });
+
+    // ---------------------------------------------------------
+    // DYNAMIC PHRASE LOADER (Hot-reloads from phrases.json)
+    // ---------------------------------------------------------
+    function getPhrases() {
+        try {
+            const data = fs.readFileSync(path.join(__dirname, 'phrases.json'), 'utf8');
+            return JSON.parse(data);
+        } catch (err) {
+            console.error("⚠️ Error reading phrases.json. Using emergency fallback.", err.message);
+            return {
+                morning: { intros: ["Morning team!"], bodies: ["Let's achieve today's targets."], outros: ["All the best!"] },
+                evening: { intros: ["Evening team!"], bodies: ["Update the pending logs."], outros: ["Close strong!"] },
+                wishes: { festivals: ["HAPPY"], mugurtham: ["BLESSED"] }
+            };
+        }
+    }
 
     // ---------------------------------------------------------
     // 0. PRE-FLIGHT DISK CLEANUP (Prevents storage leaks)
@@ -112,17 +157,15 @@ module.exports = (client) => {
                 ? mugurthamGradients[Math.floor(Math.random() * mugurthamGradients.length)]
                 : festivalGradients[Math.floor(Math.random() * festivalGradients.length)];
 
-            const decorIcon = type === 'mugurtham' ? '✨ 💍 ✨' : '🎉 🎊 🎉';
+            // Elegant CSS-styled SVGs instead of standard emojis
+            const svgMugurtham = `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 1L9 9l-8 3 8 3 3 8 3-8 8-3-8-3-3-8z"/></svg>`;
+            const svgFestival = `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+            const decorSVG = type === 'mugurtham' ? svgMugurtham : svgFestival;
             
-            const festivalWishes = [
-                "WISHING YOU A VERY HAPPY", "CELEBRATING A BLESSED", "JOYOUS GREETINGS FOR", 
-                "MAY YOU HAVE A WONDERFUL", "SENDING WARM WISHES FOR", "GREETINGS ON THIS", 
-                "MAY THIS DAY BRING JOY FOR", "A VERY BLESSED AND HAPPY"
-            ];
-            const mugurthamWishes = [
-                "WISHING YOU A PROSPEROUS", "AUSPICIOUS GREETINGS FOR", "BLESSED SUBAMUHURTHAM ON", 
-                "GET READY FOR A GRAND", "CELEBRATING THE AUSPICIOUS", "DIVINE BLESSINGS ON THIS"
-            ];
+            // Fetch dynamically from phrases.json
+            const db = getPhrases();
+            const festivalWishes = db.wishes.festivals;
+            const mugurthamWishes = db.wishes.mugurtham;
 
             let dynamicWish = "";
             if (type === 'festival') dynamicWish = festivalWishes[Math.floor(Math.random() * festivalWishes.length)];
@@ -134,7 +177,7 @@ module.exports = (client) => {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@500;700&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
                     <style>
                         body {
                             margin: 0;
@@ -148,10 +191,10 @@ module.exports = (client) => {
                             align-items: center;
                             text-align: center;
                             color: white;
-                            font-family: 'Montserrat', 'Noto Color Emoji', sans-serif;
+                            font-family: 'Montserrat', sans-serif;
                             box-sizing: border-box;
                             border: 15px solid rgba(255, 215, 0, 0.4); 
-                            overflow: hidden; /* Prevent visual overflow */
+                            overflow: hidden; 
                         }
                         .from-text {
                             font-size: 18px;
@@ -161,15 +204,19 @@ module.exports = (client) => {
                             color: rgba(255, 255, 255, 0.9);
                         }
                         .brand {
-                            font-size: 36px; /* Scaled down slightly */
+                            font-size: 36px;
                             font-weight: 700;
                             letter-spacing: 5px;
                             text-transform: uppercase;
-                            margin-bottom: 30px;
+                            margin-bottom: 25px;
                             color: #FFD700;
                             text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
                             max-width: 90%;
                             word-wrap: break-word;
+                        }
+                        .decor {
+                            margin-bottom: 25px;
+                            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
                         }
                         .wish-text {
                             font-size: 22px;
@@ -181,7 +228,7 @@ module.exports = (client) => {
                         }
                         .title {
                             font-family: 'Playfair Display', serif;
-                            font-size: clamp(40px, 8vw, 65px); /* Fluid typography */
+                            font-size: clamp(40px, 8vw, 65px); 
                             font-weight: 700;
                             margin: 0 20px 20px 20px;
                             line-height: 1.2;
@@ -191,7 +238,7 @@ module.exports = (client) => {
                             overflow-wrap: break-word;
                         }
                         .subtitle {
-                            font-size: clamp(18px, 4vw, 24px); /* Fluid typography */
+                            font-size: clamp(18px, 4vw, 24px); 
                             font-weight: 500;
                             background: rgba(0, 0, 0, 0.4);
                             padding: 15px 30px;
@@ -201,16 +248,12 @@ module.exports = (client) => {
                             max-width: 85%;
                             word-wrap: break-word;
                         }
-                        .decor {
-                            font-size: 45px;
-                            margin-bottom: 20px;
-                        }
                     </style>
                 </head>
                 <body>
                     <div class="from-text">WISHING YOU FROM</div>
                     <div class="brand">MEENA MARKETING</div>
-                    <div class="decor">${decorIcon}</div>
+                    <div class="decor">${decorSVG}</div>
                     ${universalWish}
                     <div class="title">${title}</div>
                     <div class="subtitle">${subtitle}</div>
@@ -339,32 +382,13 @@ module.exports = (client) => {
     }
 
     // ---------------------------------------------------------
-    // 6. PERMUTATION ENGINE (Tanglish/English)
+    // 6. PERMUTATION ENGINE (Tanglish/English via JSON)
     // ---------------------------------------------------------
     function generateMorningQuote() {
-        const intros = [
-            "Kaalai Vanakkam Team!", "Good morning Meena Marketing!", "Rise and shine team!", 
-            "Vanakkam!", "Kaalai Vanakkam!", "Happy Morning Team!", "A fresh start today!", 
-            "Energetic Morning everyone!", "Super Kaalai!", "Good Morning Champions!", 
-            "Iniya Kaalai Vanakkam!", "Greetings for the day team!"
-        ];
-        const bodies = [
-            "Innaiku namma target ah beat pannanum.", "Let's make today a record-breaking day for sales.",
-            "Customers expect the best service from us today.", "Innaiku vara ovoru customer um namakku mukkiyam.",
-            "Let's focus on clearing the older stock today.", "Treat every customer like a VIP.",
-            "Namma team work thaan namma success.", "Shop display ah neat aah maintain pannunga.",
-            "Today is a new opportunity to shine.", "Focus on customer satisfaction above all today.",
-            "Ensure stock levels are updated quickly.", "Let's cross our weekly targets today.",
-            "Keep the energy high on the floor.", "Every single customer interaction matters.",
-            "Push the premium and latest products today.", "Team coordination is the key to our sales.",
-            "Let's make our shop the best in Alwarthirunagiri.", "Smile and greet every single customer.",
-            "Innaiku namma best effort ah kodukkanum.", "Be proactive and help customers find what they need."
-        ];
-        const outros = [
-            "All the best!", "Let's rock today!", "Happy selling!", "Great sales ahead!", 
-            "Vetri namadhe!", "Have a wonderful day!", "Make it happen!", "Let's win this!", 
-            "Full energy today!", "Keep up the great work!", "Have a highly productive day!"
-        ];
+        const db = getPhrases();
+        const intros = db.morning.intros;
+        const bodies = db.morning.bodies;
+        const outros = db.morning.outros;
 
         const intro = intros[Math.floor(Math.random() * intros.length)];
         const body = bodies[Math.floor(Math.random() * bodies.length)];
@@ -374,27 +398,10 @@ module.exports = (client) => {
     }
 
     function generateEveningQuote() {
-        const intros = [
-            "Good evening team!", "Evening Vanakkam!", "Maalai Vanakkam!", "Evening update!",
-            "Good evening champions!", "Day end update!", "Maalai Vanakkam team!", 
-            "Wrapping up the day!", "Evening check-in!", "Great effort today!"
-        ];
-        const bodies = [
-            "Innaiku day end aagara kulla target ah achieve pannanum.", "Let's do a quick inventory check.",
-            "Close those pending deals before you leave.", "Innaiku evlo business aachu? Push hard for the last hours.",
-            "Ensure all stock is properly arranged.", "End the day on a high note.",
-            "Update the daily sales report accurately.", "Prepare the display for tomorrow morning.",
-            "Check for any missing or depleted stock.", "Follow up on today's pending customer inquiries.",
-            "Make sure the shop is completely clean before leaving.", "Review today's hits and misses.",
-            "Restock the fast-moving items on the shelves.", "Secure the cash registers and tally.",
-            "Note down any specific customer requests for tomorrow.", "Thank you for the sheer dedication today.",
-            "Nalaiku thevayana items ah ipove eduthu vaiyunga."
-        ];
-        const outros = [
-            "Close strong!", "Great job today!", "Let's finish well!", "Thank you for your hard work!", 
-            "See you all tomorrow!", "Have a restful evening!", "Goodnight team!", 
-            "Rest well, see you tomorrow!", "Take care everyone!", "Stay safe and rest up!"
-        ];
+        const db = getPhrases();
+        const intros = db.evening.intros;
+        const bodies = db.evening.bodies;
+        const outros = db.evening.outros;
 
         const intro = intros[Math.floor(Math.random() * intros.length)];
         const body = bodies[Math.floor(Math.random() * bodies.length)];
