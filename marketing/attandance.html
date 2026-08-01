@@ -969,22 +969,23 @@
                     }
 
                     const exactDates = this.getDatesBetween(fromStr, toStr);
+                    const totalDaysInRange = exactDates.length; // Strict "Days Between" math model
                     
                     const reportRows = employees.map(emp => {
                         let p = 0, h = 0, a = 0;
                         let totalWage = 0; // Floating point precision math
+                        const customDailyWage = emp.wage / totalDaysInRange; // Custom base salary cap math
                         
                         exactDates.forEach(date => {
                             const month = date.substring(0, 7);
-                            const dailyWage = app.getDailyWage(emp.wage, month);
                             const status = attData[month]?.[emp.id]?.[date];
                             
                             if(status === 'present') { 
                                 p++; 
-                                totalWage += dailyWage; 
+                                totalWage += customDailyWage; 
                             } else if(status === 'half') { 
                                 h++; 
-                                totalWage += (dailyWage / 2); 
+                                totalWage += (customDailyWage / 2); 
                             } else if(status === 'absent') { 
                                 a++; 
                             }
@@ -1010,13 +1011,13 @@
                             csvContent += `Employee: ${empName}, Base Salary: Rs. ${empWage.toLocaleString('en-IN')}/mo\n\n`;
                             csvContent += "Date,Status,Earned\n";
                             const emp = reportRows[0];
+                            const customDailyWage = emp.wage / totalDaysInRange; // Match the days between logic
                             exactDates.forEach(date => {
                                 const month = date.substring(0, 7);
-                                const dailyWage = app.getDailyWage(emp.wage, month);
                                 const status = attData[month]?.[emp.id]?.[date] || 'Not Marked';
                                 let earned = 0;
-                                if(status === 'present') earned = dailyWage;
-                                else if(status === 'half') earned = (dailyWage / 2);
+                                if(status === 'present') earned = customDailyWage;
+                                else if(status === 'half') earned = (customDailyWage / 2);
                                 csvContent += `${date},${status},${earned.toFixed(2)}\n`;
                             });
                             csvContent += `\nTotal,,,${emp.totalWage.toFixed(2)}\n`;
