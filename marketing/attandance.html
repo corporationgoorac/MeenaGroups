@@ -73,7 +73,7 @@
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .emp-name { font-size: 1.2em; font-weight: 700; margin-bottom: 5px; word-wrap: break-word; transition: 0.3s; }
         .emp-role { font-size: 0.8em; font-weight: 600; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2); transition: 0.3s;}
-        .emp-wage { font-weight: 700; color: white; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 10px; font-size: 0.9em; transition: 0.3s;}
+        .emp-wage { font-weight: 700; color: white; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 10px; font-size: 0.9em; transition: 0.3s; white-space: nowrap;}
         
         /* Attendance Buttons */
         .att-btn-group { display: flex; gap: 10px; width: 100%; }
@@ -90,12 +90,12 @@
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); font-size: 0.85em; }
         th { background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
-        .sticky-col { position: sticky; left: 0; background: var(--surface-color); z-index: 10; text-align: left; border-right: 1px solid var(--input-border); font-weight: 600; }
+        .sticky-col { position: sticky; left: 0; background: var(--surface-color); z-index: 10; text-align: left; border-right: 1px solid var(--input-border); font-weight: 600; white-space: nowrap; }
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
         .dot.P { background-color: var(--success-color); }
         .dot.H { background-color: var(--warning-color); }
         .dot.A { background-color: var(--meena-red); }
-        .total-wage { font-weight: 800; color: #a855f7; font-size: 1.1em; }
+        .total-wage { font-weight: 800; color: #a855f7; font-size: 1.1em; white-space: nowrap; }
 
         /* Admin Numpad */
         .pin-dots { display: flex; justify-content: center; gap: 15px; margin: 40px 0; }
@@ -287,7 +287,8 @@
             <input type="hidden" id="empId">
             <input type="text" id="empName" placeholder="Full Name" required>
             <input type="text" id="empRole" placeholder="Role (e.g., Sales)" required>
-            <input type="number" id="empWage" placeholder="Daily Wage (₹)" required>
+            <!-- Changed placeholder to reflect Monthly Salary context -->
+            <input type="number" id="empWage" placeholder="Monthly Salary (₹)" required>
             <div class="modal-actions">
                 <button class="modal-btn btn-cancel" onclick="history.back()">Cancel</button>
                 <button class="modal-btn btn-confirm" id="saveEmpBtn" onclick="app.saveEmployee()">Save</button>
@@ -359,6 +360,13 @@
             getISTMonthString() {
                 const dateStr = this.getISTDateString();
                 return dateStr.substring(0, 7); 
+            },
+
+            // --- Dynamic Daily Wage Calculator ---
+            getDailyWage(monthlySalary, monthStr) {
+                const [y, m] = monthStr.split('-').map(Number);
+                const daysInMonth = new Date(y, m, 0).getDate();
+                return Math.round(monthlySalary / daysInMonth);
             },
 
             // --- Floating Date Picker Handler ---
@@ -626,12 +634,14 @@
                         let html = '';
 
                         if (context === 'home') {
+                            const monthStr = targetDate.substring(0, 7);
+                            const dailyWage = app.getDailyWage(data.wage, monthStr);
                             const status = currentAtt[id] ? currentAtt[id][targetDate] : null;
                             html = `
                                 <div class="emp-card" id="card-home-${id}">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}</div>
+                                        <div class="emp-wage emp-wage-${id}">₹${dailyWage}/d</div>
                                     </div>
                                     <div class="att-btn-group att-btn-group-${id}">
                                         <button class="att-btn present ${status==='present'?'active':''}" onclick="app.mark('${id}', 'present', ${data.wage})">Present</button>
@@ -645,7 +655,7 @@
                                 <div class="emp-card" id="card-manage-${id}">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}</div>
+                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}/mo</div>
                                     </div>
                                     <div class="att-btn-group">
                                         <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${data.name}', '${data.role}', ${data.wage})">Edit</button>
@@ -658,7 +668,7 @@
                                 <div class="emp-card" id="card-adv-${id}" style="padding: 15px;">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}" style="font-size:1em;">${data.name}</div><div class="emp-role emp-role-${id}" style="font-size:0.7em;">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage}</div>
+                                        <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage}/mo</div>
                                     </div>
                                     <div style="display:flex; gap:10px; margin-top: 10px;">
                                         <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, '${data.role}', 'img')">Image</button>
@@ -746,7 +756,28 @@
                         // Instant DOM Update via RAM without doing network reload
                         document.querySelectorAll(`.emp-name-${id}`).forEach(el => el.innerText = name);
                         document.querySelectorAll(`.emp-role-${id}`).forEach(el => el.innerText = role);
-                        document.querySelectorAll(`.emp-wage-${id}`).forEach(el => el.innerText = '₹' + wage);
+                        
+                        // Dynamically update the specific wage display based on the context
+                        const targetDate = this.selectedDate || this.getISTDateString();
+                        const daily = this.getDailyWage(wage, targetDate.substring(0, 7));
+                        const homeWageEl = document.querySelector(`#card-home-${id} .emp-wage`);
+                        if (homeWageEl) homeWageEl.innerText = '₹' + daily + '/d';
+                        
+                        const manageWageEl = document.querySelector(`#card-manage-${id} .emp-wage`);
+                        if (manageWageEl) manageWageEl.innerText = '₹' + wage + '/mo';
+                        
+                        const advWageEl = document.querySelector(`#card-adv-${id} .emp-wage`);
+                        if (advWageEl) advWageEl.innerText = '₹' + wage + '/mo';
+
+                        // IMPORTANT FIX: Update the code inside the edit button so it uses fresh data next time
+                        const editBtn = document.querySelector(`#card-manage-${id} .att-btn:first-child`);
+                        if (editBtn) editBtn.setAttribute('onclick', `app.editEmp('${id}', '${name}', '${role}', ${wage})`);
+                        
+                        const imgBtn = document.querySelector(`#card-adv-${id} .btn-confirm`);
+                        const csvBtn = document.querySelector(`#card-adv-${id} .modal-btn:not(.btn-confirm)`);
+                        if(imgBtn) imgBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${name}', ${wage}, '${role}', 'img')`);
+                        if(csvBtn) csvBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${name}', ${wage}, '${role}', 'csv')`);
+
                     } else {
                         data.createdAt = new Date();
                         await addDoc(collection(db, "employees"), data);
@@ -787,6 +818,7 @@
                 tbody.innerHTML = `<tr><td colspan="35"><div class="skeleton" style="height: 30px; width: 100%;"></div></td></tr><tr><td colspan="35"><div class="skeleton" style="height: 30px; width: 100%;"></div></td></tr>`;
 
                 const [yyyy, mm] = targetMonth.split('-');
+                // Dynamic days calculation based on specific month and year
                 const daysInMonth = new Date(yyyy, mm, 0).getDate();
                 
                 for(let i=1; i<=daysInMonth; i++) {
@@ -801,7 +833,7 @@
 
                     tbody.innerHTML = '';
                     if(empSnap.empty) {
-                        tbody.innerHTML = '<tr><td colspan="35" class="loading-text">No employees found.</td></tr>';
+                        tbody.innerHTML = `<tr><td colspan="${daysInMonth + 4}" class="loading-text">No employees found.</td></tr>`;
                         return;
                     }
 
@@ -809,8 +841,9 @@
                         const emp = eDoc.data();
                         const empId = eDoc.id;
                         const empRec = records[empId] || {};
+                        const dailyWage = app.getDailyWage(emp.wage, targetMonth);
                         
-                        let row = `<tr><td class="sticky-col"><div><b>${emp.name}</b></div><div style="font-size:0.8em;color:var(--text-secondary)">₹${emp.wage}/d</div></td>`;
+                        let row = `<tr><td class="sticky-col"><div><b>${emp.name}</b></div><div style="font-size:0.8em;color:var(--text-secondary)">₹${dailyWage}/d (₹${emp.wage}/mo)</div></td>`;
                         
                         let p = 0, h = 0, a = 0;
                         for(let i=1; i<=daysInMonth; i++) {
@@ -822,7 +855,7 @@
                             else { row += `<td>-</td>`; }
                         }
 
-                        const total = (p * emp.wage) + (h * (emp.wage / 2));
+                        const total = (p * dailyWage) + (h * Math.round(dailyWage / 2));
                         row += `
                             <td>${p}</td><td>${h}</td><td>${a}</td>
                             <td class="total-wage">₹${total.toLocaleString()}</td>
@@ -831,7 +864,7 @@
                     });
                 } catch(e) { 
                     console.error(e); 
-                    tbody.innerHTML = '<tr><td colspan="35" class="loading-text" style="color:var(--meena-red);">Error loading report. Check database rules.</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="35" class="loading-text" style="color:var(--meena-red);">Error loading report. Check database rules.</td></tr>`;
                 }
             },
             
@@ -875,14 +908,23 @@
                     
                     const reportRows = employees.map(emp => {
                         let p = 0, h = 0, a = 0;
+                        let totalWage = 0;
+                        
                         exactDates.forEach(date => {
                             const month = date.substring(0, 7);
+                            const dailyWage = app.getDailyWage(emp.wage, month);
                             const status = attData[month]?.[emp.id]?.[date];
-                            if(status === 'present') p++;
-                            else if(status === 'half') h++;
-                            else if(status === 'absent') a++;
+                            
+                            if(status === 'present') { 
+                                p++; 
+                                totalWage += dailyWage; 
+                            } else if(status === 'half') { 
+                                h++; 
+                                totalWage += Math.round(dailyWage / 2); 
+                            } else if(status === 'absent') { 
+                                a++; 
+                            }
                         });
-                        const totalWage = (p * emp.wage) + (h * (emp.wage / 2));
                         return { ...emp, p, h, a, totalWage };
                     });
 
@@ -890,7 +932,7 @@
                     if (format === 'csv') {
                         let csvContent = "\uFEFF"; // BOM for excel utf8
                         if (empId === 'ALL') {
-                            csvContent += "Employee Name,Role,Daily Wage,Present,Half-Day,Absent,Total Salary," + exactDates.join(",") + "\n";
+                            csvContent += "Employee Name,Role,Monthly Base Salary,Present,Half-Day,Absent,Total Salary Earned," + exactDates.join(",") + "\n";
                             reportRows.forEach(r => {
                                 let rowData = `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage}`;
                                 exactDates.forEach(date => {
@@ -901,15 +943,16 @@
                                 csvContent += rowData + "\n";
                             });
                         } else {
-                            csvContent += `Employee: ${empName}, Wage: Rs. ${empWage}\n\n`;
+                            csvContent += `Employee: ${empName}, Base Salary: Rs. ${empWage}/mo\n\n`;
                             csvContent += "Date,Status,Earned\n";
                             const emp = reportRows[0];
                             exactDates.forEach(date => {
                                 const month = date.substring(0, 7);
+                                const dailyWage = app.getDailyWage(emp.wage, month);
                                 const status = attData[month]?.[emp.id]?.[date] || 'Not Marked';
                                 let earned = 0;
-                                if(status === 'present') earned = emp.wage;
-                                else if(status === 'half') earned = emp.wage / 2;
+                                if(status === 'present') earned = dailyWage;
+                                else if(status === 'half') earned = Math.round(dailyWage / 2);
                                 csvContent += `${date},${status},${earned}\n`;
                             });
                             csvContent += `\nTotal,,,${emp.totalWage}\n`;
@@ -948,12 +991,18 @@
                     `;
 
                     reportRows.forEach(r => {
+                        // Dynamic Font Sizing strictly for large salary output
+                        const totStr = r.totalWage.toLocaleString();
+                        let dynFontSize = '22px';
+                        if (totStr.length > 7) dynFontSize = '15px';
+                        else if (totStr.length > 5) dynFontSize = '18px';
+
                         innerContent += `
                             <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin-bottom: 30px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <div style="text-align:left;">
                                         <h3 style="margin:0; font-size:22px; font-weight:700; color:#ffffff;">${r.name}</h3>
-                                        <div style="color:#0d9488; font-size:13px; font-weight:600; margin-top:4px;">${r.role} &nbsp;•&nbsp; ₹${r.wage}/day</div>
+                                        <div style="color:#0d9488; font-size:13px; font-weight:600; margin-top:4px;">${r.role} &nbsp;•&nbsp; ₹${r.wage}/mo base</div>
                                     </div>
                                     <div style="display:flex; gap: 20px; text-align:center;">
                                         <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Present</div><div style="font-size:22px; font-weight:800; color:#10b981;">${r.p}</div></div>
@@ -961,7 +1010,7 @@
                                         <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Absent</div><div style="font-size:22px; font-weight:800; color:#ef4444;">${r.a}</div></div>
                                         <div style="padding-left:15px; border-left: 1px solid rgba(255,255,255,0.1);">
                                             <div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Total Salary</div>
-                                            <div style="font-size:22px; font-weight:800; color:#a855f7;">₹${r.totalWage.toLocaleString()}</div>
+                                            <div style="font-size:${dynFontSize}; font-weight:800; color:#a855f7; white-space:nowrap;">₹${totStr}</div>
                                         </div>
                                     </div>
                                 </div>
