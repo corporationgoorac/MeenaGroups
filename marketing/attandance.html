@@ -279,6 +279,17 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal: Custom Alert (Replaces browser popup) -->
+    <div id="modal-alert" class="overlay">
+        <div class="modal-card">
+            <h3 id="alertTitle">Notice</h3>
+            <p id="alertMsg" style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px;"></p>
+            <div class="modal-actions">
+                <button class="modal-btn btn-confirm" onclick="history.back()">OK</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal: Add/Edit Employee -->
     <div id="modal-employee" class="overlay">
@@ -362,11 +373,11 @@
                 return dateStr.substring(0, 7); 
             },
 
-            // --- Dynamic Daily Wage Calculator ---
+            // --- Dynamic Daily Wage Calculator (Exact Paisa, No Rounding) ---
             getDailyWage(monthlySalary, monthStr) {
                 const [y, m] = monthStr.split('-').map(Number);
                 const daysInMonth = new Date(y, m, 0).getDate();
-                return Math.round(monthlySalary / daysInMonth);
+                return monthlySalary / daysInMonth; 
             },
 
             // --- Floating Date Picker Handler ---
@@ -391,6 +402,8 @@
                     this.ramCache.monthDoc = null; 
                 }
                 
+                if(navigator.vibrate) navigator.vibrate(15);
+                
                 // Reload home view with new selected date
                 if(this.view === 'home') {
                     this.loadEmployees('home', true);
@@ -402,6 +415,8 @@
                 const searchBar = document.getElementById('searchHome');
                 const summary = document.getElementById('inlineSummary');
                 const btnSvg = document.getElementById('searchIconSvg');
+                
+                if(navigator.vibrate) navigator.vibrate(15);
 
                 if (searchBar.classList.contains('active')) {
                     searchBar.classList.remove('active');
@@ -468,6 +483,8 @@
 
             // --- Routing & Modals ---
             navigate(viewId, push = true) {
+                if(navigator.vibrate) navigator.vibrate(15);
+                
                 document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
                 
                 document.getElementById('backBtn').classList.remove('hidden'); 
@@ -510,6 +527,8 @@
             },
 
             goBack() {
+                if(navigator.vibrate) navigator.vibrate(15);
+                
                 if (document.querySelectorAll('.overlay.active').length > 0) {
                     history.back();
                     return;
@@ -522,6 +541,7 @@
             },
 
             openModal(modalId) {
+                if(navigator.vibrate) navigator.vibrate(15);
                 history.pushState({ modal: modalId }, '', `#${modalId}`);
                 document.getElementById(modalId).classList.add('active');
             },
@@ -533,8 +553,18 @@
                 document.getElementById('confirmTitle').innerText = title;
                 document.getElementById('confirmMsg').innerText = msg;
                 const btn = document.getElementById('confirmActionBtn');
-                btn.onclick = () => { onConfirm(); history.back(); };
+                btn.onclick = () => { 
+                    if(navigator.vibrate) navigator.vibrate(20);
+                    onConfirm(); 
+                    history.back(); 
+                };
                 this.openModal('modal-confirm');
+            },
+            
+            showAlert(title, msg) {
+                document.getElementById('alertTitle').innerText = title;
+                document.getElementById('alertMsg').innerText = msg;
+                this.openModal('modal-alert');
             },
             
             openAdvReportModal() {
@@ -631,17 +661,23 @@
                     snap.docs.forEach(d => {
                         const data = d.data();
                         const id = d.id;
+                        
+                        // Prevent Apostrophe bug from breaking JS
+                        const safeName = data.name.replace(/'/g, "\\'");
+                        const safeRole = data.role.replace(/'/g, "\\'");
+                        
                         let html = '';
 
                         if (context === 'home') {
                             const monthStr = targetDate.substring(0, 7);
                             const dailyWage = app.getDailyWage(data.wage, monthStr);
+                            const displayWage = parseFloat(dailyWage.toFixed(2)); // Display cleaner but keep precision background
                             const status = currentAtt[id] ? currentAtt[id][targetDate] : null;
                             html = `
                                 <div class="emp-card" id="card-home-${id}">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}">₹${dailyWage}/d</div>
+                                        <div class="emp-wage emp-wage-${id}">₹${displayWage}/d</div>
                                     </div>
                                     <div class="att-btn-group att-btn-group-${id}">
                                         <button class="att-btn present ${status==='present'?'active':''}" onclick="app.mark('${id}', 'present', ${data.wage})">Present</button>
@@ -655,10 +691,10 @@
                                 <div class="emp-card" id="card-manage-${id}">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}">${data.name}</div><div class="emp-role emp-role-${id}">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}">₹${data.wage}/mo</div>
+                                        <div class="emp-wage emp-wage-${id}">₹${data.wage.toLocaleString()}/mo</div>
                                     </div>
                                     <div class="att-btn-group">
-                                        <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${data.name}', '${data.role}', ${data.wage})">Edit</button>
+                                        <button class="att-btn" style="color:var(--text-color)" onclick="app.editEmp('${id}', '${safeName}', '${safeRole}', ${data.wage})">Edit</button>
                                         <button class="att-btn absent" onclick="app.delEmp('${id}')">Delete</button>
                                     </div>
                                 </div>
@@ -668,11 +704,11 @@
                                 <div class="emp-card" id="card-adv-${id}" style="padding: 15px;">
                                     <div class="card-header">
                                         <div><div class="emp-name emp-name-${id}" style="font-size:1em;">${data.name}</div><div class="emp-role emp-role-${id}" style="font-size:0.7em;">${data.role}</div></div>
-                                        <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage}/mo</div>
+                                        <div class="emp-wage emp-wage-${id}" style="font-size:0.8em;">₹${data.wage.toLocaleString()}/mo</div>
                                     </div>
                                     <div style="display:flex; gap:10px; margin-top: 10px;">
-                                        <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, '${data.role}', 'img')">Image</button>
-                                        <button class="modal-btn" style="padding: 8px; flex:1; background: #0ea5e9; color: white; border: none;" onclick="app.downloadAdvReport(event, '${id}', '${data.name}', ${data.wage}, '${data.role}', 'csv')">CSV</button>
+                                        <button class="modal-btn btn-confirm" style="padding: 8px; flex:1;" onclick="app.downloadAdvReport(event, '${id}', '${safeName}', ${data.wage}, '${safeRole}', 'img')">Image</button>
+                                        <button class="modal-btn" style="padding: 8px; flex:1; background: #0ea5e9; color: white; border: none;" onclick="app.downloadAdvReport(event, '${id}', '${safeName}', ${data.wage}, '${safeRole}', 'csv')">CSV</button>
                                     </div>
                                 </div>
                             `;
@@ -692,7 +728,17 @@
                 const btns = document.querySelectorAll(`.att-btn-group-${empId} .att-btn`);
                 btns.forEach(b => b.classList.remove('active'));
                 document.querySelector(`.att-btn-group-${empId} .att-btn.${status}`).classList.add('active');
-                if(navigator.vibrate) navigator.vibrate(30);
+                
+                // Detailed Haptic Feedback distinct per status
+                if(navigator.vibrate) {
+                    if(status === 'present') {
+                        navigator.vibrate(30);
+                    } else if (status === 'half') {
+                        navigator.vibrate([40, 40, 40]);
+                    } else if (status === 'absent') {
+                        navigator.vibrate([80, 50, 80]);
+                    }
+                }
 
                 const targetDate = this.selectedDate || this.getISTDateString();
                 const month = targetDate.substring(0, 7);
@@ -710,7 +756,7 @@
                     if (e.code === 'not-found') {
                         await setDoc(docRef, { records: { [empId]: { [targetDate]: status } } });
                     } else {
-                        alert("Database write blocked. Check your Firestore Security Rules.");
+                        app.showAlert("Security Error", "Database write blocked. Check your Firestore Security Rules.");
                     }
                 }
             },
@@ -739,9 +785,11 @@
                 const wage = Number(document.getElementById('empWage').value);
                 
                 if (!name || !role || !wage) {
-                    alert("Please fill out all fields.");
+                    app.showAlert("Missing Data", "Please fill out all fields.");
                     return;
                 }
+                
+                if(navigator.vibrate) navigator.vibrate(20);
 
                 const saveBtn = document.getElementById('saveEmpBtn');
                 const originalText = saveBtn.innerText;
@@ -749,6 +797,10 @@
                 saveBtn.disabled = true;
 
                 const data = { name, role, wage, nameLower: name.toLowerCase() };
+                
+                // Prevent Apostrophe bug from breaking inline JS
+                const safeName = name.replace(/'/g, "\\'");
+                const safeRole = role.replace(/'/g, "\\'");
                 
                 try {
                     if (id) {
@@ -759,24 +811,26 @@
                         
                         // Dynamically update the specific wage display based on the context
                         const targetDate = this.selectedDate || this.getISTDateString();
-                        const daily = this.getDailyWage(wage, targetDate.substring(0, 7));
+                        const daily = app.getDailyWage(wage, targetDate.substring(0, 7));
+                        const displayWage = parseFloat(daily.toFixed(2));
+                        
                         const homeWageEl = document.querySelector(`#card-home-${id} .emp-wage`);
-                        if (homeWageEl) homeWageEl.innerText = '₹' + daily + '/d';
+                        if (homeWageEl) homeWageEl.innerText = '₹' + displayWage + '/d';
                         
                         const manageWageEl = document.querySelector(`#card-manage-${id} .emp-wage`);
-                        if (manageWageEl) manageWageEl.innerText = '₹' + wage + '/mo';
+                        if (manageWageEl) manageWageEl.innerText = '₹' + wage.toLocaleString() + '/mo';
                         
                         const advWageEl = document.querySelector(`#card-adv-${id} .emp-wage`);
-                        if (advWageEl) advWageEl.innerText = '₹' + wage + '/mo';
+                        if (advWageEl) advWageEl.innerText = '₹' + wage.toLocaleString() + '/mo';
 
                         // IMPORTANT FIX: Update the code inside the edit button so it uses fresh data next time
                         const editBtn = document.querySelector(`#card-manage-${id} .att-btn:first-child`);
-                        if (editBtn) editBtn.setAttribute('onclick', `app.editEmp('${id}', '${name}', '${role}', ${wage})`);
+                        if (editBtn) editBtn.setAttribute('onclick', `app.editEmp('${id}', '${safeName}', '${safeRole}', ${wage})`);
                         
                         const imgBtn = document.querySelector(`#card-adv-${id} .btn-confirm`);
                         const csvBtn = document.querySelector(`#card-adv-${id} .modal-btn:not(.btn-confirm)`);
-                        if(imgBtn) imgBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${name}', ${wage}, '${role}', 'img')`);
-                        if(csvBtn) csvBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${name}', ${wage}, '${role}', 'csv')`);
+                        if(imgBtn) imgBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${safeName}', ${wage}, '${safeRole}', 'img')`);
+                        if(csvBtn) csvBtn.setAttribute('onclick', `app.downloadAdvReport(event, '${id}', '${safeName}', ${wage}, '${safeRole}', 'csv')`);
 
                     } else {
                         data.createdAt = new Date();
@@ -791,7 +845,7 @@
 
                 } catch(e) { 
                     console.error("Save error:", e); 
-                    alert("Error saving data. Make sure your Firestore Security Rules are set to True.");
+                    app.showAlert("Permission Denied", "Error saving data. Make sure your Firestore Security Rules are set to True.");
                 } finally {
                     saveBtn.innerText = originalText;
                     saveBtn.disabled = false;
@@ -843,7 +897,7 @@
                         const empRec = records[empId] || {};
                         const dailyWage = app.getDailyWage(emp.wage, targetMonth);
                         
-                        let row = `<tr><td class="sticky-col"><div><b>${emp.name}</b></div><div style="font-size:0.8em;color:var(--text-secondary)">₹${dailyWage}/d (₹${emp.wage}/mo)</div></td>`;
+                        let row = `<tr><td class="sticky-col"><div><b>${emp.name}</b></div><div style="font-size:0.8em;color:var(--text-secondary)">₹${emp.wage.toLocaleString('en-IN')}</div></td>`;
                         
                         let p = 0, h = 0, a = 0;
                         for(let i=1; i<=daysInMonth; i++) {
@@ -855,10 +909,12 @@
                             else { row += `<td>-</td>`; }
                         }
 
-                        const total = (p * dailyWage) + (h * Math.round(dailyWage / 2));
+                        // Exact decimal math preserving paisa
+                        const total = (p * dailyWage) + (h * (dailyWage / 2));
+                        
                         row += `
                             <td>${p}</td><td>${h}</td><td>${a}</td>
-                            <td class="total-wage">₹${total.toLocaleString()}</td>
+                            <td class="total-wage">₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         </tr>`;
                         tbody.insertAdjacentHTML('beforeend', row);
                     });
@@ -879,7 +935,15 @@
                     const toStr = document.getElementById('advTo').value;
                     
                     if (!fromStr || !toStr) {
-                        alert("Please select both dates.");
+                        app.showAlert("Missing Dates", "Please select both dates.");
+                        return;
+                    }
+                    
+                    // Date Time-Travel Validation
+                    const fromD = new Date(fromStr);
+                    const toD = new Date(toStr);
+                    if (fromD > toD) {
+                        app.showAlert("Invalid Range", "The 'From' date cannot be after the 'To' date.");
                         return;
                     }
 
@@ -908,7 +972,7 @@
                     
                     const reportRows = employees.map(emp => {
                         let p = 0, h = 0, a = 0;
-                        let totalWage = 0;
+                        let totalWage = 0; // Floating point precision math
                         
                         exactDates.forEach(date => {
                             const month = date.substring(0, 7);
@@ -920,7 +984,7 @@
                                 totalWage += dailyWage; 
                             } else if(status === 'half') { 
                                 h++; 
-                                totalWage += Math.round(dailyWage / 2); 
+                                totalWage += (dailyWage / 2); 
                             } else if(status === 'absent') { 
                                 a++; 
                             }
@@ -934,7 +998,7 @@
                         if (empId === 'ALL') {
                             csvContent += "Employee Name,Role,Monthly Base Salary,Present,Half-Day,Absent,Total Salary Earned," + exactDates.join(",") + "\n";
                             reportRows.forEach(r => {
-                                let rowData = `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage}`;
+                                let rowData = `"${r.name}","${r.role}",${r.wage},${r.p},${r.h},${r.a},${r.totalWage.toFixed(2)}`;
                                 exactDates.forEach(date => {
                                     const month = date.substring(0, 7);
                                     const status = attData[month]?.[r.id]?.[date] || '-';
@@ -943,7 +1007,7 @@
                                 csvContent += rowData + "\n";
                             });
                         } else {
-                            csvContent += `Employee: ${empName}, Base Salary: Rs. ${empWage}/mo\n\n`;
+                            csvContent += `Employee: ${empName}, Base Salary: Rs. ${empWage.toLocaleString('en-IN')}/mo\n\n`;
                             csvContent += "Date,Status,Earned\n";
                             const emp = reportRows[0];
                             exactDates.forEach(date => {
@@ -952,10 +1016,10 @@
                                 const status = attData[month]?.[emp.id]?.[date] || 'Not Marked';
                                 let earned = 0;
                                 if(status === 'present') earned = dailyWage;
-                                else if(status === 'half') earned = Math.round(dailyWage / 2);
-                                csvContent += `${date},${status},${earned}\n`;
+                                else if(status === 'half') earned = (dailyWage / 2);
+                                csvContent += `${date},${status},${earned.toFixed(2)}\n`;
                             });
-                            csvContent += `\nTotal,,,${emp.totalWage}\n`;
+                            csvContent += `\nTotal,,,${emp.totalWage.toFixed(2)}\n`;
                         }
                         
                         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -991,18 +1055,18 @@
                     `;
 
                     reportRows.forEach(r => {
-                        // Dynamic Font Sizing strictly for large salary output
-                        const totStr = r.totalWage.toLocaleString();
+                        // Dynamic Font Sizing strictly for large salary output mapped with precise decimals
+                        const totStr = r.totalWage.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                         let dynFontSize = '22px';
-                        if (totStr.length > 7) dynFontSize = '15px';
-                        else if (totStr.length > 5) dynFontSize = '18px';
+                        if (totStr.length > 10) dynFontSize = '15px'; // longer length including commas and decimals
+                        else if (totStr.length > 7) dynFontSize = '18px';
 
                         innerContent += `
                             <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin-bottom: 30px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <div style="text-align:left;">
                                         <h3 style="margin:0; font-size:22px; font-weight:700; color:#ffffff;">${r.name}</h3>
-                                        <div style="color:#0d9488; font-size:13px; font-weight:600; margin-top:4px;">${r.role} &nbsp;•&nbsp; ₹${r.wage}/mo base</div>
+                                        <div style="color:#0d9488; font-size:13px; font-weight:600; margin-top:4px;">${r.role} &nbsp;•&nbsp; ₹${r.wage.toLocaleString('en-IN')}/mo base</div>
                                     </div>
                                     <div style="display:flex; gap: 20px; text-align:center;">
                                         <div><div style="font-size:11px; color:#94a3b8; text-transform:uppercase; font-weight:600;">Present</div><div style="font-size:22px; font-weight:800; color:#10b981;">${r.p}</div></div>
@@ -1090,7 +1154,7 @@
 
                 } catch(e) {
                     console.error("Export Error:", e);
-                    alert("Failed to generate report. Check network connection.");
+                    app.showAlert("Export Failed", "Failed to generate report. Check network connection.");
                 } finally {
                     btn.innerText = originalText;
                     btn.disabled = false;
@@ -1099,6 +1163,7 @@
 
             // --- Admin & Garbage Collection ---
             pin(val) {
+                if(navigator.vibrate) navigator.vibrate(10);
                 if(val === 'back') {
                     this.currentPin = this.currentPin.slice(0, -1);
                 } else if(this.currentPin.length < 4) {
@@ -1168,7 +1233,7 @@
                         this.checkGarbage();
                     } catch(e) {
                         console.error("Garbage Collection Error:", e);
-                        alert("Failed to delete some records.");
+                        app.showAlert("Deletion Failed", "Failed to delete some records. Check network constraints.");
                     }
                 });
             }
