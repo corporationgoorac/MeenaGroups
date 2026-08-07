@@ -1273,6 +1273,12 @@ client.on('ready', () => {
         console.log('📦 Loading other.js module...');
         require('./other.js')(client, db);
     }
+
+    // Look for GST Reporter module
+    if (fs.existsSync('./gstReporter.js')) {
+        console.log('📦 Loading gstReporter.js module...');
+        require('./gstReporter.js')(client, db);
+    }
 });
 
 // --- ADVANCED AUTO-RETRY ON NETWORK TIMEOUT (BUG & EDGE CASE FIXED) ---
