@@ -12,6 +12,8 @@
  * - Admin On-Demand WhatsApp Command Listener
  * - Hardcore Process & Disconnect Crash Protection (NEW)
  * - Scalable SVG Graphics Integration (NEW)
+ * - Firebase Single-Document State Management (NEW)
+ * - Bulletproof Missed Schedule Watchdog (NEW)
  */
 
 const cron = require('node-cron');
@@ -23,7 +25,8 @@ const puppeteer = require('puppeteer');
 const { getPanchangam, Observer } = require('@ishubhamx/panchangam-js');
 const { MessageMedia } = require('whatsapp-web.js');
 
-module.exports = (client) => {
+// 🛡️ Added 'db' to the export signature to accept Firebase instance
+module.exports = (client, db) => {
     console.log("📦 Starting other.js");
 
     // ---------------------------------------------------------
@@ -124,6 +127,26 @@ module.exports = (client) => {
 
     loadGroupMemory();
 
+    // 🛡️ Firebase State Tracking (RAM Cached to prevent database reads)
+    let cachedMorningDate = null;
+    let cachedEveningDate = null;
+
+    async function loadFirebaseState() {
+        try {
+            const docSnap = await db.collection('group_message').doc('status').get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                cachedMorningDate = data.lastMorningBlastDate || null;
+                cachedEveningDate = data.lastEveningBlastDate || null;
+                console.log(`🔥 [Firebase State Loaded] Morning: ${cachedMorningDate} | Evening: ${cachedEveningDate}`);
+            }
+        } catch (err) {
+            console.error("⚠️ Failed to load Firebase state on boot:", err.message);
+        }
+    }
+
+    loadFirebaseState(); // Fires exactly once on startup
+
     // ---------------------------------------------------------
     // 2. IMAGE GENERATION ENGINE (HTML to PNG via Puppeteer)
     // ---------------------------------------------------------
@@ -163,9 +186,9 @@ module.exports = (client) => {
             const decorSVG = type === 'mugurtham' ? svgMugurtham : svgFestival;
             
             // Fetch dynamically from phrases.json
-            const db = getPhrases();
-            const festivalWishes = db.wishes.festivals;
-            const mugurthamWishes = db.wishes.mugurtham;
+            const db_phrases = getPhrases();
+            const festivalWishes = db_phrases.wishes.festivals;
+            const mugurthamWishes = db_phrases.wishes.mugurtham;
 
             let dynamicWish = "";
             if (type === 'festival') dynamicWish = festivalWishes[Math.floor(Math.random() * festivalWishes.length)];
@@ -385,10 +408,10 @@ module.exports = (client) => {
     // 6. PERMUTATION ENGINE (Tanglish/English via JSON)
     // ---------------------------------------------------------
     function generateMorningQuote() {
-        const db = getPhrases();
-        const intros = db.morning.intros;
-        const bodies = db.morning.bodies;
-        const outros = db.morning.outros;
+        const db_phrases = getPhrases();
+        const intros = db_phrases.morning.intros;
+        const bodies = db_phrases.morning.bodies;
+        const outros = db_phrases.morning.outros;
 
         const intro = intros[Math.floor(Math.random() * intros.length)];
         const body = bodies[Math.floor(Math.random() * bodies.length)];
@@ -398,10 +421,10 @@ module.exports = (client) => {
     }
 
     function generateEveningQuote() {
-        const db = getPhrases();
-        const intros = db.evening.intros;
-        const bodies = db.evening.bodies;
-        const outros = db.evening.outros;
+        const db_phrases = getPhrases();
+        const intros = db_phrases.evening.intros;
+        const bodies = db_phrases.evening.bodies;
+        const outros = db_phrases.evening.outros;
 
         const intro = intros[Math.floor(Math.random() * intros.length)];
         const body = bodies[Math.floor(Math.random() * bodies.length)];
@@ -468,8 +491,22 @@ module.exports = (client) => {
     }
 
     async function sendMorningBlast() {
+        const todayString = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // Output: YYYY-MM-DD
+        
+        // 🛡️ Guard: Prevent duplicate sends on the same day
+        if (cachedMorningDate === todayString) {
+            console.log(`⏸️ Morning Blast already sent for today (${todayString}). Skipping.`);
+            return;
+        }
+
+        // 🔒 OPTIMISTIC LOCK: Claim task immediately to block the Watchdog from double-firing
+        cachedMorningDate = todayString;
+
         console.log("☀️ Executing Morning Blast...");
-        if (!(await ensureGroupConnection())) return;
+        if (!(await ensureGroupConnection())) {
+            cachedMorningDate = null; // Unlock if connection completely fails
+            return;
+        }
 
         const weatherText = await getWeatherData();
         const festival = await checkFestivalToday();
@@ -505,14 +542,36 @@ module.exports = (client) => {
             if (imagePath && fs.existsSync(imagePath)) {
                 try { fs.unlinkSync(imagePath); } catch (e) {}
             }
+
+            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads)
+            await db.collection('group_message').doc('status').set({
+                lastMorningBlastDate: todayString
+            }, { merge: true });
+
+            console.log(`✅ Morning Blast completed and logged for ${todayString}`);
         } catch (e) {
             console.error("⚠️ Message send failed:", e.message);
+            cachedMorningDate = null; // Unlock so it can retry later
         }
     }
 
     async function sendEveningBlast() {
+        const todayString = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // Output: YYYY-MM-DD
+        
+        // 🛡️ Guard: Prevent duplicate sends on the same day
+        if (cachedEveningDate === todayString) {
+            console.log(`⏸️ Evening Blast already sent for today (${todayString}). Skipping.`);
+            return;
+        }
+
+        // 🔒 OPTIMISTIC LOCK: Claim task immediately to block the Watchdog from double-firing
+        cachedEveningDate = todayString;
+
         console.log("🌙 Executing Evening Blast...");
-        if (!(await ensureGroupConnection())) return;
+        if (!(await ensureGroupConnection())) {
+            cachedEveningDate = null; // Unlock if connection completely fails
+            return;
+        }
 
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -543,8 +602,16 @@ module.exports = (client) => {
             if (imagePath && fs.existsSync(imagePath)) {
                 try { fs.unlinkSync(imagePath); } catch (e) {}
             }
+
+            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads)
+            await db.collection('group_message').doc('status').set({
+                lastEveningBlastDate: todayString
+            }, { merge: true });
+
+            console.log(`✅ Evening Blast completed and logged for ${todayString}`);
         } catch (e) {
             console.error("⚠️ Message send failed:", e.message);
+            cachedEveningDate = null; // Unlock so it can retry later
         }
     }
 
@@ -639,35 +706,47 @@ module.exports = (client) => {
     });
 
     // ---------------------------------------------------------
-    // 9. RANDOMIZED CRON SCHEDULERS
+    // 9. EXACT CRON SCHEDULERS
     // ---------------------------------------------------------
+    // 🛡️ Strict execution with explicit timezone overrides
     cron.schedule('0 7 * * *', () => {
-        const delayMs = Math.floor(Math.random() * (120 * 60 * 1000));
-        const scheduledDate = new Date(Date.now() + delayMs);
-        const scheduledTimeStr = scheduledDate.toLocaleTimeString('en-IN', { 
-            timeZone: 'Asia/Kolkata', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
-        });
-        const delayMinutes = Math.floor(delayMs / (1000 * 60));
-        
-        console.log(`⏰ [Scheduler] Morning Blast triggered at 7:00 AM IST. Exact scheduled send time: ${scheduledTimeStr} IST (Delay: ${delayMinutes} mins).`);
-        setTimeout(sendMorningBlast, delayMs);
+        console.log(`⏰ [Scheduler] Running Morning Blast at 7:00 AM IST...`);
+        sendMorningBlast();
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
 
     cron.schedule('0 17 * * *', () => {
-        const delayMs = Math.floor(Math.random() * (120 * 60 * 1000));
-        const scheduledDate = new Date(Date.now() + delayMs);
-        const scheduledTimeStr = scheduledDate.toLocaleTimeString('en-IN', { 
-            timeZone: 'Asia/Kolkata', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
-        });
-        const delayMinutes = Math.floor(delayMs / (1000 * 60));
-
-        console.log(`⏰ [Scheduler] Evening Blast triggered at 5:00 PM IST. Exact scheduled send time: ${scheduledTimeStr} IST (Delay: ${delayMinutes} mins).`);
-        setTimeout(sendEveningBlast, delayMs);
+        console.log(`⏰ [Scheduler] Running Evening Blast at 5:00 PM IST...`);
+        sendEveningBlast();
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
+
+    // ---------------------------------------------------------
+    // 10. BULLETPROOF WATCHDOG (Catches missed schedules safely)
+    // ---------------------------------------------------------
+    setInterval(async () => {
+        // 1. Get strict IST Date String securely
+        const todayString = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        
+        // 2. Get current hour in IST (returns a number from 0 to 23)
+        const hourString = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
+        const currentHour = parseInt(hourString, 10);
+
+        // Morning Catch-up: Past 7 AM, but strictly BEFORE 12 PM (Noon).
+        // If the PC wakes up past noon, the morning blast is permanently skipped for today.
+        if (currentHour >= 7 && currentHour < 12 && cachedMorningDate !== todayString) {
+            console.log("🛡️ Watchdog caught a missed Morning Blast. Executing recovery...");
+            await sendMorningBlast();
+        }
+
+        // Evening Catch-up: Past 5 PM (17), but strictly BEFORE 11 PM (23).
+        if (currentHour >= 17 && currentHour < 23 && cachedEveningDate !== todayString) {
+            console.log("🛡️ Watchdog caught a missed Evening Blast. Executing recovery...");
+            await sendEveningBlast();
+        }
+    }, 10 * 60 * 1000); // Checks every 10 minutes
 };
