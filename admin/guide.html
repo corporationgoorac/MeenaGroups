@@ -709,9 +709,10 @@
 
         if(docsCount > 0) await batch.commit();
 
-        showCustomAlert("Success", `Agent details updated across ${docsCount} entries.`);
-        closeAgentModal();
         loadAgentData(true);
+        showCustomAlert("Success", `Agent details updated across ${docsCount} entries.`, () => {
+          closeAgentModal();
+        });
 
       } catch (e) {
         showCustomAlert("Error", "Update failed: " + e.message);
@@ -753,9 +754,10 @@
             
             if (navigator.vibrate) navigator.vibrate(40);
             
-            showCustomAlert("Success", `Submitted ${currentAgentData.count} drafts to the pending queue successfully.`);
-            closeAgentModal();
             loadAgentData(true); 
+            showCustomAlert("Success", `Submitted ${currentAgentData.count} drafts to the pending queue successfully.`, () => {
+              closeAgentModal();
+            });
 
           } catch (e) {
             showCustomAlert("Error", "Submit failed: " + e.message);
@@ -816,7 +818,7 @@
       if (activeConfirmCallback) activeConfirmCallback();
     };
 
-    window.showCustomAlert = (title, message) => openCustomDialog(title, message, false);
+    window.showCustomAlert = (title, message, callback = null) => openCustomDialog(title, message, false, callback);
     window.showCustomConfirm = (title, message, callback) => openCustomDialog(title, message, true, callback);
 
     // --- 9. STAFF MANAGER & AUTH EDIT LOGIC ---
@@ -957,8 +959,9 @@
                 await updateDoc(doc(db, "staffs", currentAuthEditUid), updates);
              } catch(e) { console.warn("Notice: Auth updated, but staff doc sync failed/missing.", e); }
 
-             closeStaffAuthEditModal();
-             showCustomAlert("System Updated", "User's master Auth details have been updated successfully.");
+             showCustomAlert("System Updated", "User's master Auth details have been updated successfully.", () => {
+               closeStaffAuthEditModal();
+             });
           } else {
              showCustomAlert("Partial Update / Error", errorMsg);
           }
