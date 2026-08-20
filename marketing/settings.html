@@ -215,6 +215,8 @@
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
             border-top: 1px solid rgba(255,255,255,0.1);
+            max-height: 90vh;
+            overflow-y: auto; /* Added to handle multiple setting rows on small screens */
         }
 
         .modal-overlay.active .modal-content {
@@ -306,6 +308,10 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05); /* Added slight divider for clarity */
+        }
+        .setting-row:last-of-type {
+            border-bottom: none;
         }
 
         .setting-label {
@@ -497,6 +503,28 @@
                 </label>
             </div>
 
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Edit Access</div>
+                    <div class="setting-desc">Allow user to edit content</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="edit-access-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Delete Access</div>
+                    <div class="setting-desc">Allow user to delete content</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="delete-access-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <button class="btn btn-delete" id="delete-user-btn">
                 <span class="material-symbols-outlined">delete_forever</span>
                 Delete User Completely
@@ -644,6 +672,8 @@
                     const userData = docSnap.data();
                     const userId = docSnap.id;
                     const isAdmin = userData.admin === true || userData.role === 'admin';
+                    const canEdit = userData.edit === true;
+                    const canDelete = userData.delete === true;
                     
                     const card = document.createElement('div');
                     card.className = 'user-card';
@@ -655,7 +685,7 @@
                                 ${isAdmin ? 'Admin' : 'Staff'}
                             </span>
                         </div>
-                        <button class="edit-btn" data-id="${userId}" data-name="${userData.name || ''}" data-email="${userData.email || ''}" data-dp="${userData.photoURL || ''}" data-admin="${isAdmin}">
+                        <button class="edit-btn" data-id="${userId}" data-name="${userData.name || ''}" data-email="${userData.email || ''}" data-dp="${userData.photoURL || ''}" data-admin="${isAdmin}" data-editaccess="${canEdit}" data-deleteaccess="${canDelete}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
                     `;
@@ -695,6 +725,8 @@
         // --- Professional Modal & Mobile Back Button Logic ---
         const modalOverlay = document.getElementById('edit-modal');
         const adminToggle = document.getElementById('admin-toggle');
+        const editAccessToggle = document.getElementById('edit-access-toggle');
+        const deleteAccessToggle = document.getElementById('delete-access-toggle');
         const saveBtn = document.getElementById('save-modal-btn');
         const deleteBtn = document.getElementById('delete-user-btn');
         const editNameInput = document.getElementById('edit-user-name'); 
@@ -705,7 +737,7 @@
         
         let currentEditingUserId = null;
 
-        function openModal(id, name, email, dp, isAdmin) {
+        function openModal(id, name, email, dp, isAdmin, canEdit, canDelete) {
             currentEditingUserId = id;
             document.getElementById('modal-name').innerText = name || 'Unknown';
             document.getElementById('modal-email').innerText = email || 'No email provided';
@@ -714,6 +746,8 @@
             editNameInput.value = name || '';
             
             adminToggle.checked = isAdmin === 'true';
+            editAccessToggle.checked = canEdit === 'true';
+            deleteAccessToggle.checked = canDelete === 'true';
 
             modalOverlay.classList.add('active');
             
@@ -758,7 +792,9 @@
                     editBtn.dataset.name,
                     editBtn.dataset.email,
                     editBtn.dataset.dp,
-                    editBtn.dataset.admin
+                    editBtn.dataset.admin,
+                    editBtn.dataset.editaccess,
+                    editBtn.dataset.deleteaccess
                 );
             }
         });
@@ -772,14 +808,18 @@
             saveBtn.disabled = true;
 
             const makeAdmin = adminToggle.checked;
+            const makeEdit = editAccessToggle.checked;
+            const makeDelete = deleteAccessToggle.checked;
             const newName = editNameInput.value.trim(); 
 
             try {
-                // Update Firestore with the new name and roles
+                // Update Firestore with the new name, roles, edit and delete booleans
                 await updateDoc(doc(db, "users", currentEditingUserId), {
                     admin: makeAdmin,
                     role: makeAdmin ? "admin" : "staff",
-                    name: newName
+                    name: newName,
+                    edit: makeEdit,
+                    delete: makeDelete
                 });
 
                 // Update UI locally without reloading the page
@@ -796,6 +836,8 @@
                 // Update the data attributes and the visible name on the user card
                 if (editBtn) {
                     editBtn.dataset.admin = makeAdmin.toString();
+                    editBtn.dataset.editaccess = makeEdit.toString();
+                    editBtn.dataset.deleteaccess = makeDelete.toString();
                     editBtn.dataset.name = newName;
                     
                     const card = editBtn.closest('.user-card');
