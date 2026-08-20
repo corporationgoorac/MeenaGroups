@@ -209,6 +209,11 @@
         #modalProcessing.active .processing-wrap { transform: scale(1); }
         @keyframes spinAnim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spin-anim { animation: spinAnim 1.2s linear infinite; }
+        
+        #modalPermissionDenied { right: 0; left: 0; top: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background-color: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; padding: 20px; z-index: 4500; position: fixed; }
+        #modalPermissionDenied.active { opacity: 1; pointer-events: auto; }
+        #modalPermissionDenied .processing-wrap { background: var(--surface-color); width: 100%; max-width: 320px; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 35px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+        #modalPermissionDenied.active .processing-wrap { transform: scale(1); }
 
         .pin-container { text-align: center; margin-top: 60px; padding: 0 20px; }
         .pin-dots { display: flex; justify-content: center; gap: 20px; margin: 35px 0 55px; }
@@ -619,6 +624,15 @@
             <button class="btn-secondary" id="procCloseBtn" style="margin-top: 10px; padding: 12px; display: none;" onclick="history.back()">Close Window</button>
         </div>
     </div>
+    
+    <div class="modal" id="modalPermissionDenied">
+        <div class="processing-wrap">
+            <span class="material-symbols-outlined" style="font-size: 4em; color: var(--warning-color);">lock</span>
+            <h3 style="margin: 0; font-size: 1.25em; font-weight: 600; color: var(--marketing-white); line-height: 1.4;">Access Denied</h3>
+            <p id="permissionDeniedMsg" style="color: var(--text-secondary); margin: 0; font-size: 0.9em;">Contact admin to get the permission.</p>
+            <button class="btn-secondary" style="margin-top: 10px; padding: 12px; width: 100%;" onclick="history.back()">Close</button>
+        </div>
+    </div>
 
     <script type="module">
         window.vibrateApp = function(pattern) {
@@ -639,9 +653,23 @@
 
         const auth = getAuth();
         let currentUserName = "Staff";
-        onAuthStateChanged(auth, (user) => {
+        let currentUserPermissions = { admin: false, edit: false, delete: false };
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUserName = user.displayName || user.email?.split('@') || "Staff";
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userDocRef);
+                    if (userSnap.exists()) {
+                        const data = userSnap.data();
+                        currentUserPermissions.admin = data.admin === true || data.role === 'admin';
+                        currentUserPermissions.edit = data.edit === true;
+                        currentUserPermissions.delete = data.delete === true;
+                        if (data.name) currentUserName = data.name;
+                    }
+                } catch (err) {
+                    console.error("Auth DB Error:", err);
+                }
             }
         });
 
@@ -828,6 +856,12 @@
             }
         });
 
+        window.showPermissionModal = function(actionName) {
+            vibrateApp(30);
+            document.getElementById('permissionDeniedMsg').innerText = `Contact admin to get the ${actionName} permission.`;
+            openModal('modalPermissionDenied');
+        };
+
         window.openCardActionModal = function(id) {
             vibrateApp(25);
             const item = inventoryCache.find(i => i.id === id);
@@ -840,9 +874,33 @@
             
             const safeName = (item.name || '').replace(/'/g, "\\'");
 
+            const btnEdit = document.getElementById('btnActionEdit');
+            const btnDelete = document.getElementById('btnActionDelete');
+            
+            const canEdit = currentUserPermissions.admin || currentUserPermissions.edit;
+            const canDelete = currentUserPermissions.admin || currentUserPermissions.delete;
+
+            if (!canEdit) {
+                btnEdit.style.opacity = '0.4';
+                btnEdit.style.filter = 'grayscale(1)';
+                btnEdit.onclick = () => { triggerActionSafely(() => showPermissionModal('Edit')); };
+            } else {
+                btnEdit.style.opacity = '1';
+                btnEdit.style.filter = 'none';
+                btnEdit.onclick = () => { triggerActionSafely(() => editItemFull(id)); };
+            }
+
+            if (!canDelete) {
+                btnDelete.style.opacity = '0.4';
+                btnDelete.style.filter = 'grayscale(1)';
+                btnDelete.onclick = () => { triggerActionSafely(() => showPermissionModal('Delete')); };
+            } else {
+                btnDelete.style.opacity = '1';
+                btnDelete.style.filter = 'none';
+                btnDelete.onclick = () => { triggerActionSafely(() => deleteItem(id, safeName)); };
+            }
+
             document.getElementById('btnActionInfo').onclick = () => { triggerActionSafely(() => openInfoModal(id)); };
-            document.getElementById('btnActionEdit').onclick = () => { triggerActionSafely(() => editItemFull(id)); };
-            document.getElementById('btnActionDelete').onclick = () => { triggerActionSafely(() => deleteItem(id, safeName)); };
             document.getElementById('btnActionAsk').onclick = () => { triggerActionSafely(() => askProductInfo(id)); };
 
             openModal('modalCardActions');
