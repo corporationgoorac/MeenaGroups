@@ -34,8 +34,14 @@
             --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
         }
 
+        /* ADVANCED FIX: Box-sizing lock to prevent 100% width + padding overflow causing horizontal wobble */
+        *, *::before, *::after { box-sizing: border-box !important; }
+
         /* ADVANCED FIX: Viewport Zoom & Horizontal Pan Lock */
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
+        /* Stricter clip lock applied over the previous one to kill all sideways panning */
+        html, body { overflow-x: clip !important; }
+        
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
         header, .brand-container, .brand-text, .material-symbols-outlined, .action-btn, .modal-content-wrap {
@@ -131,12 +137,6 @@
         /* ADVANCED FIX: Hide useless buttons for infinite scroll */
         .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; display: none !important; opacity: 0; pointer-events: none; }
         .btn-load-more:hover { background: rgba(13, 148, 136, 0.1); }
-        
-        /* --- NEW ADVANCED FIXES FOR PANNING AND FLICKER --- */
-        * { box-sizing: border-box !important; }
-        .main-scroll-area { overflow-x: clip !important; }
-        .pagination-spinner { transition: opacity 0.4s ease; opacity: 1; }
-        .inv-card { animation-fill-mode: backwards !important; }
     </style>
 </head>
 <body>
@@ -317,7 +317,7 @@
         // Generate Skeletons
         function getSkeletonHTML() {
             return `
-            <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4); flex-direction: row;">
+            <div class="inv-card skeleton-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4); flex-direction: row;">
                 <div class="inv-info" style="width:100%;">
                     <div class="skeleton" style="height:20px; width:80%; margin-bottom:8px; border-radius:4px;"></div>
                     <div class="skeleton" style="height:14px; width:40%; border-radius:4px;"></div>
@@ -344,6 +344,9 @@
             if(unsubMissing) unsubMissing();
             const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
             unsubMissing = onSnapshot(qMissing, (snap) => {
+                
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
                 if (snap.empty) {
                     missingGrid.innerHTML = `
                         <div class="empty-state">
@@ -353,9 +356,6 @@
                         </div>`;
                     return;
                 }
-                
-                // --- ORIGINAL DESTRUCTIVE RENDERING COMMENTED OUT TO PRESERVE LINES ---
-                /*
                 let html = '';
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
@@ -363,33 +363,10 @@
                     // ADVANCED FIX: Over/Short Badges mirroring employee page
                     let discrepancyAmount = data.discrepancy;
                     let displayBadge = "";
-                    
-                    if (discrepancyAmount !== undefined) {
-                        if (discrepancyAmount > 0) {
-                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
-                        } else {
-                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
-                        }
-                    } else {
-                        // Legacy fallback
-                        displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
-                    }
-                    
+                    ...
                     html += `
                     <div class="inv-card missing">
-                        <div class="card-top">
-                            <div class="inv-info">
-                                <span class="inv-name">${data.name}</span>
-                                <span class="inv-model">${data.model || 'No Model ID'}</span>
-                                <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
-                            </div>
-                            <div class="missing-badge">
-                                ${displayBadge}
-                            </div>
-                        </div>
-                        <button class="btn-full btn-danger" onclick="deleteMissingItem('${docSnap.id}')">
-                            <span class="material-symbols-outlined">delete_sweep</span> Acknowledge & Delete
-                        </button>
+                       ...
                     </div>`;
                 });
                 if (snap.size === limitMissing) {
@@ -398,77 +375,105 @@
                 missingGrid.innerHTML = html;
                 */
 
-                // --- ADVANCED NON-DESTRUCTIVE RENDER (NO SCROLL FLICKER) ---
-                const oldSpinners = missingGrid.querySelectorAll('.pagination-spinner');
-                oldSpinners.forEach(s => s.remove());
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
+                if (snap.empty) {
+                    missingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgMissingEmpty}
+                            <h3 style="margin:0; color:white;">All Clear!</h3>
+                            <p style="margin:0;">No discrepancies reported by employees.</p>
+                        </div>`;
+                    return;
+                }
 
-                snap.docChanges().forEach((change, index) => {
-                    const data = change.doc.data();
-                    const docId = change.doc.id;
+                if (missingGrid.querySelector('.empty-state') || missingGrid.querySelector('.skeleton-card')) {
+                    missingGrid.innerHTML = ''; // Only clear empty states and skeletons safely
+                }
+
+                const currentIds = new Set();
+                snap.forEach((docSnap, index) => {
+                    const data = docSnap.data();
+                    currentIds.add(docSnap.id);
                     
-                    if (change.type === 'added') {
-                        let discrepancyAmount = data.discrepancy;
-                        let displayBadge = "";
-                        
-                        if (discrepancyAmount !== undefined) {
-                            if (discrepancyAmount > 0) {
-                                displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
-                            } else {
-                                displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
-                            }
-                        } else {
-                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
-                        }
+                    let discrepancyAmount = data.discrepancy;
+                    let displayBadge = "";
+                    if (discrepancyAmount !== undefined) {
+                        if (discrepancyAmount > 0) displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
+                        else displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
+                    } else {
+                        displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
+                    }
 
-                        const card = document.createElement('div');
-                        card.className = 'inv-card missing';
-                        card.id = `missing-card-${docId}`;
-                        card.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall stagger
-                        
-                        card.innerHTML = `
-                            <div class="card-top">
-                                <div class="inv-info">
-                                    <span class="inv-name">${data.name}</span>
-                                    <span class="inv-model">${data.model || 'No Model ID'}</span>
-                                    <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
-                                </div>
-                                <div class="missing-badge">
-                                    ${displayBadge}
-                                </div>
+                    let el = document.getElementById(`missing-${docSnap.id}`);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = `missing-${docSnap.id}`;
+                        el.className = 'inv-card missing';
+                        el.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall drop animation
+                        missingGrid.appendChild(el);
+                    }
+                    
+                    // DOM Updates injected cleanly without destroying the wrapper node
+                    el.innerHTML = `
+                        <div class="card-top">
+                            <div class="inv-info">
+                                <span class="inv-name">${data.name}</span>
+                                <span class="inv-model">${data.model || 'No Model ID'}</span>
+                                <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
                             </div>
-                            <button class="btn-full btn-danger" onclick="deleteMissingItem('${docId}')">
-                                <span class="material-symbols-outlined">delete_sweep</span> Acknowledge & Delete
-                            </button>
-                        `;
-                        
-                        const emptyState = missingGrid.querySelector('.empty-state');
-                        if (emptyState) emptyState.remove();
-                        missingGrid.appendChild(card);
-                    }
-                    if (change.type === 'modified') {
-                        const card = document.getElementById(`missing-card-${docId}`);
-                        if (card) {
-                            let discrepancyAmount = data.discrepancy;
-                            let displayBadge = "";
-                            if (discrepancyAmount !== undefined) {
-                                if (discrepancyAmount > 0) { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`; } 
-                                else { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`; }
-                            } else { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`; }
-                            const badge = card.querySelector('.missing-badge');
-                            if (badge) badge.innerHTML = displayBadge;
-                        }
-                    }
-                    if (change.type === 'removed') {
-                        const card = document.getElementById(`missing-card-${docId}`);
-                        if (card) card.remove();
-                    }
+                            <div class="missing-badge">${displayBadge}</div>
+                        </div>
+                        <button class="btn-full btn-danger" onclick="deleteMissingItem('${docSnap.id}')">
+                            <span class="material-symbols-outlined">delete_sweep</span> Acknowledge & Delete
+                        </button>
+                    `;
                 });
+                
+                // Cleanup removed elements locally without screen redraw
+                Array.from(missingGrid.children).forEach(child => {
+                    if (child.id && child.id.startsWith('missing-') && !currentIds.has(child.id.replace('missing-', ''))) child.remove();
+                });
+
+                // Handle invisible padding math elements without breaking scroll
+                let missingLoader = missingGrid.querySelector('.loader-row');
+                if (snap.size === limitMissing) {
+                    if (!missingLoader) missingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
+                } else if (missingLoader) {
+                    missingLoader.remove();
+                }
 
             }, (err) => { console.error(err); missingGrid.innerHTML = `<div class="empty-state">Error loading missing items.</div>`; });
 
             if(unsubPending) unsubPending();
             const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
             unsubPending = onSnapshot(qPending, (snap) => {
+                
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
+                if (snap.empty) {
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgPendingEmpty}
+                            <h3 style="margin:0; color:white;">Queue is Empty</h3>
+                            <p style="margin:0;">No active tasks assigned to employees.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card pending" style="flex-direction: row;">
+                       ...
+                    </div>`;
+                });
+                if (snap.size === limitPending) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
+                }
+                pendingGrid.innerHTML = html;
+                */
+
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     pendingGrid.innerHTML = `
                         <div class="empty-state">
@@ -479,13 +484,26 @@
                     return;
                 }
 
-                // --- ORIGINAL DESTRUCTIVE RENDERING COMMENTED OUT TO PRESERVE LINES ---
-                /*
-                let html = '';
-                snap.forEach(docSnap => {
+                if (pendingGrid.querySelector('.empty-state') || pendingGrid.querySelector('.skeleton-card')) {
+                    pendingGrid.innerHTML = '';
+                }
+
+                const pendingIds = new Set();
+                snap.forEach((docSnap, index) => {
                     const data = docSnap.data();
-                    html += `
-                    <div class="inv-card pending" style="flex-direction: row;">
+                    pendingIds.add(docSnap.id);
+                    
+                    let el = document.getElementById(`pending-${docSnap.id}`);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = `pending-${docSnap.id}`;
+                        el.className = 'inv-card pending';
+                        el.style.flexDirection = 'row';
+                        el.style.animationDelay = `${(index % 10) * 0.08}s`;
+                        pendingGrid.appendChild(el);
+                    }
+                    
+                    el.innerHTML = `
                         <div class="inv-info">
                             <span class="inv-name">${data.name}</span>
                             <span class="inv-model">${data.model || 'No Model ID'}</span>
@@ -493,48 +511,19 @@
                         <div class="pending-status">
                             <span class="spinner" style="width:14px; height:14px; border-width:2px; border-top-color:var(--accent-color);"></span> Wait
                         </div>
-                    </div>`;
+                    `;
                 });
+                
+                Array.from(pendingGrid.children).forEach(child => {
+                    if (child.id && child.id.startsWith('pending-') && !pendingIds.has(child.id.replace('pending-', ''))) child.remove();
+                });
+                
+                let pendingLoader = pendingGrid.querySelector('.loader-row');
                 if (snap.size === limitPending) {
-                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
+                    if (!pendingLoader) pendingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
+                } else if (pendingLoader) {
+                    pendingLoader.remove();
                 }
-                pendingGrid.innerHTML = html;
-                */
-
-                // --- ADVANCED NON-DESTRUCTIVE RENDER (NO SCROLL FLICKER) ---
-                const pSpinners = pendingGrid.querySelectorAll('.pagination-spinner');
-                pSpinners.forEach(s => s.remove());
-
-                snap.docChanges().forEach((change, index) => {
-                    const data = change.doc.data();
-                    const docId = change.doc.id;
-                    
-                    if (change.type === 'added') {
-                        const card = document.createElement('div');
-                        card.className = 'inv-card pending';
-                        card.id = `pending-card-${docId}`;
-                        card.style.flexDirection = 'row';
-                        card.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall stagger
-                        
-                        card.innerHTML = `
-                            <div class="inv-info">
-                                <span class="inv-name">${data.name}</span>
-                                <span class="inv-model">${data.model || 'No Model ID'}</span>
-                            </div>
-                            <div class="pending-status">
-                                <span class="spinner" style="width:14px; height:14px; border-width:2px; border-top-color:var(--accent-color);"></span> Wait
-                            </div>
-                        `;
-                        
-                        const emptyState = pendingGrid.querySelector('.empty-state');
-                        if (emptyState) emptyState.remove();
-                        pendingGrid.appendChild(card);
-                    }
-                    if (change.type === 'removed') {
-                        const card = document.getElementById(`pending-card-${docId}`);
-                        if (card) card.remove();
-                    }
-                });
 
             }, (err) => { console.error(err); pendingGrid.innerHTML = `<div class="empty-state">Error loading active queue.</div>`; });
         }
@@ -551,8 +540,8 @@
             if (el.scrollHeight - el.scrollTop <= el.clientHeight + 150) {
                 if(!window.isFetchingAdmin) {
                     // Gatekeeper check: Only fetch if we have a full multiple of 10
-                    const currentMissingCards = document.querySelectorAll('#missingGrid .inv-card').length;
-                    const currentPendingCards = document.querySelectorAll('#pendingGrid .inv-card').length;
+                    const currentMissingCards = document.querySelectorAll('#missingGrid .inv-card:not(.skeleton-card)').length;
+                    const currentPendingCards = document.querySelectorAll('#pendingGrid .inv-card:not(.skeleton-card)').length;
                     
                     let needsFetch = false;
                     if (currentMissingCards === limitMissing) { limitMissing += 10; needsFetch = true; }
@@ -561,10 +550,7 @@
                     if (needsFetch) {
                         window.isFetchingAdmin = true;
                         
-                        // --- PREVIOUS STRING REPLACED FOR SMOOTH ANIMATION ---
-                        /* const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`; */
-                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0; animation: fadeSlideUp 0.3s forwards;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
-                        
+                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
                         if (currentMissingCards === limitMissing - 10) document.getElementById('missingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
                         if (currentPendingCards === limitPending - 10) document.getElementById('pendingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
 
