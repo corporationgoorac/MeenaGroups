@@ -65,7 +65,8 @@
         .toast-msg.success { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
         .toast-msg.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 40px; width: 100%; box-sizing: border-box;}
+        /* ADVANCED FIX: overflow-anchor locks view during DOM changes to eliminate layout shifts */
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 40px; width: 100%; box-sizing: border-box; overflow-anchor: auto; scroll-behavior: smooth;}
         .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
         .section-title { font-size: 1em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin: 30px 0 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;}
@@ -133,7 +134,8 @@
         .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; display: inline-block; }
         .btn-spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; }
 
-        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
+        /* ADVANCED FIX: overflow-anchor:none prevents the browser from trying to track the loader when it deletes */
+        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; overflow-anchor: none; min-height: 70px; transition: opacity 0.3s ease; }
         
         /* ADVANCED FIX: Hide useless buttons for infinite scroll */
         .full-screen-loader, .btn-load-more { display: none !important; opacity: 0; pointer-events: none; z-index: -100; }
@@ -376,29 +378,9 @@
             const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
             unsubMissing = onSnapshot(qMissing, (snap) => {
                 
-                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
-                /*
-                if (snap.empty) {
-                    missingSectionWrapper.style.display = 'none';
-                    return;
-                }
-                missingSectionWrapper.style.display = 'block';
-                let html = '';
-                snap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    ...
-                    html += `
-                    <div class="inv-card missing" onclick="vibrateApp(15); openAuditModal(...)">
-                        ...
-                    </div>`;
-                });
-                if (snap.size === limitMissing) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
-                missingGrid.innerHTML = html;
-                */
-
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
-                // Purge the scroll-injected spinners before appending new cards
-                document.querySelectorAll('.pagination-spinner').forEach(spinner => spinner.remove());
+                // Purge the scroll-injected spinners before appending new cards (COMMENTED OUT TO PREVENT RUG-PULL JUMP)
+                // document.querySelectorAll('.pagination-spinner').forEach(spinner => spinner.remove()); 
 
                 if (snap.empty) {
                     missingSectionWrapper.style.display = 'none';
@@ -431,7 +413,14 @@
                         el.className = 'inv-card missing';
                         el.setAttribute('onclick', `vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')`);
                         el.style.animationDelay = `${(index % 10) * 0.08}s`;
-                        missingGrid.appendChild(el);
+                        
+                        // ADVANCED FIX: Pre-insert logic. Place new cards ABOVE the spinner so layout doesn't collapse.
+                        let spinner = missingGrid.querySelector('.pagination-spinner');
+                        if (spinner) {
+                            missingGrid.insertBefore(el, spinner);
+                        } else {
+                            missingGrid.appendChild(el);
+                        }
                     }
                     
                     el.innerHTML = `
@@ -450,6 +439,9 @@
                     if (child.id && child.id.startsWith('missing-') && !currentIds.has(child.id.replace('missing-', ''))) child.remove();
                 });
 
+                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                document.querySelectorAll('#missingGrid .pagination-spinner').forEach(spinner => spinner.remove());
+
                 let missingLoader = missingGrid.querySelector('.loader-row');
                 if (snap.size === limitMissing) {
                     if (!missingLoader) missingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
@@ -466,25 +458,9 @@
             const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
             unsubPending = onSnapshot(qPending, (snap) => {
 
-                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
-                /*
-                if (snap.empty) {
-                    pendingGrid.innerHTML = `
-                        <div class="empty-state">
-                            ${svgPendingEmpty}
-                            ...
-                        </div>`;
-                    return;
-                }
-                let html = '';
-                snap.forEach(docSnap => { ... });
-                if (snap.size === limitPending) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
-                pendingGrid.innerHTML = html;
-                */
-
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
-                // Purge the scroll-injected spinners before appending new cards
-                document.querySelectorAll('.pagination-spinner').forEach(spinner => spinner.remove());
+                // Purge the scroll-injected spinners before appending new cards (COMMENTED OUT TO PREVENT RUG-PULL JUMP)
+                // document.querySelectorAll('.pagination-spinner').forEach(spinner => spinner.remove());
 
                 if (snap.empty) {
                     pendingGrid.innerHTML = `
@@ -512,7 +488,14 @@
                         el.className = 'inv-card pending';
                         el.setAttribute('onclick', `vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')`);
                         el.style.animationDelay = `${(index % 10) * 0.08}s`;
-                        pendingGrid.appendChild(el);
+                        
+                        // ADVANCED FIX: Pre-insert logic. Place new cards ABOVE the spinner so layout doesn't collapse.
+                        let spinner = pendingGrid.querySelector('.pagination-spinner');
+                        if (spinner) {
+                            pendingGrid.insertBefore(el, spinner);
+                        } else {
+                            pendingGrid.appendChild(el);
+                        }
                     }
                     
                     el.innerHTML = `
@@ -530,6 +513,9 @@
                     if (child.id && child.id.startsWith('pending-') && !pendingIds.has(child.id.replace('pending-', ''))) child.remove();
                 });
                 
+                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                document.querySelectorAll('#pendingGrid .pagination-spinner').forEach(spinner => spinner.remove());
+
                 let pendingLoader = pendingGrid.querySelector('.loader-row');
                 if (snap.size === limitPending) {
                     if (!pendingLoader) pendingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
