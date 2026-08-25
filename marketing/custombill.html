@@ -270,19 +270,48 @@
         <span id="successToastText">Action Successful!</span>
     </div>
 
-    <!-- SIGNATURE MODAL (Direct Save, No Cancel) -->
-    <div id="signModal" class="app-modal">
-        <div class="modal-content">
-            <h3><span class="material-symbols-outlined">draw</span> Edit Signature Name</h3>
-            <div class="form-group" style="margin-top: 20px;">
-                <div>
-                    <label>Signatory Name</label>
-                    <input type="text" id="signNameInput" placeholder="e.g. Authorized Signatory" value="Authorized Signatory">
+    <!-- MASTER SETTINGS MODAL (Unified Signature & Counters) -->
+    <div id="settingsModal" class="app-modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <h3 style="margin-bottom: 5px;"><span class="material-symbols-outlined">settings</span> Master Settings</h3>
+            
+            <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+                <!-- SECTION A: SIGNATURE -->
+                <h4 style="margin: 15px 0 10px 0; font-size: 0.9em; color: var(--warning-color); border-bottom: 1px solid #444; padding-bottom: 8px;"><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">draw</span> Signature Details</h4>
+                <div class="form-group">
+                    <div>
+                        <label>Signatory Name</label>
+                        <input type="text" id="signNameInput" placeholder="e.g. Authorized Signatory" value="Authorized Signatory">
+                    </div>
                 </div>
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 25px;">
-                <!-- Cancel button removed as requested -->
-                <button id="applySignBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply & Save</button>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button id="applySignBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply Signature & Save</button>
+                </div>
+
+                <!-- SECTION B: COUNTERS -->
+                <h4 style="margin: 30px 0 10px 0; font-size: 0.9em; color: var(--warning-color); border-bottom: 1px solid #444; padding-bottom: 8px;"><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">pin</span> Invoice Sequence Counters</h4>
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 15px;">Manually edit the next available sequence number. Saved instantly to the database.</p>
+                
+                <div class="form-group">
+                    <div class="input-row">
+                        <div>
+                            <label>Next GST No.</label>
+                            <input type="number" id="nextGstInput" min="1" placeholder="Loading...">
+                        </div>
+                        <div>
+                            <label>Next Normal No.</label>
+                            <input type="number" id="nextNormalInput" min="1" placeholder="Loading...">
+                        </div>
+                    </div>
+                    
+                    <button id="btnUpdateCounters" class="btn-save" style="background: var(--accent-color); padding: 12px; margin-top: 5px;">
+                        <span class="material-symbols-outlined">sync</span> Update Counters
+                    </button>
+                    
+                    <button id="btnOpenResetModal" class="btn-save btn-danger" style="padding: 12px; margin-top: 5px;">
+                        <span class="material-symbols-outlined">restart_alt</span> Reset Numbers to 1
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -331,7 +360,8 @@
         </div>
         <div class="header-right">
             <span class="material-symbols-outlined" id="openQrModalBtn" style="cursor: pointer; font-size: 28px; color: var(--success-color);" title="Edit UPI QR Code">qr_code</span>
-            <span class="material-symbols-outlined" id="openSignModalBtn" style="cursor: pointer; font-size: 28px; color: var(--marketing-white);" title="Edit Signature Name">draw</span>
+            <!-- Updated Header Icon to Settings for Master Command Center -->
+            <span class="material-symbols-outlined" id="openSettingsModalBtn" style="cursor: pointer; font-size: 28px; color: var(--marketing-white);" title="Master Settings">settings</span>
         </div>
     </header>
 
@@ -511,33 +541,6 @@
             <button class="btn-save" id="btnSaveSettings">
                 <span class="material-symbols-outlined">save</span> Save Layout Configuration
             </button>
-
-            <!-- NEW: INVOICE COUNTERS SECTION -->
-            <div class="section-box" style="margin-top: 20px;">
-                <h2 class="section-title"><span class="material-symbols-outlined">pin</span> Invoice Sequence Counters</h2>
-                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 15px;">Manually edit the next available sequence number. These changes are saved instantly to the database.</p>
-                
-                <div class="form-group">
-                    <div class="input-row">
-                        <div>
-                            <label>Next GST Number</label>
-                            <input type="number" id="nextGstInput" min="1" placeholder="Loading...">
-                        </div>
-                        <div>
-                            <label>Next Normal Number</label>
-                            <input type="number" id="nextNormalInput" min="1" placeholder="Loading...">
-                        </div>
-                    </div>
-                    
-                    <button id="btnUpdateCounters" class="btn-save" style="background: var(--accent-color); padding: 12px; margin-top: 5px;">
-                        <span class="material-symbols-outlined">sync</span> Update Counters
-                    </button>
-                    
-                    <button id="btnOpenResetModal" class="btn-save btn-danger" style="padding: 12px; margin-top: 5px;">
-                        <span class="material-symbols-outlined">restart_alt</span> Reset Numbers to 1
-                    </button>
-                </div>
-            </div>
 
         </div>
 
@@ -866,8 +869,8 @@
         };
 
         // --- NEW MODAL & SAVING LOGIC (Mobile Back Button Supported) ---
-        const signModal = document.getElementById('signModal');
-        const openSignModalBtn = document.getElementById('openSignModalBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const openSettingsModalBtn = document.getElementById('openSettingsModalBtn');
         const applySignBtn = document.getElementById('applySignBtn');
         const signNameInput = document.getElementById('signNameInput');
 
@@ -892,16 +895,25 @@
             updateLivePreview();
         }
 
-        openSignModalBtn.addEventListener('click', () => openModal(signModal, 'signModalOpen'));
+        openSettingsModalBtn.addEventListener('click', () => openModal(settingsModal, 'settingsModalOpen'));
         openQrModalBtn.addEventListener('click', () => openModal(qrModal, 'qrModalOpen'));
         btnOpenResetModal.addEventListener('click', () => openModal(resetModal, 'resetModalOpen'));
 
         // Handle physical mobile back button closing modals
         window.addEventListener('popstate', (e) => {
-            if (signModal.style.display === 'flex') signModal.style.display = 'none';
+            if (settingsModal.style.display === 'flex') settingsModal.style.display = 'none';
             if (qrModal.style.display === 'flex') qrModal.style.display = 'none';
             if (resetModal.style.display === 'flex') resetModal.style.display = 'none';
             updateLivePreview();
+        });
+
+        // GLOBAL CLICK OUTSIDE TO CLOSE (PC & MOBILE FIX)
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('app-modal')) {
+                if (e.target === settingsModal) closeModal(settingsModal, 'settingsModalOpen');
+                if (e.target === qrModal) closeModal(qrModal, 'qrModalOpen');
+                if (e.target === resetModal) closeModal(resetModal, 'resetModalOpen');
+            }
         });
 
         // Close Reset Modal on Cancel
@@ -932,8 +944,8 @@
         applySignBtn.addEventListener('click', async () => {
             applySignBtn.innerHTML = '<span class="spinner"></span>';
             await directSaveModalData({ signName: signNameInput.value.trim(), updatedAt: serverTimestamp() }, "Signature Saved!");
-            applySignBtn.innerHTML = 'Apply & Save';
-            closeModal(signModal, 'signModalOpen');
+            applySignBtn.innerHTML = 'Apply Signature & Save';
+            closeModal(settingsModal, 'settingsModalOpen');
         });
 
         applyQrBtn.addEventListener('click', async () => {
@@ -984,6 +996,7 @@
                     nextNormal: normalVal
                 }, { merge: true });
                 showToast("Counters Updated Successfully!", "success");
+                closeModal(settingsModal, 'settingsModalOpen');
             } catch (error) {
                 console.error("Counter update error:", error);
                 showToast("Failed to update counters.");
