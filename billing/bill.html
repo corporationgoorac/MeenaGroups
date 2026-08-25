@@ -126,6 +126,26 @@
         .toast-msg.success { background: var(--success-color); }
         .toast-msg.show { display: flex; opacity: 1; }
 
+        /* Live Sequence Hint Styling */
+        .sequence-hint {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(0, 86, 179, 0.15) 0%, rgba(0, 200, 83, 0.15) 100%);
+            border-left: 3px solid var(--accent-color);
+            display: none; /* Hidden by default */
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: var(--marketing-white);
+            transition: opacity 0.3s ease;
+        }
+        .sequence-hint span.material-symbols-outlined {
+            font-size: 16px;
+            color: var(--success-color);
+        }
+
         /* ---------------------------------------------------- */
         /* --- PROFESSIONAL PRINT INVOICE LAYOUT (THEMED REPLICA) --- */
         /* ---------------------------------------------------- */
@@ -523,9 +543,15 @@
                     <span id="invTypeBadge" style="font-size: 0.75em; padding: 4px 8px; border-radius: 4px; font-weight: bold; letter-spacing: 1px;"></span>
                 </div>
                 <div class="input-row">
-                    <div>
+                    <div style="width: 100%;">
                         <label>Invoice Number</label>
                         <input type="text" id="customInvNo" placeholder="Auto-generated based on bill type">
+                        
+                        <!-- NEW GRADIENT HINT BOX -->
+                        <div id="liveSequenceHint" class="sequence-hint">
+                            <span class="material-symbols-outlined">sync</span>
+                            <span id="sequenceHintText"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -885,9 +911,9 @@
         document.getElementById('installBtn').addEventListener('click', async () => { installPopup.style.display = 'none'; if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
         document.getElementById('closeBtn').addEventListener('click', () => { installPopup.style.display = 'none'; });
 
-        // --- IMPORT WITH PAGINATION SUPPORT & AUTH ---
+        // --- IMPORT WITH PAGINATION SUPPORT & AUTH & TRANSACTIONS ---
         import { db, auth } from './config.js'; 
-        import { collection, getDocs, getDoc, query, limit, doc, writeBatch, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { collection, getDocs, getDoc, query, limit, doc, writeBatch, runTransaction, serverTimestamp, increment, onSnapshot, where, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js"; 
 
         // --- AUTH CHECK & MODAL LOGIC (Mobile Back Button Supported) ---
@@ -1167,6 +1193,18 @@
             } catch(e) { console.error("Counter listener error", e); }
         }
         listenInvoiceCounters();
+
+        // --- MANUAL INVOICE INPUT TRACKER ---
+        document.getElementById('customInvNo').addEventListener('input', function(e) {
+            // Check if the user completely cleared the box out
+            if (e.target.value.trim() === '') {
+                this.dataset.manual = "false";
+            } else {
+                this.dataset.manual = "true";
+            }
+            // Trigger UI update to show or hide the hint
+            renderCart(); 
+        });
 
         // --- ADVANCED SMART SORTING ALGORITHM ---
         function advancedSort(items, searchTerm = '') {
@@ -1456,6 +1494,8 @@
                 document.getElementById('invoiceNoContainer').style.display = 'none';
                 document.getElementById('customInvNo').value = '';
                 document.getElementById('customInvNo').dataset.type = '';
+                document.getElementById('customInvNo').dataset.manual = "false";
+                document.getElementById('liveSequenceHint').style.display = 'none';
                 
                 return;
             }
@@ -1490,25 +1530,35 @@
             const invNoContainer = document.getElementById('invoiceNoContainer');
             const customInvNo = document.getElementById('customInvNo');
             const invTypeBadge = document.getElementById('invTypeBadge');
+            const sequenceHint = document.getElementById('liveSequenceHint');
+            const sequenceHintText = document.getElementById('sequenceHintText');
 
             invNoContainer.style.display = 'block';
+            
+            const liveGstNo = `GST-${nextGstNo.toString().padStart(4, '0')}`;
+            const liveNormalNo = `INV-${nextNormalNo.toString().padStart(4, '0')}`;
+            const isManualOverride = customInvNo.dataset.manual === "true";
+            const targetLiveNo = hasGst ? liveGstNo : liveNormalNo;
+
             if (hasGst) {
                 invTypeBadge.innerText = 'GST BILL DETECTED';
                 invTypeBadge.style.color = 'var(--success-color)';
                 invTypeBadge.style.background = 'rgba(0, 200, 83, 0.2)';
-                // Auto-fill only if the user hasn't explicitly typed over this specific category
-                if (!customInvNo.dataset.type || customInvNo.dataset.type !== 'GST') {
-                    customInvNo.value = `GST-${nextGstNo.toString().padStart(4, '0')}`;
-                    customInvNo.dataset.type = 'GST';
-                }
             } else {
                 invTypeBadge.innerText = 'NORMAL BILL';
                 invTypeBadge.style.color = 'var(--warning-color)';
                 invTypeBadge.style.background = 'rgba(255, 152, 0, 0.2)';
-                if (!customInvNo.dataset.type || customInvNo.dataset.type !== 'NORMAL') {
-                    customInvNo.value = `INV-${nextNormalNo.toString().padStart(4, '0')}`;
-                    customInvNo.dataset.type = 'NORMAL';
-                }
+            }
+
+            if (isManualOverride) {
+                // Cashier is typing: Show the beautiful gradient hint below
+                sequenceHint.style.display = 'flex';
+                sequenceHintText.innerText = `Next Available Sequence: ${targetLiveNo}`;
+            } else {
+                // Auto-mode: Hide hint and update input automatically
+                sequenceHint.style.display = 'none';
+                customInvNo.value = targetLiveNo;
+                customInvNo.dataset.type = hasGst ? 'GST' : 'NORMAL';
             }
 
             document.getElementById('uiSub').innerText = `₹${formatCurrency(billTotals.sub)}`;
@@ -1526,8 +1576,8 @@
             btnSave.disabled = false;
         }
 
-        // --- SAVE BILL & DEDUCT INVENTORY ---
-        let isSavingBill = false; // Flag to prevent duplicate submissions race conditions
+        // --- SAVE BILL & DEDUCT INVENTORY VIA TRANSACTION ---
+        let isSavingBill = false; // Flag to prevent phantom double-tap submissions
         
         document.getElementById('btnSaveBill').addEventListener('click', async () => {
             if (isSavingBill) return; 
@@ -1548,70 +1598,73 @@
             btnSave.innerHTML = '<span class="spinner"></span> Saving...';
 
             try {
-                const batch = writeBatch(db);
-
-                // Generate Custom Invoice ID based on Timestamp
-                let invNo = "INV-" + Date.now().toString().slice(-6);
-                
-                // Fetch from the custom box based on real-time GST detection
-                const hasGst = cartItems.some(item => item.gstPercent > 0);
-                let customVal = document.getElementById('customInvNo').value.trim();
-                
-                let smartNextGst = null;
-                let smartNextNormal = null;
-
-                if(customVal) {
-                    invNo = customVal;
-                    // Extract trailing numbers to auto-update the next sequence (e.g., GST-1700 -> next is 1701)
-                    const numMatch = customVal.match(/(\d+)$/);
-                    if(numMatch) {
-                        const parsedNum = parseInt(numMatch[1], 10);
-                        if(hasGst) smartNextGst = parsedNum + 1;
-                        else smartNextNormal = parsedNum + 1;
+                // Start the strict all-or-nothing Transaction
+                const finalInvNo = await runTransaction(db, async (transaction) => {
+                    const counterRef = doc(db, "settings", "invoiceCounters");
+                    const counterDoc = await transaction.get(counterRef);
+                    
+                    let currentGst = 1, currentNormal = 1;
+                    if (counterDoc.exists()) {
+                        currentGst = counterDoc.data().nextGst || 1;
+                        currentNormal = counterDoc.data().nextNormal || 1;
                     }
-                } else {
-                    invNo = hasGst ? `GST-${nextGstNo.toString().padStart(4, '0')}` : `INV-${nextNormalNo.toString().padStart(4, '0')}`;
-                }
 
-                // --- NEW BATCH SET LOGIC FOR 2000-READ OPTIMIZATION ---
-                const sellRef = doc(collection(db, "sellings"));
-                const purchasedProductNames = cartItems.map(item => item.name); // ADDED FLAT ARRAY
-                
-                batch.set(sellRef, {
-                    invoiceNo: invNo,
-                    invoiceType: hasGst ? 'GST' : 'NORMAL',
-                    customer: { name: cName, phone: cPhone, address: cAddress },
-                    paymentMode: cPaymentMode,
-                    date: cDate ? new Date(cDate) : serverTimestamp(),
-                    items: cartItems,
-                    purchasedProductNames: purchasedProductNames, // THE FIX TO LOWER READS
-                    totals: billTotals,
-                    createdAt: serverTimestamp()
-                });
+                    const hasGst = cartItems.some(item => item.gstPercent > 0);
+                    const liveGstNo = `GST-${currentGst.toString().padStart(4, '0')}`;
+                    const liveNormalNo = `INV-${currentNormal.toString().padStart(4, '0')}`;
+                    const targetLiveNo = hasGst ? liveGstNo : liveNormalNo;
 
-                // 2. Deduct Inventory Quantities (Only for stock items)
-                cartItems.forEach(item => {
-                    if (!item.isNonStock && item.invId) {
-                        const invRef = doc(db, "inventory", item.invId);
-                        batch.update(invRef, {
-                            qty: increment(-item.qty)
-                        });
+                    let customVal = document.getElementById('customInvNo').value.trim();
+                    let invNo = targetLiveNo;
+                    let shouldIncrement = true;
+
+                    // Manual Invoice Catch
+                    if (customVal && customVal !== targetLiveNo) {
+                        invNo = customVal;
+                        shouldIncrement = false; // It's a manual edit, DO NOT bump the master sequence
                     }
+
+                    // 1. Queue the bill save
+                    const sellRef = doc(collection(db, "sellings"));
+                    const purchasedProductNames = cartItems.map(item => item.name);
+                    
+                    transaction.set(sellRef, {
+                        invoiceNo: invNo,
+                        invoiceType: hasGst ? 'GST' : 'NORMAL',
+                        customer: { name: cName, phone: cPhone, address: cAddress },
+                        paymentMode: cPaymentMode,
+                        date: cDate ? new Date(cDate) : serverTimestamp(),
+                        items: cartItems,
+                        purchasedProductNames: purchasedProductNames,
+                        totals: billTotals,
+                        createdAt: serverTimestamp()
+                    });
+
+                    // 2. Queue inventory deductions
+                    cartItems.forEach(item => {
+                        if (!item.isNonStock && item.invId) {
+                            const invRef = doc(db, "inventory", item.invId);
+                            transaction.update(invRef, {
+                                qty: increment(-item.qty)
+                            });
+                        }
+                    });
+
+                    // 3. Update System Invoice Counters (ONLY if not skipped)
+                    if (shouldIncrement) {
+                        let counterUpdates = {};
+                        if (hasGst) {
+                            counterUpdates.nextGst = currentGst + 1;
+                            counterUpdates.nextNormal = currentNormal; 
+                        } else {
+                            counterUpdates.nextGst = currentGst; 
+                            counterUpdates.nextNormal = currentNormal + 1;
+                        }
+                        transaction.set(counterRef, counterUpdates, { merge: true });
+                    }
+
+                    return invNo; // Pass the final guaranteed number out to the print layout
                 });
-
-                // 3: Update System Invoice Counters (SMART UPDATE APPLIED)
-                const counterRef = doc(db, "settings", "invoiceCounters");
-                let counterUpdates = {};
-                if (hasGst) {
-                    counterUpdates.nextGst = smartNextGst !== null ? smartNextGst : increment(1);
-                    counterUpdates.nextNormal = increment(0);
-                } else {
-                    counterUpdates.nextGst = increment(0);
-                    counterUpdates.nextNormal = smartNextNormal !== null ? smartNextNormal : increment(1);
-                }
-                batch.set(counterRef, counterUpdates, { merge: true });
-
-                await batch.commit();
 
                 showToast("Bill Saved Successfully!", "success");
                 
@@ -1619,11 +1672,11 @@
                 btnSave.style.display = "none";
                 document.getElementById('btnPrintBill').style.display = "flex";
                 
-                buildPrintLayout(invNo, cName, cPhone, cAddress, cDate, cPaymentMode);
+                buildPrintLayout(finalInvNo, cName, cPhone, cAddress, cDate, cPaymentMode);
 
             } catch (err) {
                 console.error("Billing Error", err);
-                showToast("Error processing bill.");
+                showToast("Error processing bill. Check connection and try again.");
                 
                 // Release Lock On Error
                 isSavingBill = false;
@@ -1780,6 +1833,11 @@
                 btnSave.style.pointerEvents = 'auto';
                 btnSave.innerHTML = '<span class="material-symbols-outlined">save</span> Save Bill';
                 isSavingBill = false;
+                
+                // 4. Reset Manual Overrides & Hints safely for the next customer
+                const customInvNo = document.getElementById('customInvNo');
+                customInvNo.dataset.manual = "false";
+                document.getElementById('liveSequenceHint').style.display = 'none';
             }
         });
 
