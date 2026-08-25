@@ -705,9 +705,11 @@
             }
         };
 
-        // Kickoff with Sunday Interceptor
+        // Kickoff with Sunday Interceptor and Local Storage Caching
         window.addEventListener('load', () => {
-            const isSunday = new Date().getDay() === 0;
+            const today = new Date();
+            const isSunday = today.getDay() === 0;
+            const todayStr = today.toLocaleDateString('en-CA'); 
             
             if (isSunday) {
                 // ZERO READS TRIGGERED - Block all Firebase calls and show Rest UI
@@ -721,8 +723,17 @@
                         <p style="margin:0; line-height: 1.5;">No stock checks scheduled for today.<br>Enjoy your rest day.</p>
                     </div>`;
             } else {
-                // Normal Workday Execution
-                setTimeout(runAutoPilot, 100); 
+                // Check local storage to see if we already ran AutoPilot today
+                const lastRun = localStorage.getItem('lastAutoPilotRun');
+                
+                if (lastRun === todayStr) {
+                    // Already checked today! Skip the AutoPilot DB read and just load the UI
+                    startDashboardListeners();
+                } else {
+                    // First time loading today on this device, run AutoPilot and cache the date
+                    localStorage.setItem('lastAutoPilotRun', todayStr);
+                    setTimeout(runAutoPilot, 100); 
+                }
             }
         });
 
