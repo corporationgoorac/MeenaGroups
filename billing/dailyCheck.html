@@ -177,7 +177,7 @@
             </div>
 
             <!-- Active Pending Tasks -->
-            <div class="section-title" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
+            <div class="section-title" id="pendingSectionTitle" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
                 <span class="material-symbols-outlined">assignment</span> Today's Tasks
             </div>
             <div class="inv-grid" id="pendingGrid">
@@ -248,6 +248,21 @@
             <path d="M12 8l-3 3 1.5 1.5L12 11l4.5 4.5L18 14z"></path>
         </svg>
     </template>
+    
+    <!-- ADVANCED FIX: Sunday Interceptor SVG -->
+    <template id="svgSundayRest">
+        <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+    </template>
 
     <script type="module">
         import { db } from './config.js';
@@ -266,6 +281,9 @@
         onAuthStateChanged(auth, (user) => {
             if (user) currentUserName = user.displayName || user.email?.split('@') || "Employee";
         });
+
+        // ADVANCED FIX: Secure JS Variable to prevent NaN Data Corruption
+        let systemLiveQty = null;
 
         // Toast Helper
         function showToast(msg, type = "error") {
@@ -301,7 +319,8 @@
         // --- THE AUTO-PILOT ASSIGNMENT LOGIC ---
         async function runAutoPilot() {
             try {
-                const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(1));
+                // BUG FIX: Changed limit from 1 to 10 to instantly prime the Firebase local cache and eliminate 1-card stutter
+                const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(10));
                 const snapPending = await getDocs(qPending);
                 
                 if (!snapPending.empty) {
@@ -427,13 +446,24 @@
             });
         }
 
-        // Silent Infinite Scroll Listener
+        // Silent Infinite Scroll Listener with Loading Indicator
         window.isFetchingMore = false;
         document.getElementById('mainScrollContainer').addEventListener('scroll', (e) => {
             const el = e.target;
             if (el.scrollHeight - el.scrollTop <= el.clientHeight + 150) {
                 if(!window.isFetchingMore) {
                     window.isFetchingMore = true;
+                    
+                    // Instantly show skeleton at the bottom for smooth UX
+                    const pGrid = document.getElementById('pendingGrid');
+                    if(pGrid.innerHTML.indexOf('empty-state') === -1 && pGrid.innerHTML.trim() !== '') {
+                        pGrid.insertAdjacentHTML('beforeend', getSkeletonHTML());
+                    }
+                    const mGrid = document.getElementById('missingGrid');
+                    if (document.getElementById('missingSectionWrapper').style.display === 'block' && mGrid.innerHTML.trim() !== '') {
+                         mGrid.insertAdjacentHTML('beforeend', getSkeletonHTML());
+                    }
+
                     limitPending += 10;
                     limitMissing += 10;
                     startDashboardListeners();
@@ -476,7 +506,8 @@
             document.getElementById('auditName').innerText = name;
             document.getElementById('auditModel').innerText = model || 'No Model ID';
             
-            // Reset UI States
+            // Reset UI States & Variables
+            systemLiveQty = null;
             document.getElementById('actionStateMain').style.display = 'flex';
             document.getElementById('actionStateMissing').style.display = 'none';
             document.getElementById('inputMissingQty').value = '';
@@ -491,10 +522,12 @@
                 const qtyBox = document.getElementById('auditLiveQty');
                 if (snap.exists()) {
                     const liveQty = snap.data().qty || 0;
+                    systemLiveQty = liveQty; // Securely saved in background var
                     qtyBox.innerHTML = liveQty;
                     if (liveQty === 0) qtyBox.style.color = 'var(--meena-red)';
                     else qtyBox.style.color = 'var(--marketing-white)';
                 } else {
+                    systemLiveQty = null;
                     qtyBox.innerHTML = '<span style="color:var(--meena-red); font-size: 0.5em;">Item not found in master database</span>';
                 }
             }, (err) => {
@@ -516,14 +549,14 @@
             }
         };
 
-        window.executeMarkOk = async function() {
+        window.executeMarkOk = function() {
             const btn = document.getElementById('btnMarkOk');
             const ogText = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
             
             try {
-                // Item is perfect. Evaporate it from daily_check.
-                await deleteDoc(doc(db, "daily_check", currentAuditId));
+                // Item is perfect. Evaporate it from daily_check. (Removed await for instant offline speed)
+                deleteDoc(doc(db, "daily_check", currentAuditId)).catch(e => console.log("Background sync pending"));
                 showToast("Stock verified!", "success");
                 closeModal('modalAudit');
             } catch (e) {
@@ -533,16 +566,17 @@
         };
 
         // ADVANCED REPORTING: Over and Under Stock Handled
-        window.executeReportMissing = async function() {
+        window.executeReportMissing = function() {
             const physicalCount = parseInt(document.getElementById('inputMissingQty').value);
-            const expectedCountStr = document.getElementById('auditLiveQty').innerText;
-            const expectedCount = parseInt(expectedCountStr);
+            
+            // Secured against NaN corruption by using the hidden JS variable instead of DOM text
+            const expectedCount = systemLiveQty;
             
             if (isNaN(physicalCount) || physicalCount < 0) {
                 showToast("Enter a valid physical count.", "error");
                 return;
             }
-            if (isNaN(expectedCount)) {
+            if (expectedCount === null || isNaN(expectedCount)) {
                 showToast("Still waiting for live system count.", "error");
                 return;
             }
@@ -555,27 +589,44 @@
             btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
 
             try {
-                // Update status to missing and shift to admin dashboard with math
-                await updateDoc(doc(db, "daily_check", currentAuditId), {
+                // Update status to missing and shift to admin dashboard with math (Removed await for instant offline speed)
+                updateDoc(doc(db, "daily_check", currentAuditId), {
                     status: "missing",
                     physicalCount: physicalCount,
                     expectedCount: expectedCount,
                     discrepancy: discrepancyDiff,
                     reportedBy: currentUserName,
                     updatedAt: serverTimestamp()
-                });
+                }).catch(e => console.log("Background sync pending"));
                 showToast("Discrepancy reported.", "success");
                 closeModal('modalAudit');
             } catch (e) {
                 showToast("Failed to submit report.", "error");
             } finally {
-                btn.disabled = false; btn.innerHTML = ogText;
+                // Instantly reset button for next use since await is removed
+                btn.disabled = false; btn.innerHTML = ogText; 
             }
         };
 
-        // Kickoff
+        // Kickoff with Sunday Interceptor
         window.addEventListener('load', () => {
-            setTimeout(runAutoPilot, 100); 
+            const isSunday = new Date().getDay() === 0;
+            
+            if (isSunday) {
+                // ZERO READS TRIGGERED - Block all Firebase calls and show Rest UI
+                document.getElementById('missingSectionWrapper').style.display = 'none';
+                document.getElementById('pendingSectionTitle').style.display = 'none';
+                
+                pendingGrid.innerHTML = `
+                    <div class="empty-state" style="margin-top: 40px;">
+                        ${document.getElementById('svgSundayRest').innerHTML}
+                        <h3 style="margin:10px 0 5px 0; color:white; font-size: 1.4em;">Happy Sunday!</h3>
+                        <p style="margin:0; line-height: 1.5;">No stock checks scheduled for today.<br>Enjoy your rest day.</p>
+                    </div>`;
+            } else {
+                // Normal Workday Execution
+                setTimeout(runAutoPilot, 100); 
+            }
         });
 
     </script>
