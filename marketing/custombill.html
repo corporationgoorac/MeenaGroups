@@ -868,6 +868,34 @@
             }, 3000);
         };
 
+        // --- SMART DYNAMIC FIREBASE LISTENER FOR COUNTERS ---
+        let unsubscribeCounters = null;
+
+        function startCountersListener() {
+            if (unsubscribeCounters) return; // Already listening
+            const counterRef = doc(db, "settings", "invoiceCounters");
+            unsubscribeCounters = onSnapshot(counterRef, (snap) => {
+                if (snap.exists()) {
+                    if (document.activeElement !== nextGstInput) {
+                        nextGstInput.value = snap.data().nextGst || 1;
+                    }
+                    if (document.activeElement !== nextNormalInput) {
+                        nextNormalInput.value = snap.data().nextNormal || 1;
+                    }
+                } else {
+                    if (document.activeElement !== nextGstInput) nextGstInput.value = 1;
+                    if (document.activeElement !== nextNormalInput) nextNormalInput.value = 1;
+                }
+            });
+        }
+
+        function stopCountersListener() {
+            if (unsubscribeCounters) {
+                unsubscribeCounters();
+                unsubscribeCounters = null;
+            }
+        }
+
         // --- NEW MODAL & SAVING LOGIC (Mobile Back Button Supported) ---
         const settingsModal = document.getElementById('settingsModal');
         const openSettingsModalBtn = document.getElementById('openSettingsModalBtn');
@@ -891,28 +919,48 @@
 
         function closeModal(modal, stateName) {
             modal.style.display = 'none';
-            if (history.state && history.state[stateName]) history.back();
+            if (history.state && history.state[stateName]) {
+                history.back(); // This triggers popstate listener
+            } else {
+                if (modal === settingsModal) stopCountersListener();
+            }
             updateLivePreview();
         }
 
-        openSettingsModalBtn.addEventListener('click', () => openModal(settingsModal, 'settingsModalOpen'));
+        openSettingsModalBtn.addEventListener('click', () => {
+            openModal(settingsModal, 'settingsModalOpen');
+            startCountersListener(); // Connect to Firebase ONLY when settings modal opens
+        });
+        
         openQrModalBtn.addEventListener('click', () => openModal(qrModal, 'qrModalOpen'));
-        btnOpenResetModal.addEventListener('click', () => openModal(resetModal, 'resetModalOpen'));
+        
+        btnOpenResetModal.addEventListener('click', () => {
+            openModal(resetModal, 'resetModalOpen');
+            // resetModal opens on top of settingsModal, settingsModal remains flex
+        });
 
-        // Handle physical mobile back button closing modals
+        // Smart Stacked Mobile Back Button Logic
         window.addEventListener('popstate', (e) => {
-            if (settingsModal.style.display === 'flex') settingsModal.style.display = 'none';
-            if (qrModal.style.display === 'flex') qrModal.style.display = 'none';
-            if (resetModal.style.display === 'flex') resetModal.style.display = 'none';
+            resetModal.style.display = 'none';
+            qrModal.style.display = 'none';
+            
+            if (e.state && e.state.settingsModalOpen) {
+                // If we hit back from the Reset Modal, we return to the Settings Modal
+                settingsModal.style.display = 'flex';
+            } else {
+                // We are completely back to the main dashboard
+                settingsModal.style.display = 'none';
+                stopCountersListener(); // Disconnect Firebase safely
+            }
             updateLivePreview();
         });
 
         // GLOBAL CLICK OUTSIDE TO CLOSE (PC & MOBILE FIX)
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('app-modal')) {
-                if (e.target === settingsModal) closeModal(settingsModal, 'settingsModalOpen');
-                if (e.target === qrModal) closeModal(qrModal, 'qrModalOpen');
                 if (e.target === resetModal) closeModal(resetModal, 'resetModalOpen');
+                else if (e.target === settingsModal) closeModal(settingsModal, 'settingsModalOpen');
+                else if (e.target === qrModal) closeModal(qrModal, 'qrModalOpen');
             }
         });
 
@@ -960,24 +1008,7 @@
         const nextNormalInput = document.getElementById('nextNormalInput');
         const btnUpdateCounters = document.getElementById('btnUpdateCounters');
 
-        // 1. Real-time listener for counters
-        const counterRef = doc(db, "settings", "invoiceCounters");
-        onSnapshot(counterRef, (snap) => {
-            if (snap.exists()) {
-                // Only update the input fields if they are NOT currently focused (prevents interrupting user typing)
-                if (document.activeElement !== nextGstInput) {
-                    nextGstInput.value = snap.data().nextGst || 1;
-                }
-                if (document.activeElement !== nextNormalInput) {
-                    nextNormalInput.value = snap.data().nextNormal || 1;
-                }
-            } else {
-                if (document.activeElement !== nextGstInput) nextGstInput.value = 1;
-                if (document.activeElement !== nextNormalInput) nextNormalInput.value = 1;
-            }
-        });
-
-        // 2. Manual Update Counters Button
+        // Manual Update Counters Button
         btnUpdateCounters.addEventListener('click', async () => {
             const gstVal = parseInt(nextGstInput.value);
             const normalVal = parseInt(nextNormalInput.value);
@@ -991,7 +1022,7 @@
             btnUpdateCounters.style.pointerEvents = 'none';
 
             try {
-                await setDoc(counterRef, {
+                await setDoc(doc(db, "settings", "invoiceCounters"), {
                     nextGst: gstVal,
                     nextNormal: normalVal
                 }, { merge: true });
@@ -1006,13 +1037,13 @@
             }
         });
 
-        // 3. Reset Counters to 1 Confirmation
+        // Reset Counters to 1 Confirmation
         confirmResetBtn.addEventListener('click', async () => {
             confirmResetBtn.innerHTML = '<span class="spinner"></span> Resetting...';
             confirmResetBtn.style.pointerEvents = 'none';
 
             try {
-                await setDoc(counterRef, {
+                await setDoc(doc(db, "settings", "invoiceCounters"), {
                     nextGst: 1,
                     nextNormal: 1
                 }, { merge: true });
