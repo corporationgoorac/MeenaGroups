@@ -131,6 +131,12 @@
         /* ADVANCED FIX: Hide useless buttons for infinite scroll */
         .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; display: none !important; opacity: 0; pointer-events: none; }
         .btn-load-more:hover { background: rgba(13, 148, 136, 0.1); }
+        
+        /* --- NEW ADVANCED FIXES FOR PANNING AND FLICKER --- */
+        * { box-sizing: border-box !important; }
+        .main-scroll-area { overflow-x: clip !important; }
+        .pagination-spinner { transition: opacity 0.4s ease; opacity: 1; }
+        .inv-card { animation-fill-mode: backwards !important; }
     </style>
 </head>
 <body>
@@ -347,6 +353,9 @@
                         </div>`;
                     return;
                 }
+                
+                // --- ORIGINAL DESTRUCTIVE RENDERING COMMENTED OUT TO PRESERVE LINES ---
+                /*
                 let html = '';
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
@@ -387,6 +396,74 @@
                     html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMoreMissing()">Load Next 10</button></div>`;
                 }
                 missingGrid.innerHTML = html;
+                */
+
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (NO SCROLL FLICKER) ---
+                const oldSpinners = missingGrid.querySelectorAll('.pagination-spinner');
+                oldSpinners.forEach(s => s.remove());
+
+                snap.docChanges().forEach((change, index) => {
+                    const data = change.doc.data();
+                    const docId = change.doc.id;
+                    
+                    if (change.type === 'added') {
+                        let discrepancyAmount = data.discrepancy;
+                        let displayBadge = "";
+                        
+                        if (discrepancyAmount !== undefined) {
+                            if (discrepancyAmount > 0) {
+                                displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
+                            } else {
+                                displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
+                            }
+                        } else {
+                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'inv-card missing';
+                        card.id = `missing-card-${docId}`;
+                        card.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall stagger
+                        
+                        card.innerHTML = `
+                            <div class="card-top">
+                                <div class="inv-info">
+                                    <span class="inv-name">${data.name}</span>
+                                    <span class="inv-model">${data.model || 'No Model ID'}</span>
+                                    <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
+                                </div>
+                                <div class="missing-badge">
+                                    ${displayBadge}
+                                </div>
+                            </div>
+                            <button class="btn-full btn-danger" onclick="deleteMissingItem('${docId}')">
+                                <span class="material-symbols-outlined">delete_sweep</span> Acknowledge & Delete
+                            </button>
+                        `;
+                        
+                        const emptyState = missingGrid.querySelector('.empty-state');
+                        if (emptyState) emptyState.remove();
+                        missingGrid.appendChild(card);
+                    }
+                    if (change.type === 'modified') {
+                        const card = document.getElementById(`missing-card-${docId}`);
+                        if (card) {
+                            let discrepancyAmount = data.discrepancy;
+                            let displayBadge = "";
+                            if (discrepancyAmount !== undefined) {
+                                if (discrepancyAmount > 0) { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`; } 
+                                else { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`; }
+                            } else { displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`; }
+                            const badge = card.querySelector('.missing-badge');
+                            if (badge) badge.innerHTML = displayBadge;
+                        }
+                    }
+                    if (change.type === 'removed') {
+                        const card = document.getElementById(`missing-card-${docId}`);
+                        if (card) card.remove();
+                    }
+                });
+
             }, (err) => { console.error(err); missingGrid.innerHTML = `<div class="empty-state">Error loading missing items.</div>`; });
 
             if(unsubPending) unsubPending();
@@ -401,6 +478,9 @@
                         </div>`;
                     return;
                 }
+
+                // --- ORIGINAL DESTRUCTIVE RENDERING COMMENTED OUT TO PRESERVE LINES ---
+                /*
                 let html = '';
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
@@ -419,6 +499,43 @@
                     html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
                 }
                 pendingGrid.innerHTML = html;
+                */
+
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (NO SCROLL FLICKER) ---
+                const pSpinners = pendingGrid.querySelectorAll('.pagination-spinner');
+                pSpinners.forEach(s => s.remove());
+
+                snap.docChanges().forEach((change, index) => {
+                    const data = change.doc.data();
+                    const docId = change.doc.id;
+                    
+                    if (change.type === 'added') {
+                        const card = document.createElement('div');
+                        card.className = 'inv-card pending';
+                        card.id = `pending-card-${docId}`;
+                        card.style.flexDirection = 'row';
+                        card.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall stagger
+                        
+                        card.innerHTML = `
+                            <div class="inv-info">
+                                <span class="inv-name">${data.name}</span>
+                                <span class="inv-model">${data.model || 'No Model ID'}</span>
+                            </div>
+                            <div class="pending-status">
+                                <span class="spinner" style="width:14px; height:14px; border-width:2px; border-top-color:var(--accent-color);"></span> Wait
+                            </div>
+                        `;
+                        
+                        const emptyState = pendingGrid.querySelector('.empty-state');
+                        if (emptyState) emptyState.remove();
+                        pendingGrid.appendChild(card);
+                    }
+                    if (change.type === 'removed') {
+                        const card = document.getElementById(`pending-card-${docId}`);
+                        if (card) card.remove();
+                    }
+                });
+
             }, (err) => { console.error(err); pendingGrid.innerHTML = `<div class="empty-state">Error loading active queue.</div>`; });
         }
 
@@ -444,7 +561,10 @@
                     if (needsFetch) {
                         window.isFetchingAdmin = true;
                         
-                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                        // --- PREVIOUS STRING REPLACED FOR SMOOTH ANIMATION ---
+                        /* const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`; */
+                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0; animation: fadeSlideUp 0.3s forwards;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                        
                         if (currentMissingCards === limitMissing - 10) document.getElementById('missingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
                         if (currentPendingCards === limitPending - 10) document.getElementById('pendingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
 
