@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Audit Admin - Meena Marketing</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b111a">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Core Theme - Professional Midnight Blue, Teal & Emerald Palette */
+        :root {
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
+            --marketing-white: #ffffff;
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --nav-bg: rgba(19, 27, 38, 0.85); 
+            --input-bg: #1e293b;
+            --input-border: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+
+        header, .brand-container, .brand-text, .material-symbols-outlined, .action-btn, .modal-content-wrap {
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+
+        .material-symbols-outlined { display: inline-flex; align-items: center; justify-content: center; }
+        .material-symbols-outlined svg { width: 1em; height: 1em; fill: currentColor; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; font-size: 28px; transition: color 0.2s; }
+        .back-btn:hover { color: var(--accent-color); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1.25em; font-weight: 700; letter-spacing: -0.02em; color: var(--marketing-white);}
+        .goorac { font-size: 0.75em; color: var(--accent-color); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
+        .header-right { display: flex; align-items: center; gap: 18px; }
+        .header-icon { font-size: 28px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+        .header-icon:hover { color: white; transform: scale(1.1); }
+
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); color: white; padding: 14px 24px; border-radius: 10px; z-index: 9999; display: none; box-shadow: var(--shadow-lg); font-weight: 600; font-size: 0.95em; align-items: center; gap: 12px; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 90%; text-align: center;}
+        .toast-msg.error { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.success { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 40px; width: 100%; box-sizing: border-box;}
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+
+        .section-title { font-size: 1em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin: 30px 0 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        .section-title.alert { color: var(--meena-red); border-color: rgba(239, 68, 68, 0.2); }
+
+        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .inv-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); display: flex; justify-content: space-between; align-items: center; transition: all 0.25s ease; box-sizing: border-box; width: 100%; box-shadow: var(--shadow-sm); animation: fadeSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; flex-direction: column; gap: 15px;}
+        .inv-card.missing { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--surface-color) 100%); }
+        .inv-card.pending { border-color: rgba(13, 148, 136, 0.3); }
+        
+        .card-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; gap: 10px;}
+        .inv-info { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0; } 
+        .inv-name { font-size: 1.05em; font-weight: 600; color: var(--marketing-white); white-space: normal; word-wrap: break-word; line-height: 1.35; }
+        .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; width: fit-content;}
+        
+        .missing-badge { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--meena-red); padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 0.85em; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+        .missing-badge span { font-size: 1.4em; }
+        
+        .pending-status { color: var(--text-secondary); font-size: 0.85em; display: flex; align-items: center; gap: 6px; font-style: italic; }
+
+        .btn-full { width: 100%; padding: 14px; border-radius: 10px; border: none; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Inter', sans-serif;}
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--meena-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: var(--meena-red); color: white; }
+        .btn-primary { background: var(--accent-color); color: white; box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3); }
+        .btn-primary:hover { background: #0f766e; transform: translateY(-2px); }
+        .btn-outline { background: transparent; border: 1px solid var(--text-secondary); color: white; }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        /* Modals & Full Screens */
+        .app-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.3s; }
+        .app-modal.active { display: flex; opacity: 1; }
+        .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 400px; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95) translateY(10px); transition: transform 0.3s; overflow: hidden; display: flex; flex-direction: column; }
+        .app-modal.active .modal-content-wrap { transform: scale(1) translateY(0); }
+        
+        .full-screen { display: block; position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background: var(--bg-color); z-index: 3000; transition: right 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); overflow-y: auto; box-sizing: border-box; }
+        .full-screen.active { right: 0; }
+        
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .modal-header h2 { margin: 0; font-size: 1.2em; color: white; }
+        .close-modal { background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; padding: 5px; transition: color 0.2s; }
+        .close-modal:hover { color: white; }
+
+        .modal-body { padding: 25px 20px; display: flex; flex-direction: column; gap: 15px; text-align: center;}
+        .modal-body p { color: var(--text-secondary); font-size: 0.95em; line-height: 1.5; margin: 0 0 15px 0;}
+        .stat-badge { font-size: 2.5em; font-weight: 700; color: var(--accent-color); margin: 10px 0; }
+
+        /* Empty States SVG styling */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; grid-column: 1 / -1;}
+        .empty-svg { width: 120px; height: 120px; opacity: 0.7; }
+
+        /* Spinner */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
+        .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; }
+        .btn-load-more:hover { background: rgba(13, 148, 136, 0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">Error</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Success</span>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-left">
+            <span class="material-symbols-outlined back-btn" onclick="history.back()">arrow_back</span>
+            <div class="brand-text">
+                <span class="brand-title">Audit Admin</span>
+                <span class="goorac">Control Center</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <!-- Database Sync Icon -->
+            <span class="material-symbols-outlined header-icon" onclick="openModal('modalSync')" title="Database Sync">database</span>
+            <!-- Assign Tasks Icon -->
+            <span class="material-symbols-outlined header-icon" style="color: var(--accent-color);" onclick="openScreen('screenAssign')" title="Assign Tasks">assignment_add</span>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div class="main-scroll-area">
+        <div class="container">
+            
+            <!-- Missing / Discrepancy Section -->
+            <div class="section-title alert">
+                <span class="material-symbols-outlined">warning</span> Discrepancies (Review Required)
+            </div>
+            <div class="inv-grid" id="missingGrid">
+                <!-- Skeletons injected via JS -->
+            </div>
+
+            <!-- Active Pending Section -->
+            <div class="section-title" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
+                <span class="material-symbols-outlined">pending_actions</span> Active Queue (With Employees)
+            </div>
+            <div class="inv-grid" id="pendingGrid">
+                <!-- Skeletons injected via JS -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 1: Database Sync -->
+    <div class="app-modal" id="modalSync">
+        <div class="modal-content-wrap">
+            <div class="modal-header">
+                <h2>Database Synchronization</h2>
+                <button class="close-modal" onclick="closeModal('modalSync')"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="modal-body">
+                <span class="material-symbols-outlined" style="font-size: 40px; color: var(--info-color);">cloud_sync</span>
+                <p>Manage the <strong>daily_check</strong> collection. This does not affect your live inventory.</p>
+                <div class="stat-badge" id="syncTotalCount">--</div>
+                <p style="font-size: 0.8em; margin-top: -10px;">Total items currently in audit database</p>
+                
+                <button class="btn-full btn-danger" id="btnDeleteAuditDb" style="margin-top: 10px;">
+                    <span class="material-symbols-outlined">delete_sweep</span> Wipe Audit Database Completely
+                </button>
+                <button class="btn-full btn-primary" id="btnRefillAuditDb">
+                    <span class="material-symbols-outlined">update</span> Wipe & Refill from Inventory
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: Assign Tasks -->
+    <div class="full-screen" id="screenAssign">
+        <header style="position: sticky; top: 0;">
+            <div class="header-left">
+                <span class="material-symbols-outlined back-btn" onclick="closeScreen('screenAssign')">close</span>
+                <div class="brand-text"><span class="brand-title">Assign Tasks</span></div>
+            </div>
+        </header>
+        <div class="container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; gap: 20px;">
+            
+            <div id="assignLoading">
+                <span class="spinner" style="width: 40px; height: 40px; border-width: 4px; border-color: rgba(13, 148, 136, 0.3); border-top-color: var(--accent-color);"></span>
+                <p style="color: var(--text-secondary); margin-top: 20px;">Checking current assignments...</p>
+            </div>
+
+            <div id="assignZero" style="display: none; width: 100%; max-width: 400px;">
+                <span class="material-symbols-outlined" style="font-size: 60px; color: var(--success-color); margin-bottom: 20px;">check_circle</span>
+                <h2 style="margin: 0 0 10px 0;">No Pending Tasks</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px;">The queue is clear. Ready to assign the next batch of 20 items to employees.</p>
+                <button class="btn-full btn-primary" id="btnAssignFresh20" style="padding: 18px; font-size: 1.1em;">
+                    <span class="material-symbols-outlined">play_arrow</span> Assign Random 20 Items
+                </button>
+            </div>
+
+            <div id="assignExisting" style="display: none; width: 100%; max-width: 400px;">
+                <span class="material-symbols-outlined" style="font-size: 60px; color: var(--warning-color); margin-bottom: 20px;">error</span>
+                <h2 style="margin: 0 0 10px 0;">Unfinished Tasks Detected</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px;">There are <strong id="oldPendingCount" style="color: white;">0</strong> items still marked as pending from a previous assignment. How do you want to handle them?</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button class="btn-full btn-outline" id="btnUnassignAndAdd">
+                        <span class="material-symbols-outlined">rule_folder</span> Unassign Old & Assign 20 New
+                    </button>
+                    <button class="btn-full btn-danger" id="btnDeleteAndAdd">
+                        <span class="material-symbols-outlined">delete_forever</span> Delete Old & Assign 20 New
+                    </button>
+                </div>
+                <p style="font-size: 0.75em; color: var(--text-secondary); margin-top: 20px;">*Unassigning returns them to the pool to be checked later. Deleting skips them for this entire audit cycle.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SVGs for Empty States -->
+    <template id="svgMissingEmpty">
+        <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M9 12l2 2 4-4"></path>
+        </svg>
+    </template>
+    <template id="svgPendingEmpty">
+        <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <path d="M9 14h6"></path>
+            <path d="M9 10h6"></path>
+            <path d="M9 18h2"></path>
+        </svg>
+    </template>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { collection, query, where, limit, onSnapshot, doc, deleteDoc, getDocs, writeBatch, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // Toast Helper
+        function showToast(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        // Generate Skeletons
+        function getSkeletonHTML() {
+            return `
+            <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4); flex-direction: row;">
+                <div class="inv-info" style="width:100%;">
+                    <div class="skeleton" style="height:20px; width:80%; margin-bottom:8px; border-radius:4px;"></div>
+                    <div class="skeleton" style="height:14px; width:40%; border-radius:4px;"></div>
+                </div>
+                <div class="skeleton" style="height:40px; width:40px; border-radius:8px; flex-shrink:0;"></div>
+            </div>`;
+        }
+
+        const missingGrid = document.getElementById('missingGrid');
+        const pendingGrid = document.getElementById('pendingGrid');
+        const svgMissingEmpty = document.getElementById('svgMissingEmpty').innerHTML;
+        const svgPendingEmpty = document.getElementById('svgPendingEmpty').innerHTML;
+
+        missingGrid.innerHTML = getSkeletonHTML() + getSkeletonHTML();
+        pendingGrid.innerHTML = getSkeletonHTML() + getSkeletonHTML();
+
+        // --- DASHBOARD LISTENERS (PAGINATED, LIVE) ---
+        let limitMissing = 10;
+        let limitPending = 10;
+        let unsubMissing = null;
+        let unsubPending = null;
+
+        function startDashboardListeners() {
+            if(unsubMissing) unsubMissing();
+            const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
+            unsubMissing = onSnapshot(qMissing, (snap) => {
+                if (snap.empty) {
+                    missingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgMissingEmpty}
+                            <h3 style="margin:0; color:white;">All Clear!</h3>
+                            <p style="margin:0;">No discrepancies reported by employees.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card missing">
+                        <div class="card-top">
+                            <div class="inv-info">
+                                <span class="inv-name">${data.name}</span>
+                                <span class="inv-model">${data.model || 'No Model ID'}</span>
+                                <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
+                            </div>
+                            <div class="missing-badge">
+                                <span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span>
+                                <span>${data.missingQty}</span>
+                            </div>
+                        </div>
+                        <button class="btn-full btn-danger" onclick="deleteMissingItem('${docSnap.id}')">
+                            <span class="material-symbols-outlined">delete_sweep</span> Acknowledge & Delete
+                        </button>
+                    </div>`;
+                });
+                if (snap.size === limitMissing) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMoreMissing()">Load Next 10</button></div>`;
+                }
+                missingGrid.innerHTML = html;
+            }, (err) => { console.error(err); missingGrid.innerHTML = `<div class="empty-state">Error loading missing items.</div>`; });
+
+            if(unsubPending) unsubPending();
+            const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
+            unsubPending = onSnapshot(qPending, (snap) => {
+                if (snap.empty) {
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgPendingEmpty}
+                            <h3 style="margin:0; color:white;">Queue is Empty</h3>
+                            <p style="margin:0;">No active tasks assigned to employees.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card pending" style="flex-direction: row;">
+                        <div class="inv-info">
+                            <span class="inv-name">${data.name}</span>
+                            <span class="inv-model">${data.model || 'No Model ID'}</span>
+                        </div>
+                        <div class="pending-status">
+                            <span class="spinner" style="width:14px; height:14px; border-width:2px; border-top-color:var(--accent-color);"></span> Wait
+                        </div>
+                    </div>`;
+                });
+                if (snap.size === limitPending) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
+                }
+                pendingGrid.innerHTML = html;
+            }, (err) => { console.error(err); pendingGrid.innerHTML = `<div class="empty-state">Error loading active queue.</div>`; });
+        }
+
+        window.loadMoreMissing = () => { limitMissing += 10; startDashboardListeners(); };
+        window.loadMorePending = () => { limitPending += 10; startDashboardListeners(); };
+
+        startDashboardListeners();
+
+        // Delete Missing Item (Admin Action)
+        window.deleteMissingItem = async (id) => {
+            try {
+                await deleteDoc(doc(db, "daily_check", id));
+                showToast("Item acknowledged and deleted.", "success");
+            } catch (e) {
+                showToast("Failed to delete item.", "error");
+            }
+        };
+
+
+        // --- MODAL & SCREEN NAVIGATION LOGIC ---
+        window.openModal = function(id) {
+            document.getElementById(id).classList.add('active');
+            history.pushState({ modal: id }, '');
+            if (id === 'modalSync') fetchSyncStats();
+        };
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+            if (history.state && history.state.modal === id) history.back();
+        };
+        window.openScreen = function(id) {
+            document.getElementById(id).classList.add('active');
+            history.pushState({ screen: id }, '');
+            if (id === 'screenAssign') checkAssignStatus();
+        };
+        window.closeScreen = function(id) {
+            document.getElementById(id).classList.remove('active');
+            if (history.state && history.state.screen === id) history.back();
+        };
+        window.addEventListener('popstate', (e) => {
+            document.querySelectorAll('.app-modal.active').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.full-screen.active').forEach(s => s.classList.remove('active'));
+            if (e.state && e.state.modal) document.getElementById(e.state.modal).classList.add('active');
+            if (e.state && e.state.screen) document.getElementById(e.state.screen).classList.add('active');
+        });
+
+        // --- DATABASE SYNC LOGIC ---
+        async function fetchSyncStats() {
+            const countEl = document.getElementById('syncTotalCount');
+            countEl.innerHTML = '<span class="spinner" style="border-top-color:var(--accent-color);"></span>';
+            try {
+                const snap = await getCountFromServer(collection(db, "daily_check"));
+                countEl.innerText = snap.data().count;
+            } catch (e) {
+                countEl.innerText = "Err";
+            }
+        }
+
+        async function processBatchLoop(collectionRef, isDelete = false, inventorySnap = null) {
+            let operations = 0;
+            let batch = writeBatch(db);
+            
+            if (isDelete) {
+                const snap = await getDocs(query(collectionRef));
+                for (let i = 0; i < snap.docs.length; i++) {
+                    batch.delete(snap.docs[i].ref);
+                    operations++;
+                    if (operations === 480) { await batch.commit(); batch = writeBatch(db); operations = 0; }
+                }
+            } else if (inventorySnap) {
+                for (let i = 0; i < inventorySnap.docs.length; i++) {
+                    const invDoc = inventorySnap.docs[i];
+                    const data = invDoc.data();
+                    const newRef = doc(db, "daily_check", invDoc.id);
+                    batch.set(newRef, {
+                        name: data.name || "Unknown",
+                        model: data.model || "",
+                        status: "unassigned"
+                    });
+                    operations++;
+                    if (operations === 480) { await batch.commit(); batch = writeBatch(db); operations = 0; }
+                }
+            }
+            if (operations > 0) await batch.commit();
+        }
+
+        document.getElementById('btnDeleteAuditDb').addEventListener('click', async function() {
+            if(!confirm("Are you sure you want to completely wipe the audit database?")) return;
+            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Deleting...';
+            try {
+                await processBatchLoop(collection(db, "daily_check"), true);
+                showToast("Database wiped successfully.", "success");
+                fetchSyncStats();
+            } catch (e) { showToast("Failed to wipe.", "error"); }
+            this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">delete_sweep</span> Wipe Audit Database Completely';
+        });
+
+        document.getElementById('btnRefillAuditDb').addEventListener('click', async function() {
+            if(!confirm("This will wipe the current audit list and clone the live inventory. Proceed?")) return;
+            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Syncing Data...';
+            try {
+                // 1. Wipe Old
+                await processBatchLoop(collection(db, "daily_check"), true);
+                // 2. Read Inventory & Refill
+                const invSnap = await getDocs(collection(db, "inventory"));
+                await processBatchLoop(null, false, invSnap);
+                
+                showToast("Wiped & Refilled Successfully!", "success");
+                fetchSyncStats();
+            } catch (e) { showToast("Failed to sync database.", "error"); }
+            this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">update</span> Wipe & Refill from Inventory';
+        });
+
+        // --- ASSIGN TASKS LOGIC ---
+        const uiLoad = document.getElementById('assignLoading');
+        const uiZero = document.getElementById('assignZero');
+        const uiExist = document.getElementById('assignExisting');
+        let oldPendingDocs = [];
+
+        async function checkAssignStatus() {
+            uiLoad.style.display = 'block'; uiZero.style.display = 'none'; uiExist.style.display = 'none';
+            try {
+                const q = query(collection(db, "daily_check"), where("status", "==", "pending"));
+                const snap = await getDocs(q);
+                oldPendingDocs = snap.docs;
+                
+                uiLoad.style.display = 'none';
+                if (snap.empty) {
+                    uiZero.style.display = 'block';
+                } else {
+                    document.getElementById('oldPendingCount').innerText = snap.size;
+                    uiExist.style.display = 'block';
+                }
+            } catch (e) {
+                showToast("Error checking status.", "error");
+                closeScreen('screenAssign');
+            }
+        }
+
+        async function executeAssignProcess(actionOnOld) {
+            try {
+                let batch = writeBatch(db);
+                
+                // 1. Handle Old Pending
+                if (actionOnOld === 'delete') {
+                    oldPendingDocs.forEach(d => batch.delete(d.ref));
+                } else if (actionOnOld === 'unassign') {
+                    oldPendingDocs.forEach(d => batch.update(d.ref, { status: "unassigned" }));
+                }
+
+                // 2. Grab 20 new Unassigned
+                const qNew = query(collection(db, "daily_check"), where("status", "==", "unassigned"), limit(20));
+                const snapNew = await getDocs(qNew);
+                
+                if (snapNew.empty) {
+                    showToast("No unassigned items left in database! Cycle complete.", "error");
+                    return;
+                }
+
+                snapNew.forEach(d => batch.update(d.ref, { status: "pending" }));
+                
+                await batch.commit();
+                showToast(`Successfully assigned ${snapNew.size} items!`, "success");
+                closeScreen('screenAssign');
+                
+            } catch (e) {
+                console.error(e);
+                showToast("Failed to assign new items.", "error");
+            }
+        }
+
+        document.getElementById('btnAssignFresh20').addEventListener('click', function() {
+            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Assigning...';
+            executeAssignProcess('none').finally(() => {
+                this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">play_arrow</span> Assign Random 20 Items';
+            });
+        });
+
+        document.getElementById('btnUnassignAndAdd').addEventListener('click', function() {
+            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Processing...';
+            executeAssignProcess('unassign').finally(() => {
+                this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">rule_folder</span> Unassign Old & Assign 20 New';
+            });
+        });
+
+        document.getElementById('btnDeleteAndAdd').addEventListener('click', function() {
+            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Processing...';
+            executeAssignProcess('delete').finally(() => {
+                this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">delete_forever</span> Delete Old & Assign 20 New';
+            });
+        });
+
+    </script>
+</body>
+</html>
