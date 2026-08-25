@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Daily Stock Check - Employee Portal</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b111a">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Core Theme - Professional Midnight Blue, Teal & Emerald Palette */
+        :root {
+            --bg-color: #0b111a; 
+            --surface-color: #131b26; 
+            --surface-hover: #1b2636;
+            --text-color: #ffffff;
+            --text-secondary: #94a3b8;
+            --meena-red: #ef4444; 
+            --marketing-white: #ffffff;
+            --accent-color: #0d9488; 
+            --success-color: #10b981; 
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --nav-bg: rgba(19, 27, 38, 0.85); 
+            --input-bg: #1e293b;
+            --input-border: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+
+        header, .brand-text, .material-symbols-outlined, .action-btn, .modal-content-wrap {
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+
+        .material-symbols-outlined { display: inline-flex; align-items: center; justify-content: center; }
+        .material-symbols-outlined svg { width: 1em; height: 1em; fill: currentColor; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Modified Header with Clean Back Arrow */
+        header { background-color: var(--nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; width: 100%; box-sizing: border-box;}
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .back-btn { color: var(--text-color); cursor: pointer; display: flex; align-items: center; text-decoration: none; font-size: 28px; transition: color 0.2s; padding: 4px; margin-left: -4px;}
+        .back-btn:hover { color: var(--accent-color); }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+        .brand-title { font-size: 1.25em; font-weight: 700; letter-spacing: -0.02em; color: var(--marketing-white);}
+        .goorac { font-size: 0.75em; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 1px;}
+
+        .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); color: white; padding: 14px 24px; border-radius: 10px; z-index: 9999; display: none; box-shadow: var(--shadow-lg); font-weight: 600; font-size: 0.95em; align-items: center; gap: 12px; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-width: 90%; text-align: center;}
+        .toast-msg.error { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.success { background: rgba(16, 185, 129, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .toast-msg.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .main-scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 40px; width: 100%; box-sizing: border-box;}
+        .container { padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+
+        .section-title { font-size: 1em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin: 30px 0 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+        .section-title.alert { color: var(--meena-red); border-color: rgba(239, 68, 68, 0.2); }
+
+        .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .inv-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+        @media (min-width: 600px) { .inv-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .inv-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); display: flex; justify-content: space-between; align-items: center; transition: all 0.25s ease; box-sizing: border-box; width: 100%; box-shadow: var(--shadow-sm); animation: fadeSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; flex-direction: row; gap: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent;}
+        .inv-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: var(--shadow-lg); background: var(--surface-hover); }
+        .inv-card.missing { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--surface-color) 100%); pointer-events: none;}
+        .inv-card.pending { border-color: rgba(13, 148, 136, 0.3); }
+        
+        .inv-info { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0; } 
+        .inv-name { font-size: 1.05em; font-weight: 600; color: var(--marketing-white); white-space: normal; word-wrap: break-word; line-height: 1.35; }
+        .inv-model { font-size: 0.75em; font-weight: 500; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; width: fit-content;}
+        
+        .action-arrow { color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .inv-card:hover .action-arrow { background: var(--accent-color); color: white; }
+
+        .missing-badge { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--meena-red); padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 0.85em; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+        .missing-badge span { font-size: 1.4em; }
+
+        .btn-full { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 600; font-size: 1.05em; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Inter', sans-serif;}
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--meena-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: var(--meena-red); color: white; }
+        .btn-primary { background: linear-gradient(135deg, var(--success-color), #059669); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); }
+
+        input[type="number"] { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: white; font-size: 1.2em; outline: none; transition: all 0.3s ease; text-align: center; margin-bottom: 15px; font-weight: 700; box-sizing: border-box;}
+        input[type="number"]:focus { border-color: var(--warning-color); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+
+        /* Modals & Full Screens */
+        .app-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; opacity: 0; transition: opacity 0.3s; }
+        .app-modal.active { display: flex; opacity: 1; }
+        .modal-content-wrap { background: var(--surface-color); width: 100%; max-width: 400px; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); transform: scale(0.95) translateY(10px); transition: transform 0.3s; overflow: hidden; display: flex; flex-direction: column; }
+        .app-modal.active .modal-content-wrap { transform: scale(1) translateY(0); }
+        
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .modal-header h2 { margin: 0; font-size: 1.1em; color: white; text-transform: uppercase; letter-spacing: 1px; }
+        .close-modal { background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; padding: 5px; transition: color 0.2s; }
+        .close-modal:hover { color: white; }
+
+        .modal-body { padding: 25px 20px; display: flex; flex-direction: column; gap: 15px; text-align: center;}
+        
+        .live-qty-box { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; margin: 10px 0 25px 0; }
+        .live-qty-box p { color: var(--text-secondary); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0; font-weight: 600;}
+        .live-qty-number { font-size: 4em; font-weight: 700; color: var(--marketing-white); line-height: 1; display: flex; justify-content: center; align-items: center; min-height: 60px; }
+
+        /* Empty States SVG styling */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; grid-column: 1 / -1;}
+        .empty-svg { width: 120px; height: 120px; opacity: 0.7; }
+        
+        .full-screen-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9000; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; transition: opacity 0.5s; }
+
+        /* Spinner */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; display: inline-block; }
+        .btn-spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; }
+
+        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
+        .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; }
+        .btn-load-more:hover { background: rgba(13, 148, 136, 0.1); }
+    </style>
+</head>
+<body>
+
+    <!-- Startup Auto-Pilot Loader -->
+    <div class="full-screen-loader" id="autoPilotLoader">
+        <div class="spinner" style="width: 50px; height: 50px; border-width: 5px;"></div>
+        <h3 style="color: white; margin: 0; font-weight: 600;">Generating Daily Tasks...</h3>
+        <p style="color: var(--text-secondary); margin: 0; font-size: 0.9em;">Please wait</p>
+    </div>
+
+    <div class="toast-msg error" id="errorToast">
+        <span class="material-symbols-outlined">error</span>
+        <span id="errorToastText">Error</span>
+    </div>
+    <div class="toast-msg success" id="successToast">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span id="successToastText">Success</span>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-left">
+            <span class="material-symbols-outlined back-btn" onclick="window.location.href='inventory.html'">arrow_back</span>
+            <div class="brand-text">
+                <span class="brand-title">Stock Check</span>
+                <span class="goorac">Employee Portal</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div class="main-scroll-area">
+        <div class="container">
+            
+            <!-- Missing / Discrepancy Section (Employee View) -->
+            <div id="missingSectionWrapper" style="display: none;">
+                <div class="section-title alert">
+                    <span class="material-symbols-outlined">warning</span> Your Discrepancies
+                </div>
+                <div class="inv-grid" id="missingGrid">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- Active Pending Tasks -->
+            <div class="section-title" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
+                <span class="material-symbols-outlined">assignment</span> Today's Tasks
+            </div>
+            <div class="inv-grid" id="pendingGrid">
+                <!-- Skeletons injected via JS during load -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- THE AUDIT MODAL (With Live Snapshot) -->
+    <div class="app-modal" id="modalAudit">
+        <div class="modal-content-wrap">
+            <div class="modal-header">
+                <h2>Shelf Audit</h2>
+                <button class="close-modal" onclick="closeModal('modalAudit')"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="modal-body">
+                
+                <h3 id="auditName" style="margin: 0; font-size: 1.3em; color: white;">Product Name</h3>
+                <span id="auditModel" style="font-size: 0.85em; font-weight: 500; color: var(--accent-color); background: rgba(13, 148, 136, 0.1); padding: 4px 10px; border-radius: 6px; display: inline-block; width: fit-content; margin: 0 auto;">Model ID</span>
+
+                <div class="live-qty-box">
+                    <p><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">sync</span> System Expected Stock</p>
+                    <div id="auditLiveQty" class="live-qty-number">
+                        <span class="spinner" style="border-top-color: var(--accent-color);"></span>
+                    </div>
+                </div>
+
+                <!-- Default Action State -->
+                <div id="actionStateMain" style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-full btn-primary" id="btnMarkOk" onclick="executeMarkOk()">
+                        <span class="material-symbols-outlined">verified</span> Stock is Perfect (Matches)
+                    </button>
+                    <button class="btn-full btn-danger" style="background: transparent;" onclick="toggleMissingInput()">
+                        <span class="material-symbols-outlined">report_problem</span> Report Discrepancy
+                    </button>
+                </div>
+
+                <!-- Missing Input State -->
+                <div id="actionStateMissing" style="display: none; flex-direction: column;">
+                    <p style="color: var(--warning-color); font-weight: 600; margin-bottom: 10px;">How many are physically missing?</p>
+                    <input type="number" id="inputMissingQty" placeholder="e.g. 2" min="1">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-full" style="background: var(--input-bg); color: white; border: 1px solid var(--input-border);" onclick="toggleMissingInput()">Cancel</button>
+                        <button class="btn-full btn-danger" style="background: var(--meena-red); color: white;" id="btnSubmitMissing" onclick="executeReportMissing()">
+                            <span class="material-symbols-outlined">warning</span> Submit Report
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SVGs for Empty States -->
+    <template id="svgPendingEmpty">
+        <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="var(--success-color)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+    </template>
+    
+    <template id="svgAllChecked">
+        <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="var(--info-color)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <path d="M12 8l-3 3 1.5 1.5L12 11l4.5 4.5L18 14z"></path>
+        </svg>
+    </template>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { collection, query, where, limit, onSnapshot, doc, deleteDoc, getDocs, writeBatch, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const auth = getAuth();
+        let currentUserName = "Employee";
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUserName = user.displayName || user.email?.split('@') || "Employee";
+        });
+
+        // Toast Helper
+        function showToast(msg, type = "error") {
+            const toast = document.getElementById(type === "error" ? 'errorToast' : 'successToast');
+            document.getElementById(type === "error" ? 'errorToastText' : 'successToastText').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        function getSkeletonHTML() {
+            return `
+            <div class="inv-card" style="box-shadow: none; border-color: rgba(255,255,255,0.02); background: rgba(19, 27, 38, 0.4);">
+                <div class="inv-info" style="width:100%;">
+                    <div class="skeleton" style="height:20px; width:80%; margin-bottom:8px; border-radius:4px;"></div>
+                    <div class="skeleton" style="height:14px; width:40%; border-radius:4px;"></div>
+                </div>
+                <div class="skeleton" style="height:40px; width:40px; border-radius:50%; flex-shrink:0;"></div>
+            </div>`;
+        }
+
+        const pendingGrid = document.getElementById('pendingGrid');
+        const missingGrid = document.getElementById('missingGrid');
+        const missingSectionWrapper = document.getElementById('missingSectionWrapper');
+        const svgPendingEmpty = document.getElementById('svgPendingEmpty').innerHTML;
+        const svgAllChecked = document.getElementById('svgAllChecked').innerHTML;
+
+        pendingGrid.innerHTML = getSkeletonHTML() + getSkeletonHTML() + getSkeletonHTML();
+
+        // --- THE AUTO-PILOT ASSIGNMENT LOGIC ---
+        async function runAutoPilot() {
+            try {
+                // Check for existing pending tasks
+                const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(1));
+                const snapPending = await getDocs(qPending);
+                
+                if (!snapPending.empty) {
+                    // Tasks exist. Hide loader, start listening.
+                    document.getElementById('autoPilotLoader').style.opacity = '0';
+                    setTimeout(() => document.getElementById('autoPilotLoader').style.display = 'none', 500);
+                    startDashboardListeners();
+                    return;
+                }
+
+                // If no pending tasks, auto-grab 20 unassigned
+                const qUnassigned = query(collection(db, "daily_check"), where("status", "==", "unassigned"), limit(20));
+                const snapUnassigned = await getDocs(qUnassigned);
+
+                if (snapUnassigned.empty) {
+                    // Entire 500 cycle is complete!
+                    document.getElementById('autoPilotLoader').style.opacity = '0';
+                    setTimeout(() => document.getElementById('autoPilotLoader').style.display = 'none', 500);
+                    
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgAllChecked}
+                            <h3 style="margin:0; color:white;">Audit Cycle Complete!</h3>
+                            <p style="margin:0;">All inventory has been checked. Waiting for Admin to restart the cycle.</p>
+                        </div>`;
+                    startDashboardListeners(true); // Only start missing listener
+                    return;
+                }
+
+                // Assign the 20 items
+                const batch = writeBatch(db);
+                snapUnassigned.forEach(d => batch.update(d.ref, { status: "pending" }));
+                await batch.commit();
+
+                // Done. Show dashboard.
+                document.getElementById('autoPilotLoader').style.opacity = '0';
+                setTimeout(() => document.getElementById('autoPilotLoader').style.display = 'none', 500);
+                startDashboardListeners();
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('autoPilotLoader').innerHTML = `<h3 style="color:var(--meena-red);">Connection Error</h3><p>Please check your network and refresh.</p>`;
+            }
+        }
+
+        // --- DASHBOARD LISTENERS (PAGINATED) ---
+        let limitPending = 10;
+        let limitMissing = 10;
+        let unsubPending = null;
+        let unsubMissing = null;
+
+        function startDashboardListeners(onlyMissing = false) {
+            
+            // Missing Listener (Discrepancies)
+            if(unsubMissing) unsubMissing();
+            const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
+            unsubMissing = onSnapshot(qMissing, (snap) => {
+                if (snap.empty) {
+                    missingSectionWrapper.style.display = 'none';
+                    return;
+                }
+                missingSectionWrapper.style.display = 'block';
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card missing">
+                        <div class="inv-info">
+                            <span class="inv-name">${data.name}</span>
+                            <span class="inv-model">${data.model || 'No Model ID'}</span>
+                            <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
+                        </div>
+                        <div class="missing-badge">
+                            <span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span>
+                            <span>${data.missingQty}</span>
+                        </div>
+                    </div>`;
+                });
+                if (snap.size === limitMissing) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMoreMissing()">Load Next 10</button></div>`;
+                }
+                missingGrid.innerHTML = html;
+            });
+
+            if (onlyMissing) return;
+
+            // Pending Tasks Listener
+            if(unsubPending) unsubPending();
+            const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
+            unsubPending = onSnapshot(qPending, (snap) => {
+                if (snap.empty) {
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgPendingEmpty}
+                            <h3 style="margin:0; color:white;">All Tasks Finished!</h3>
+                            <p style="margin:0;">Great job. No active assignments left in the queue.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card pending" onclick="openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')">
+                        <div class="inv-info">
+                            <span class="inv-name">${data.name}</span>
+                            <span class="inv-model">${data.model || 'No Model ID'}</span>
+                        </div>
+                        <div class="action-arrow">
+                            <span class="material-symbols-outlined">qr_code_scanner</span>
+                        </div>
+                    </div>`;
+                });
+                if (snap.size === limitPending) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
+                }
+                pendingGrid.innerHTML = html;
+            });
+        }
+
+        window.loadMorePending = () => { limitPending += 10; startDashboardListeners(); };
+        window.loadMoreMissing = () => { limitMissing += 10; startDashboardListeners(); };
+
+        // --- ON-DEMAND LIVE SNAPSHOT MODAL LOGIC ---
+        const modalAudit = document.getElementById('modalAudit');
+        let currentAuditId = null;
+        let liveInventoryUnsub = null;
+
+        window.openModal = function(id) {
+            document.getElementById(id).classList.add('active');
+            history.pushState({ modal: id }, '');
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+            if (id === 'modalAudit' && liveInventoryUnsub) {
+                liveInventoryUnsub(); // INSTANTLY KILL DATABASE READ
+                liveInventoryUnsub = null;
+            }
+            if (history.state && history.state.modal === id) history.back();
+        };
+
+        window.addEventListener('popstate', (e) => {
+            if (modalAudit.classList.contains('active')) {
+                modalAudit.classList.remove('active');
+                if (liveInventoryUnsub) {
+                    liveInventoryUnsub(); // KILL ON HARDWARE BACK BUTTON
+                    liveInventoryUnsub = null;
+                }
+            }
+        });
+
+        window.openAuditModal = function(id, name, model) {
+            currentAuditId = id;
+            document.getElementById('auditName').innerText = name;
+            document.getElementById('auditModel').innerText = model || 'No Model ID';
+            
+            // Reset UI States
+            document.getElementById('actionStateMain').style.display = 'flex';
+            document.getElementById('actionStateMissing').style.display = 'none';
+            document.getElementById('inputMissingQty').value = '';
+            document.getElementById('auditLiveQty').innerHTML = '<span class="spinner" style="border-top-color: var(--accent-color);"></span>';
+            
+            // Open Modal
+            openModal('modalAudit');
+
+            // START THE SINGLE LIVE LISTENER
+            const invRef = doc(db, "inventory", id);
+            liveInventoryUnsub = onSnapshot(invRef, (snap) => {
+                const qtyBox = document.getElementById('auditLiveQty');
+                if (snap.exists()) {
+                    const liveQty = snap.data().qty || 0;
+                    qtyBox.innerHTML = liveQty;
+                    if (liveQty === 0) qtyBox.style.color = 'var(--meena-red)';
+                    else qtyBox.style.color = 'var(--marketing-white)';
+                } else {
+                    qtyBox.innerHTML = '<span style="color:var(--meena-red); font-size: 0.5em;">Item not found in master database</span>';
+                }
+            }, (err) => {
+                console.error(err);
+                document.getElementById('auditLiveQty').innerHTML = "Err";
+            });
+        };
+
+        window.toggleMissingInput = function() {
+            const main = document.getElementById('actionStateMain');
+            const missing = document.getElementById('actionStateMissing');
+            if (main.style.display === 'none') {
+                main.style.display = 'flex';
+                missing.style.display = 'none';
+            } else {
+                main.style.display = 'none';
+                missing.style.display = 'flex';
+                setTimeout(() => document.getElementById('inputMissingQty').focus(), 100);
+            }
+        };
+
+        window.executeMarkOk = async function() {
+            const btn = document.getElementById('btnMarkOk');
+            const ogText = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
+            
+            try {
+                // Item is perfect. Evaporate it from daily_check.
+                await deleteDoc(doc(db, "daily_check", currentAuditId));
+                showToast("Stock verified!", "success");
+                closeModal('modalAudit');
+            } catch (e) {
+                showToast("Failed to verify stock.", "error");
+                btn.disabled = false; btn.innerHTML = ogText;
+            }
+        };
+
+        window.executeReportMissing = async function() {
+            const val = parseInt(document.getElementById('inputMissingQty').value);
+            if (isNaN(val) || val < 1) {
+                showToast("Enter a valid missing quantity.", "error");
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitMissing');
+            const ogText = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>';
+
+            try {
+                // Update status to missing and shift to admin dashboard
+                await updateDoc(doc(db, "daily_check", currentAuditId), {
+                    status: "missing",
+                    missingQty: val,
+                    reportedBy: currentUserName,
+                    updatedAt: serverTimestamp()
+                });
+                showToast("Discrepancy reported.", "success");
+                closeModal('modalAudit');
+            } catch (e) {
+                showToast("Failed to submit report.", "error");
+            } finally {
+                btn.disabled = false; btn.innerHTML = ogText;
+            }
+        };
+
+        // Kickoff
+        window.addEventListener('load', () => {
+            setTimeout(runAutoPilot, 500); // 500ms delay for smooth UI transition
+        });
+
+    </script>
+</body>
+</html>
