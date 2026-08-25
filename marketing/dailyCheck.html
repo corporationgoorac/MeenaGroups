@@ -34,7 +34,8 @@
             --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
         }
 
-        html, body { height: 100%; margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        /* ADVANCED FIX: Viewport Zoom & Horizontal Pan Lock */
+        html, body { height: 100%; margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
         header, .brand-container, .brand-text, .material-symbols-outlined, .action-btn, .modal-content-wrap {
@@ -65,6 +66,10 @@
 
         .section-title { font-size: 1em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin: 30px 0 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;}
         .section-title.alert { color: var(--meena-red); border-color: rgba(239, 68, 68, 0.2); }
+        
+        /* ADVANCED FIX: Title Top Padding Issue */
+        .container > div:first-child.section-title,
+        .container > div:first-child .section-title { margin-top: 0 !important; }
 
         .skeleton { background: #1e293b; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0px, rgba(255,255,255,0.06) 40px, rgba(255,255,255,0) 80px); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -122,7 +127,9 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
-        .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; }
+        
+        /* ADVANCED FIX: Hide useless buttons for infinite scroll */
+        .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; display: none !important; opacity: 0; pointer-events: none; }
         .btn-load-more:hover { background: rgba(13, 148, 136, 0.1); }
     </style>
 </head>
@@ -140,7 +147,7 @@
     <!-- Header -->
     <header>
         <div class="header-left">
-            <span class="material-symbols-outlined back-btn" onclick="history.back()">arrow_back</span>
+            <span class="material-symbols-outlined back-btn" onclick="vibrateApp(15); history.back()">arrow_back</span>
             <div class="brand-text">
                 <span class="brand-title">Audit Admin</span>
                 <span class="goorac">Control Center</span>
@@ -148,9 +155,9 @@
         </div>
         <div class="header-right">
             <!-- Database Sync Icon -->
-            <span class="material-symbols-outlined header-icon" onclick="openModal('modalSync')" title="Database Sync">database</span>
+            <span class="material-symbols-outlined header-icon" onclick="vibrateApp(15); openModal('modalSync')" title="Database Sync">database</span>
             <!-- Assign Tasks Icon -->
-            <span class="material-symbols-outlined header-icon" style="color: var(--accent-color);" onclick="openScreen('screenAssign')" title="Assign Tasks">assignment_add</span>
+            <span class="material-symbols-outlined header-icon" style="color: var(--accent-color);" onclick="vibrateApp(15); openScreen('screenAssign')" title="Assign Tasks">assignment_add</span>
         </div>
     </header>
 
@@ -159,7 +166,7 @@
         <div class="container">
             
             <!-- Missing / Discrepancy Section -->
-            <div class="section-title alert">
+            <div class="section-title alert" id="missingSectionTitle">
                 <span class="material-symbols-outlined">warning</span> Discrepancies (Review Required)
             </div>
             <div class="inv-grid" id="missingGrid">
@@ -167,7 +174,7 @@
             </div>
 
             <!-- Active Pending Section -->
-            <div class="section-title" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
+            <div class="section-title" id="pendingSectionTitle" style="color: var(--accent-color); border-color: rgba(13, 148, 136, 0.2);">
                 <span class="material-symbols-outlined">pending_actions</span> Active Queue (With Employees)
             </div>
             <div class="inv-grid" id="pendingGrid">
@@ -182,7 +189,7 @@
         <div class="modal-content-wrap">
             <div class="modal-header">
                 <h2>Database Synchronization</h2>
-                <button class="close-modal" onclick="closeModal('modalSync')"><span class="material-symbols-outlined">close</span></button>
+                <button class="close-modal" onclick="vibrateApp(15); closeModal('modalSync')"><span class="material-symbols-outlined">close</span></button>
             </div>
             <div class="modal-body">
                 <span class="material-symbols-outlined" style="font-size: 40px; color: var(--info-color);">cloud_sync</span>
@@ -190,12 +197,30 @@
                 <div class="stat-badge" id="syncTotalCount">--</div>
                 <p style="font-size: 0.8em; margin-top: -10px;">Total items currently in audit database</p>
                 
-                <button class="btn-full btn-danger" id="btnDeleteAuditDb" style="margin-top: 10px;">
+                <button class="btn-full btn-danger" id="btnDeleteAuditDb" style="margin-top: 10px;" onclick="vibrateApp(20);">
                     <span class="material-symbols-outlined">delete_sweep</span> Wipe Audit Database Completely
                 </button>
-                <button class="btn-full btn-primary" id="btnRefillAuditDb">
+                <button class="btn-full btn-primary" id="btnRefillAuditDb" onclick="vibrateApp(20);">
                     <span class="material-symbols-outlined">update</span> Wipe & Refill from Inventory
                 </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ADVANCED FIX: Custom Hardware-Back Confirm Modal -->
+    <div class="app-modal" id="modalConfirm">
+        <div class="modal-content-wrap">
+            <div class="modal-header">
+                <h2>Confirm Action</h2>
+                <button class="close-modal" onclick="vibrateApp(15); closeConfirmModal()"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="modal-body">
+                <span class="material-symbols-outlined" style="font-size: 45px; color: var(--warning-color);" id="confirmIcon">warning</span>
+                <p id="confirmMessage" style="font-size: 1.05em; color: white; font-weight: 600;">Are you sure?</p>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-full btn-outline" onclick="vibrateApp(15); closeConfirmModal()">Cancel</button>
+                    <button class="btn-full btn-danger" id="btnConfirmProceed" onclick="vibrateApp(35);">Proceed</button>
+                </div>
             </div>
         </div>
     </div>
@@ -204,7 +229,7 @@
     <div class="full-screen" id="screenAssign">
         <header style="position: sticky; top: 0;">
             <div class="header-left">
-                <span class="material-symbols-outlined back-btn" onclick="closeScreen('screenAssign')">close</span>
+                <span class="material-symbols-outlined back-btn" onclick="vibrateApp(15); closeScreen('screenAssign')">close</span>
                 <div class="brand-text"><span class="brand-title">Assign Tasks</span></div>
             </div>
         </header>
@@ -219,7 +244,7 @@
                 <span class="material-symbols-outlined" style="font-size: 60px; color: var(--success-color); margin-bottom: 20px;">check_circle</span>
                 <h2 style="margin: 0 0 10px 0;">No Pending Tasks</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 30px;">The queue is clear. Ready to assign the next batch of 20 items to employees.</p>
-                <button class="btn-full btn-primary" id="btnAssignFresh20" style="padding: 18px; font-size: 1.1em;">
+                <button class="btn-full btn-primary" id="btnAssignFresh20" style="padding: 18px; font-size: 1.1em;" onclick="vibrateApp(20);">
                     <span class="material-symbols-outlined">play_arrow</span> Assign Random 20 Items
                 </button>
             </div>
@@ -230,10 +255,10 @@
                 <p style="color: var(--text-secondary); margin-bottom: 30px;">There are <strong id="oldPendingCount" style="color: white;">0</strong> items still marked as pending from a previous assignment. How do you want to handle them?</p>
                 
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button class="btn-full btn-outline" id="btnUnassignAndAdd">
+                    <button class="btn-full btn-outline" id="btnUnassignAndAdd" onclick="vibrateApp(15);">
                         <span class="material-symbols-outlined">rule_folder</span> Unassign Old & Assign 20 New
                     </button>
-                    <button class="btn-full btn-danger" id="btnDeleteAndAdd">
+                    <button class="btn-full btn-danger" id="btnDeleteAndAdd" onclick="vibrateApp(25);">
                         <span class="material-symbols-outlined">delete_forever</span> Delete Old & Assign 20 New
                     </button>
                 </div>
@@ -263,6 +288,13 @@
     <script type="module">
         import { db } from './config.js';
         import { collection, query, where, limit, onSnapshot, doc, deleteDoc, getDocs, writeBatch, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        // ADVANCED FIX: Global Vibration Engine
+        window.vibrateApp = function(pattern) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        };
 
         // Toast Helper
         function showToast(msg, type = "error") {
@@ -318,6 +350,22 @@
                 let html = '';
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
+                    
+                    // ADVANCED FIX: Over/Short Badges mirroring employee page
+                    let discrepancyAmount = data.discrepancy;
+                    let displayBadge = "";
+                    
+                    if (discrepancyAmount !== undefined) {
+                        if (discrepancyAmount > 0) {
+                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
+                        } else {
+                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
+                        }
+                    } else {
+                        // Legacy fallback
+                        displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
+                    }
+                    
                     html += `
                     <div class="inv-card missing">
                         <div class="card-top">
@@ -327,8 +375,7 @@
                                 <span style="font-size:0.75em; color:var(--text-secondary); margin-top:4px;">Reported by: ${data.reportedBy || 'Employee'}</span>
                             </div>
                             <div class="missing-badge">
-                                <span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span>
-                                <span>${data.missingQty}</span>
+                                ${displayBadge}
                             </div>
                         </div>
                         <button class="btn-full btn-danger" onclick="deleteMissingItem('${docSnap.id}')">
@@ -379,11 +426,42 @@
         window.loadMorePending = () => { limitPending += 10; startDashboardListeners(); };
 
         startDashboardListeners();
+        
+        // ADVANCED FIX: Gatekeeper Pagination & Smooth Scroll
+        window.isFetchingAdmin = false;
+        document.querySelector('.main-scroll-area').addEventListener('scroll', (e) => {
+            const el = e.target;
+            if (el.scrollHeight - el.scrollTop <= el.clientHeight + 150) {
+                if(!window.isFetchingAdmin) {
+                    // Gatekeeper check: Only fetch if we have a full multiple of 10
+                    const currentMissingCards = document.querySelectorAll('#missingGrid .inv-card').length;
+                    const currentPendingCards = document.querySelectorAll('#pendingGrid .inv-card').length;
+                    
+                    let needsFetch = false;
+                    if (currentMissingCards === limitMissing) { limitMissing += 10; needsFetch = true; }
+                    if (currentPendingCards === limitPending) { limitPending += 10; needsFetch = true; }
+                    
+                    if (needsFetch) {
+                        window.isFetchingAdmin = true;
+                        
+                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                        if (currentMissingCards === limitMissing - 10) document.getElementById('missingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
+                        if (currentPendingCards === limitPending - 10) document.getElementById('pendingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
 
-        // Delete Missing Item (Admin Action)
-        window.deleteMissingItem = async (id) => {
+                        setTimeout(() => {
+                            startDashboardListeners();
+                            setTimeout(() => window.isFetchingAdmin = false, 300);
+                        }, 500);
+                    }
+                }
+            }
+        });
+
+        // Delete Missing Item (Admin Action) - ADVANCED FIX: Instant offline speed (No await)
+        window.deleteMissingItem = function(id) {
+            vibrateApp(20);
             try {
-                await deleteDoc(doc(db, "daily_check", id));
+                deleteDoc(doc(db, "daily_check", id)).catch(e => console.log("Background sync pending"));
                 showToast("Item acknowledged and deleted.", "success");
             } catch (e) {
                 showToast("Failed to delete item.", "error");
@@ -392,6 +470,26 @@
 
 
         // --- MODAL & SCREEN NAVIGATION LOGIC ---
+        let confirmActionCallback = null;
+        
+        // ADVANCED FIX: HTML Mini-Modal for Confirmations
+        window.openConfirmModal = function(msg, callback) {
+            document.getElementById('confirmMessage').innerText = msg;
+            confirmActionCallback = callback;
+            document.getElementById('modalConfirm').classList.add('active');
+            history.pushState({ modal: 'modalConfirm' }, '');
+        };
+        
+        window.closeConfirmModal = function() {
+            document.getElementById('modalConfirm').classList.remove('active');
+            if (history.state && history.state.modal === 'modalConfirm') history.back();
+        };
+        
+        document.getElementById('btnConfirmProceed').addEventListener('click', () => {
+            closeConfirmModal();
+            if (confirmActionCallback) confirmActionCallback();
+        });
+
         window.openModal = function(id) {
             document.getElementById(id).classList.add('active');
             history.pushState({ modal: id }, '');
@@ -429,15 +527,18 @@
             }
         }
 
-        async function processBatchLoop(collectionRef, isDelete = false, inventorySnap = null) {
+        // ADVANCED FIX: Batch UI Progress Updates
+        async function processBatchLoop(collectionRef, isDelete = false, inventorySnap = null, uiElement = null) {
             let operations = 0;
+            let totalProcessed = 0;
             let batch = writeBatch(db);
             
             if (isDelete) {
                 const snap = await getDocs(query(collectionRef));
                 for (let i = 0; i < snap.docs.length; i++) {
                     batch.delete(snap.docs[i].ref);
-                    operations++;
+                    operations++; totalProcessed++;
+                    if (uiElement) uiElement.innerHTML = `<span class="spinner"></span> Deleting... ${totalProcessed}/${snap.docs.length}`;
                     if (operations === 480) { await batch.commit(); batch = writeBatch(db); operations = 0; }
                 }
             } else if (inventorySnap) {
@@ -450,38 +551,47 @@
                         model: data.model || "",
                         status: "unassigned"
                     });
-                    operations++;
+                    operations++; totalProcessed++;
+                    if (uiElement) uiElement.innerHTML = `<span class="spinner"></span> Cloning... ${totalProcessed}/${inventorySnap.docs.length}`;
                     if (operations === 480) { await batch.commit(); batch = writeBatch(db); operations = 0; }
                 }
             }
             if (operations > 0) await batch.commit();
         }
 
-        document.getElementById('btnDeleteAuditDb').addEventListener('click', async function() {
-            if(!confirm("Are you sure you want to completely wipe the audit database?")) return;
-            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Deleting...';
-            try {
-                await processBatchLoop(collection(db, "daily_check"), true);
-                showToast("Database wiped successfully.", "success");
-                fetchSyncStats();
-            } catch (e) { showToast("Failed to wipe.", "error"); }
-            this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">delete_sweep</span> Wipe Audit Database Completely';
+        document.getElementById('btnDeleteAuditDb').addEventListener('click', function() {
+            // ADVANCED FIX: Using Custom Modal instead of system confirm()
+            /* if(!confirm("Are you sure you want to completely wipe the audit database?")) return; */
+            
+            openConfirmModal("Are you sure you want to completely wipe the audit database?", async () => {
+                this.disabled = true; this.innerHTML = '<span class="spinner"></span> Deleting...';
+                try {
+                    await processBatchLoop(collection(db, "daily_check"), true, null, this);
+                    showToast("Database wiped successfully.", "success");
+                    fetchSyncStats();
+                } catch (e) { showToast("Failed to wipe.", "error"); }
+                this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">delete_sweep</span> Wipe Audit Database Completely';
+            });
         });
 
-        document.getElementById('btnRefillAuditDb').addEventListener('click', async function() {
-            if(!confirm("This will wipe the current audit list and clone the live inventory. Proceed?")) return;
-            this.disabled = true; this.innerHTML = '<span class="spinner"></span> Syncing Data...';
-            try {
-                // 1. Wipe Old
-                await processBatchLoop(collection(db, "daily_check"), true);
-                // 2. Read Inventory & Refill
-                const invSnap = await getDocs(collection(db, "inventory"));
-                await processBatchLoop(null, false, invSnap);
-                
-                showToast("Wiped & Refilled Successfully!", "success");
-                fetchSyncStats();
-            } catch (e) { showToast("Failed to sync database.", "error"); }
-            this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">update</span> Wipe & Refill from Inventory';
+        document.getElementById('btnRefillAuditDb').addEventListener('click', function() {
+            // ADVANCED FIX: Using Custom Modal instead of system confirm()
+            /* if(!confirm("This will wipe the current audit list and clone the live inventory. Proceed?")) return; */
+            
+            openConfirmModal("This will wipe the current audit list and clone the live inventory. Proceed?", async () => {
+                this.disabled = true; this.innerHTML = '<span class="spinner"></span> Syncing Data...';
+                try {
+                    // 1. Wipe Old
+                    await processBatchLoop(collection(db, "daily_check"), true, null, this);
+                    // 2. Read Inventory & Refill
+                    const invSnap = await getDocs(collection(db, "inventory"));
+                    await processBatchLoop(null, false, invSnap, this);
+                    
+                    showToast("Wiped & Refilled Successfully!", "success");
+                    fetchSyncStats();
+                } catch (e) { showToast("Failed to sync database.", "error"); }
+                this.disabled = false; this.innerHTML = '<span class="material-symbols-outlined">update</span> Wipe & Refill from Inventory';
+            });
         });
 
         // --- ASSIGN TASKS LOGIC ---
@@ -510,7 +620,12 @@
             }
         }
 
+        // ADVANCED FIX: Lock Button State to Prevent "Double Tap" Assignment Bug
+        let isAssigningGlobal = false;
+
         async function executeAssignProcess(actionOnOld) {
+            if (isAssigningGlobal) return;
+            isAssigningGlobal = true;
             try {
                 let batch = writeBatch(db);
                 
@@ -539,6 +654,8 @@
             } catch (e) {
                 console.error(e);
                 showToast("Failed to assign new items.", "error");
+            } finally {
+                isAssigningGlobal = false;
             }
         }
 
