@@ -34,8 +34,14 @@
             --shadow-glow: 0 0 15px rgba(13, 148, 136, 0.3);
         }
 
+        /* ADVANCED FIX: Box-sizing lock to prevent 100% width + padding overflow causing horizontal wobble */
+        *, *::before, *::after { box-sizing: border-box !important; }
+
         /* BUG FIX: Viewport Zoom & Horizontal Pan Lock */
         html, body { height: 100%; margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
+        /* Stricter clip lock applied over the previous one to kill all sideways panning */
+        html, body { overflow-x: clip !important; }
+
         body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
         header, .brand-text, .material-symbols-outlined, .action-btn, .modal-content-wrap {
@@ -129,7 +135,7 @@
 
         .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
         
-        /* BUG FIX: Hide Useless Spinner and Manual Buttons */
+        /* ADVANCED FIX: Hide useless buttons for infinite scroll */
         .full-screen-loader, .btn-load-more { display: none !important; opacity: 0; pointer-events: none; z-index: -100; }
     </style>
 </head>
@@ -369,6 +375,9 @@
             if(unsubMissing) unsubMissing();
             const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
             unsubMissing = onSnapshot(qMissing, (snap) => {
+                
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
                 if (snap.empty) {
                     missingSectionWrapper.style.display = 'none';
                     return;
@@ -377,24 +386,52 @@
                 let html = '';
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
+                    ...
+                    html += `
+                    <div class="inv-card missing" onclick="vibrateApp(15); openAuditModal(...)">
+                        ...
+                    </div>`;
+                });
+                if (snap.size === limitMissing) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
+                missingGrid.innerHTML = html;
+                */
+
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
+                if (snap.empty) {
+                    missingSectionWrapper.style.display = 'none';
+                    return;
+                }
+                missingSectionWrapper.style.display = 'block';
+
+                if (missingGrid.querySelector('.empty-state') || missingGrid.innerHTML.includes('skeleton')) {
+                    missingGrid.innerHTML = '';
+                }
+
+                const currentIds = new Set();
+                snap.forEach((docSnap, index) => {
+                    const data = docSnap.data();
+                    currentIds.add(docSnap.id);
                     
-                    // Advanced Under/Over Stock calculation
                     let discrepancyAmount = data.discrepancy;
                     let displayBadge = "";
-                    
                     if (discrepancyAmount !== undefined) {
-                        if (discrepancyAmount > 0) {
-                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
-                        } else {
-                            displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
-                        }
+                        if (discrepancyAmount > 0) displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Over</span><span>+${discrepancyAmount}</span>`;
+                        else displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Short</span><span>${discrepancyAmount}</span>`;
                     } else {
-                        // Legacy fallback
                         displayBadge = `<span style="font-size:0.6em; text-transform:uppercase; color:inherit; opacity:0.8;">Missing</span><span>${data.missingQty || 0}</span>`;
                     }
+
+                    let el = document.getElementById(`missing-${docSnap.id}`);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = `missing-${docSnap.id}`;
+                        el.className = 'inv-card missing';
+                        el.setAttribute('onclick', `vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')`);
+                        el.style.animationDelay = `${(index % 10) * 0.08}s`;
+                        missingGrid.appendChild(el);
+                    }
                     
-                    html += `
-                    <div class="inv-card missing" onclick="vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')">
+                    el.innerHTML = `
                         <div class="inv-info">
                             <span class="inv-name">${data.name}</span>
                             <span class="inv-model">${data.model || 'No Model ID'}</span>
@@ -403,12 +440,20 @@
                         <div class="missing-badge">
                             ${displayBadge}
                         </div>
-                    </div>`;
+                    `;
                 });
                 
-                // Keeping the invisible loader element active for scroll math
-                if (snap.size === limitMissing) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
-                missingGrid.innerHTML = html;
+                Array.from(missingGrid.children).forEach(child => {
+                    if (child.id && child.id.startsWith('missing-') && !currentIds.has(child.id.replace('missing-', ''))) child.remove();
+                });
+
+                let missingLoader = missingGrid.querySelector('.loader-row');
+                if (snap.size === limitMissing) {
+                    if (!missingLoader) missingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
+                } else if (missingLoader) {
+                    missingLoader.remove();
+                }
+
             });
 
             if (onlyMissing) return;
@@ -417,6 +462,24 @@
             if(unsubPending) unsubPending();
             const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
             unsubPending = onSnapshot(qPending, (snap) => {
+
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
+                if (snap.empty) {
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgPendingEmpty}
+                            ...
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => { ... });
+                if (snap.size === limitPending) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
+                pendingGrid.innerHTML = html;
+                */
+
+                // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     pendingGrid.innerHTML = `
                         <div class="empty-state">
@@ -426,11 +489,27 @@
                         </div>`;
                     return;
                 }
-                let html = '';
-                snap.forEach(docSnap => {
+
+                if (pendingGrid.querySelector('.empty-state') || pendingGrid.innerHTML.includes('skeleton')) {
+                    pendingGrid.innerHTML = '';
+                }
+
+                const pendingIds = new Set();
+                snap.forEach((docSnap, index) => {
                     const data = docSnap.data();
-                    html += `
-                    <div class="inv-card pending" onclick="vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')">
+                    pendingIds.add(docSnap.id);
+                    
+                    let el = document.getElementById(`pending-${docSnap.id}`);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = `pending-${docSnap.id}`;
+                        el.className = 'inv-card pending';
+                        el.setAttribute('onclick', `vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')`);
+                        el.style.animationDelay = `${(index % 10) * 0.08}s`;
+                        pendingGrid.appendChild(el);
+                    }
+                    
+                    el.innerHTML = `
                         <div class="inv-info">
                             <span class="inv-name">${data.name}</span>
                             <span class="inv-model">${data.model || 'No Model ID'}</span>
@@ -438,42 +517,54 @@
                         <div class="action-arrow">
                             <span class="material-symbols-outlined">qr_code_scanner</span>
                         </div>
-                    </div>`;
+                    `;
                 });
                 
-                if (snap.size === limitPending) { html += `<div class="loader-row"><button class="btn-load-more"></button></div>`; }
-                pendingGrid.innerHTML = html;
+                Array.from(pendingGrid.children).forEach(child => {
+                    if (child.id && child.id.startsWith('pending-') && !pendingIds.has(child.id.replace('pending-', ''))) child.remove();
+                });
+                
+                let pendingLoader = pendingGrid.querySelector('.loader-row');
+                if (snap.size === limitPending) {
+                    if (!pendingLoader) pendingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
+                } else if (pendingLoader) {
+                    pendingLoader.remove();
+                }
+
             });
         }
 
-        // Silent Infinite Scroll Listener with Smooth Spinner
+        // ADVANCED FIX: Gatekeeper Pagination & Smooth Scroll Mirroring Admin Logic
         window.isFetchingMore = false;
         document.getElementById('mainScrollContainer').addEventListener('scroll', (e) => {
             const el = e.target;
             if (el.scrollHeight - el.scrollTop <= el.clientHeight + 150) {
                 if(!window.isFetchingMore) {
-                    window.isFetchingMore = true;
                     
-                    // Sleek bottom spinner for pagination
-                    const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                    const currentMissingCards = document.querySelectorAll('#missingGrid .inv-card[id^="missing-"]').length;
+                    const currentPendingCards = document.querySelectorAll('#pendingGrid .inv-card[id^="pending-"]').length;
                     
-                    const pGrid = document.getElementById('pendingGrid');
-                    if(pGrid.innerHTML.indexOf('empty-state') === -1 && pGrid.innerHTML.trim() !== '') {
-                        pGrid.insertAdjacentHTML('beforeend', sleekSpinner);
-                    }
-                    const mGrid = document.getElementById('missingGrid');
-                    if (document.getElementById('missingSectionWrapper').style.display === 'block' && mGrid.innerHTML.trim() !== '') {
-                         mGrid.insertAdjacentHTML('beforeend', sleekSpinner);
-                    }
+                    let needsFetch = false;
+                    if (currentMissingCards === limitMissing) { limitMissing += 10; needsFetch = true; }
+                    if (currentPendingCards === limitPending) { limitPending += 10; needsFetch = true; }
+                    
+                    if (needsFetch) {
+                        window.isFetchingMore = true;
+                        
+                        const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                        
+                        if (currentMissingCards === limitMissing - 10 && document.getElementById('missingSectionWrapper').style.display === 'block') {
+                            document.getElementById('missingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
+                        }
+                        if (currentPendingCards === limitPending - 10) {
+                            document.getElementById('pendingGrid').insertAdjacentHTML('beforeend', sleekSpinner);
+                        }
 
-                    limitPending += 10;
-                    limitMissing += 10;
-                    
-                    // 500ms smooth visual buffer before fetching
-                    setTimeout(() => {
-                        startDashboardListeners();
-                        setTimeout(() => window.isFetchingMore = false, 300);
-                    }, 500);
+                        setTimeout(() => {
+                            startDashboardListeners();
+                            setTimeout(() => window.isFetchingMore = false, 300);
+                        }, 500);
+                    }
                 }
             }
         });
