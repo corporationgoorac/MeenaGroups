@@ -79,7 +79,7 @@
         
         .inv-card { background: var(--surface-color); padding: 20px; border-radius: 16px; border: 1px solid var(--input-border); display: flex; justify-content: space-between; align-items: center; transition: all 0.25s ease; box-sizing: border-box; width: 100%; box-shadow: var(--shadow-sm); animation: fadeSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; flex-direction: row; gap: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent;}
         .inv-card:hover { border-color: var(--accent-color); transform: translateY(-3px); box-shadow: var(--shadow-lg); background: var(--surface-hover); }
-        .inv-card.missing { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--surface-color) 100%); pointer-events: none;}
+        .inv-card.missing { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--surface-color) 100%); pointer-events: auto; /* changed from none to auto to allow editing */}
         .inv-card.pending { border-color: rgba(13, 148, 136, 0.3); }
         
         .inv-info { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0; } 
@@ -394,7 +394,7 @@
                     }
                     
                     html += `
-                    <div class="inv-card missing">
+                    <div class="inv-card missing" onclick="vibrateApp(15); openAuditModal('${docSnap.id}', \`${data.name.replace(/'/g, "\\'")}\`, '${data.model}')">
                         <div class="inv-info">
                             <span class="inv-name">${data.name}</span>
                             <span class="inv-model">${data.model || 'No Model ID'}</span>
@@ -446,7 +446,7 @@
             });
         }
 
-        // Silent Infinite Scroll Listener with Loading Indicator
+        // Silent Infinite Scroll Listener with Smooth Spinner
         window.isFetchingMore = false;
         document.getElementById('mainScrollContainer').addEventListener('scroll', (e) => {
             const el = e.target;
@@ -454,20 +454,26 @@
                 if(!window.isFetchingMore) {
                     window.isFetchingMore = true;
                     
-                    // Instantly show skeleton at the bottom for smooth UX
+                    // Sleek bottom spinner for pagination
+                    const sleekSpinner = `<div class="loader-row pagination-spinner" style="padding: 10px 0;"><span class="spinner" style="width: 24px; height: 24px; border-width: 3px;"></span></div>`;
+                    
                     const pGrid = document.getElementById('pendingGrid');
                     if(pGrid.innerHTML.indexOf('empty-state') === -1 && pGrid.innerHTML.trim() !== '') {
-                        pGrid.insertAdjacentHTML('beforeend', getSkeletonHTML());
+                        pGrid.insertAdjacentHTML('beforeend', sleekSpinner);
                     }
                     const mGrid = document.getElementById('missingGrid');
                     if (document.getElementById('missingSectionWrapper').style.display === 'block' && mGrid.innerHTML.trim() !== '') {
-                         mGrid.insertAdjacentHTML('beforeend', getSkeletonHTML());
+                         mGrid.insertAdjacentHTML('beforeend', sleekSpinner);
                     }
 
                     limitPending += 10;
                     limitMissing += 10;
-                    startDashboardListeners();
-                    setTimeout(() => window.isFetchingMore = false, 800);
+                    
+                    // 500ms smooth visual buffer before fetching
+                    setTimeout(() => {
+                        startDashboardListeners();
+                        setTimeout(() => window.isFetchingMore = false, 300);
+                    }, 500);
                 }
             }
         });
