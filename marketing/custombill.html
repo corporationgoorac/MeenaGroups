@@ -62,7 +62,7 @@
         .input-row { display: flex; gap: 12px; flex-wrap: wrap; }
         .input-row > div { flex: 1; min-width: 140px; }
         label { display: block; font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;}
-        input[type="text"], input[type="tel"], textarea, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; transition: 0.3s; }
+        input[type="text"], input[type="tel"], input[type="number"], textarea, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: var(--input-bg); color: white; font-size: 1em; outline: none; transition: 0.3s; }
         input:focus, textarea:focus, select:focus { border-color: var(--accent-color); }
         textarea { resize: vertical; min-height: 80px; }
         
@@ -77,6 +77,9 @@
         .btn-save { background: var(--success-color); color: white; width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;}
         .btn-save:hover { background: #00a844; }
 
+        .btn-danger { background: rgba(255, 51, 51, 0.1); color: var(--meena-red); border: 1px solid var(--meena-red); }
+        .btn-danger:hover { background: rgba(255, 51, 51, 0.2); }
+
         /* Loading Spinner */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; }
@@ -87,8 +90,8 @@
         .toast-msg.success { background: var(--success-color); }
         .toast-msg.show { display: flex; opacity: 1; }
 
-        /* Signature Modal */
-        #signModal, #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        /* Modals */
+        .app-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; box-sizing: border-box; }
         .modal-content { background: var(--surface-color); padding: 30px; border-radius: 12px; text-align: left; border: 1px solid #444; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.9); }
         .modal-content h3 { margin: 0 0 15px 0; color: white; border-bottom: 1px solid #444; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 
@@ -267,8 +270,8 @@
         <span id="successToastText">Action Successful!</span>
     </div>
 
-    <!-- SIGNATURE MODAL -->
-    <div id="signModal">
+    <!-- SIGNATURE MODAL (Direct Save, No Cancel) -->
+    <div id="signModal" class="app-modal">
         <div class="modal-content">
             <h3><span class="material-symbols-outlined">draw</span> Edit Signature Name</h3>
             <div class="form-group" style="margin-top: 20px;">
@@ -278,14 +281,14 @@
                 </div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 25px;">
-                <button id="closeSignModalBtn" style="flex: 1; padding: 12px; background: transparent; border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Close</button>
-                <button id="applySignBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply</button>
+                <!-- Cancel button removed as requested -->
+                <button id="applySignBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply & Save</button>
             </div>
         </div>
     </div>
 
-    <!-- NEW: QR CODE MODAL -->
-    <div id="qrModal">
+    <!-- QR CODE MODAL (Direct Save, No Cancel) -->
+    <div id="qrModal" class="app-modal">
         <div class="modal-content">
             <h3><span class="material-symbols-outlined">qr_code</span> Connect Payment UPI</h3>
             <div class="form-group" style="margin-top: 20px;">
@@ -296,8 +299,21 @@
                 </div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 25px;">
-                <button id="closeQrModalBtn" style="flex: 1; padding: 12px; background: transparent; border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Close</button>
-                <button id="applyQrBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply</button>
+                <!-- Cancel button removed as requested -->
+                <button id="applyQrBtn" style="flex: 1; padding: 12px; background: var(--accent-color); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Apply & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: RESET COUNTERS CONFIRMATION MODAL -->
+    <div id="resetModal" class="app-modal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--warning-color); margin-bottom: 10px;">warning</span>
+            <h3 style="justify-content: center; border: none; margin-bottom: 5px;">Reset Invoice Sequences?</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 25px;">This will reset both the GST and Normal invoice master counters back to 1. This action cannot be undone.</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="closeResetModalBtn" style="flex: 1; padding: 12px; background: transparent; border: 1px solid #555; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Cancel</button>
+                <button id="confirmResetBtn" style="flex: 1; padding: 12px; background: var(--meena-red); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Yes, Reset to 1</button>
             </div>
         </div>
     </div>
@@ -314,7 +330,6 @@
             </div>
         </div>
         <div class="header-right">
-            <!-- New QR Icon Button added next to Signature Button -->
             <span class="material-symbols-outlined" id="openQrModalBtn" style="cursor: pointer; font-size: 28px; color: var(--success-color);" title="Edit UPI QR Code">qr_code</span>
             <span class="material-symbols-outlined" id="openSignModalBtn" style="cursor: pointer; font-size: 28px; color: var(--marketing-white);" title="Edit Signature Name">draw</span>
         </div>
@@ -496,6 +511,33 @@
             <button class="btn-save" id="btnSaveSettings">
                 <span class="material-symbols-outlined">save</span> Save Layout Configuration
             </button>
+
+            <!-- NEW: INVOICE COUNTERS SECTION -->
+            <div class="section-box" style="margin-top: 20px;">
+                <h2 class="section-title"><span class="material-symbols-outlined">pin</span> Invoice Sequence Counters</h2>
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 15px;">Manually edit the next available sequence number. These changes are saved instantly to the database.</p>
+                
+                <div class="form-group">
+                    <div class="input-row">
+                        <div>
+                            <label>Next GST Number</label>
+                            <input type="number" id="nextGstInput" min="1" placeholder="Loading...">
+                        </div>
+                        <div>
+                            <label>Next Normal Number</label>
+                            <input type="number" id="nextNormalInput" min="1" placeholder="Loading...">
+                        </div>
+                    </div>
+                    
+                    <button id="btnUpdateCounters" class="btn-save" style="background: var(--accent-color); padding: 12px; margin-top: 5px;">
+                        <span class="material-symbols-outlined">sync</span> Update Counters
+                    </button>
+                    
+                    <button id="btnOpenResetModal" class="btn-save btn-danger" style="padding: 12px; margin-top: 5px;">
+                        <span class="material-symbols-outlined">restart_alt</span> Reset Numbers to 1
+                    </button>
+                </div>
+            </div>
 
         </div>
 
@@ -802,7 +844,7 @@
 
     <script type="module">
         import { db } from './config.js'; 
-        import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Toast Helper
         let activeToastTimeout;
@@ -823,50 +865,156 @@
             }, 3000);
         };
 
-        // MODALS LOGIC WITH MOBILE BACK BUTTON SUPPORT
+        // --- NEW MODAL & SAVING LOGIC (Mobile Back Button Supported) ---
         const signModal = document.getElementById('signModal');
         const openSignModalBtn = document.getElementById('openSignModalBtn');
-        const closeSignModalBtn = document.getElementById('closeSignModalBtn');
         const applySignBtn = document.getElementById('applySignBtn');
         const signNameInput = document.getElementById('signNameInput');
 
         const qrModal = document.getElementById('qrModal');
         const openQrModalBtn = document.getElementById('openQrModalBtn');
-        const closeQrModalBtn = document.getElementById('closeQrModalBtn');
         const applyQrBtn = document.getElementById('applyQrBtn');
         const upiIdInput = document.getElementById('upiIdInput');
 
-        function setupModal(modal, openBtn, closeBtn, applyBtn, stateName) {
-            openBtn.addEventListener('click', () => {
-                modal.style.display = 'flex';
-                history.pushState({ [stateName]: true }, ''); 
-            });
+        const resetModal = document.getElementById('resetModal');
+        const btnOpenResetModal = document.getElementById('btnOpenResetModal');
+        const closeResetModalBtn = document.getElementById('closeResetModalBtn');
+        const confirmResetBtn = document.getElementById('confirmResetBtn');
 
-            function closeModal() {
-                modal.style.display = 'none';
-                if (history.state && history.state[stateName]) history.back();
-                updateLivePreview();
-            }
-
-            closeBtn.addEventListener('click', closeModal);
-            applyBtn.addEventListener('click', closeModal);
+        function openModal(modal, stateName) {
+            modal.style.display = 'flex';
+            history.pushState({ [stateName]: true }, ''); 
         }
 
-        setupModal(signModal, openSignModalBtn, closeSignModalBtn, applySignBtn, 'signModalOpen');
-        setupModal(qrModal, openQrModalBtn, closeQrModalBtn, applyQrBtn, 'qrModalOpen');
+        function closeModal(modal, stateName) {
+            modal.style.display = 'none';
+            if (history.state && history.state[stateName]) history.back();
+            updateLivePreview();
+        }
 
+        openSignModalBtn.addEventListener('click', () => openModal(signModal, 'signModalOpen'));
+        openQrModalBtn.addEventListener('click', () => openModal(qrModal, 'qrModalOpen'));
+        btnOpenResetModal.addEventListener('click', () => openModal(resetModal, 'resetModalOpen'));
+
+        // Handle physical mobile back button closing modals
         window.addEventListener('popstate', (e) => {
             if (signModal.style.display === 'flex') signModal.style.display = 'none';
             if (qrModal.style.display === 'flex') qrModal.style.display = 'none';
+            if (resetModal.style.display === 'flex') resetModal.style.display = 'none';
             updateLivePreview();
         });
 
-        // Add real-time typing preview for signature
+        // Close Reset Modal on Cancel
+        closeResetModalBtn.addEventListener('click', () => closeModal(resetModal, 'resetModalOpen'));
+
+        // Live typing preview for signature
         signNameInput.addEventListener('input', () => {
             document.getElementById('pvSignNameText').innerText = signNameInput.value || 'Authorized Signatory';
         });
 
-        // DOM Elements
+        // --- DIRECT SAVE FOR MODALS ---
+        let isDirectSaving = false;
+
+        async function directSaveModalData(payload, successMsg) {
+            if(isDirectSaving) return;
+            isDirectSaving = true;
+            try {
+                await setDoc(doc(db, "settings", "customBill"), payload, { merge: true });
+                showToast(successMsg, "success");
+            } catch (err) {
+                console.error("Direct Save Error", err);
+                showToast("Failed to save changes.");
+            } finally {
+                isDirectSaving = false;
+            }
+        }
+
+        applySignBtn.addEventListener('click', async () => {
+            applySignBtn.innerHTML = '<span class="spinner"></span>';
+            await directSaveModalData({ signName: signNameInput.value.trim(), updatedAt: serverTimestamp() }, "Signature Saved!");
+            applySignBtn.innerHTML = 'Apply & Save';
+            closeModal(signModal, 'signModalOpen');
+        });
+
+        applyQrBtn.addEventListener('click', async () => {
+            applyQrBtn.innerHTML = '<span class="spinner"></span>';
+            await directSaveModalData({ customUpiId: upiIdInput.value.trim(), updatedAt: serverTimestamp() }, "UPI QR Code Saved!");
+            applyQrBtn.innerHTML = 'Apply & Save';
+            closeModal(qrModal, 'qrModalOpen');
+        });
+
+        // --- NEW: INVOICE COUNTERS SYNC & SAVE LOGIC ---
+        const nextGstInput = document.getElementById('nextGstInput');
+        const nextNormalInput = document.getElementById('nextNormalInput');
+        const btnUpdateCounters = document.getElementById('btnUpdateCounters');
+
+        // 1. Real-time listener for counters
+        const counterRef = doc(db, "settings", "invoiceCounters");
+        onSnapshot(counterRef, (snap) => {
+            if (snap.exists()) {
+                // Only update the input fields if they are NOT currently focused (prevents interrupting user typing)
+                if (document.activeElement !== nextGstInput) {
+                    nextGstInput.value = snap.data().nextGst || 1;
+                }
+                if (document.activeElement !== nextNormalInput) {
+                    nextNormalInput.value = snap.data().nextNormal || 1;
+                }
+            } else {
+                if (document.activeElement !== nextGstInput) nextGstInput.value = 1;
+                if (document.activeElement !== nextNormalInput) nextNormalInput.value = 1;
+            }
+        });
+
+        // 2. Manual Update Counters Button
+        btnUpdateCounters.addEventListener('click', async () => {
+            const gstVal = parseInt(nextGstInput.value);
+            const normalVal = parseInt(nextNormalInput.value);
+
+            if (!gstVal || gstVal < 1 || !normalVal || normalVal < 1) {
+                showToast("Please enter valid numbers greater than 0.");
+                return;
+            }
+
+            btnUpdateCounters.innerHTML = '<span class="spinner"></span> Updating...';
+            btnUpdateCounters.style.pointerEvents = 'none';
+
+            try {
+                await setDoc(counterRef, {
+                    nextGst: gstVal,
+                    nextNormal: normalVal
+                }, { merge: true });
+                showToast("Counters Updated Successfully!", "success");
+            } catch (error) {
+                console.error("Counter update error:", error);
+                showToast("Failed to update counters.");
+            } finally {
+                btnUpdateCounters.innerHTML = '<span class="material-symbols-outlined">sync</span> Update Counters';
+                btnUpdateCounters.style.pointerEvents = 'auto';
+            }
+        });
+
+        // 3. Reset Counters to 1 Confirmation
+        confirmResetBtn.addEventListener('click', async () => {
+            confirmResetBtn.innerHTML = '<span class="spinner"></span> Resetting...';
+            confirmResetBtn.style.pointerEvents = 'none';
+
+            try {
+                await setDoc(counterRef, {
+                    nextGst: 1,
+                    nextNormal: 1
+                }, { merge: true });
+                showToast("All sequences reset to 1!", "success");
+                closeModal(resetModal, 'resetModalOpen');
+            } catch (error) {
+                console.error("Reset error:", error);
+                showToast("Failed to reset counters.");
+            } finally {
+                confirmResetBtn.innerHTML = 'Yes, Reset to 1';
+                confirmResetBtn.style.pointerEvents = 'auto';
+            }
+        });
+
+        // --- THEME CONTROLLER DOM ELEMENTS ---
         const inputs = {
             themeSelect: document.getElementById('mainThemeSelect'),
             festTitle: document.getElementById('festTitle'),
@@ -1181,10 +1329,10 @@
             }
         }
 
-        let isSaving = false;
+        let isMainSaving = false;
         document.getElementById('btnSaveSettings').addEventListener('click', async () => {
-            if(isSaving) return;
-            isSaving = true;
+            if(isMainSaving) return;
+            isMainSaving = true;
             
             const btn = document.getElementById('btnSaveSettings');
             btn.innerHTML = '<span class="spinner"></span> Saving...';
@@ -1221,7 +1369,7 @@
                 console.error("Save Error", err);
                 showToast("Failed to save layout.");
             } finally {
-                isSaving = false;
+                isMainSaving = false;
                 btn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Layout Configuration';
                 btn.style.pointerEvents = 'auto';
             }
