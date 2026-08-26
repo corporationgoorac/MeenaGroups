@@ -132,7 +132,7 @@
         /* Spinner */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
-        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; }
+        .loader-row { display: flex; justify-content: center; padding: 20px; width: 100%; grid-column: 1 / -1; overflow-anchor: none; min-height: 70px; transition: opacity 0.3s ease; }
         
         /* ADVANCED FIX: Hide useless buttons for infinite scroll */
         .btn-load-more { background: transparent; border: 1px solid var(--input-border); color: var(--accent-color); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; margin: 0 auto; display: block; transition: 0.2s; display: none !important; opacity: 0; pointer-events: none; }
@@ -410,7 +410,14 @@
                         el.id = `missing-${docSnap.id}`;
                         el.className = 'inv-card missing';
                         el.style.animationDelay = `${(index % 10) * 0.08}s`; // Waterfall drop animation
-                        missingGrid.appendChild(el);
+                        
+                        // ADVANCED FIX: Traffic Cop - Route new cards ABOVE the spinner
+                        let spinner = missingGrid.querySelector('.pagination-spinner');
+                        if (spinner) {
+                            missingGrid.insertBefore(el, spinner);
+                        } else {
+                            missingGrid.appendChild(el);
+                        }
                     }
                     
                     // DOM Updates injected cleanly without destroying the wrapper node
@@ -434,7 +441,7 @@
                     if (child.id && child.id.startsWith('missing-') && !currentIds.has(child.id.replace('missing-', ''))) child.remove();
                 });
 
-                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                // ADVANCED FIX: Safely remove spinner now that cards are loaded
                 document.querySelectorAll('#missingGrid .pagination-spinner').forEach(spinner => spinner.remove());
 
                 // Handle invisible padding math elements without breaking scroll
@@ -503,7 +510,14 @@
                         el.className = 'inv-card pending';
                         el.style.flexDirection = 'row';
                         el.style.animationDelay = `${(index % 10) * 0.08}s`;
-                        pendingGrid.appendChild(el);
+                        
+                        // ADVANCED FIX: Traffic Cop - Route new cards ABOVE the spinner
+                        let spinner = pendingGrid.querySelector('.pagination-spinner');
+                        if (spinner) {
+                            pendingGrid.insertBefore(el, spinner);
+                        } else {
+                            pendingGrid.appendChild(el);
+                        }
                     }
                     
                     el.innerHTML = `
@@ -521,7 +535,7 @@
                     if (child.id && child.id.startsWith('pending-') && !pendingIds.has(child.id.replace('pending-', ''))) child.remove();
                 });
                 
-                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                // ADVANCED FIX: Safely remove spinner now that cards are loaded
                 document.querySelectorAll('#pendingGrid .pagination-spinner').forEach(spinner => spinner.remove());
 
                 let pendingLoader = pendingGrid.querySelector('.loader-row');
