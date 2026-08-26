@@ -345,36 +345,6 @@
             const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
             unsubMissing = onSnapshot(qMissing, (snap) => {
                 
-                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
-                /*
-                if (snap.empty) {
-                    missingGrid.innerHTML = `
-                        <div class="empty-state">
-                            ${svgMissingEmpty}
-                            <h3 style="margin:0; color:white;">All Clear!</h3>
-                            <p style="margin:0;">No discrepancies reported by employees.</p>
-                        </div>`;
-                    return;
-                }
-                let html = '';
-                snap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    
-                    // ADVANCED FIX: Over/Short Badges mirroring employee page
-                    let discrepancyAmount = data.discrepancy;
-                    let displayBadge = "";
-                    ...
-                    html += `
-                    <div class="inv-card missing">
-                       ...
-                    </div>`;
-                });
-                if (snap.size === limitMissing) {
-                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMoreMissing()">Load Next 10</button></div>`;
-                }
-                missingGrid.innerHTML = html;
-                */
-
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     missingGrid.innerHTML = `
@@ -434,6 +404,9 @@
                     if (child.id && child.id.startsWith('missing-') && !currentIds.has(child.id.replace('missing-', ''))) child.remove();
                 });
 
+                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                document.querySelectorAll('#missingGrid .pagination-spinner').forEach(spinner => spinner.remove());
+
                 // Handle invisible padding math elements without breaking scroll
                 let missingLoader = missingGrid.querySelector('.loader-row');
                 if (snap.size === limitMissing) {
@@ -448,31 +421,6 @@
             const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
             unsubPending = onSnapshot(qPending, (snap) => {
                 
-                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
-                /*
-                if (snap.empty) {
-                    pendingGrid.innerHTML = `
-                        <div class="empty-state">
-                            ${svgPendingEmpty}
-                            <h3 style="margin:0; color:white;">Queue is Empty</h3>
-                            <p style="margin:0;">No active tasks assigned to employees.</p>
-                        </div>`;
-                    return;
-                }
-                let html = '';
-                snap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    html += `
-                    <div class="inv-card pending" style="flex-direction: row;">
-                       ...
-                    </div>`;
-                });
-                if (snap.size === limitPending) {
-                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
-                }
-                pendingGrid.innerHTML = html;
-                */
-
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     pendingGrid.innerHTML = `
@@ -518,6 +466,9 @@
                     if (child.id && child.id.startsWith('pending-') && !pendingIds.has(child.id.replace('pending-', ''))) child.remove();
                 });
                 
+                // ADVANCED FIX: Now that the new cards are securely occupying space, it is safe to remove the old spinner.
+                document.querySelectorAll('#pendingGrid .pagination-spinner').forEach(spinner => spinner.remove());
+
                 let pendingLoader = pendingGrid.querySelector('.loader-row');
                 if (snap.size === limitPending) {
                     if (!pendingLoader) pendingGrid.insertAdjacentHTML('beforeend', `<div class="loader-row"><button class="btn-load-more"></button></div>`);
