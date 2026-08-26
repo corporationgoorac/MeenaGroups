@@ -345,6 +345,36 @@
             const qMissing = query(collection(db, "daily_check"), where("status", "==", "missing"), limit(limitMissing));
             unsubMissing = onSnapshot(qMissing, (snap) => {
                 
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
+                if (snap.empty) {
+                    missingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgMissingEmpty}
+                            <h3 style="margin:0; color:white;">All Clear!</h3>
+                            <p style="margin:0;">No discrepancies reported by employees.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    
+                    // ADVANCED FIX: Over/Short Badges mirroring employee page
+                    let discrepancyAmount = data.discrepancy;
+                    let displayBadge = "";
+                    ...
+                    html += `
+                    <div class="inv-card missing">
+                       ...
+                    </div>`;
+                });
+                if (snap.size === limitMissing) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMoreMissing()">Load Next 10</button></div>`;
+                }
+                missingGrid.innerHTML = html;
+                */
+
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     missingGrid.innerHTML = `
@@ -421,6 +451,31 @@
             const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(limitPending));
             unsubPending = onSnapshot(qPending, (snap) => {
                 
+                // --- ORIGINAL DESTRUCTIVE CODE PRESERVED VIA COMMENTS ---
+                /*
+                if (snap.empty) {
+                    pendingGrid.innerHTML = `
+                        <div class="empty-state">
+                            ${svgPendingEmpty}
+                            <h3 style="margin:0; color:white;">Queue is Empty</h3>
+                            <p style="margin:0;">No active tasks assigned to employees.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    html += `
+                    <div class="inv-card pending" style="flex-direction: row;">
+                       ...
+                    </div>`;
+                });
+                if (snap.size === limitPending) {
+                    html += `<div class="loader-row"><button class="btn-load-more" onclick="loadMorePending()">Load Next 10</button></div>`;
+                }
+                pendingGrid.innerHTML = html;
+                */
+
                 // --- ADVANCED NON-DESTRUCTIVE RENDER (Fixes flicker and scroll jump) ---
                 if (snap.empty) {
                     pendingGrid.innerHTML = `
