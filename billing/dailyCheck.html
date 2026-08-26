@@ -616,7 +616,7 @@
                     if (liveQty === 0) qtyBox.style.color = 'var(--meena-red)';
                     else qtyBox.style.color = 'var(--marketing-white)';
                 } else {
-                    systemLiveQty = null;
+                    systemLiveQty = 0; // FIXED: Changed from null to 0 to prevent ghost product trap
                     qtyBox.innerHTML = '<span style="color:var(--meena-red); font-size: 0.5em;">Item not found in master database</span>';
                 }
             }, (err) => {
@@ -650,7 +650,10 @@
                 closeModal('modalAudit');
             } catch (e) {
                 showToast("Failed to verify stock.", "error");
-                btn.disabled = false; btn.innerHTML = ogText;
+            } finally {
+                // FIXED: Button is instantly reset here so it works for the next product
+                btn.disabled = false; 
+                btn.innerHTML = ogText;
             }
         };
 
