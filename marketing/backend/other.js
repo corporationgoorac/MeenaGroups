@@ -332,6 +332,7 @@ module.exports = (client, db) => {
 
             return { isAuspicious, name: tithiName };
         } catch (error) {
+            console.error("⚠️ Panchangam Calculation Error:", error.message); // 👈 Error Logger Added
             return { isAuspicious: false, name: null };
         }
     }
@@ -510,7 +511,29 @@ module.exports = (client, db) => {
 
         const weatherText = await getWeatherData();
         const festival = await checkFestivalToday();
-        const astroData = checkAuspiciousDay(new Date());
+        
+        // 👈 THE NEW MULTI-CHECK FIX FOR TODAY
+        const todayStrTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
+        const morningToday = new Date(todayStrTime);
+        morningToday.setHours(6, 0, 0, 0);
+
+        const noonToday = new Date(todayStrTime);
+        noonToday.setHours(12, 0, 0, 0);
+
+        const eveningToday = new Date(todayStrTime);
+        eveningToday.setHours(17, 0, 0, 0);
+
+        const morningAstro = checkAuspiciousDay(morningToday);
+        const noonAstro = checkAuspiciousDay(noonToday);
+        const eveningAstro = checkAuspiciousDay(eveningToday);
+
+        const astroData = {
+            isAuspicious: morningAstro.isAuspicious || noonAstro.isAuspicious || eveningAstro.isAuspicious,
+            name: morningAstro.name || noonAstro.name || eveningAstro.name
+        };
+        // ------------------------------------------
+
         const quote = generateMorningQuote();
         
         let imagePath = null;
@@ -573,13 +596,36 @@ module.exports = (client, db) => {
             return;
         }
 
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowAstroData = checkAuspiciousDay(tomorrow);
+        // 👈 THE NEW MULTI-CHECK FIX FOR TOMORROW
+        const todayStrTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
+        const morningTomorrow = new Date(todayStrTime);
+        morningTomorrow.setDate(morningTomorrow.getDate() + 1);
+        morningTomorrow.setHours(6, 0, 0, 0);
+
+        const noonTomorrow = new Date(todayStrTime);
+        noonTomorrow.setDate(noonTomorrow.getDate() + 1);
+        noonTomorrow.setHours(12, 0, 0, 0);
+
+        const eveningTomorrow = new Date(todayStrTime);
+        eveningTomorrow.setDate(eveningTomorrow.getDate() + 1);
+        eveningTomorrow.setHours(17, 0, 0, 0);
+
+        const morningAstroTomorrow = checkAuspiciousDay(morningTomorrow);
+        const noonAstroTomorrow = checkAuspiciousDay(noonTomorrow);
+        const eveningAstroTomorrow = checkAuspiciousDay(eveningTomorrow);
+
+        const tomorrowAstroData = {
+            isAuspicious: morningAstroTomorrow.isAuspicious || noonAstroTomorrow.isAuspicious || eveningAstroTomorrow.isAuspicious,
+            name: morningAstroTomorrow.name || noonAstroTomorrow.name || eveningAstroTomorrow.name
+        };
+        // ------------------------------------------
         
         let finalMessage = `🌅 *Meena Marketing - Evening Update*\n\n`;
         let imagePath = null;
-        const tomorrowDateStr = tomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        // Using morningTomorrow just to format the date correctly for the message
+        const tomorrowDateStr = morningTomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
         if (tomorrowAstroData.isAuspicious) {
             imagePath = await generateCelebrationImage('TOMORROW IS MUGURTHAM', tomorrowDateStr, 'mugurtham');
