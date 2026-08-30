@@ -14,6 +14,7 @@
  * - Scalable SVG Graphics Integration (NEW)
  * - Firebase Single-Document State Management (NEW)
  * - Bulletproof Missed Schedule Watchdog (NEW)
+ * - Enterprise JSON-based Muhurtham Scheduling Engine (NEW)
  */
 
 const cron = require('node-cron');
@@ -22,7 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const ical = require('node-ical');
 const puppeteer = require('puppeteer');
-const { getPanchangam, Observer } = require('@ishubhamx/panchangam-js');
+// 🗑️ Removed '@ishubhamx/panchangam-js' dependency completely for stability
 const { MessageMedia } = require('whatsapp-web.js');
 
 // 🛡️ Added 'db' to the export signature to accept Firebase instance
@@ -93,7 +94,7 @@ module.exports = (client, db) => {
     // ---------------------------------------------------------
     const SHOP_LAT = 8.61; // Alwarthirunagiri
     const SHOP_LON = 77.94;
-    const ELEVATION = 15;
+    const ELEVATION = 15; // Kept to not break any existing lines/expectations
     const CALENDAR_URL = 'https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics';
     
     // Admin Security: Only these numbers can trigger test commands
@@ -180,10 +181,36 @@ module.exports = (client, db) => {
                 ? mugurthamGradients[Math.floor(Math.random() * mugurthamGradients.length)]
                 : festivalGradients[Math.floor(Math.random() * festivalGradients.length)];
 
-            // Elegant CSS-styled SVGs instead of standard emojis
-            const svgMugurtham = `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 1L9 9l-8 3 8 3 3 8 3-8 8-3-8-3-3-8z"/></svg>`;
-            const svgFestival = `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
-            const decorSVG = type === 'mugurtham' ? svgMugurtham : svgFestival;
+            // 👑 NEW PROFESSIONAL SVG TEMPLATES
+            const mugurthamSVGs = [
+                // 1. Traditional Star
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 1L9 9l-8 3 8 3 3 8 3-8 8-3-8-3-3-8z"/></svg>`,
+                // 2. Diamond / Jewel
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2L2 9l10 13L22 9l-10-7zM4.2 9l7.8-5.5v16.1L4.2 9zm15.6 0l-7.8-5.5v16.1l7.8-10.6z"/></svg>`,
+                // 3. Floral Mandala
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2c0 5.5-4.5 10-10 10 5.5 0 10 4.5 10 10 0-5.5 4.5-10 10-10-5.5 0-10-4.5-10-10z"/></svg>`,
+                // 4. Crown
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M2 22h20v-2H2v2zm3-4h14L22 7l-6 4-4-6-4 6-6-4 5 11z"/></svg>`,
+                // 5. Interlocked Rings
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2"><circle cx="8" cy="12" r="6"/><circle cx="16" cy="12" r="6"/></svg>`
+            ];
+
+            const festivalSVGs = [
+                // 1. Classic Sparkles
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+                // 2. Gift Box
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M20 8h-3.2c.7-1.1.9-2.4.2-3.6-1.1-1.8-3.4-2.2-5-1.1L12 3.8l-1.3-.9c-1.6-1.1-3.9-.7-5 1.1-.7 1.2-.5 2.5.2 3.6H4c-1.1 0-2 .9-2 2v4h20v-4c0-1.1-.9-2-2-2zM9 5c.8-.5 1.8-.3 2.3.5.5.8.3 1.8-.5 2.3-.3.2-.6.2-1 0-.8-.5-1-1.5-.8-2.8zm6 0c.2 1.3 0 2.3-.8 2.8-.4.2-.7.2-1 0-.8-.5-1-1.5-.5-2.3.5-.8 1.5-1 2.3-.5zM2 16h9v6H2v-6zm11 6v-6h9v6h-9z"/></svg>`,
+                // 3. Flame / Diya
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M12 2c0 0-4 5.5-4 9.5a4 4 0 0 0 8 0C16 7.5 12 2 12 2zm0 13a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm7 4H5c-1.1 0-2 .9-2 2v1h18v-1c0-1.1-.9-2-2-2z"/></svg>`,
+                // 4. Celebration Sun
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2" stroke-linecap="round"><path d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.66-5.66l1.41-1.41M4.93 19.07l1.41-1.41m0-11.32L4.93 4.93m14.14 14.14l-1.41-1.41M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/></svg>`,
+                // 5. Party Confetti Cone
+                `<svg width="80" height="80" viewBox="0 0 24 24" fill="#FFD700"><path d="M14 10l-4-4L3 13c-1.1 1.1-1.1 3 0 4.2.6.6 1.3.9 2.1.9s1.5-.3 2.1-.9l7-7zm6-6h-2v2h-2v2h2v2h2V8h2V6h-2V4z"/></svg>`
+            ];
+
+            const decorSVG = type === 'mugurtham' 
+                ? mugurthamSVGs[Math.floor(Math.random() * mugurthamSVGs.length)] 
+                : festivalSVGs[Math.floor(Math.random() * festivalSVGs.length)];
             
             // Fetch dynamically from phrases.json
             const db_phrases = getPhrases();
@@ -305,35 +332,24 @@ module.exports = (client, db) => {
     }
 
     // ---------------------------------------------------------
-    // 3. OFFLINE MUGURTHAM CALCULATOR
+    // 3. ENTERPRISE MUHURTHAM JSON CHECKER
     // ---------------------------------------------------------
-    function isAadiOrMargazhi(date) {
-        const month = date.getMonth(); 
-        const day = date.getDate();
-        
-        if ((month === 6 && day >= 16) || (month === 7 && day <= 16)) return true;
-        if ((month === 11 && day >= 16) || (month === 0 && day <= 13)) return true;
-        
-        return false;
-    }
-
-    function checkAuspiciousDay(targetDate) {
+    function checkMuhurtham(targetDateString) {
         try {
-            if (isAadiOrMargazhi(targetDate)) return { isAuspicious: false, name: null };
-
-            const observer = new Observer(SHOP_LAT, SHOP_LON, ELEVATION);
-            const panchang = getPanchangam(targetDate, observer, { timezoneOffset: 330 });
+            const filePath = path.join(__dirname, 'muhurtham.json');
+            if (!fs.existsSync(filePath)) {
+                console.warn("⚠️ muhurtham.json not found! Defaulting to non-muhurtham.");
+                return false;
+            }
             
-            const tithiNumber = panchang.tithi?.number || 0;
-            const tithiName = panchang.tithi?.name || "Auspicious Day";
-
-            const auspiciousTithis = [5, 11, 13, 15]; 
-            const isAuspicious = auspiciousTithis.includes(tithiNumber);
-
-            return { isAuspicious, name: tithiName };
+            const rawData = fs.readFileSync(filePath, 'utf8');
+            const muhurthamDates = JSON.parse(rawData);
+            
+            // Fast O(1) array inclusion check for exact YYYY-MM-DD format
+            return Array.isArray(muhurthamDates) && muhurthamDates.includes(targetDateString);
         } catch (error) {
-            console.error("⚠️ Panchangam Calculation Error:", error.message); // 👈 Error Logger Added
-            return { isAuspicious: false, name: null };
+            console.error("⚠️ Error parsing muhurtham.json:", error.message); 
+            return false;
         }
     }
 
@@ -512,32 +528,13 @@ module.exports = (client, db) => {
         const weatherText = await getWeatherData();
         const festival = await checkFestivalToday();
         
-        // 👈 THE NEW MULTI-CHECK FIX FOR TODAY
-        const todayStrTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
-
-        const morningToday = new Date(todayStrTime);
-        morningToday.setHours(6, 0, 0, 0);
-
-        const noonToday = new Date(todayStrTime);
-        noonToday.setHours(12, 0, 0, 0);
-
-        const eveningToday = new Date(todayStrTime);
-        eveningToday.setHours(17, 0, 0, 0);
-
-        const morningAstro = checkAuspiciousDay(morningToday);
-        const noonAstro = checkAuspiciousDay(noonToday);
-        const eveningAstro = checkAuspiciousDay(eveningToday);
-
-        const astroData = {
-            isAuspicious: morningAstro.isAuspicious || noonAstro.isAuspicious || eveningAstro.isAuspicious,
-            name: morningAstro.name || noonAstro.name || eveningAstro.name
-        };
+        // 👈 THE NEW JSON CHECK FIX FOR TODAY
+        const isTodayMuhurtham = checkMuhurtham(todayString);
         // ------------------------------------------
 
         const quote = generateMorningQuote();
         
         let imagePath = null;
-        let media = null;
         const dateStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
         let finalMessage = `🌅 *Meena Marketing Update*\n\n`;
@@ -546,7 +543,7 @@ module.exports = (client, db) => {
         if (festival) {
             imagePath = await generateCelebrationImage(festival, dateStr, 'festival');
             finalMessage += `🎉 *Festival Alert:* Happy ${festival} to the Meena Marketing family! Let's make today special! 🎊\n\n`;
-        } else if (astroData.isAuspicious) {
+        } else if (isTodayMuhurtham) {
             imagePath = await generateCelebrationImage('SUBA MUGURTHAM', dateStr, 'mugurtham');
             finalMessage += `💍 *Auspicious Day:* Today is mathematically highly auspicious. Expect high footfall and be ready to close sales! 🚀\n\n`;
         }
@@ -596,38 +593,22 @@ module.exports = (client, db) => {
             return;
         }
 
-        // 👈 THE NEW MULTI-CHECK FIX FOR TOMORROW
+        // 👈 THE NEW JSON CHECK FIX FOR TOMORROW
         const todayStrTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
-
-        const morningTomorrow = new Date(todayStrTime);
-        morningTomorrow.setDate(morningTomorrow.getDate() + 1);
-        morningTomorrow.setHours(6, 0, 0, 0);
-
-        const noonTomorrow = new Date(todayStrTime);
-        noonTomorrow.setDate(noonTomorrow.getDate() + 1);
-        noonTomorrow.setHours(12, 0, 0, 0);
-
-        const eveningTomorrow = new Date(todayStrTime);
-        eveningTomorrow.setDate(eveningTomorrow.getDate() + 1);
-        eveningTomorrow.setHours(17, 0, 0, 0);
-
-        const morningAstroTomorrow = checkAuspiciousDay(morningTomorrow);
-        const noonAstroTomorrow = checkAuspiciousDay(noonTomorrow);
-        const eveningAstroTomorrow = checkAuspiciousDay(eveningTomorrow);
-
-        const tomorrowAstroData = {
-            isAuspicious: morningAstroTomorrow.isAuspicious || noonAstroTomorrow.isAuspicious || eveningAstroTomorrow.isAuspicious,
-            name: morningAstroTomorrow.name || noonAstroTomorrow.name || eveningAstroTomorrow.name
-        };
+        const tomorrow = new Date(todayStrTime);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const tomorrowString = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const isTomorrowMuhurtham = checkMuhurtham(tomorrowString);
         // ------------------------------------------
         
         let finalMessage = `🌅 *Meena Marketing - Evening Update*\n\n`;
         let imagePath = null;
         
-        // Using morningTomorrow just to format the date correctly for the message
-        const tomorrowDateStr = morningTomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        // Formatting tomorrow's date for the visual image
+        const tomorrowDateStr = tomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        if (tomorrowAstroData.isAuspicious) {
+        if (isTomorrowMuhurtham) {
             imagePath = await generateCelebrationImage('TOMORROW IS MUGURTHAM', tomorrowDateStr, 'mugurtham');
             finalMessage += `💍 *நாளை சுபமுகூர்த்த தினம்!*\nகடையில் நல்ல கூட்டம் வர வாய்ப்புள்ளது. நாளைக்கு தேவையான ஸ்டாக் மற்றும் டிஸ்பிளேவை இப்போதே சரியாக தயார் செய்து வையுங்கள். Let's get ready for a great sales day tomorrow! 🚀\n\n`;
         } else {
