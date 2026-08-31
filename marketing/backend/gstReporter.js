@@ -41,7 +41,7 @@ module.exports = (client, db) => {
         let cleaned = String(currentAdminPhone1).replace(/\D/g, '');
         if (cleaned.startsWith('0') && cleaned.length === 11) cleaned = cleaned.substring(1);
         if (cleaned.length === 10) cleaned = '91' + cleaned;
-        return cleaned + '@lid'; // Fixed: Now perfectly matches WhatsApp's @lid format
+        return cleaned + '@c.us'; // Standard WhatsApp format matching msg.from
     }
 
     // Custom fetch wrapper with a 5-minute timeout to fix Hugging Face "Cold Starts"
@@ -317,25 +317,58 @@ module.exports = (client, db) => {
             let pdfBuffer = Buffer.from(arrayBuffer);
             const media = new MessageMedia('application/pdf', pdfBuffer.toString('base64'), `GST_Report_${reportingMonthStr}.pdf`);
             
-            if (adminId) {
+            let messageDelivered = false;
+
+            if (currentAdminPhone1) {
                 const caption = isCatchup 
                     ? `✅ *RECOVERED GST REPORT*\n_This report for ${reportingMonthStr} was missed during an outage and has been automatically recovered._`
                     : `✅ *MONTHLY GST REPORT*\n_Automated delivery for ${reportingMonthStr}._`;
                 
-                await client.sendMessage(adminId, media, { caption });
+                // 1. Strip non-numeric characters safely
+                const adminPlainPhone = String(currentAdminPhone1).replace(/\D/g, '');
+                
+                try {
+                    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+                    await sleep(2000); // DOM margin delay
+                    
+                    // 2. Network Verification with WhatsApp
+                    const adminContactId = await client.getNumberId(adminPlainPhone);
+                    const verifiedAdminId = adminContactId ? adminContactId._serialized : `${adminPlainPhone}@c.us`;
+                    
+                    try {
+                        // 3. Attempt Delivery
+                        await client.sendMessage(verifiedAdminId, media, { caption });
+                        messageDelivered = true; // Flag success
+                    } catch (sendErr) {
+                        // 4. The multi-device sync fallback (Initialization workaround)
+                        if (sendErr.message && (sendErr.message.includes('findChat') || sendErr.message.includes('@lid') || sendErr.message.includes('not found'))) {
+                            console.log(`⚠️ Applying path initialization workaround for GST Channel...`);
+                            await client.sendMessage(verifiedAdminId, `🚨 Syncing Automated GST Channel...`);
+                            await sleep(2000);
+                            await client.sendMessage(verifiedAdminId, media, { caption });
+                            messageDelivered = true; // Flag success on retry
+                        } else {
+                            throw sendErr; // Hard fail if it's an unrecoverable error
+                        }
+                    }
+                } catch (networkError) {
+                    console.error("❌ Failed to deliver GST report to WhatsApp:", networkError.message);
+                    throw networkError; // Force the main catch block to mark the database as "FAILED"
+                }
             }
 
             // Empty the Base64 String from RAM
             pdfBuffer = null;
 
-            // Mark Cycle Complete
-            await docRef.set({
-                currentMonth: reportingMonthStr,
-                status: "SENT",
-                updatedAt: new Date().toISOString()
-            });
-            
-            console.log(`[SYS] Automated GST Report for ${reportingMonthStr} successfully completed.`);
+            // 5. STRICT DATABASE LOCK: Only update to SENT if WhatsApp confirmed delivery
+            if (messageDelivered) {
+                await docRef.set({
+                    currentMonth: reportingMonthStr,
+                    status: "SENT",
+                    updatedAt: new Date().toISOString()
+                });
+                console.log(`[SYS] Automated GST Report for ${reportingMonthStr} successfully delivered.`);
+            }
 
         } catch (error) {
             console.error("Automated GST System Error:", error);
