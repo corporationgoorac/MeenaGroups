@@ -336,9 +336,10 @@ module.exports = (client, db) => {
     // ---------------------------------------------------------
     function checkMuhurtham(targetDateString) {
         try {
-            const filePath = path.join(__dirname, 'muhurtham.json');
+            // FIXED: Pointing to the exact file name provided (mugurtham.json)
+            const filePath = path.join(__dirname, 'mugurtham.json');
             if (!fs.existsSync(filePath)) {
-                console.warn("⚠️ muhurtham.json not found! Defaulting to non-muhurtham.");
+                console.warn("⚠️ mugurtham.json not found! Defaulting to non-muhurtham.");
                 return false;
             }
             
@@ -348,7 +349,7 @@ module.exports = (client, db) => {
             // Fast O(1) array inclusion check for exact YYYY-MM-DD format
             return Array.isArray(muhurthamDates) && muhurthamDates.includes(targetDateString);
         } catch (error) {
-            console.error("⚠️ Error parsing muhurtham.json:", error.message); 
+            console.error("⚠️ Error parsing mugurtham.json:", error.message); 
             return false;
         }
     }
@@ -507,21 +508,22 @@ module.exports = (client, db) => {
         }
     }
 
-    async function sendMorningBlast() {
+    // FIXED: Added force parameter to bypass memory locks for manual tests
+    async function sendMorningBlast(force = false) {
         const todayString = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // Output: YYYY-MM-DD
         
-        // 🛡️ Guard: Prevent duplicate sends on the same day
-        if (cachedMorningDate === todayString) {
+        // 🛡️ Guard: Prevent duplicate sends on the same day (Bypass if forced)
+        if (!force && cachedMorningDate === todayString) {
             console.log(`⏸️ Morning Blast already sent for today (${todayString}). Skipping.`);
             return;
         }
 
         // 🔒 OPTIMISTIC LOCK: Claim task immediately to block the Watchdog from double-firing
-        cachedMorningDate = todayString;
+        if (!force) cachedMorningDate = todayString;
 
         console.log("☀️ Executing Morning Blast...");
         if (!(await ensureGroupConnection())) {
-            cachedMorningDate = null; // Unlock if connection completely fails
+            if (!force) cachedMorningDate = null; // Unlock if connection completely fails
             return;
         }
 
@@ -545,7 +547,8 @@ module.exports = (client, db) => {
             finalMessage += `🎉 *Festival Alert:* Happy ${festival} to the Meena Marketing family! Let's make today special! 🎊\n\n`;
         } else if (isTodayMuhurtham) {
             imagePath = await generateCelebrationImage('SUBA MUGURTHAM', dateStr, 'mugurtham');
-            finalMessage += `💍 *Auspicious Day:* Today is mathematically highly auspicious. Expect high footfall and be ready to close sales! 🚀\n\n`;
+            // FIXED: Removed "mathematically highly auspicious" string for a natural tone
+            finalMessage += `💍 *Auspicious Day:* Today is an auspicious day! Expect high footfall and be ready to close sales! 🚀\n\n`;
         }
         
         finalMessage += `💬 ${quote}\n\n`;
@@ -563,33 +566,36 @@ module.exports = (client, db) => {
                 try { fs.unlinkSync(imagePath); } catch (e) {}
             }
 
-            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads)
-            await db.collection('group_message').doc('status').set({
-                lastMorningBlastDate: todayString
-            }, { merge: true });
+            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads) - Bypass writing if it's a test
+            if (!force) {
+                await db.collection('group_message').doc('status').set({
+                    lastMorningBlastDate: todayString
+                }, { merge: true });
+            }
 
             console.log(`✅ Morning Blast completed and logged for ${todayString}`);
         } catch (e) {
             console.error("⚠️ Message send failed:", e.message);
-            cachedMorningDate = null; // Unlock so it can retry later
+            if (!force) cachedMorningDate = null; // Unlock so it can retry later
         }
     }
 
-    async function sendEveningBlast() {
+    // FIXED: Added force parameter to bypass memory locks for manual tests
+    async function sendEveningBlast(force = false) {
         const todayString = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // Output: YYYY-MM-DD
         
-        // 🛡️ Guard: Prevent duplicate sends on the same day
-        if (cachedEveningDate === todayString) {
+        // 🛡️ Guard: Prevent duplicate sends on the same day (Bypass if forced)
+        if (!force && cachedEveningDate === todayString) {
             console.log(`⏸️ Evening Blast already sent for today (${todayString}). Skipping.`);
             return;
         }
 
         // 🔒 OPTIMISTIC LOCK: Claim task immediately to block the Watchdog from double-firing
-        cachedEveningDate = todayString;
+        if (!force) cachedEveningDate = todayString;
 
         console.log("🌙 Executing Evening Blast...");
         if (!(await ensureGroupConnection())) {
-            cachedEveningDate = null; // Unlock if connection completely fails
+            if (!force) cachedEveningDate = null; // Unlock if connection completely fails
             return;
         }
 
@@ -630,15 +636,17 @@ module.exports = (client, db) => {
                 try { fs.unlinkSync(imagePath); } catch (e) {}
             }
 
-            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads)
-            await db.collection('group_message').doc('status').set({
-                lastEveningBlastDate: todayString
-            }, { merge: true });
+            // 🛡️ Blind Write to Firebase (1 Write, 0 Reads) - Bypass writing if it's a test
+            if (!force) {
+                await db.collection('group_message').doc('status').set({
+                    lastEveningBlastDate: todayString
+                }, { merge: true });
+            }
 
             console.log(`✅ Evening Blast completed and logged for ${todayString}`);
         } catch (e) {
             console.error("⚠️ Message send failed:", e.message);
-            cachedEveningDate = null; // Unlock so it can retry later
+            if (!force) cachedEveningDate = null; // Unlock so it can retry later
         }
     }
 
@@ -701,12 +709,12 @@ module.exports = (client, db) => {
 
             if (command === 'morning') {
                 console.log(`🛠️ User ${sender} triggered manual morning test.`);
-                await sendMorningBlast();
+                await sendMorningBlast(true); // FIXED: Pass true to bypass locks & Firebase
                 await msg.react('✅');
             } 
             else if (command === 'evening') {
                 console.log(`🛠️ User ${sender} triggered manual evening test.`);
-                await sendEveningBlast();
+                await sendEveningBlast(true); // FIXED: Pass true to bypass locks & Firebase
                 await msg.react('✅');
             } 
             else if (command === 'festival') {
