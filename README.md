@@ -1,7 +1,7 @@
 <div align="center">
   <img src="marketing/icon.png" alt="Meena Marketing Logo" width="150"/>
 
-  # Meena Marketing - Inventory & Billing System
+  # Meena Marketing - Alwarthirunagiri
   **A private, AI-powered software solution developed by Goorac Corporation.**
 </div>
 
