@@ -1,58 +1,43 @@
 <div align="center">
-  <img src="admin/icon.png" alt="Meena Groups Logo" width="120" style="margin-bottom: 10px;" />
-  
-  <h1 style="background-color: #111; padding: 10px 25px; border-radius: 8px; display: inline-block;">
-    <span style="color: #FF0000; font-family: 'Arial Black', Impact, sans-serif; font-weight: 900; letter-spacing: 1px;">Meena</span>
-    <span style="color: #FFFFFF; font-family: 'Arial Black', Impact, sans-serif; font-weight: 900; letter-spacing: 1px;">Groups</span>
-  </h1>
-  
-  <p><b>Enterprise EMI, Chit Fund & Retail Dashboard</b></p>
+  <img src="marketing/icon.png" alt="Meena Marketing Logo" width="150"/>
+
+  # Meena Marketing - Inventory & Billing System
+  **A private inventory management and billing solution developed by Goorac Corporation.**
 </div>
 
 ---
 
-## ⚠️🛑 EXTREME WARNING: STRICTLY PRIVATE & PERSONAL CODE 🛑⚠️
+## 📌 Overview
+This is a proprietary, closed-source software application custom-built for **Meena Marketing, Electronics, and Furniture Shop**. It serves as a centralized platform to manage daily billing, track inventory across multiple product categories (electronics and furniture), and maintain precise customer ledgers. 
 
-**DO NOT USE THIS CODE.** This is a completely private, personal, and proprietary financial repository belonging exclusively to **Meena Groups**. 
+## ✨ Key Features
+*   **Rapid Billing & Invoicing:** Generate professional bills and invoices for customers quickly.
+*   **Dynamic Inventory Management:** Track stock levels in real-time for both electronics and furniture departments.
+*   **Customer Ledger:** Maintain comprehensive mathematical breakdowns of customer dues, payments, and histories.
+*   **Secure Access:** Private portal restricted to authorized staff and administration.
+*   **Reporting & Analytics:** Gain insights into daily sales, pending payments, and low-stock alerts.
 
-If you are reading this and you are not an explicitly authorized developer or owner: **CLOSE THIS FILE IMMEDIATELY.** * **DO NOT** copy this code.
-* **DO NOT** clone, fork, or download this repository.
-* **DO NOT** use any part of this system.
+## 🚀 Getting Started
 
-This codebase contains highly sensitive financial algorithms, EMI tracking logic, and private company structures. Any unauthorized access, theft, copying, or distribution of this code will be met with immediate, severe, and relentless legal action. **Keep your hands off.**
+> **Note:** This is a private application. Unauthorized access, distribution, or duplication is strictly prohibited.
 
----
+### Prerequisites
+*   Modern web browser (Chrome, Firefox, Safari, Edge)
+*   Active internet/intranet connection
+*   Authorized staff credentials
 
-## 📖 Overview
+### Deployment
+Since the application relies on a direct folder structure for configuration and assets (e.g., `marketing/icon.png`, `config.js`), ensure all files remain in their designated directories as provisioned by Goorac Corporation when hosting on your local server or private cloud.
 
-The **Meena Groups Dashboard** is our internal, private command center. It is built to handle the heavy lifting of our financial operations, specifically tracking customer EMIs, managing our retail inventory (Furniture & Electronics), and executing complex Chit Fund operations. 
+## 📂 Project Structure Snapshot
+*   `/marketing/icon.png` - Application and brand logo
+*   `index.html` / `chit.html` - Core interface files
+*   `config.js` - Centralized database and system configuration
 
-## ✨ Core Modules
+## 🛡️ License & Copyright
+**© 2026 Goorac Corporation. All Rights Reserved.**
 
-### 💰 EMI & Loan Management
-* **Active EMIs:** Centralized tracking for all customer EMIs with automated due-date flagging.
-* **Payment Collection:** Process incoming payments, calculate late-fee penalties, and log transaction histories.
-* **Defaulter Tracking:** Instantly flag accounts that are past due so collection agents can take action.
-
-### 🛋️ Retail & Inventory (Furniture & Electronics)
-* **Stock Tracking:** Real-time inventory levels for electronic appliances and furniture assets.
-* **Direct Sales to EMI:** Instantly convert a retail purchase on the floor directly into a structured EMI plan for the customer.
-
-### 🏦 Chit Fund Operations
-* **Group Management:** Manage chit fund groups, track participant lists, and monitor monthly contribution statuses.
-* **Auction & Dividends:** Log monthly auction winners, calculate dividend splits, and distribute credits.
-* **Payout Tracking:** Secure logging of final payouts and guarantor documentation.
-
----
-
-## 🛠️ Tech Stack
-
-* **Frontend:** React / Web Portal
-* **Backend:** Node.js / Express.js Enterprise Engine
-* **Database:** Secure Financial Ledger Database
-* **Authentication:** Strict Role-Based Access Control
+This software is the intellectual property of Goorac Corporation, licensed exclusively for internal use by Meena Marketing. It may not be copied, modified, or distributed without explicit written permission from Goorac Corporation.
 
 ---
-
-**Copyright © 2026 Meena Groups. All Rights Reserved.**
-*Once again: This is a private repo. Do not touch, copy, or use this code.*
+*Developed with ❤️ by Goorac Corporation.*
