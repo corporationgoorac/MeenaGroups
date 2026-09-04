@@ -275,7 +275,8 @@
     <script type="module">
         import { db } from './config.js';
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-        import { collection, query, where, limit, onSnapshot, doc, deleteDoc, getDocs, writeBatch, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+        /* NEW IMPLEMENTATION: Added runTransaction for bulletproof locking */
+        import { collection, query, where, limit, onSnapshot, doc, deleteDoc, getDocs, writeBatch, updateDoc, serverTimestamp, getDoc, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
         // Global Vibration Engine
         window.vibrateApp = function(pattern) {
@@ -324,14 +325,43 @@
 
         pendingGrid.innerHTML = getSkeletonHTML() + getSkeletonHTML() + getSkeletonHTML();
 
-        // --- THE AUTO-PILOT ASSIGNMENT LOGIC ---
-        async function runAutoPilot() {
+        // --- THE AUTO-PILOT ASSIGNMENT LOGIC (TRANSACTION LOCKED) ---
+        async function runAutoPilot(todayStr) {
             try {
-                // BUG FIX: Changed limit from 1 to 10 to instantly prime the Firebase local cache and eliminate 1-card stutter
+                const gatekeeperRef = doc(db, "daily_check_settings", "master_record");
+
+                // --- 1. ATOMIC TRANSACTION: Claim the lock for today ---
+                const lockAcquired = await runTransaction(db, async (transaction) => {
+                    const gatekeeperDoc = await transaction.get(gatekeeperRef);
+                    
+                    if (gatekeeperDoc.exists() && gatekeeperDoc.data().lastGenerationDate === todayStr) {
+                        // Another agent already claimed the lock today. Abort transaction.
+                        return false; 
+                    }
+
+                    // We are the first! Write the lock immediately atomically.
+                    transaction.set(gatekeeperRef, {
+                        lastGenerationDate: todayStr,
+                        generatedBy: currentUserName,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                    
+                    return true;
+                });
+
+                if (!lockAcquired) {
+                    // Another device successfully generated the list. Save local memory and load dashboard.
+                    localStorage.setItem('lastAutoPilotRun', todayStr);
+                    startDashboardListeners();
+                    return; 
+                }
+
+                // --- 2. GENERATE TASKS (Only the specific device that acquired the lock reaches here) ---
                 const qPending = query(collection(db, "daily_check"), where("status", "==", "pending"), limit(10));
                 const snapPending = await getDocs(qPending);
                 
                 if (!snapPending.empty) {
+                    localStorage.setItem('lastAutoPilotRun', todayStr);
                     startDashboardListeners();
                     return;
                 }
@@ -348,6 +378,7 @@
                             <h3 style="margin:0; color:white;">Audit Cycle Complete!</h3>
                             <p style="margin:0;">All inventory has been checked. Waiting for Admin to restart the cycle.</p>
                         </div>`;
+                    localStorage.setItem('lastAutoPilotRun', todayStr);
                     startDashboardListeners(true); // Only start missing listener
                     return;
                 }
@@ -357,10 +388,12 @@
                 snapUnassigned.forEach(d => batch.update(d.ref, { status: "pending" }));
                 await batch.commit();
 
+                // --- 3. FINALIZE LOCAL STORAGE ---
+                localStorage.setItem('lastAutoPilotRun', todayStr);
                 startDashboardListeners();
 
             } catch (e) {
-                console.error(e);
+                console.error("AutoPilot Error: ", e);
                 pendingGrid.innerHTML = `<div class="empty-state"><h3 style="color:var(--meena-red);">Connection Error</h3><p>Please check your network and refresh.</p></div>`;
             }
         }
@@ -741,9 +774,12 @@
                     // Already checked today! Skip the AutoPilot DB read and just load the UI
                     startDashboardListeners();
                 } else {
-                    // First time loading today on this device, run AutoPilot and cache the date
-                    localStorage.setItem('lastAutoPilotRun', todayStr);
-                    setTimeout(runAutoPilot, 100); 
+                    /* 
+                       NEW IMPLEMENTATION: 
+                       Instead of setting local storage here, we pass todayStr to runAutoPilot 
+                       so the Gatekeeper Transaction can safely lock the database first. 
+                    */
+                    setTimeout(() => runAutoPilot(todayStr), 100); 
                 }
             }
         });
